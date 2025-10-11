@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天界面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 壁纸 */
+        .wallpaper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://picsum.photos/seed/chat/400/800') center/cover no-repeat;
+            z-index: -1;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            height: 44px;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: transparent;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .status-bar .time {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .status-bar .icons {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .status-bar .icons svg {
+            width: 16px;
+            height: 16px;
+            fill: white;
+            stroke: white;
+            stroke-width: 1.5;
+        }
+
+        /* 信号图标 */
+        .signal-bars {
+            display: flex;
+            align-items: flex-end;
+            height: 14px;
+        }
+
+        .signal-bar {
+            width: 3px;
+            background: white;
+            margin-right: 1px;
+        }
+
+        .signal-bar-1 { height: 4px; }
+        .signal-bar-2 { height: 8px; }
+        .signal-bar-3 { height: 12px; }
+        .signal-bar-4 { height: 14px; }
+
+        /* 电池图标 */
+        .battery-icon {
+            position: relative;
+            width: 20px;
+            height: 10px;
+            border: 1px solid white;
+            border-radius: 2px;
+        }
+
+        .battery-fill {
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            height: 6px;
+            width: 70%; /* 70% 电量 */
+            background: white;
+        }
+
+        .battery-tip {
+            position: absolute;
+            top: 3px;
+            right: -3px;
+            width: 2px;
+            height: 4px;
+            background: white;
+        }
+
+        /* 头部 */
+        .header {
+            height: 60px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            background: transparent;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: fixed;
+            top: 44px;
+            left: 0;
+            right: 0;
+            z-index: 99;
+        }
+
+        /* 左侧所有内容放在一个圆角玻璃容器中 */
+        .header-left-container {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 24px; /* 增加圆角程度 */
+            padding: 6px 16px; /* 调整内边距 */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            height: 40px; /* 设置固定高度 */
+        }
+
+        .back-icon {
+            width: 24px;
+            height: 24px;
+            fill: white;
+            stroke: white;
+            stroke-width: 2;
+            margin-right: 8px;
+        }
+
+        /* 头像 */
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: url('https://picsum.photos/seed/avatar/100/100') center/cover;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            object-fit: cover;
+            object-position: center;
+        }
+
+        .info {
+            display: flex;
+            flex-direction: column;
+            margin-left: 8px;
+        }
+
+        .nickname {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .mood {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .header-right {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 右侧图标组合 - 与左侧容器高度一致 */
+        .icons-group {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 24px; /* 与左侧相同的圆角程度 */
+            padding: 6px 12px; /* 调整内边距以匹配高度 */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            height: 40px; /* 与左侧容器相同的高度 */
+        }
+
+        .header-icon {
+            width: 20px;
+            height: 20px;
+            fill: white;
+            stroke: white;
+            stroke-width: 1.5;
+            margin: 0 4px;
+        }
+
+        /* 聊天区域 */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: transparent;
+            margin-top: 104px; /* 状态栏(44px) + 头部(60px) */
+            padding-bottom: 80px; /* 为输入框留出空间 */
+        }
+
+        /* 消息气泡 */
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 4px;
+            margin-left: 48px;
+        }
+
+        .message-content {
+            display: flex;
+            align-items: flex-start; /* 改为flex-start确保头像始终在顶部 */
+            gap: 8px;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: url('https://picsum.photos/seed/avatar2/100/100') center/cover;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            flex-shrink: 0;
+            object-fit: cover;
+            object-position: center;
+        }
+
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            color: white;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        /* 用户消息 */
+        .user-message {
+            align-self: flex-end;
+            align-items: flex-start; /* 改为flex-start确保头像始终在顶部 */
+        }
+
+        .user-message .message-time {
+            align-self: flex-end;
+            margin-left: 0;
+            margin-right: 48px;
+        }
+
+        .user-message .message-content {
+            flex-direction: row-reverse;
+        }
+
+        .user-bubble {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px 4px 20px 20px;
+        }
+
+        /* 对方消息 */
+        .other-message {
+            align-self: flex-start;
+        }
+
+        .other-bubble {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px 20px 20px 20px;
+        }
+
+        /* 输入框区域容器 */
+        .input-container {
+            padding: 16px;
+            background: transparent;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        /* 圆角玻璃容器 */
+        .input-box-container {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 24px;
+            padding: 8px 16px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .plus-icon {
+            width: 24px;
+            height: 24px;
+            fill: none;
+            stroke: white;
+            stroke-width: 2;
+            margin-right: 8px;
+        }
+
+        .input-field {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            padding: 8px 0;
+        }
+
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .input-buttons {
+            display: flex;
+            gap: 12px;
+            margin-left: 8px;
+        }
+
+        .action-icon {
+            width: 24px;
+            height: 24px;
+            fill: white;
+            stroke: white;
+            stroke-width: 1.5;
+        }
+
+        .heart-icon {
+            color: #ff6b6b;
+            fill: #ff6b6b;
+        }
+
+        /* 滚动条样式 */
+        .chat-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wallpaper"></div>
+    
+    <!-- 状态栏 -->
+    <div class="status-bar">
+        <div class="time" id="current-time">9:41</div>
+        <div class="icons">
+            <!-- 信号图标 -->
+            <div class="signal-bars">
+                <div class="signal-bar signal-bar-1"></div>
+                <div class="signal-bar signal-bar-2"></div>
+                <div class="signal-bar signal-bar-3"></div>
+                <div class="signal-bar signal-bar-4"></div>
+            </div>
+            <!-- 电池图标 -->
+            <div class="battery-icon">
+                <div class="battery-fill"></div>
+                <div class="battery-tip"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 头部 -->
+    <div class="header">
+        <div class="header-left-container">
+            <!-- 返回图标 -->
+            <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M19 12H5"/>
+                <path d="M12 19l-7-7 7-7"/>
+            </svg>
+            
+            <!-- 头像、昵称、心情组合 -->
+            <div class="avatar-info">
+                <div style="display: flex; align-items: center;">
+                    <div class="avatar"></div>
+                    <div class="info">
+                        <div class="nickname">小明</div>
+                        <div class="mood">今天心情不错</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="header-right">
+            <!-- 交换三个点和星星图标的位置 -->
+            <div class="icons-group">
+                <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="1"/>
+                    <circle cx="19" cy="12" r="1"/>
+                    <circle cx="5" cy="12" r="1"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 聊天区域 -->
+    <div class="chat-container">
+        <!-- 对方消息 -->
+        <div class="message other-message">
+            <div class="message-time">上午9:30</div>
+            <div class="message-content">
+                <div class="message-avatar"></div>
+                <div class="bubble other-bubble">
+                    你好！今天天气真不错呢～
+                </div>
+            </div>
+        </div>
+        
+        <!-- 用户消息 -->
+        <div class="message user-message">
+            <div class="message-time">上午9:31</div>
+            <div class="message-content">
+                <div class="message-avatar"></div>
+                <div class="bubble user-bubble">
+                    是啊，适合出去走走！
+                </div>
+            </div>
+        </div>
+        
+        <!-- 对方消息 -->
+        <div class="message other-message">
+            <div class="message-time">上午9:32</div>
+            <div class="message-content">
+                <div class="message-avatar"></div>
+                <div class="bubble other-bubble">
+                    你有什么计划吗？
+                </div>
+            </div>
+        </div>
+        
+        <!-- 用户消息 -->
+        <div class="message user-message">
+            <div class="message-time">上午9:33</div>
+            <div class="message-content">
+                <div class="message-avatar"></div>
+                <div class="bubble user-bubble">
+                    我想去公园散步，顺便拍些照片。
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 输入框区域 -->
+    <div class="input-container">
+        <div class="input-box-container">
+            <svg class="plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <input type="text" class="input-field" placeholder="输入消息...">
+            <div class="input-buttons">
+                <svg class="action-icon heart-icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 更新时间
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('current-time').textContent = `${hours}:${minutes}`;
+        }
+        
+        // 初始更新时间
+        updateTime();
+        
+        // 每分钟更新一次时间
+        setInterval(updateTime, 60000);
+        
+        // 页面加载时初始化聊天内容和头像
+        window.addEventListener('load', function() {
+            // 获取当前聊天对象
+            const chatPartner = localStorage.getItem('currentChatPartner');
+            if (chatPartner) {
+                // 更新页面标题
+                document.querySelector('.nickname').textContent = chatPartner;
+                
+                // 更新头像
+                updateAvatar(chatPartner);
+                
+                // 加载聊天历史
+                loadChatHistory(chatPartner);
+            }
+        });
+        
+        // 更新头像
+        function updateAvatar(partner) {
+            const characters = JSON.parse(localStorage.getItem('characters') || '[]');
+            const character = characters.find(c => c.name === partner);
+            
+            if (character && character.avatar) {
+                // 更新头部头像
+                document.querySelector('.avatar').style.backgroundImage = `url('${character.avatar}')`;
+                
+                // 更新消息气泡中的头像
+                const messageAvatars = document.querySelectorAll('.message-avatar');
+                messageAvatars.forEach(avatar => {
+                    avatar.style.backgroundImage = `url('${character.avatar}')`;
+                });
+            }
+        }
+        
+        // 加载聊天历史
+        function loadChatHistory(partner) {
+            const chatHistories = JSON.parse(localStorage.getItem('chatHistories') || '[]');
+            const chatHistory = chatHistories.find(chat => chat.partner === partner);
+            
+            if (chatHistory && chatHistory.messages.length > 0) {
+                const chatContainer = document.querySelector('.chat-container');
+                // 清空现有消息（除了固定的示例消息）
+                chatContainer.innerHTML = '';
+                
+                // 添加历史消息
+                chatHistory.messages.forEach(msg => {
+                    const messageElement = document.createElement('div');
+                    messageElement.className = `message ${msg.type}-message`;
+                    
+                    // 解析时间
+                    const msgTime = new Date(msg.timestamp);
+                    const hours = msgTime.getHours().toString().padStart(2, '0');
+                    const minutes = msgTime.getMinutes().toString().padStart(2, '0');
+                    
+                    // 获取当前聊天对象的头像
+                    const characters = JSON.parse(localStorage.getItem('characters') || '[]');
+                    const character = characters.find(c => c.name === partner);
+                    const avatarUrl = character && character.avatar ? character.avatar : 'https://picsum.photos/seed/avatar2/100/100';
+                    
+                    const avatarHtml = msg.type === 'user' ? 
+                        '<div class="message-avatar" style="background-image: url(\'https://picsum.photos/seed/user/100/100\')"></div>' : 
+                        `<div class="message-avatar" style="background-image: url('${avatarUrl}')"></div>`;
+                    
+                    messageElement.innerHTML = `
+                        <div class="message-time">上午${hours}:${minutes}</div>
+                        <div class="message-content">
+                            ${avatarHtml}
+                            <div class="bubble ${msg.type}-bubble">
+                                ${msg.content}
+                            </div>
+                        </div>
+                    `;
+                    
+                    chatContainer.appendChild(messageElement);
+                });
+                
+                // 滚动到底部
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else {
+                // 如果没有历史消息，清空聊天区域（只保留输入框区域）
+                const chatContainer = document.querySelector('.chat-container');
+                chatContainer.innerHTML = '';
+            }
+        }
+        
+        // 保存消息到历史记录
+        function saveMessage(partner, message) {
+            try {
+                const chatHistories = JSON.parse(localStorage.getItem('chatHistories') || '[]');
+                let chatHistory = chatHistories.find(chat => chat.partner === partner);
+                
+                if (!chatHistory) {
+                    chatHistory = {
+                        partner: partner,
+                        messages: []
+                    };
+                    chatHistories.push(chatHistory);
+                }
+                
+                // 限制消息数量，只保留最近的100条消息
+                if (chatHistory.messages.length >= 100) {
+                    chatHistory.messages = chatHistory.messages.slice(-99);
+                }
+                
+                chatHistory.messages.push(message);
+                localStorage.setItem('chatHistories', JSON.stringify(chatHistories));
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') {
+                    console.error('存储空间不足，无法保存消息');
+                    // 可以在这里添加用户提示
+                } else {
+                    console.error('保存消息时出错:', e);
+                }
+            }
+        }
+        
+        // 点击发送按钮功能
+        document.querySelector('.action-icon:last-child').addEventListener('click', function() {
+            const input = document.querySelector('.input-field');
+            const message = input.value.trim();
+            
+            if (message) {
+                // 获取当前聊天对象
+                const chatPartner = localStorage.getItem('currentChatPartner') || '未知';
+                
+                // 创建新消息元素
+                const chatContainer = document.querySelector('.chat-container');
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message user-message';
+                
+                const now = new Date();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                
+                messageElement.innerHTML = `
+                    <div class="message-time">上午${hours}:${minutes}</div>
+                    <div class="message-content">
+                        <div class="message-avatar" style="background-image: url('https://picsum.photos/seed/user/100/100')"></div>
+                        <div class="bubble user-bubble">
+                            ${message}
+                        </div>
+                    </div>
+                `;
+                
+                chatContainer.appendChild(messageElement);
+                input.value = '';
+                
+                // 滚动到底部
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                // 保存消息到历史记录
+                saveMessage(chatPartner, {
+                    type: 'user',
+                    content: message,
+                    timestamp: now.toISOString()
+                });
+            }
+        });
+        
+        // 回车发送消息
+        document.querySelector('.input-field').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                // 触发发送按钮点击事件
+                const sendButton = document.querySelector('.action-icon:last-child');
+                if (sendButton) {
+                    sendButton.dispatchEvent(new Event('click'));
+                }
+            }
+        });
+        
+        // AI处理模块
+        const AIHandler = {
+            // 从本地存储加载API配置
+            loadApiConfig: function() {
+                const savedSettings = localStorage.getItem('aiSettings');
+                if (savedSettings) {
+                    try {
+                        return JSON.parse(savedSettings);
+                    } catch (e) {
+                        console.error('Failed to parse saved settings', e);
+                    }
+                }
+                // 默认配置
+                return {
+                    provider: 'openai',
+                    url: 'https://api.openai.com/v1',
+                    key: '',
+                    model: 'gpt-3.5-turbo',
+                    enabled: true
+                };
+            },
+            
+            // 获取所有用户消息内容
+            getUserMessages: function() {
+                const userMessages = document.querySelectorAll('.user-message .bubble');
+                return Array.from(userMessages).map(msg => msg.textContent.trim());
+            },
+            
+            // 调用AI API获取回复
+            getAIResponse: async function(userMessage) {
+                const config = this.loadApiConfig();
+                
+                // 检查AI连接是否启用
+                if (!config.enabled) {
+                    throw new Error('AI连接未启用，请在设置中启用AI连接');
+                }
+                
+                // 检查必要配置
+                if (!config.key) {
+                    throw new Error('请在设置页面配置API密钥');
+                }
+                
+                if (!config.model) {
+                    throw new Error('请在设置页面配置模型');
+                }
+                
+                // 构建请求
+                let apiUrl = config.url;
+                
+                // 确保URL格式正确
+                if (!apiUrl) {
+                    if (config.provider === 'openai') {
+                        apiUrl = 'https://api.openai.com/v1';
+                    } else if (config.provider === 'gemini') {
+                        apiUrl = 'https://generativelanguage.googleapis.com/v1beta';
+                    }
+                }
+                
+                // 确保URL以/结尾（用于chat/completions）
+                if (config.provider !== 'gemini' && !apiUrl.endsWith('/')) {
+                    apiUrl += '/';
+                }
+                
+                // 获取当前聊天对象信息
+                const chatPartner = localStorage.getItem('currentChatPartner') || '未知';
+                const characters = JSON.parse(localStorage.getItem('characters') || '[]');
+                const character = characters.find(c => c.name === chatPartner);
+                const characterDescription = character ? character.description : '';
+                
+                // 构建消息历史（包含之前的对话）
+                const userMessages = this.getUserMessages();
+                let messages = [];
+                
+                // 添加系统提示，要求更自然的回复
+                let systemPrompt = `你是一个真实的人，正在与用户聊天。请遵循以下规则：
+1. 回复要自然、口语化，像真人一样聊天
+2. 不要使用括号或描述性文字，直接回复内容
+3. 每次回复应该分成几条独立的消息发送，不要把所有内容放在一条消息里
+4. 重点回应用户最新的消息，而不是重复之前的内容
+5. 表现得有情感和个性，不要像机器人
+6. 不要重复之前说过的话
+7. 即使用户没有回复，也要根据最新的对话内容进行延伸或发起新话题
+8. 上下文关联只是为了保持好的记忆力，重点应该放在最新的消息上
+9. 回复要有个人特色，可以有一些小的语法不完美，像真人一样
+10. 可以使用一些口语化的表达，比如"嗯"、"啊"、"那个"等
+11. 可以表达情绪，比如"哈哈"、"哎呀"等
+12. 不要每条消息都太完美，可以有一些简单的错别字或重复
+13. 回复要有随机性，不要总是很规整的格式
+14. 像真实朋友一样聊天，有温度和情感
+15. 可以有一些个人习惯的表达方式
+16. 回复要简短自然，像真实聊天一样，不要长篇大论
+17. 可以有一些语气词和表情符号（适度使用）
+18. 像真实的人一样有思维过程，可以修正自己说的话
+19. 每次回复的消息条数应该是随机的，2-6条不等
+20. 不同的消息之间可以有思考的停顿，就像真实在组织语言
+21. 严格根据角色设定进行回复，体现角色的个性、背景和说话习惯
+22. 如果角色设定中有特定的口头禅或表达方式，要体现出来
+23. 根据角色的年龄、职业、性格等特点调整说话方式`;
+                
+                // 如果有角色描述，添加角色相关信息
+                if (characterDescription) {
+                    systemPrompt += `\n\n你正在扮演的角色描述：${characterDescription}`;
+                }
+                
+                messages.push({
+                    role: "system",
+                    content: systemPrompt
+                });
+                
+                // 只保留最近的几条消息作为上下文，避免过多的历史影响
+                const recentMessages = userMessages.slice(-3); // 只保留最近3条用户消息
+                
+                // 添加历史对话
+                recentMessages.forEach(msg => {
+                    messages.push({
+                        role: "user",
+                        content: msg
+                    });
+                });
+                
+                // 添加当前消息（最新的消息）
+                messages.push({
+                    role: "user",
+                    content: userMessage
+                });
+                
+                let fetchUrl = '';
+                let requestBody = {};
+                let fetchOptions = {};
+                
+                if (config.provider === 'gemini') {
+                    // Google Gemini API
+                    fetchUrl = `${apiUrl}/models/${config.model}:generateContent?key=${config.key}`;
+                    requestBody = {
+                        contents: [{
+                            parts: [{
+                                text: userMessage
+                            }]
+                        }]
+                    };
+                    fetchOptions = {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    };
+                } else if (config.provider === 'siliconflow') {
+                    // SiliconFlow API
+                    fetchUrl = apiUrl.endsWith('/') ? `${apiUrl}chat/completions` : `${apiUrl}/chat/completions`;
+                    requestBody = {
+                        model: config.model,
+                        messages: messages,
+                        temperature: 0.7,
+                        max_tokens: 1000
+                    };
+                    fetchOptions = {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${config.key}`
+                        },
+                        body: JSON.stringify(requestBody)
+                    };
+                } else if (config.provider === 'deepseek') {
+                    // DeepSeek API
+                    fetchUrl = apiUrl.endsWith('/') ? `${apiUrl}chat/completions` : `${apiUrl}/chat/completions`;
+                    requestBody = {
+                        model: config.model,
+                        messages: messages,
+                        temperature: 0.7,
+                        max_tokens: 1000
+                    };
+                    fetchOptions = {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${config.key}`
+                        },
+                        body: JSON.stringify(requestBody)
+                    };
+                } else if (config.provider === 'openai') {
+                    // OpenAI API
+                    fetchUrl = apiUrl.endsWith('/') ? `${apiUrl}chat/completions` : `${apiUrl}/chat/completions`;
+                    requestBody = {
+                        model: config.model,
+                        messages: messages,
+                        temperature: 0.7,
+                        max_tokens: 1000
+                    };
+                    fetchOptions = {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${config.key}`
+                        },
+                        body: JSON.stringify(requestBody)
+                    };
+                } else {
+                    // 自定义提供商
+                    fetchUrl = apiUrl.endsWith('/') ? `${apiUrl}chat/completions` : `${apiUrl}/chat/completions`;
+                    requestBody = {
+                        model: config.model,
+                        messages: messages,
+                        temperature: 0.7,
+                        max_tokens: 1000
+                    };
+                    fetchOptions = {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${config.key}`
+                        },
+                        body: JSON.stringify(requestBody)
+                    };
+                }
+                
+                const response = await fetch(fetchUrl, fetchOptions);
+                
+                // 检查响应状态
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`AI API请求失败: ${response.status} ${response.statusText}\n请求URL: ${fetchUrl}\n${errorText}`);
+                }
+                
+                // 解析响应
+                const data = await response.json();
+                let aiResponse = '';
+                
+                if (config.provider === 'gemini') {
+                    // Gemini响应格式
+                    aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || '无法获取响应内容';
+                } else {
+                    // OpenAI/SiliconFlow/DeepSeek/自定义响应格式
+                    aiResponse = data.choices?.[0]?.message?.content || '无法获取响应内容';
+                }
+                
+                return aiResponse;
+            }
+        };
+        
+        // AI回复功能
+        document.querySelector('.heart-icon').addEventListener('click', async function() {
+            // 获取当前聊天对象
+            const chatPartner = localStorage.getItem('currentChatPartner') || '未知';
+            
+            // 获取最后一条用户消息
+            const userMessages = document.querySelectorAll('.user-message .bubble');
+            if (userMessages.length === 0) {
+                alert('请先发送一条消息');
+                return;
+            }
+            
+            const lastUserMessage = userMessages[userMessages.length - 1].textContent.trim();
+            
+            // 显示"正在输入..."状态
+            const chatContainer = document.querySelector('.chat-container');
+            const typingElement = document.createElement('div');
+            typingElement.className = 'message other-message';
+            
+            // 获取当前聊天对象的头像
+            const characters = JSON.parse(localStorage.getItem('characters') || '[]');
+            const character = characters.find(c => c.name === chatPartner);
+            const avatarUrl = character && character.avatar ? character.avatar : 'https://picsum.photos/seed/avatar2/100/100';
+            
+            typingElement.innerHTML = `
+                <div class="message-time">现在</div>
+                <div class="message-content">
+                    <div class="message-avatar" style="background-image: url('${avatarUrl}')"></div>
+                    <div class="bubble other-bubble" id="typing-indicator">
+                        正在输入...
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(typingElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            try {
+                // 调用AI API获取回复
+                const aiResponse = await AIHandler.getAIResponse(lastUserMessage);
+                
+                // 移除"正在输入..."提示
+                typingElement.remove();
+                
+                // 将AI回复分割成多条消息（2-6条随机）
+                const messageCount = 2 + Math.floor(Math.random() * 5); // 2-6条消息
+                const sentences = aiResponse.split(/[。！？.!?]/).filter(sentence => sentence.trim() !== '');
+                
+                let messagesToSend = [];
+                if (sentences.length <= messageCount) {
+                    // 如果句子数少于或等于要发送的消息数，每句一条消息
+                    messagesToSend = sentences.map(sentence => sentence.trim() + (sentence.includes('。') || sentence.includes('！') || sentence.includes('？') || sentence.includes('.') || sentence.includes('!') || sentence.includes('?') ? '' : '。'));
+                } else {
+                    // 如果句子数多于要发送的消息数，将句子组合成消息
+                    const sentencesPerMessage = Math.ceil(sentences.length / messageCount);
+                    for (let i = 0; i < messageCount; i++) {
+                        const start = i * sentencesPerMessage;
+                        const end = Math.min(start + sentencesPerMessage, sentences.length);
+                        const messageSentences = sentences.slice(start, end);
+                        if (messageSentences.length > 0) {
+                            messagesToSend.push(messageSentences.join('') + '。');
+                        }
+                    }
+                }
+                
+                // 过滤掉空消息
+                messagesToSend = messagesToSend.filter(msg => msg.trim() !== '。' && msg.trim() !== '');
+                
+                // 发送多条消息
+                for (let i = 0; i < messagesToSend.length; i++) {
+                    const messageContent = messagesToSend[i].trim();
+                    if (messageContent) {
+                        // 添加更自然的延迟，模拟真人打字（0.5-2秒随机延迟）
+                        const delay = 500 + Math.random() * 1500;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        
+                        // 添加AI回复
+                        const aiMessageElement = document.createElement('div');
+                        aiMessageElement.className = 'message other-message';
+                        
+                        const now = new Date();
+                        const hours = now.getHours().toString().padStart(2, '0');
+                        const minutes = now.getMinutes().toString().padStart(2, '0');
+                        
+                        aiMessageElement.innerHTML = `
+                            <div class="message-time">上午${hours}:${minutes}</div>
+                            <div class="message-content">
+                                <div class="message-avatar" style="background-image: url('${avatarUrl}')"></div>
+                                <div class="bubble other-bubble">
+                                    ${messageContent}
+                                </div>
+                            </div>
+                        `;
+                        
+                        chatContainer.appendChild(aiMessageElement);
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                        
+                        // 保存AI回复到历史记录
+                        saveMessage(chatPartner, {
+                            type: 'other',
+                            content: messageContent,
+                            timestamp: now.toISOString()
+                        });
+                    }
+                }
+            } catch (error) {
+                // 移除"正在输入..."提示
+                typingElement.remove();
+                
+                // 显示错误信息
+                const errorElement = document.createElement('div');
+                errorElement.className = 'message other-message';
+                
+                const now = new Date();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                
+                errorElement.innerHTML = `
+                    <div class="message-time">上午${hours}:${minutes}</div>
+                    <div class="message-content">
+                        <div class="message-avatar" style="background-image: url('${avatarUrl}')"></div>
+                        <div class="bubble other-bubble" style="color: #ff6b6b;">
+                            错误: ${error.message}
+                        </div>
+                    </div>
+                `;
+                
+                chatContainer.appendChild(errorElement);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        });
+        
+        // 返回消息列表页面
+        document.querySelector('.back-icon').addEventListener('click', function() {
+            window.location.href = 'xiaoxiliebiao.html';
+        });
+    </script>
+</body>
+</html>

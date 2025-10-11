@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>主屏幕</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 壁纸 */
+        .wallpaper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://picsum.photos/seed/home/400/800') center/cover no-repeat;
+            z-index: -1;
+        }
+
+        /* 视频壁纸容器 */
+        .video-wallpaper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            display: none;
+        }
+
+        .video-wallpaper video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            height: 44px;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: transparent;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .status-bar .time {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .status-bar .icons {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .status-bar .icons svg {
+            width: 16px;
+            height: 16px;
+            fill: white;
+            stroke: white;
+            stroke-width: 1.5;
+        }
+
+        /* 信号图标 */
+        .signal-bars {
+            display: flex;
+            align-items: flex-end;
+            height: 14px;
+        }
+
+        .signal-bar {
+            width: 3px;
+            background: white;
+            margin-right: 1px;
+        }
+
+        .signal-bar-1 { height: 4px; }
+        .signal-bar-2 { height: 8px; }
+        .signal-bar-3 { height: 12px; }
+        .signal-bar-4 { height: 14px; }
+
+        /* 电池图标 */
+        .battery-icon {
+            position: relative;
+            width: 20px;
+            height: 10px;
+            border: 1px solid white;
+            border-radius: 2px;
+        }
+
+        .battery-fill {
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            height: 6px;
+            width: 70%; /* 70% 电量 */
+            background: white;
+        }
+
+        .battery-tip {
+            position: absolute;
+            top: 3px;
+            right: -3px;
+            width: 2px;
+            height: 4px;
+            background: white;
+        }
+
+        /* 滑动页面容器 */
+        .pages-container {
+            display: flex;
+            width: 200%;
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .page {
+            width: 50%;
+            height: 100%;
+            position: relative;
+            padding-top: 88px; /* 状态栏(44px) + 头部(44px) */
+            padding-bottom: 120px; /* 为Dock栏留出空间 */
+        }
+
+        /* 主屏幕应用网格 */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 25px;
+            padding: 0 25px;
+            align-content: start;
+        }
+
+        .app-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+        }
+
+        .app-icon .icon-bg {
+            width: 65px;
+            height: 65px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .app-icon .icon-bg svg {
+            width: 35px;
+            height: 35px;
+        }
+
+        .app-icon span {
+            font-size: 13px;
+            text-align: center;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .app-icon:hover {
+            transform: scale(1.1);
+        }
+
+        /* Dock栏样式 */
+        .dock {
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 15px;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 30px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            z-index: 999;
+        }
+
+        .dock .app-icon {
+            margin: 0 10px;
+        }
+
+        .dock .app-icon .icon-bg {
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+        }
+
+        .dock .app-icon .icon-bg svg {
+            width: 40px;
+            height: 40px;
+        }
+
+        /* 自定义弹窗 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            width: 300px;
+            max-width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-body {
+            color: white;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .modal-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-btn.primary {
+            background: rgba(0, 122, 255, 0.8);
+        }
+
+        .modal-btn.primary:hover {
+            background: rgba(0, 122, 255, 1);
+        }
+
+        /* 名片组件样式 */
+        .profile-card {
+            grid-row: 4 / 6; /* 占据第四和第五行 */
+            grid-column: 1 / 3; /* 占据第一和第二列 */
+            background: transparent; /* 完全透明背景 */
+            border-radius: 16px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .profile-card:hover {
+            transform: scale(1.05);
+        }
+
+        .profile-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: url('https://picsum.photos/seed/profile/100/100') center/cover;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 10px;
+            object-fit: cover;
+            object-position: center;
+        }
+
+        .profile-nickname {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .profile-signature {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .url-input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 14px;
+        }
+
+        .url-input:focus {
+            outline: none;
+            border-color: #007AFF;
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .url-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* 滚动条样式 */
+        .app-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .app-grid::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .app-grid::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wallpaper"></div>
+    <div class="video-wallpaper">
+        <video autoplay muted loop></video>
+    </div>
+    
+    <!-- 状态栏 -->
+    <div class="status-bar">
+        <div class="time" id="current-time">9:41</div>
+        <div class="icons">
+            <!-- 信号图标 -->
+            <div class="signal-bars">
+                <div class="signal-bar signal-bar-1"></div>
+                <div class="signal-bar signal-bar-2"></div>
+                <div class="signal-bar signal-bar-3"></div>
+                <div class="signal-bar signal-bar-4"></div>
+            </div>
+            <!-- 电池图标 -->
+            <div class="battery-icon">
+                <div class="battery-fill"></div>
+                <div class="battery-tip"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 滑动页面容器 -->
+    <div class="pages-container" id="pages-container">
+        <!-- 第一页 -->
+        <div class="page" id="page-1">
+            <div class="app-grid" id="app-grid-1">
+                <!-- 应用图标将通过JavaScript动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 第二页 -->
+        <div class="page" id="page-2">
+            <div class="app-grid" id="app-grid-2">
+                <!-- 应用图标将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dock栏 -->
+    <div class="dock">
+        <!-- Dock图标将通过JavaScript动态生成 -->
+    </div>
+    
+    <!-- 自定义弹窗 -->
+    <div class="modal" id="custom-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-title">提示</div>
+                <button class="close-btn" id="close-modal">×</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                这是一个自定义弹窗
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" id="cancel-btn">取消</button>
+                <button class="modal-btn primary" id="confirm-btn">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 名片组件弹窗 -->
+    <div class="modal" id="profile-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">编辑名片</div>
+                <button class="close-btn" id="close-profile-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="profile-nickname">昵称</label>
+                    <input type="text" id="profile-nickname" class="url-input" placeholder="请输入昵称">
+                </div>
+                <div class="form-group">
+                    <label for="profile-signature">个性签名</label>
+                    <textarea id="profile-signature" class="url-input" placeholder="请输入个性签名" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" id="cancel-profile-btn">取消</button>
+                <button class="modal-btn primary" id="save-profile-btn">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 隐藏的文件上传输入框 -->
+    <input type="file" id="upload-input" accept="image/*" style="display: none;">
+
+    <script>
+        // 更新时间
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('current-time').textContent = `${hours}:${minutes}`;
+        }
+        
+        // 初始更新时间
+        updateTime();
+        
+        // 每分钟更新一次时间
+        setInterval(updateTime, 60000);
+        
+        // 应用数据 - 第一页
+        const appsPage1 = [
+            // 名片组件在第四五行的一二两列
+            // 壁纸app在第四行第三列
+            { name: "壁纸", icon: "wallpaper", row: 4, col: 3 },
+            // 设置app在第四行第四列
+            { name: "设置", icon: "settings", row: 4, col: 4 },
+            // 聊天app在第五行第三列
+            { name: "聊天", icon: "chat", row: 5, col: 3 }
+        ];
+        
+        // 应用数据 - 第二页
+        const appsPage2 = [
+            // 日记app在第三行第一列
+            { name: "日记", icon: "calendar", row: 3, col: 1 }
+        ];
+        
+        // Dock图标数据
+        const dockApps = [
+            { name: "电话", icon: "phone" },
+            { name: "短信", icon: "message" },
+            { name: "浏览器", icon: "browser" },
+            { name: "音乐", icon: "music" }
+        ];
+        
+        // 图标SVG数据
+        const iconSVGs = {
+            phone: `<path d="M22 16.92l-1.41-1.41c-.85-.85-2.19-.9-3.07-.17l-2.12 1.73c-.86.71-2.11.65-2.9-.15l-2.9-2.9c-.8-.8-.86-2.05-.15-2.9l1.73-2.12c.73-.88.68-2.22-.17-3.07L9.08 6c-.98-.98-2.66-.98-3.64 0L3 8.5 2.5 11c-.13.64.11 1.29.63 1.73l2.17 1.87c.79.68 1.88 1.05 2.93 1.05 1.24 0 2.42-.52 3.28-1.43l1.31-1.31c.28-.28.71-.28.99 0l2.9 2.9c.28.28.28.71 0 .99l-1.31 1.31c-.91.86-1.43 2.04-1.43 3.28 0 1.05.37 2.14 1.05 2.93l1.87 2.17c.44.52 1.09.76 1.73.63L21 21l2.5-2.5c.98-.98.98-2.66 0-3.64z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            message: `<path d="M21 15.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10.5z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><polyline points="3,15 12,13 21,15" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            mail: `<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22,6 12,13 2,6" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            browser: `<circle cx="12" cy="12" r="10" stroke="white" stroke-width="1.5" fill="none"/><circle cx="12" cy="12" r="4" stroke="white" stroke-width="1.5" fill="none"/><line x1="21.17" y1="8" x2="12" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="3.95" y1="6.06" x2="8.54" y2="14" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="10.88" y1="21.94" x2="15.46" y2="14" stroke="white" stroke-width="1.5" stroke-linecap="round"/>`,
+            camera: `<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2v10.5z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="white" stroke-width="1.5" fill="none"/>`,
+            photos: `<rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="white" stroke-width="1.5" fill="none"/><circle cx="8.5" cy="8.5" r="1.5" stroke="white" stroke-width="1.5" fill="none"/><polyline points="21,15 16,10 5,21" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            music: `<path d="M9 18V5l12-2v13" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" stroke="white" stroke-width="1.5" fill="none"/><circle cx="18" cy="16" r="3" stroke="white" stroke-width="1.5" fill="none"/>`,
+            video: `<polygon points="23 7 16 12 23 17 23 7" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2" stroke="white" stroke-width="1.5" fill="none"/>`,
+            map: `<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" y1="2" x2="8" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="16" y1="6" x2="16" y2="22" stroke="white" stroke-width="1.5" stroke-linecap="round"/>`,
+            weather: `<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            clock: `<circle cx="12" cy="12" r="10" stroke="white" stroke-width="1.5" fill="none"/><polyline points="12,6 12,12 16,14" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            calculator: `<rect x="4" y="2" width="16" height="20" rx="2" ry="2" stroke="white" stroke-width="1.5" fill="none"/><line x1="8" y1="6" x2="16" y2="6" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="16" y1="10" x2="16" y2="10" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="16" y1="14" x2="16" y2="14" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="10" x2="12" y2="10" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="14" x2="12" y2="14" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="18" x2="16" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round"/>`,
+            health: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            wallet: `<path d="M20 6h-4c0-2.21-1.79-4-4-4S8 3.79 8 6H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="4" width="8" height="2" stroke="white" stroke-width="1.5" fill="none"/><line x1="8" y1="14" x2="16" y2="14" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="18" x2="12" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round"/>`,
+            files: `<path d="M13 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V9l-7-7-8 3v7c0 6 8 10 8 10z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            wallpaper: `<path d="M4 16l4-4 4 4 4-4 4 4" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 10l4-4 4 4 4-4 4 4" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 2h20v20H2z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            settings: `<circle cx="12" cy="12" r="3" stroke="white" stroke-width="1.5" fill="none"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            store: `<circle cx="9" cy="21" r="1" stroke="white" stroke-width="1.5" fill="none"/><circle cx="20" cy="21" r="1" stroke="white" stroke-width="1.5" fill="none"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            news: `<path d="M12 20h9" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            chat: `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+            calendar: `<rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="white" stroke-width="1.5" fill="none"/><line x1="16" y1="2" x2="16" y2="6" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="white" stroke-width="1.5" stroke-linecap="round"/>`
+        };
+        
+        // 当前页面索引
+        let currentPage = 0;
+        
+        // 创建第一页应用图标
+        function createAppIconsPage1() {
+            const appGrid = document.getElementById('app-grid-1');
+            appGrid.innerHTML = '';
+            
+            // 创建名片组件
+            createProfileCard();
+            
+            appsPage1.forEach(app => {
+                const appElement = document.createElement('div');
+                appElement.className = 'app-icon';
+                appElement.innerHTML = `
+                    <div class="icon-bg">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            ${iconSVGs[app.icon]}
+                        </svg>
+                    </div>
+                    <span>${app.name}</span>
+                `;
+                
+                // 设置网格位置
+                appElement.style.gridRow = app.row;
+                appElement.style.gridColumn = app.col;
+                
+                // 为聊天应用添加特殊处理
+                if (app.name === "聊天") {
+                    appElement.addEventListener('click', function() {
+                        window.location.href = 'xiaoxiliebiao.html';
+                    });
+                } else if (app.name === "设置") {
+                    appElement.addEventListener('click', function() {
+                        window.location.href = 'shezhi.html';
+                    });
+                } else if (app.name === "壁纸") {
+                    appElement.addEventListener('click', function() {
+                        // 跳转到壁纸应用页面
+                        window.location.href = 'bizhi.html';
+                    });
+                } else {
+                    appElement.addEventListener('click', function() {
+                        showModal('应用提示', `您点击了${app.name}应用，这是一个演示应用。`);
+                    });
+                }
+                
+                appGrid.appendChild(appElement);
+            });
+            
+            // 绑定名片组件事件
+            bindProfileCardEvents();
+        }
+        
+        // 创建第二页应用图标
+        function createAppIconsPage2() {
+            const appGrid = document.getElementById('app-grid-2');
+            appGrid.innerHTML = '';
+            
+            appsPage2.forEach(app => {
+                const appElement = document.createElement('div');
+                appElement.className = 'app-icon';
+                appElement.innerHTML = `
+                    <div class="icon-bg">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            ${iconSVGs[app.icon]}
+                        </svg>
+                    </div>
+                    <span>${app.name}</span>
+                `;
+                
+                // 设置网格位置
+                appElement.style.gridRow = app.row;
+                appElement.style.gridColumn = app.col;
+                
+                // 为日记应用添加特殊处理
+                if (app.name === "日记") {
+                    appElement.addEventListener('click', function() {
+                        showModal('应用提示', '日记应用功能正在开发中...');
+                    });
+                } else {
+                    appElement.addEventListener('click', function() {
+                        showModal('应用提示', `您点击了${app.name}应用，这是一个演示应用。`);
+                    });
+                }
+                
+                appGrid.appendChild(appElement);
+            });
+        }
+        
+        // 创建名片组件
+        function createProfileCard() {
+            const appGrid = document.getElementById('app-grid-1');
+            
+            // 从本地存储获取用户信息，如果没有则使用默认值
+            const profileData = JSON.parse(localStorage.getItem('userProfile') || JSON.stringify({
+                nickname: '用户昵称',
+                signature: '个性签名',
+                avatar: 'https://picsum.photos/seed/profile/100/100'
+            }));
+            
+            const profileCard = document.createElement('div');
+            profileCard.className = 'profile-card';
+            profileCard.innerHTML = `
+                <div class="profile-avatar" style="background-image: url('${profileData.avatar}')"></div>
+                <div class="profile-nickname">${profileData.nickname}</div>
+                <div class="profile-signature">${profileData.signature}</div>
+            `;
+            
+            appGrid.appendChild(profileCard);
+        }
+        
+        // 显示名片编辑弹窗
+        function showProfileModal() {
+            // 从本地存储获取用户信息
+            const profileData = JSON.parse(localStorage.getItem('userProfile') || JSON.stringify({
+                nickname: '用户昵称',
+                signature: '个性签名',
+                avatar: 'https://picsum.photos/seed/profile/100/100'
+            }));
+            
+            // 填充表单数据
+            document.getElementById('profile-nickname').value = profileData.nickname;
+            document.getElementById('profile-signature').value = profileData.signature;
+            
+            // 显示弹窗
+            document.getElementById('profile-modal').classList.add('active');
+        }
+        
+        // 保存名片信息
+        function saveProfile() {
+            const nickname = document.getElementById('profile-nickname').value.trim();
+            const signature = document.getElementById('profile-signature').value.trim();
+            
+            if (!nickname) {
+                alert('请输入昵称');
+                return;
+            }
+            
+            // 获取当前头像URL
+            const profileCard = document.querySelector('.profile-card');
+            const avatarElement = profileCard.querySelector('.profile-avatar');
+            const currentAvatar = avatarElement.style.backgroundImage.replace(/url\(["']?(.*?)["']?\)/, '$1');
+            
+            // 保存到本地存储
+            const profileData = {
+                nickname: nickname,
+                signature: signature,
+                avatar: currentAvatar
+            };
+            
+            localStorage.setItem('userProfile', JSON.stringify(profileData));
+            
+            // 更新页面显示
+            document.querySelector('.profile-nickname').textContent = nickname;
+            document.querySelector('.profile-signature').textContent = signature;
+            
+            // 隐藏弹窗
+            document.getElementById('profile-modal').classList.remove('active');
+        }
+        
+        // 创建Dock图标
+        function createDockIcons() {
+            const dock = document.querySelector('.dock');
+            dock.innerHTML = '';
+            
+            dockApps.forEach(dockApp => {
+                const dockElement = document.createElement('div');
+                dockElement.className = 'app-icon';
+                dockElement.innerHTML = `
+                    <div class="icon-bg">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            ${iconSVGs[dockApp.icon]}
+                        </svg>
+                    </div>
+                `;
+                
+                dockElement.addEventListener('click', function() {
+                    showModal('应用提示', `您点击了${dockApp.name}应用，这是一个演示应用。`);
+                });
+                
+                dock.appendChild(dockElement);
+            });
+        }
+        
+        // 显示自定义弹窗
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-body').textContent = message;
+            document.getElementById('custom-modal').classList.add('active');
+        }
+        
+        // 隐藏自定义弹窗
+        function hideModal() {
+            document.getElementById('custom-modal').classList.remove('active');
+        }
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded'); // 调试信息
+            createAppIconsPage1();
+            createAppIconsPage2();
+            createDockIcons();
+            
+            // 绑定弹窗关闭事件
+            document.getElementById('close-modal').addEventListener('click', hideModal);
+            document.getElementById('cancel-btn').addEventListener('click', hideModal);
+            document.getElementById('confirm-btn').addEventListener('click', hideModal);
+            
+            // 绑定名片弹窗事件
+            document.getElementById('close-profile-modal').addEventListener('click', function() {
+                document.getElementById('profile-modal').classList.remove('active');
+            });
+            
+            document.getElementById('cancel-profile-btn').addEventListener('click', function() {
+                document.getElementById('profile-modal').classList.remove('active');
+            });
+            
+            document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+            
+            // 点击弹窗背景关闭弹窗
+            document.getElementById('custom-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideModal();
+                }
+            });
+            
+            document.getElementById('profile-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+            
+            // 处理头像上传
+            document.getElementById('upload-input').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        // 更新头像显示
+                        const profileCard = document.querySelector('.profile-card');
+                        const avatarElement = profileCard.querySelector('.profile-avatar');
+                        avatarElement.style.backgroundImage = `url('${event.target.result}')`;
+                        
+                        // 保存到本地存储
+                        const profileData = JSON.parse(localStorage.getItem('userProfile') || JSON.stringify({
+                            nickname: '用户昵称',
+                            signature: '个性签名',
+                            avatar: 'https://picsum.photos/seed/profile/100/100'
+                        }));
+                        
+                        profileData.avatar = event.target.result;
+                        localStorage.setItem('userProfile', JSON.stringify(profileData));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // 添加触摸滑动事件
+            addSwipeEvents();
+            
+            // 加载保存的壁纸
+            loadSavedWallpaper();
+        });
+        
+        // 添加触摸滑动事件
+        function addSwipeEvents() {
+            const pagesContainer = document.getElementById('pages-container');
+            let startX = 0;
+            let startY = 0;
+            let distX = 0;
+            let distY = 0;
+            let threshold = 100; // 滑动阈值
+            let restraint = 100; // 垂直方向限制
+            let allowedTime = 500; // 时间限制
+            let startTime = 0;
+            
+            pagesContainer.addEventListener('touchstart', function(e) {
+                const touchObj = e.changedTouches[0];
+                startX = touchObj.pageX;
+                startY = touchObj.pageY;
+                startTime = new Date().getTime();
+                e.preventDefault();
+            }, false);
+            
+            pagesContainer.addEventListener('touchmove', function(e) {
+                e.preventDefault(); // 阻止默认滚动
+            }, false);
+            
+            pagesContainer.addEventListener('touchend', function(e) {
+                const touchObj = e.changedTouches[0];
+                distX = touchObj.pageX - startX;
+                distY = touchObj.pageY - startY;
+                const elapsedTime = new Date().getTime() - startTime;
+                
+                if (elapsedTime <= allowedTime) {
+                    if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
+                        if (distX > 0) {
+                            // 向右滑动，切换到上一页
+                            if (currentPage > 0) {
+                                currentPage--;
+                                updatePagePosition();
+                            }
+                        } else {
+                            // 向左滑动，切换到下一页
+                            if (currentPage < 1) {
+                                currentPage++;
+                                updatePagePosition();
+                            }
+                        }
+                    }
+                }
+                e.preventDefault();
+            }, false);
+        }
+        
+        // 更新页面位置
+        function updatePagePosition() {
+            const pagesContainer = document.getElementById('pages-container');
+            pagesContainer.style.transform = `translateX(-${currentPage * 50}%)`;
+        }
+        
+        // 重新绑定名片组件事件（在DOM更新后调用）
+        function bindProfileCardEvents() {
+            // 绑定头像上传事件
+            const profileCard = document.querySelector('.profile-card');
+            if (profileCard) {
+                // 为头像添加点击事件
+                const avatarElement = profileCard.querySelector('.profile-avatar');
+                if (avatarElement) {
+                    avatarElement.addEventListener('click', function(e) {
+                        e.stopPropagation(); // 阻止事件冒泡
+                        document.getElementById('upload-input').click();
+                    });
+                }
+                
+                // 为名片卡片添加点击事件（编辑昵称和签名）
+                profileCard.addEventListener('click', function(e) {
+                    // 如果点击的不是头像，则显示编辑弹窗
+                    if (!e.target.classList.contains('profile-avatar')) {
+                        showProfileModal();
+                    }
+                });
+            }
+        }
+        
+        // 页面显示时也加载壁纸（处理从其他页面返回的情况）
+        window.addEventListener('pageshow', function() {
+            console.log('Page show event'); // 调试信息
+            loadSavedWallpaper();
+        });
+        
+        // 监听存储变化事件（正确的方式）
+        window.addEventListener('storage', function(e) {
+            console.log('Storage event:', e); // 调试信息
+            if (e.key === 'wallpaper' || e.key === 'homeWallpaper') {
+                loadSavedWallpaper();
+            }
+        });
+        
+        // 监听自定义壁纸变化事件
+        window.addEventListener('wallpaperChanged', function(e) {
+            console.log('Custom wallpaper changed event:', e); // 调试信息
+            loadSavedWallpaper();
+        });
+        
+        // 加载保存的壁纸
+        function loadSavedWallpaper() {
+            try {
+                console.log('Attempting to load wallpaper'); // 调试信息
+                
+                // 检查持久化的壁纸设置 (优先检查 homeWallpaper)
+                let persistentWallpaper = localStorage.getItem('homeWallpaper');
+                if (!persistentWallpaper) {
+                    persistentWallpaper = localStorage.getItem('wallpaper');
+                }
+                
+                console.log('Wallpaper data from localStorage:', persistentWallpaper); // 调试信息
+                
+                if (persistentWallpaper) {
+                    const wallpaperElement = document.querySelector('.wallpaper');
+                    const videoWallpaperElement = document.querySelector('.video-wallpaper');
+                    const videoElement = videoWallpaperElement.querySelector('video');
+                    
+                    if (wallpaperElement && videoWallpaperElement && videoElement) {
+                        try {
+                            // 尝试解析JSON格式
+                            const wallpaperData = JSON.parse(persistentWallpaper);
+                            console.log('Parsed wallpaper data:', wallpaperData); // 调试信息
+                            
+                            if (wallpaperData.type === 'video') {
+                                // 对于视频壁纸，显示视频
+                                videoElement.src = wallpaperData.src;
+                                videoWallpaperElement.style.display = 'block';
+                                wallpaperElement.style.display = 'none';
+                                console.log('Set video wallpaper'); // 调试信息
+                            } else if (wallpaperData.src) {
+                                // 确保URL格式正确
+                                let imageUrl = wallpaperData.src;
+                                
+                                wallpaperElement.style.backgroundImage = `url("${imageUrl}")`;
+                                videoWallpaperElement.style.display = 'none';
+                                wallpaperElement.style.display = 'block';
+                                console.log('Set image wallpaper from URL:', imageUrl); // 调试信息
+                            } else {
+                                // 兼容旧格式
+                                wallpaperElement.style.backgroundImage = `url("${persistentWallpaper}")`;
+                                videoWallpaperElement.style.display = 'none';
+                                wallpaperElement.style.display = 'block';
+                                console.log('Set wallpaper directly from data'); // 调试信息
+                            }
+                        } catch (e) {
+                            // 兼容旧格式 (直接存储URL字符串)
+                            console.log('Using old format, setting wallpaper directly:', persistentWallpaper); // 调试信息
+                            // 确保URL格式正确
+                            let imageUrl = persistentWallpaper;
+                            
+                            wallpaperElement.style.backgroundImage = `url("${imageUrl}")`;
+                            videoWallpaperElement.style.display = 'none';
+                            wallpaperElement.style.display = 'block';
+                        }
+                    } else {
+                        console.log('Wallpaper element not found'); // 调试信息
+                    }
+                } else {
+                    console.log('No wallpaper data found in localStorage'); // 调试信息
+                }
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') {
+                    console.error('存储空间不足:', e);
+                } else {
+                    console.error('无法加载保存的壁纸:', e);
+                }
+            }
+        }
+        
+        // 特别处理视频壁纸
+        function handleVideoWallpaper(wallpaperData) {
+            // 对于视频壁纸，我们只处理URL，不加载实际视频内容
+            const wallpaperElement = document.querySelector('.wallpaper');
+            if (wallpaperElement) {
+                // 显示视频缩略图而不是实际视频
+                wallpaperElement.style.backgroundImage = 'url(https://picsum.photos/seed/video/400/800)';
+                console.log('Set video wallpaper with thumbnail'); // 调试信息
+            }
+        }
+    </script>
+</body>
+</html>
