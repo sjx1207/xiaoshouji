@@ -1,14 +1,3115 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=zhushouping.html">
-    <title>Redirecting...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Phone UI</title>
+    <style>
+        /* --- 全局设置 --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body {
+            /* 换个稍微亮一点的壁纸图，更能显出磨砂玻璃效果 */
+            background: url('https://images.unsplash.com/photo-1620121692029-d088224ddc74?q=80&w=2832&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh; width: 100vw; overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+            color: white; position: relative;
+        }
+
+        /* --- 1. 状态栏 --- */
+        .status-bar {
+            position: absolute; top: 0; left: 0; width: 100%; height: 44px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 22px; z-index: 600;
+            font-size: 15px; font-weight: 600; pointer-events: none;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .status-right { display: flex; align-items: center; gap: 8px; }
+        .battery-group { display: flex; align-items: center; gap: 5px; }
+        .battery-shell {
+            width: 25px; height: 12px; border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 3px; position: relative; padding: 1px; display: flex; align-items: center;
+        }
+        .battery-shell::after {
+            content: ''; position: absolute; right: -4px; top: 50%; transform: translateY(-50%);
+            width: 2px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 0 2px 2px 0;
+        }
+        .battery-level { height: 100%; width: 100%; background-color: white; border-radius: 1px; }
+        .charging-icon { display: none; font-size: 10px; color: #FFD700; }
+        .signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+        .bar { width: 3px; background: rgba(255,255,255,0.3); border-radius: 1px; }
+        .bar.active { background: white; }
+        .bar:nth-child(1) { height: 4px; } .bar:nth-child(2) { height: 6px; }
+        .bar:nth-child(3) { height: 9px; } .bar:nth-child(4) { height: 12px; }
+
+        /* --- 2. 主屏幕滑动容器 --- */
+        .home-slider {
+            width: 100%; height: 100%; display: flex; overflow-x: auto;
+            scroll-snap-type: x mandatory; padding-top: 50px;
+        }
+        .home-slider::-webkit-scrollbar { display: none; }
+
+        .home-page {
+            min-width: 100vw; height: 100%; scroll-snap-align: start;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 15px;
+        }
+
+        /* --- 3. 天气小组件 (完美复刻版) --- */
+        .widget-weather {
+            grid-column: span 2; grid-row: span 2;
+
+            /* [关键] 高斯模糊 + 极淡的白色背景 */
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); /* 毛玻璃核心 */
+            border: 1px solid rgba(255, 255, 255, 0.15); /* 极细的边框 */
+            border-radius: 22px;
+
+            position: relative; /* 为了绝对定位城市名 */
+            display: flex; flex-direction: column;
+            align-items: center; /* 水平居中 */
+            justify-content: center; /* 垂直居中 */
+
+            padding: 15px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        /* 城市名：固定左上角 */
+        .weather-city {
+            position: absolute;
+            top: 15px; left: 18px;
+            font-size: 15px; font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+
+        /* 中间内容包裹层 */
+        .weather-center-content {
+            display: flex; flex-direction: column; align-items: center;
+            margin-top: 30px; /* 稍微避开顶部的城市名 */
+        }
+
+        /* 图标 */
+        .weather-svg {
+            width: 52px; height: 52px;
+            margin-bottom: 5px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        /* 温度：大号白色字体 */
+        .weather-temp {
+            font-size: 34px; font-weight: 300;
+            margin-bottom: 2px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* 描述：稍微小一点，带透明度 */
+        .weather-desc {
+            font-size: 13px; font-weight: 400;
+            opacity: 0.8; /* 灰色质感 */
+            margin-bottom: 15px;
+        }
+
+        /* 底部日期：堆叠居中 */
+        .weather-date-info {
+            display: flex; flex-direction: column; align-items: center;
+            font-size: 12px;
+            opacity: 0.6; /* 也是灰色质感 */
+            font-weight: 500;
+            margin-top: auto; /* 推到底部 */
+        }
+        .date-row { margin-top: 2px; }
+
+
+        /* --- 4. Dock 栏 (配合整体风格) --- */
+        .dock-container {
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+            width: 88%; height: 85px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 26px;
+            display: flex; justify-content: space-evenly; align-items: center; z-index: 200;
+        }
+        .app-icon {
+            width: 54px; height: 54px; border-radius: 14px;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 26px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+        .app-icon:active { transform: scale(0.9); }
+
+        /* --- 5. 升级版弹窗样式 (替换原来的弹窗样式) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.4); z-index: 500;
+            display: none; justify-content: center; align-items: center;
+            backdrop-filter: blur(8px); opacity: 0; transition: all 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; }
+
+        .modal-content {
+            width: 85%; max-height: 70%;
+            background: rgba(30,30,35,0.9);
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column;
+            color: white; transform: scale(0.95); transition: all 0.3s;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        /* 标题栏 */
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .modal-title { font-size: 18px; font-weight: 600; }
+
+        /* 搜索栏 */
+        .search-box {
+            width: 100%; padding: 10px 15px; margin-bottom: 15px;
+            background: rgba(255,255,255,0.1); border-radius: 12px;
+            border: none; outline: none; color: white; font-size: 14px;
+        }
+        .search-box::placeholder { color: rgba(255,255,255,0.4); }
+
+        /* 地区分类 Tab */
+        .tab-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        .tab-btn {
+            flex: 1; padding: 8px; border-radius: 8px;
+            background: transparent; border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.6); font-size: 13px; cursor: pointer;
+        }
+        .tab-btn.active { background: white; color: black; border-color: white; font-weight: 600; }
+
+        /* 城市列表 (滚动区域) */
+        .city-list {
+            flex: 1; overflow-y: auto; margin-bottom: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;
+        }
+        .city-item {
+            padding: 12px; margin-bottom: 5px; border-radius: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .city-item:active { background: rgba(255,255,255,0.1); }
+        .city-item.selected { background: rgba(33, 150, 243, 0.3); border: 1px solid #2196F3; }
+        .city-name { font-size: 15px; }
+        .city-sub { font-size: 12px; opacity: 0.5; }
+
+        /* 底部按钮组 */
+        .modal-footer { display: flex; gap: 10px; }
+        .modal-btn {
+            flex: 1; padding: 12px; border-radius: 12px; border: none;
+            font-size: 15px; font-weight: 500; cursor: pointer;
+        }
+        .btn-cancel { background: rgba(255,255,255,0.1); color: white; }
+        .btn-save { background: #2196F3; color: white; }
+
+        /* --- 照片小组件样式 --- */
+        .widget-photo {
+            /* 同样占据 2x2 的格子 */
+            grid-column: span 2;
+            grid-row: span 2;
+
+            /* 保持和天气组件一样的玻璃风格 */
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 22px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+
+            /* 布局设置 */
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; /* 保证图片圆角不溢出 */
+            cursor: pointer; position: relative;
+            transition: transform 0.1s;
+        }
+        .widget-photo:active { transform: scale(0.96); }
+
+        /* 默认显示的加号提示 */
+        .photo-placeholder {
+            display: flex; flex-direction: column; align-items: center;
+            color: white; opacity: 0.7;
+        }
+        .plus-icon { font-size: 32px; font-weight: 300; margin-bottom: 5px; }
+        .add-text { font-size: 13px; font-weight: 500; }
+
+        /* 真正显示图片的区域 (默认隐藏) */
+        .photo-display {
+            width: 100%; height: 100%;
+            background-size: cover; background-position: center;
+            display: none; /* 选了图再显示 */
+        }
+
+        /* --- 5. 音乐小组件 (精修版) --- */
+        .widget-music {
+            /* 1. 位置和背景 */
+            grid-row: span 2;
+            grid-column: span 4;
+            background: rgba(255, 255, 255, 0.1); /* 背景淡一点 */
+            backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15); /* 阴影加重，更有立体感 */
+
+            /* 2. 内部布局 */
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            padding: 20px 25px; /* 增加左右内边距 */
+            gap: 20px; /* 封面和右边的间距 */
+        }
+
+        /* 封面图 */
+        .music-cover {
+            width: 85px; height: 85px; /* 稍微放大一点 */
+            flex-shrink: 0;
+            border-radius: 18px;
+            background-size: cover; background-position: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); /* 封面阴影 */
+            cursor: pointer; position: relative; overflow: hidden;
+        }
+        .music-cover:active { transform: scale(0.95); transition: 0.1s; }
+
+        /* 右侧容器：核心修改 */
+        .music-details-container {
+            flex: 1;
+            height: 85px; /* 强制高度和封面一样，方便对齐 */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* 关键：让 歌名(上) 进度条(中) 按钮(下) 均匀分布 */
+            overflow: hidden;
+        }
+
+        /* 歌名和歌手 */
+        .music-text-group { cursor: pointer; }
+        .song-title {
+            font-size: 17px; font-weight: 700; color: white;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .artist-name {
+            font-size: 13px; color: rgba(255,255,255,0.7);
+            margin-top: 2px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* 进度条 */
+        .progress-bar-bg {
+            width: 100%; height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            cursor: pointer;
+            margin-top: auto; margin-bottom: auto; /* 自动居中 */
+        }
+        .progress-bar-fill {
+            width: 0%; height: 100%;
+            background: white;
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5); /* 进度条发光 */
+            transition: width 0.1s linear;
+        }
+
+        /* 控制按钮 */
+        .music-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* 按钮居中 */
+            gap: 25px; /* 按钮之间的间距加大 */
+        }
+        .control-btn {
+            background: none; border: none; padding: 0; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .control-btn:active { transform: scale(0.85); opacity: 0.8; }
+
+        /* 图标样式 */
+        .ctrl-svg {
+            width: 24px; height: 24px;
+            fill: white; opacity: 0.8;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+        .play-pause-btn .ctrl-svg {
+            width: 32px; height: 32px; /* 播放键更大 */
+            opacity: 1;
+        }
+        /* --- 6. 个人信息小组件 (透明背景) --- */
+        .widget-profile {
+            /* 占据第5行，第1-2列 */
+            grid-row: 5; grid-column: span 2;
+
+            /* 透明背景，无边框阴影 */
+            background: transparent;
+            box-shadow: none; border: none;
+
+            /* 布局：垂直居中 */
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 10px;
+        }
+
+        /* 头像区域 */
+        .profile-avatar {
+            width: 70px; height: 70px;
+            border-radius: 50%; /* 圆形 */
+            /* 默认头像占位图 (灰色人像) */
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" opacity="0.5"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
+            background-size: cover; background-position: center;
+            background-color: rgba(255,255,255,0.1); /* 微弱底色 */
+            border: 2px solid rgba(255,255,255,0.3); /* 细白边框 */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            cursor: pointer; position: relative; overflow: hidden;
+            margin-bottom: 10px; transition: transform 0.1s;
+        }
+        .profile-avatar:active { transform: scale(0.95); }
+
+        /* 文字区域容器 */
+        .profile-text { text-align: center; }
+
+        /* 昵称样式 */
+        .profile-nickname {
+            font-size: 18px; font-weight: 700; color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer;
+            margin-bottom: 4px;
+        }
+
+        /* 个性签名样式 */
+        .profile-signature {
+            font-size: 13px; color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;
+        }
+
+        /* --- 编辑弹窗专用样式 (复用基础结构，微调输入框) --- */
+        #profile-edit-input {
+            background: rgba(255,255,255,0.15);
+            font-size: 16px; padding: 15px;
+            text-align: center;
+        }
+
+        /* --- 7. App 图标 (液态玻璃终极版) --- */
+        .grid-app-item {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            width: 100%; height: 100%;
+        }
+
+        /* 液态玻璃主体 */
+        .app-icon-shape {
+            width: 64px; height: 64px;
+            border-radius: 18px; /* 圆角稍微大一点，更像水滴 */
+            display: flex; align-items: center; justify-content: center;
+
+            /* 核心1：强力毛玻璃 */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+
+            /* 核心2：玻璃质感的边框 (上亮下暗) */
+            border-top: 1.5px solid rgba(255, 255, 255, 0.6);
+            border-left: 1px solid rgba(255, 255, 255, 0.4);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+            /* 核心3：内发光 + 外部投影 (制造液态厚度感) */
+            box-shadow:
+                inset 0 0 15px rgba(255, 255, 255, 0.2), /* 内部通透光 */
+                0 8px 20px rgba(0, 0, 0, 0.15); /* 底部柔和投影 */
+
+            margin-bottom: 6px;
+            transition: transform 0.1s; cursor: pointer;
+            position: relative; overflow: hidden;
+        }
+
+        /* 增加一个流光高光层，让它看起来更润 */
+        .app-icon-shape::before {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 40%);
+            pointer-events: none;
+        }
+
+        .app-icon-shape:active { transform: scale(0.92); filter: brightness(1.1); }
+
+        /* 图标里的 SVG */
+        .app-svg {
+            width: 30px; height: 30px;
+            fill: white;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); /* 图标悬浮感 */
+            z-index: 2; /* 浮在流光上面 */
+        }
+
+        .app-label {
+            font-size: 12px; font-weight: 500; color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+            letter-spacing: 0.3px;
+        }
+
+        /* --- 液态特调色 (半透明渐变，透出背景) --- */
+
+        /* 壁纸：液态紫粉 */
+        .bg-wallpaper {
+            background: linear-gradient(135deg, rgba(199, 158, 253, 0.5) 0%, rgba(246, 128, 132, 0.5) 100%);
+        }
+
+        /* 设置：液态银灰 (带一点冷蓝) */
+        .bg-settings {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(155, 197, 195, 0.4) 100%);
+        }
+
+        /* 聊天：液态薄荷绿 */
+        .bg-chat {
+            background: linear-gradient(135deg, rgba(66, 230, 149, 0.5) 0%, rgba(59, 178, 184, 0.5) 100%);
+        }
+
+        /* 音乐：液态果冻橙 */
+        .bg-music {
+            background: linear-gradient(135deg, rgba(255, 154, 158, 0.5) 0%, rgba(254, 207, 239, 0.5) 100%);
+        }
+
+        /* --- 8. Dock 栏图标 (液态玻璃版) --- */
+        .dock-icon {
+            width: 55px; height: 55px;
+            border-radius: 16px; /* 稍微圆润一点 */
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+
+            /* 核心：液态玻璃质感 (和上面保持一致) */
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-top: 1.5px solid rgba(255, 255, 255, 0.6);
+            border-left: 1px solid rgba(255, 255, 255, 0.4);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.25), 0 5px 15px rgba(0, 0, 0, 0.2);
+
+            position: relative; overflow: hidden; transition: transform 0.1s;
+        }
+
+        /* 流光效果 */
+        .dock-icon::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%);
+            pointer-events: none;
+        }
+
+        .dock-icon:active { transform: scale(0.9); filter: brightness(1.1); }
+
+        /* --- 专属颜色 (半透明液态) --- */
+
+        /* 1. 角色书 (Role Book): 梦幻蓝紫 -> 代表人物灵魂 */
+        .bg-role { background: linear-gradient(135deg, rgba(64, 196, 255, 0.6) 0%, rgba(101, 31, 255, 0.6) 100%); }
+
+        /* 2. 世界书 (World Book): 深邃青绿 -> 代表宏大世界 */
+        .bg-world { background: linear-gradient(135deg, rgba(29, 233, 182, 0.6) 0%, rgba(0, 105, 92, 0.6) 100%); }
+
+        /* 3. 说明书 (Manual): 温暖琥珀 -> 代表指引 */
+        .bg-manual { background: linear-gradient(135deg, rgba(255, 215, 64, 0.6) 0%, rgba(255, 111, 0, 0.6) 100%); }
+
+        /* 4. 图标App (Icons): 炫彩粉红 -> 代表设计与美 */
+        .bg-gallery { background: linear-gradient(135deg, rgba(255, 64, 129, 0.6) 0%, rgba(197, 17, 98, 0.6) 100%); }
+
+        /* --- 9. 壁纸 App (全屏覆盖) --- */
+        .app-window {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(20, 20, 25, 0.95); /* 深色背景，突出内容 */
+            backdrop-filter: blur(20px);
+            z-index: 400; /* 盖住主屏幕 */
+            display: none; flex-direction: column;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .app-window.active { opacity: 1; }
+
+        /* --- 修改后的头部样式 (适配状态栏) --- */
+        .app-header {
+            /* 高度加高：44px(状态栏) + 46px(实际标题栏) = 90px */
+            height: 90px;
+            /* 顶部留白：把内容往下顶，避开状态栏 */
+            padding-top: 44px;
+
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+
+            /* 加深一点背景，防止壁纸太花导致看不清状态栏 */
+            background: rgba(20, 20, 25, 0.8);
+            backdrop-filter: blur(20px);
+        }
+
+        .app-back-btn {
+            position: absolute;
+            left: 15px;
+            /* 关键修改：按钮往下移，不再和时间重叠 */
+            top: 58px;
+
+            font-size: 16px; color: #2196F3; cursor: pointer;
+            display: flex; align-items: center; gap: 5px;
+            z-index: 10;
+        }
+
+        /* 内容区域 */
+        .wallpaper-content {
+            flex: 1; padding: 20px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 25px;
+        }
+
+        /* 分类标题 */
+        .section-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; color: white; }
+
+        /* 预览卡片 */
+        .preview-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 18px; padding: 15px;
+            display: flex; flex-direction: column; align-items: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* 预览视窗 (模拟手机屏幕比例) */
+        .preview-viewport {
+            width: 160px; height: 284px; /* 约 9:16 比例 */
+            background: #333; border-radius: 12px; margin-bottom: 15px;
+            overflow: hidden; position: relative;
+            border: 2px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        /* 预览图/视频 */
+        .preview-img, .preview-video { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 按钮组 */
+        .btn-group { display: flex; gap: 10px; width: 100%; }
+        .action-btn {
+            flex: 1; padding: 12px; border-radius: 12px; border: none;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .btn-upload { background: rgba(255,255,255,0.15); color: white; }
+        .btn-apply { background: #2196F3; color: white; opacity: 0.5; pointer-events: none; } /* 默认禁用 */
+        .btn-apply.ready { opacity: 1; pointer-events: all; }
+
+        /* --- 12. 设置页高级 UI (iOS 分组风格) --- */
+
+        /* 搜索栏容器 */
+        .search-container {
+            padding: 10px 16px;
+            background: #1c1c1e; /* 与页面背景一致 */
+            position: sticky; top: 0; z-index: 10;
+            border-bottom: 1px solid rgba(255,255,255,0.05); /* 极细分割线 */
+        }
+        /* 搜索输入框 */
+        .settings-search {
+            width: 100%; height: 38px;
+            background: #2c2c2e; /* 稍微亮一点的灰 */
+            border-radius: 10px; border: none; outline: none;
+            color: white; font-size: 16px; text-align: center;
+            transition: all 0.2s;
+        }
+        .settings-search:focus { text-align: left; padding-left: 36px; background: #3a3a3c; }
+
+        /* 列表容器 */
+        #timezone-list-container {
+            padding: 0 16px 40px 16px; /* 给底部留点空 */
+            background: #000000; /* 纯黑背景，对比卡片 */
+        }
+
+        /* 分类标题 (如：亚洲) */
+        .group-header {
+            font-size: 13px; color: #8e8e93; font-weight: 500;
+            margin: 20px 0 8px 12px; /* 留出一点缩进 */
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 卡片分组容器 */
+        .settings-group {
+            background: #1c1c1e; /* 卡片颜色 */
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* 单个列表项 */
+        .settings-item {
+            background: transparent;
+            padding: 14px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; position: relative;
+            transition: background 0.2s;
+        }
+        .settings-item:active { background: #3a3a3c; }
+
+        /* 分割线 (核心高级感来源：左侧缩进) */
+        .settings-item:not(:last-child)::after {
+            content: ''; position: absolute;
+            bottom: 0; right: 0; height: 0.5px; /* 极细 */
+            width: calc(100% - 16px); /* 左侧留出间距 */
+            background: #38383a;
+        }
+
+        /* 城市文字 */
+        .city-name { font-size: 17px; color: white; font-weight: 400; }
+        .city-detail { font-size: 12px; color: #8e8e93; margin-top: 2px; }
+
+        /* 选中状态 */
+        .check-icon { color: #0a84ff; font-weight: 600; font-size: 16px; display: none; }
+        .settings-item.selected .check-icon { display: block; }
+        .settings-item.selected .city-name { color: #0a84ff; font-weight: 500; }
+
+        /* --- 关键修复：子页面样式 (没这个点击就没反应) --- */
+        .sub-page {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #1c1c1e; /* 纯黑背景 */
+            z-index: 500; /* 层级要高 */
+            display: flex; flex-direction: column;
+            transform: translateX(100%); /* 默认藏在右边 */
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); /* 滑动动画 */
+        }
+        .sub-page.active { transform: translateX(0); /* 激活时滑出来 */ }
+
+        /* --- 关键修复：胶囊通知样式 (没这个保存会报错) --- */
+        .toast-capsule {
+            position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-20px);
+            background: rgba(255, 255, 255, 0.95); color: #333;
+            padding: 12px 24px; border-radius: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            font-size: 14px; font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
+            z-index: 1000; opacity: 0; pointer-events: none;
+            transition: all 0.4s;
+        }
+        .toast-capsule.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast-icon {
+            width: 18px; height: 18px; background: #4CAF50; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; color: white; font-size: 10px;
+        }
+
+        /* --- 14. 主题系统 & 代码编辑器 --- */
+
+        /* 浅色模式 (Light Mode) 的覆盖样式 */
+        /* 当 body 带有 .light-theme 类名时生效 */
+        body.light-theme {
+            color: #000000; /* 全局文字变黑 */
+        }
+        body.light-theme .app-window,
+        body.light-theme .sub-page,
+        body.light-theme .app-header,
+        body.light-theme .search-container,
+        body.light-theme .settings-group,
+        body.light-theme .preview-card,
+        body.light-theme .chat-input-area {
+            background: rgba(242, 242, 247, 0.95) !important; /* 变成亮灰白 */
+            color: #000;
+        }
+        body.light-theme .settings-item {
+            background: white !important; /* 列表项变纯白 */
+            color: #000;
+        }
+        body.light-theme .app-title,
+        body.light-theme .city-name,
+        body.light-theme .settings-search {
+            color: #000 !important;
+        }
+        body.light-theme .settings-search {
+            background: rgba(118, 118, 128, 0.12); /* 搜索框变浅 */
+        }
+        body.light-theme .item-value,
+        body.light-theme .city-detail,
+        body.light-theme .item-arrow {
+            color: rgba(60, 60, 67, 0.6) !important;
+        }
+        body.light-theme .chat-input {
+            background: rgba(0,0,0,0.05); color: black;
+        }
+        body.light-theme .chat-input::placeholder { color: rgba(0,0,0,0.3); }
+
+        /* 代码编辑器样式 */
+        .code-editor-container {
+            width: 100%; height: 300px;
+            background: #1e1e1e; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px; margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            display: none; /* 默认隐藏，选自定义时显示 */
+        }
+        .code-textarea {
+            width: 100%; height: 100%;
+            background: transparent; border: none; outline: none;
+            color: #d4d4d4; font-size: 13px; line-height: 1.5;
+            resize: none;
+        }
+        .theme-options { display: flex; gap: 10px; margin-bottom: 15px; }
+        .theme-btn {
+            flex: 1; padding: 15px; border-radius: 12px;
+            background: rgba(255,255,255,0.1); border: 2px solid transparent;
+            color: white; font-size: 14px; cursor: pointer; text-align: center;
+        }
+        .theme-btn.active { border-color: #0a84ff; background: rgba(10, 132, 255, 0.1); }
+
+        /* --- 修复浅色模式下的时区列表背景 --- */
+        body.light-theme #timezone-list-container,
+        body.light-theme #lang-list-container {
+            background: #f2f2f7 !important; /* 变成浅灰色背景 */
+        }
+
+        /* 修复浅色模式下的分组标题颜色 */
+        body.light-theme .group-header {
+            color: #6d6d72 !important; /* 深灰色文字 */
+        }
+
+        /* 修复浅色模式下的分割线 */
+        body.light-theme .settings-item:not(:last-child)::after {
+            background: #c6c6c8 !important;
+        }
+
+       /* ================== AI 设置页 (防弹修复版) ================== */
+
+        /* 1. 页面容器：强制允许滚动 */
+        #sub-ai-model .wallpaper-content {
+            padding: 20px 16px 150px 16px !important; /* 底部留足空间 */
+            overflow-y: auto !important;
+            height: 100% !important;
+            display: block !important; /* 防止 flex 布局导致被挤压 */
+        }
+
+        /* 2. 分组卡片：深色背景 */
+        .ai-group-card {
+            background: #2c2c2e !important;
+            border-radius: 12px !important;
+            margin-bottom: 24px !important;
+            overflow: hidden !important;
+            border: 1px solid rgba(255,255,255,0.05) !important;
+        }
+
+        /* 3. 单行列表：标准高度，白色文字 */
+        .ai-list-item {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 16px !important;
+            min-height: 54px !important; /* 保证高度 */
+            border-bottom: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+            background: transparent !important;
+        }
+        .ai-list-item:last-child { border-bottom: none !important; }
+        .ai-list-item:active { background: rgba(255,255,255,0.1) !important; }
+
+        /* 4. 左侧标签 */
+        .ai-item-label {
+            font-size: 16px !important;
+            color: white !important;
+            white-space: nowrap !important;
+            width: 80px !important; /* 固定宽度 */
+            flex-shrink: 0 !important;
+        }
+        .ai-item-label.blue { color: #0a84ff !important; width: auto !important; flex: 1 !important; }
+
+        /* 5. 右侧输入框/文字：强制白色，无背景 */
+        .ai-item-input {
+            flex: 1 !important;
+            width: 100% !important;
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            text-align: right !important;
+            font-size: 16px !important;
+            color: rgba(255,255,255,0.8) !important; /* 亮灰色 */
+            padding: 0 !important;
+            height: auto !important;
+        }
+        .ai-item-input:focus { color: white !important; }
+        /* 占位符颜色 */
+        .ai-item-input::placeholder { color: rgba(255,255,255,0.3) !important; }
+
+        /* 6. 测试面板：黑底绿字 */
+        .ai-test-box {
+            background: #1c1c1e !important;
+            border-radius: 12px !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        .ai-test-log {
+            background: #000 !important;
+            color: #00ff00 !important;
+            font-family: monospace !important;
+            padding: 15px !important;
+            height: 150px !important; /* 固定高度 */
+            overflow-y: auto !important;
+            font-size: 12px !important;
+        }
+        .ai-test-input-bar {
+            padding: 10px !important;
+            background: #2c2c2e !important;
+            display: flex !important;
+            gap: 10px !important;
+        }
+        .ai-test-input {
+            flex: 1 !important;
+            height: 36px !important;
+            background: rgba(118, 118, 128, 0.5) !important; /* 灰色背景 */
+            border-radius: 18px !important;
+            border: none !important;
+            padding: 0 15px !important;
+            color: white !important;
+        }
+
+        /* 标题 */
+        .ai-header-text {
+            font-size: 13px !important; color: #8e8e93 !important;
+            margin: 0 0 8px 12px !important; text-transform: uppercase !important;
+        }
+
+        /* ================== 21. AI 设置页浅色模式适配 (Light Mode Patch) ================== */
+
+        /* 1. 页面背景变亮灰 */
+        body.light-theme #sub-ai-model,
+        body.light-theme #sub-model-select,
+        body.light-theme #sub-config-list {
+            background: #f2f2f7 !important; /* iOS 浅色背景 */
+        }
+
+        /* 2. 卡片变纯白 */
+        body.light-theme .ai-group-card {
+            background: #ffffff !important;
+            border: 1px solid rgba(0,0,0,0.05) !important; /* 极淡的边框 */
+        }
+
+        /* 3. 分割线变浅 */
+        body.light-theme .ai-list-item {
+            border-bottom: 0.5px solid rgba(60, 60, 67, 0.18) !important; /* 浅灰分割线 */
+        }
+
+        /* 4. 左侧文字变黑 */
+        body.light-theme .ai-item-label {
+            color: #000000 !important;
+        }
+        /* 蓝色文字保持蓝色，不用改 */
+
+        /* 5. 右侧输入框/文字变深灰 */
+        body.light-theme .ai-item-input {
+            color: rgba(60, 60, 67, 0.6) !important; /* 次级文字深灰 */
+        }
+        /* 输入时全黑 */
+        body.light-theme .ai-item-input:focus {
+            color: #000000 !important;
+        }
+        /* 占位符浅灰 */
+        body.light-theme .ai-item-input::placeholder {
+            color: rgba(60, 60, 67, 0.3) !important;
+        }
+
+        /* 6. 分组标题变深灰 */
+        body.light-theme .ai-header-text {
+            color: #6d6d72 !important;
+        }
+
+        /* 7. 测试面板适配 */
+        body.light-theme .ai-test-box {
+            background: #ffffff !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+        }
+        /* 底部输入栏变浅灰 */
+        body.light-theme .ai-test-input-bar {
+            background: #f2f2f7 !important;
+        }
+        /* 输入框变白 */
+        body.light-theme .ai-test-input {
+            background: #ffffff !important;
+            color: #000000 !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* 加一点小投影 */
+        }
+
+        /* 8. 顶部导航栏适配 */
+        body.light-theme .app-header {
+            background: rgba(249, 249, 249, 0.9) !important;
+            border-bottom: 1px solid rgba(0,0,0,0.1) !important;
+        }
+        body.light-theme .app-title {
+            color: #000000 !important;
+        }
+
+        /* ================== 22. 字体设置页 (Font Settings) ================== */
+
+        /* 1. 定义全局变量 (默认值) */
+        :root {
+            --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --ui-weight: 400;
+            --ui-size-adjust: 0px; /* 字体大小微调值 */
+        }
+
+        /* 2. 强制应用到全局 */
+        body, button, input, select, textarea {
+            font-family: var(--ui-font) !important;
+            font-weight: var(--ui-weight) !important;
+            /* 这里我们用 transform 或者 calc 来微调大小，防止布局炸裂 */
+            /* 但为了简单有效，我们在 body 上微调 fontSize */
+        }
+
+        /* 3. 字体预览卡片 */
+        .font-preview-card {
+            background: #2c2c2e !important;
+            border-radius: 12px !important;
+            padding: 30px 20px !important;
+            margin: 0 16px 24px 16px !important;
+            text-align: center !important;
+            border: 1px solid rgba(255,255,255,0.05) !important;
+            transition: all 0.2s;
+        }
+        .preview-text-en { font-size: 24px; margin-bottom: 10px; display: block; }
+        .preview-text-cn { font-size: 20px; opacity: 0.8; display: block; }
+
+        /* 4. 滑块容器 */
+        .slider-container {
+            background: #2c2c2e !important;
+            border-radius: 12px !important;
+            padding: 16px !important;
+            margin: 0 16px 24px 16px !important;
+        }
+        .slider-header {
+            display: flex; justify-content: space-between; margin-bottom: 10px;
+            font-size: 14px; color: white;
+        }
+
+        /* 5. 美化滑块 (Range Input) */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type=range]:focus { outline: none; }
+        /* 轨道 */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer;
+            background: rgba(118, 118, 128, 0.24); border-radius: 3px;
+        }
+        /* 滑块头 */
+        input[type=range]::-webkit-slider-thumb {
+            height: 24px; width: 24px; border-radius: 50%;
+            background: #ffffff; cursor: pointer;
+            -webkit-appearance: none; margin-top: -9px; /* 居中 */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        /* 浅色模式适配 */
+        body.light-theme .font-preview-card,
+        body.light-theme .slider-container {
+            background: #ffffff !important;
+            border: 1px solid rgba(0,0,0,0.05) !important;
+        }
+        body.light-theme .slider-header { color: black !important; }
+
+        /* --- 23. 字体页滑动修复补丁 --- */
+
+        /* 强制给字体页内容区加超大底部留白，保证按钮能滑上来 */
+        #sub-font .wallpaper-content {
+            padding-bottom: 180px !important;
+            overflow-y: auto !important;
+            height: 100% !important;
+            display: block !important; /* 防止 Flex 布局导致无法滚动 */
+        }
+
+        /* 修复预览卡片在小屏幕可能太高的问题 */
+        .font-preview-card {
+            padding: 20px !important;
+            margin-bottom: 20px !important;
+        }
+
+        /* ================== 24. 字体大小全局联动补丁 ================== */
+
+:root {
+    /* 定义一个默认值，防止JS未加载时变乱 */
+    --app-font-size: 16px;
+}
+
+/* 1. 强制所有主要文字跟随变量 */
+body,
+.settings-item,
+.ai-label,
+.ai-input,
+.form-label,
+.form-input,
+.city-name,
+.chat-input,
+.msg-bubble,
+.song-title,
+.profile-nickname {
+    /* 使用 calc 计算，确保优先级最高 */
+    font-size: var(--app-font-size) !important;
+}
+
+/* 2. 标题类 (比正文大 2px) */
+.app-title,
+.preview-text-en,
+.preview-text-cn {
+    font-size: calc(var(--app-font-size) + 4px) !important;
+}
+
+/* 3. 辅助文字类 (比正文小 3px) */
+.city-detail,
+.item-value,
+.ios-header,
+.group-header,
+.ai-section-header,
+.app-label,
+.profile-signature,
+.artist-name {
+    font-size: calc(var(--app-font-size) - 3px) !important;
+}
+
+/* 4. 预览卡片文字跟随 */
+#font-preview-box span {
+    font-family: var(--ui-font) !important;
+    font-weight: var(--ui-weight) !important;
+}
+        /* --- 25. 按钮样式强制补丁 --- */
+
+/* 按钮容器 */
+.ai-btn-group {
+    display: flex !important;
+    gap: 15px !important;
+    margin: 20px 16px 40px 16px !important;
+}
+
+/* 按钮通用样式 */
+.ai-btn {
+    flex: 1 !important;
+    height: 48px !important;
+    border-radius: 12px !important;
+    border: none !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: opacity 0.2s !important;
+}
+.ai-btn:active { opacity: 0.7 !important; transform: scale(0.98) !important; }
+
+/* 主按钮 (深蓝) */
+.ai-btn-primary {
+    background: #0a84ff !important;
+    color: white !important;
+}
+
+/* 次按钮 (浅蓝透明) */
+.ai-btn-secondary {
+    background: rgba(10, 132, 255, 0.15) !important;
+    color: #0a84ff !important;
+}
+
+/* 浅色模式适配 */
+body.light-theme .ai-btn-secondary {
+    background: rgba(0, 122, 255, 0.1) !important;
+}
+    </style>
 </head>
 <body>
-    <p>如果页面没有自动跳转，请<a href="zhushouping.html">点击这里</a>。</p>
-    <script>
-        window.location.href = "zhushouping.html";
-    </script>
+<video id="global-video-bg" autoplay loop muted playsinline style="
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: -1; display: none; pointer-events: none;
+"></video>
+
+<div class="status-bar">
+    <div id="clock">15:36</div>
+    <div class="status-right">
+        <div class="signal-bars">
+            <div class="bar active"></div><div class="bar active"></div><div class="bar active"></div><div class="bar active"></div>
+        </div>
+        <div class="battery-group">
+            <span class="charging-icon" id="charging-bolt">⚡</span>
+            <span id="battery-text" style="font-size: 12px; margin-right: 2px;">--%</span>
+            <div class="battery-shell"><div class="battery-level" id="battery-fill"></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="home-slider">
+    <div class="home-page">
+
+        <div class="widget-weather">
+            <div class="weather-city" onclick="openCityModal()">
+                <span id="current-city">曼谷</span>
+            </div>
+
+            <div class="weather-center-content">
+                <div id="weather-icon-container">
+                    <svg class="weather-svg" viewBox="0 0 64 64" fill="none">
+                        <circle cx="32" cy="32" r="14" fill="#FFC107" />
+                        <g stroke="#FF9800" stroke-width="4" stroke-linecap="round">
+                            <path d="M32 6V10 M32 54V58 M6 32H10 M54 32H58 M13.6 13.6L16.4 16.4 M47.6 47.6L50.4 50.4 M13.6 50.4L16.4 47.6 M47.6 16.4L50.4 13.6" />
+                        </g>
+                    </svg>
+                </div>
+                <div class="weather-temp">28°C</div>
+                <div class="weather-desc">局部多云</div>
+            </div>
+
+            <div class="weather-date-info">
+                <span id="weekday-text" class="date-row">星期二</span>
+                <span id="date-text" class="date-row">11月25日</span>
+            </div>
+        </div>
+
+        <div class="widget-photo" onclick="triggerPhotoUpload()">
+
+            <div class="photo-placeholder" id="photo-placeholder">
+                <span class="plus-icon">+</span>
+                <span class="add-text">添加照片</span>
+            </div>
+
+            <div class="photo-display" id="photo-display"></div>
+
+            <input type="file" id="photo-input" accept="image/*" style="display: none;" onchange="handlePhotoUpload(this)">
+        </div>
+
+        <div class="widget-music">
+
+            <div class="music-cover" id="music-cover" onclick="triggerCoverUpload()"></div>
+
+            <div class="music-details-container">
+
+                <div class="music-text-group" onclick="openMusicModal()">
+                    <div class="song-title">Midnight City</div>
+                    <div class="artist-name">M83 · Hurry Up, We're Dreaming</div>
+                </div>
+
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill"></div>
+                </div>
+
+                <div class="music-controls">
+                    <button class="control-btn">
+                        <svg class="ctrl-svg" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                    </button>
+
+                    <button class="control-btn play-pause-btn" id="playPauseBtn">
+                        <svg class="ctrl-svg" id="play-icon" viewBox="0 0 24 24" style="display: block;">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        <svg class="ctrl-svg" id="pause-icon" viewBox="0 0 24 24" style="display: none;">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                        </svg>
+                    </button>
+
+                    <button class="control-btn">
+                        <svg class="ctrl-svg" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="widget-profile">
+
+            <div class="profile-avatar" id="profile-avatar" onclick="triggerProfileUpload()"></div>
+            <input type="file" id="profile-input" accept="image/*" style="display: none;" onchange="handleProfileUpload(this)">
+
+            <div class="profile-text">
+                <div class="profile-nickname" id="profile-nickname" onclick="openProfileEditModal('nickname')">点击设置昵称</div>
+                <div class="profile-signature" id="profile-signature" onclick="openProfileEditModal('signature')">点击设置个性签名</div>
+            </div>
+
+        </div>
+
+        <div class="grid-app-item" style="grid-row: 5; grid-column: 3; transform: translateY(-35px);">
+            <div class="app-icon-shape bg-wallpaper" onclick="openApp('app-wallpaper')">
+                <svg class="app-svg" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            </div>
+            <span class="app-label">壁纸</span>
+
+        </div>
+
+        <div class="grid-app-item" style="grid-row: 5; grid-column: 4; transform: translateY(-35px);">
+            <div class="app-icon-shape bg-settings" onclick="openApp('app-settings')">
+                <svg class="app-svg" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.04.17 0 .36.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.58 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.04-.17 0-.36-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            </div>
+            <span class="app-label">设置</span>
+        </div>
+
+        <div class="grid-app-item" style="grid-row: 6; grid-column: 3; transform: translateY(-80px);">
+            <div class="app-icon-shape bg-chat">
+                <svg class="app-svg" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+            </div>
+            <span class="app-label">聊天</span>
+        </div>
+
+        <div class="grid-app-item" style="grid-row: 6; grid-column: 4; transform: translateY(-80px);">
+            <div class="app-icon-shape bg-music">
+                <svg class="app-svg" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            </div>
+            <span class="app-label">音乐</span>
+        </div>
+
+    </div>
+    <div class="home-page"></div>
+</div>
+
+<div class="dock-container">
+
+    <div class="dock-icon bg-role">
+        <svg class="app-svg" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+    </div>
+
+    <div class="dock-icon bg-world">
+        <svg class="app-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+    </div>
+
+    <div class="dock-icon bg-manual">
+        <svg class="app-svg" viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+    </div>
+
+    <div class="dock-icon bg-gallery">
+        <svg class="app-svg" viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
+    </div>
+
+</div>
+
+<div class="modal-overlay" id="city-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">选择城市</span>
+        </div>
+
+        <input type="text" class="search-box" id="city-search" placeholder="搜索城市 (如: 东京, 纽约)..." oninput="filterCities()">
+
+        <div class="tab-group">
+            <button class="tab-btn active" onclick="switchTab('domestic')">国内</button>
+            <button class="tab-btn" onclick="switchTab('international')">国际</button>
+        </div>
+
+        <div class="city-list" id="city-list-container">
+        </div>
+
+        <div class="modal-footer">
+            <button class="modal-btn btn-cancel" onclick="closeCityModal()">取消</button>
+            <button class="modal-btn btn-save" onclick="saveCitySelection()">保存</button>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="cover-input" accept="image/*" style="display: none;">
+<input type="file" id="mp3-input" accept="audio/mpeg,audio/mp3" style="display: none;">
+
+<div class="modal-overlay" id="music-modal">
+    <div class="modal-content" style="width: 90%;">
+        <div class="modal-header"><span class="modal-title">编辑歌曲信息</span></div>
+
+        <label class="modal-label">歌曲名称</label>
+        <input type="text" class="search-box" id="edit-song-title" placeholder="例如: Midnight City">
+
+        <label class="modal-label">歌手 / 专辑</label>
+        <input type="text" class="search-box" id="edit-artist-name" placeholder="例如: M83">
+
+        <label class="modal-label">音频来源</label>
+        <button class="file-upload-btn" onclick="document.getElementById('mp3-input').click()">选择本地 MP3 文件</button>
+        <div id="music-file-name">未选择文件</div>
+
+        <div style="text-align: center; margin: 10px 0; opacity: 0.5;">- 或 -</div>
+        <input type="text" class="search-box" id="edit-music-url" placeholder="输入在线音乐链接 (URL)">
+
+        <div class="modal-footer" style="margin-top: 20px;">
+            <button class="modal-btn btn-cancel" onclick="closeMusicModal()">取消</button>
+            <button class="modal-btn btn-save" onclick="saveMusicInfo()">保存并播放</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="profile-modal">
+    <div class="modal-content" style="width: 80%; max-width: 300px;">
+        <div class="modal-header">
+            <span class="modal-title" id="profile-modal-title">编辑</span>
+        </div>
+
+        <input type="text" class="search-box" id="profile-edit-input" placeholder="请输入内容...">
+        <input type="hidden" id="current-edit-type">
+
+        <div class="modal-footer" style="margin-top: 20px;">
+            <button class="modal-btn btn-cancel" onclick="closeProfileModal()">取消</button>
+            <button class="modal-btn btn-save" onclick="saveProfileText()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div class="app-window" id="app-wallpaper">
+
+    <div class="app-header">
+        <div class="app-back-btn" onclick="closeApp('app-wallpaper')">
+            <svg style="width:20px;height:20px;fill:#2196F3" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            主屏幕
+        </div>
+        <div class="app-title">壁纸设置</div>
+    </div>
+
+    <div class="wallpaper-content">
+
+        <div>
+            <div class="section-title">静态壁纸 (图片)</div>
+            <div class="preview-card">
+                <div class="preview-viewport">
+                    <div id="wp-img-preview" style="width:100%; height:100%; background:#222; display:flex; align-items:center; justify-content:center; color:#666;">预览</div>
+                </div>
+                <div class="btn-group">
+                    <button class="action-btn btn-upload" onclick="document.getElementById('wp-img-input').click()">
+                        📁 选择图片
+                    </button>
+                    <button class="action-btn btn-apply" id="btn-apply-img" onclick="applyWallpaper('image')">
+                        ✨ 设为壁纸
+                    </button>
+                </div>
+                <input type="file" id="wp-img-input" accept="image/*" hidden onchange="handleWpPreview('image', this)">
+            </div>
+        </div>
+
+        <div>
+            <div class="section-title">动态壁纸 (视频)</div>
+            <div class="preview-card">
+                <div class="preview-viewport">
+                    <video id="wp-video-preview" loop muted playsinline style="width:100%; height:100%; object-fit: cover; display:none;"></video>
+                    <div id="wp-video-placeholder" style="width:100%; height:100%; background:#222; display:flex; align-items:center; justify-content:center; color:#666;">预览</div>
+                </div>
+                <div class="btn-group">
+                    <button class="action-btn btn-upload" onclick="document.getElementById('wp-video-input').click()">
+                        🎥 选择视频
+                    </button>
+                    <button class="action-btn btn-apply" id="btn-apply-video" onclick="applyWallpaper('video')">
+                        🚀 设为动态壁纸
+                    </button>
+                </div>
+                <input type="file" id="wp-video-input" accept="video/mp4,video/webm" hidden onchange="handleWpPreview('video', this)">
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="app-window" id="app-settings">
+
+    <div class="app-header">
+        <div class="app-back-btn" onclick="closeApp('app-settings')">
+            <svg style="width:20px;height:20px;fill:#2196F3" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            主屏幕
+        </div>
+        <div class="app-title">设置</div>
+    </div>
+
+    <div class="wallpaper-content" style="padding-top: 20px;">
+        <div class="settings-list">
+            <div class="settings-item" onclick="openSubPage('sub-timezone')">
+                <span>日期与时间</span>
+                <div style="display:flex; align-items:center;">
+                    <span class="item-value" id="current-timezone-label">自动</span>
+                    <span class="item-arrow">›</span>
+                </div>
+            </div>
+
+            <div class="settings-item" onclick="openSubPage('sub-theme')">
+                <span data-i18n="set_theme">主题</span>
+                <div style="display:flex; align-items:center;">
+                    <span class="item-value" id="current-theme-label">深色</span>
+                    <span class="item-arrow">›</span>
+                </div>
+            </div>
+
+            <div class="settings-item" onclick="openSubPage('sub-ai-model')">
+                <span data-i18n="set_model">AI 模型</span>
+                <div style="display:flex; align-items:center;">
+                    <span class="item-value" id="current-model-label">未配置</span>
+                    <span class="item-arrow">›</span>
+                </div>
+            </div>
+
+            <div class="settings-item" onclick="openSubPage('sub-font')">
+                <span data-i18n="set_font">字体</span>
+                <div style="display:flex; align-items:center;">
+                    <span class="item-value" id="current-font-label">系统默认</span>
+                    <span class="item-arrow">›</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="sub-page" id="sub-timezone" style="background: #1c1c1e;">
+
+    <div class="app-header" style="background: #1c1c1e; border-bottom: none;">
+        <div class="app-back-btn" onclick="closeSubPage('sub-timezone')">
+            <svg style="width:20px;height:20px;fill:#2196F3" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            设置
+        </div>
+        <div class="app-title">选择时区</div>
+    </div>
+
+    <div class="search-container">
+        <input type="text" class="settings-search" id="timezone-search" placeholder="搜索城市或国家" oninput="filterTimeZones()">
+    </div>
+
+    <div id="timezone-list-container" style="flex:1; overflow-y: auto;">
+    </div>
+</div>
+<div class="toast-capsule" id="global-toast">
+    <div class="toast-icon">✔</div>
+    <span id="toast-text">设置成功</span>
+</div>
+
+<div class="sub-page" id="sub-theme" style="background: #1c1c1e;">
+
+    <div class="app-header" style="background: inherit; border-bottom: none;">
+        <div class="app-back-btn" onclick="closeSubPage('sub-theme')">
+            <svg style="width:20px;height:20px;fill:#2196F3" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            <span data-i18n="set_title">设置</span>
+        </div>
+        <div class="app-title">主题设置</div>
+    </div>
+
+    <div class="wallpaper-content">
+
+        <div class="theme-options">
+            <div class="theme-btn active" id="btn-theme-dark" onclick="switchTheme('dark')">
+                🌑 深色
+            </div>
+            <div class="theme-btn" id="btn-theme-light" onclick="switchTheme('light')">
+                ☀️ 浅色
+            </div>
+            <div class="theme-btn" id="btn-theme-custom" onclick="switchTheme('custom')">
+                🎨 自定义
+            </div>
+        </div>
+
+        <div class="code-editor-container" id="custom-css-area">
+            <div style="color:#666; font-size:12px; margin-bottom:5px;">输入 CSS 代码 (实时覆盖):</div>
+            <textarea class="code-textarea" id="css-input" placeholder="/* 例如: */
+.app-window { background: rgba(50,0,0,0.9) !important; }
+.settings-item { border-radius: 0 !important; }"></textarea>
+
+            <button class="action-btn btn-apply" style="margin-top:10px; opacity:1; pointer-events:all; background:#4CAF50;" onclick="applyCustomCSS()">
+                ⚡ 应用并保存
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<div class="sub-page" id="sub-ai-model" style="background: #1c1c1e;">
+
+    <div class="app-header" style="background: inherit; border-bottom: none;">
+        <div class="app-back-btn" onclick="closeSubPage('sub-ai-model')">
+            <svg style="width:20px;height:20px;fill:#2196F3" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            <span data-i18n="set_title">设置</span>
+        </div>
+        <div class="app-title" data-i18n="ai_set_title">模型设置</div>
+    </div>
+
+    <div class="wallpaper-content" style="padding: 0;">
+
+        <div class="ai-header-text">配置管理</div>
+        <div class="ai-group-card">
+            <div class="ai-list-item" onclick="renderConfigList(); openSubPage('sub-config-list')">
+                <div class="ai-item-label blue">📚 切换已保存的配置</div>
+                <div class="ai-item-input" id="current-config-name" style="pointer-events:none; color:white;">默认</div>
+                <span style="color:#666; font-size:14px; margin-left:8px;">›</span>
+            </div>
+        </div>
+
+        <div class="ai-header-text">服务器参数</div>
+        <div class="ai-group-card">
+            <div class="ai-list-item">
+                <div class="ai-item-label">地址</div>
+                <input type="text" class="ai-item-input" id="ai-endpoint" placeholder="https://api.openai.com">
+            </div>
+            <div class="ai-list-item">
+                <div class="ai-item-label">密钥</div>
+                <input type="password" class="ai-item-input" id="ai-key" placeholder="sk-...">
+            </div>
+        </div>
+
+        <div class="ai-header-text">模型</div>
+        <div class="ai-group-card">
+            <div class="ai-list-item" onclick="fetchModelList()">
+                <div class="ai-item-label blue">🔄 拉取模型列表</div>
+            </div>
+            <div class="ai-list-item" onclick="if(typeof cachedModelList!=='undefined' && cachedModelList.length>0) openSubPage('sub-model-select'); else fetchModelList();">
+                <div class="ai-item-label">当前</div>
+                <div class="ai-item-input" id="display-current-model" style="pointer-events:none; color:white;">未选择</div>
+                <span style="color:#666; font-size:14px; margin-left:8px;">›</span>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+            <button onclick="saveAISettings()" style="flex:1; height:48px; background:#0a84ff; color:white; border:none; border-radius:12px; font-size:16px; font-weight:600;">保存配置</button>
+            <button onclick="testSimpleConnection()" style="flex:1; height:48px; background:rgba(10,132,255,0.15); color:#0a84ff; border:none; border-radius:12px; font-size:16px; font-weight:600;">连接测试</button>
+        </div>
+
+        <div class="ai-header-text">对话测试</div>
+        <div class="ai-test-box">
+            <div class="ai-test-log" id="ai-test-log">// Ready...</div>
+            <div class="ai-test-input-bar">
+                <input type="text" class="ai-test-input" id="ai-test-msg" placeholder="发送测试内容...">
+                <button onclick="testAIConnection()" style="width:36px; height:36px; background:#0a84ff; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center;">
+                    <svg style="width:16px;height:16px;fill:white; margin-left:2px;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+<div class="sub-page" id="sub-model-select" style="background: #1c1c1e;">
+    <div class="app-header" style="background: #1c1c1e; border-bottom: none;">
+        <div class="app-back-btn" onclick="closeSubPage('sub-model-select')">
+            <svg style="width:20px;height:20px;fill:#2196F3" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            返回
+        </div>
+        <div class="app-title">选择模型</div>
+    </div>
+
+    <div class="search-container">
+        <input type="text" class="settings-search" id="model-search" placeholder="搜索模型 (gpt, claude...)" oninput="renderModelList()">
+    </div>
+
+    <div id="model-list-container" style="flex:1; overflow-y: auto; padding-bottom: 40px;">
+        <div style="text-align:center; color:#666; padding:40px;">请先在上一页点击“拉取”</div>
+    </div>
+</div>
+
+<div class="sub-page" id="sub-config-list" style="background: #1c1c1e;">
+    <div class="app-header" style="background: #1c1c1e; border-bottom: none;">
+        <div class="app-back-btn" onclick="closeSubPage('sub-config-list')">
+            <svg style="width:20px;height:20px;fill:#2196F3" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            返回
+        </div>
+        <div class="app-title">我的配置</div>
+    </div>
+
+    <div id="config-list-container" style="flex:1; overflow-y: auto; padding-bottom: 40px;">
+    </div>
+</div>
+
+<div class="sub-page" id="sub-font" style="background: #1c1c1e;">
+
+    <div class="app-header" style="background: #1c1c1e; border-bottom: none;">
+        <div class="app-back-btn" onclick="closeSubPage('sub-font')">
+            <svg style="width:20px;height:20px;fill:#2196F3" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            <span data-i18n="set_title">设置</span>
+        </div>
+        <div class="app-title" data-i18n="font_title">字体显示</div>
+    </div>
+
+    <div class="wallpaper-content" style="padding: 0; padding-bottom: 150px;">
+
+        <div class="ai-header-text">效果预览</div>
+        <div class="font-preview-card" id="font-preview-box">
+            <span class="preview-text-en">The quick brown fox</span>
+            <span class="preview-text-cn">永和九年，岁在癸丑</span>
+        </div>
+
+        <div class="ai-header-text">显示调整</div>
+        <div class="slider-container">
+            <div class="slider-header">
+                <span>大小</span>
+                <span id="val-size">16px</span>
+            </div>
+            <input type="range" id="range-size" min="12" max="24" step="1" value="16" oninput="updateFontConfig()">
+
+            <div class="slider-header" style="margin-top: 20px;">
+                <span>粗细</span>
+                <span id="val-weight">400</span>
+            </div>
+            <input type="range" id="range-weight" min="100" max="900" step="100" value="400" oninput="updateFontConfig()">
+        </div>
+
+        <div class="ai-header-text">选择字体</div>
+        <div class="ai-group-card" id="font-list-container">
+        </div>
+
+        <div class="ai-header-text">自定义</div>
+        <div class="ai-group-card">
+            <div class="ai-list-item" onclick="document.getElementById('font-file-input').click()">
+                <div class="ai-item-label blue">📁 上传字体文件 (.ttf/.otf)</div>
+                <span class="ai-arrow">›</span>
+            </div>
+        </div>
+        <input type="file" id="font-file-input" accept=".ttf,.otf,.woff,.woff2" style="display:none;" onchange="handleFontUpload(this)">
+
+        <div class="ai-btn-group">
+            <button class="ai-btn ai-btn-secondary" onclick="resetFontSettings()">恢复默认</button>
+            <button class="ai-btn ai-btn-primary" onclick="showToast('✅ 字体设置已保存')">保存设置</button>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal-overlay" id="config-name-modal">
+    <div class="modal-content" style="width: 85%; max-width: 320px;">
+        <div class="modal-header">
+            <span class="modal-title">保存配置</span>
+        </div>
+
+        <div style="margin-bottom: 10px; color: rgba(255,255,255,0.6); font-size: 14px;">给当前配置起个名字：</div>
+
+        <input type="text" class="search-box" id="config-name-input" placeholder="例如: DeepSeek 官方" style="background: rgba(255,255,255,0.1); color: white; text-align: left; padding-left: 15px;">
+
+        <div class="modal-footer" style="margin-top: 20px;">
+            <button class="modal-btn btn-cancel" onclick="closeConfigNameModal()">取消</button>
+            <button class="modal-btn btn-save" onclick="confirmSaveConfig()">确认保存</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="clear-config-modal">
+    <div class="modal-content" style="width: 80%; max-width: 300px;">
+        <div class="modal-header">
+            <span class="modal-title" style="color: #FF3B30;">危险操作</span>
+        </div>
+
+        <div style="text-align: center; margin: 10px 0 25px 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.5;">
+            确定要删除所有保存的模型配置吗？<br>此操作<b>无法撤销</b>。
+        </div>
+
+        <div class="modal-footer">
+            <button class="modal-btn btn-cancel" onclick="closeClearConfigModal()">取消</button>
+            <button class="modal-btn" onclick="confirmClearConfig()" style="background: #FF3B30; color: white; font-weight: 600;">
+                删除全部
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+    // --- 补上通用的弹窗函数 ---
+    function showToast(msg) {
+        const toast = document.getElementById('global-toast');
+        const text = document.getElementById('toast-text');
+        if (toast && text) {
+            text.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        } else {
+            // 如果还没加 HTML，就退化成普通弹窗，防止报错
+            alert(msg);
+        }
+    }
+    // --- 0. 数据库工具 (升级版) ---
+    const dbName = "AIPhoneDB_V2";
+    const storeName = "media_files";
+    const dbHelper = {
+        open: function() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, 1);
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        db.createObjectStore(storeName);
+                    }
+                };
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = (event) => reject(event.target.error);
+            });
+        },
+        save: async function(key, value) {
+            const db = await this.open();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([storeName], "readwrite");
+                const request = tx.objectStore(storeName).put(value, key);
+                request.onsuccess = () => resolve();
+                request.onerror = (e) => reject(e);
+            });
+        },
+        get: async function(key) {
+            const db = await this.open();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([storeName], "readonly");
+                const request = tx.objectStore(storeName).get(key);
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e);
+            });
+        }
+    };
+    // --- 1. 基础 UI 逻辑 (时钟/电池) ---
+    // ================== 全局时钟与时区逻辑 (修复完整版) ==================
+
+    // 1. 海量时区数据库 (必须包含 name, detail, id)
+    const timeZones = [
+        // 亚洲
+        { name: "北京", detail: "中国标准时间", id: "Asia/Shanghai" },
+        { name: "香港", detail: "香港时间", id: "Asia/Hong_Kong" },
+        { name: "台北", detail: "台北时间", id: "Asia/Taipei" },
+        { name: "东京", detail: "日本", id: "Asia/Tokyo" },
+        { name: "首尔", detail: "韩国", id: "Asia/Seoul" },
+        { name: "新加坡", detail: "新加坡", id: "Asia/Singapore" },
+        { name: "曼谷", detail: "泰国", id: "Asia/Bangkok" },
+        { name: "迪拜", detail: "阿联酋", id: "Asia/Dubai" },
+        { name: "新德里", detail: "印度", id: "Asia/Kolkata" },
+
+        // 美洲
+        { name: "纽约", detail: "美国东部", id: "America/New_York" },
+        { name: "洛杉矶", detail: "美国太平洋", id: "America/Los_Angeles" },
+        { name: "芝加哥", detail: "美国中部", id: "America/Chicago" },
+        { name: "温哥华", detail: "加拿大", id: "America/Vancouver" },
+        { name: "多伦多", detail: "加拿大", id: "America/Toronto" },
+        { name: "墨西哥城", detail: "墨西哥", id: "America/Mexico_City" },
+        { name: "圣保罗", detail: "巴西", id: "America/Sao_Paulo" },
+
+        // 欧洲
+        { name: "伦敦", detail: "英国", id: "Europe/London" },
+        { name: "巴黎", detail: "法国", id: "Europe/Paris" },
+        { name: "柏林", detail: "德国", id: "Europe/Berlin" },
+        { name: "罗马", detail: "意大利", id: "Europe/Rome" },
+        { name: "莫斯科", detail: "俄罗斯", id: "Europe/Moscow" },
+        { name: "阿姆斯特丹", detail: "荷兰", id: "Europe/Amsterdam" },
+        { name: "马德里", detail: "西班牙", id: "Europe/Madrid" },
+        { name: "苏黎世", detail: "瑞士", id: "Europe/Zurich" },
+
+        // 大洋洲
+        { name: "悉尼", detail: "澳大利亚", id: "Australia/Sydney" },
+        { name: "墨尔本", detail: "澳大利亚", id: "Australia/Melbourne" },
+        { name: "奥克兰", detail: "新西兰", id: "Pacific/Auckland" },
+
+        // 非洲
+        { name: "开罗", detail: "埃及", id: "Africa/Cairo" },
+        { name: "约翰内斯堡", detail: "南非", id: "Africa/Johannesburg" }
+    ];
+
+    // 2. 地区名称映射表
+    const regionMap = {
+        "Asia": "亚洲",
+        "America": "美洲",
+        "Europe": "欧洲",
+        "Australia": "大洋洲",
+        "Pacific": "大洋洲",
+        "Africa": "非洲",
+        "Etc": "其他"
+    };
+
+    // 3. 渲染时区列表 (修复版逻辑)
+    function initTimeZoneList() {
+        filterTimeZones(); // 初始化时渲染一次
+    }
+
+    function filterTimeZones() {
+        const container = document.getElementById('timezone-list-container');
+        const searchInput = document.getElementById('timezone-search');
+        // 防止报错：如果还没加载输入框，就默认为空
+        const keyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const currentZone = localStorage.getItem('userTimeZone') || 'Asia/Shanghai';
+
+        container.innerHTML = ''; // 清空列表
+
+        // 过滤数据
+        let filteredList = timeZones.filter(tz => {
+            if (!keyword) return true;
+            // 这里的 detail 必须存在，否则会报错。上面的数据里我已经补全了 detail
+            return tz.name.toLowerCase().includes(keyword) || (tz.detail && tz.detail.toLowerCase().includes(keyword));
+        });
+
+        if (filteredList.length === 0) {
+            container.innerHTML = '<div style="text-align:center; color:#666; padding:40px; font-size:14px;">未找到结果</div>';
+            return;
+        }
+
+        // 分组逻辑
+        const groups = {};
+        filteredList.forEach(tz => {
+            const regionKey = tz.id.split('/')[0];
+            const regionName = regionMap[regionKey] || "其他地区";
+            if (!groups[regionName]) groups[regionName] = [];
+            groups[regionName].push(tz);
+        });
+
+        const regionOrder = ["亚洲", "欧洲", "美洲", "大洋洲", "非洲", "其他地区"];
+        const sortedKeys = regionOrder.filter(k => groups[k]).concat(Object.keys(groups).filter(k => !regionOrder.includes(k)));
+
+        sortedKeys.forEach(regionName => {
+            const cityList = groups[regionName];
+
+            // 分组标题
+            const header = document.createElement('div');
+            header.className = 'group-header';
+            header.textContent = regionName;
+            container.appendChild(header);
+
+            // 分组卡片
+            const groupCard = document.createElement('div');
+            groupCard.className = 'settings-group';
+
+            cityList.forEach(tz => {
+                const isSelected = tz.id === currentZone;
+                const item = document.createElement('div');
+                item.className = `settings-item ${isSelected ? 'selected' : ''}`;
+                item.onclick = () => setTimeZone(tz.id, tz.name);
+
+                item.innerHTML = `
+                    <div>
+                        <div class="city-name">${tz.name}</div>
+                        <div class="city-detail">${tz.detail}</div>
+                    </div>
+                    <span class="check-icon">✔</span>
+                `;
+                groupCard.appendChild(item);
+            });
+            container.appendChild(groupCard);
+        });
+    }
+
+    // 4. 设置时区功能
+    function setTimeZone(zoneId, zoneName) {
+        localStorage.setItem('userTimeZone', zoneId);
+
+        // 清空搜索框
+        const searchInput = document.getElementById('timezone-search');
+        if(searchInput) searchInput.value = '';
+
+        filterTimeZones();
+        updateTime();
+        showToast(`时区已切换至 ${zoneName}`);
+        closeSubPage('sub-timezone');
+    }
+
+    // 打开子页面的功能
+    function openSubPage(id) {
+        const page = document.getElementById(id);
+        if (page) {
+            page.classList.add('active');
+        } else {
+            console.error("找不到子页面:", id);
+        }
+    }
+
+    // 关闭子页面的功能
+    function closeSubPage(id) {
+        const page = document.getElementById(id);
+        if (page) {
+            page.classList.remove('active');
+        }
+    }
+
+    // 6. 核心时间更新
+    function updateTime() {
+        const userZone = localStorage.getItem('userTimeZone') || 'Asia/Shanghai';
+        const now = new Date();
+
+        try {
+            // 更新时钟
+            const timeString = new Intl.DateTimeFormat('en-US', {
+                hour: '2-digit', minute: '2-digit', hour12: false, timeZone: userZone
+            }).format(now);
+
+            const clockEl = document.getElementById('clock');
+            if(clockEl) clockEl.textContent = timeString;
+
+            // 更新日期
+            const dateParts = new Intl.DateTimeFormat('zh-CN', {
+                month: 'numeric', day: 'numeric', weekday: 'long', timeZone: userZone
+            }).formatToParts(now);
+
+            const weekdayEl = document.getElementById('weekday-text');
+            const dateEl = document.getElementById('date-text');
+
+            if (weekdayEl && dateEl) {
+                weekdayEl.textContent = dateParts.find(p => p.type === 'weekday').value;
+                dateEl.textContent = `${dateParts.find(p => p.type === 'month').value}月${dateParts.find(p => p.type === 'day').value}日`;
+            }
+
+            // 更新设置页当前状态
+            const currentObj = timeZones.find(t => t.id === userZone);
+            const label = document.getElementById('current-timezone-label');
+            if(label) label.textContent = currentObj ? currentObj.name : '未知';
+
+        } catch(e) {
+            console.error("时间更新出错:", e);
+        }
+    }
+
+    // 启动
+    initTimeZoneList();
+    // 这里的 setInterval 是为了防止重复定义，先清除再设置
+    if (window.clockInterval) clearInterval(window.clockInterval);
+    window.clockInterval = setInterval(updateTime, 1000);
+    updateTime();
+
+    function initBattery() {
+        const batteryLevel = document.getElementById('battery-fill');
+        const batteryText = document.getElementById('battery-text');
+        const chargingIcon = document.getElementById('charging-bolt');
+        if('getBattery' in navigator) navigator.getBattery().then(b => {
+            const update = () => {
+                const level = b.level * 100;
+                batteryText.textContent = Math.round(level) + "%";
+                batteryLevel.style.width = level + "%";
+                if(b.charging) { batteryLevel.style.backgroundColor = "#4CD964"; chargingIcon.style.display = "block"; }
+                else if(level <= 20) { batteryLevel.style.backgroundColor = "#FF3B30"; chargingIcon.style.display = "none"; }
+                else { batteryLevel.style.backgroundColor = "white"; chargingIcon.style.display = "none"; }
+            };
+            update(); b.addEventListener('levelchange', update); b.addEventListener('chargingchange', update);
+        });
+    }
+    initBattery();
+
+    // --- 2. 城市数据 (超大杯完整版) ---
+    const cityDatabase = {
+        domestic: [
+            // --- 一线/新一线 ---
+            { name: "北京", lat: 39.9042, lon: 116.4074 },
+            { name: "上海", lat: 31.2304, lon: 121.4737 },
+            { name: "广州", lat: 23.1291, lon: 113.2644 },
+            { name: "深圳", lat: 22.5431, lon: 114.0579 },
+            { name: "成都", lat: 30.5728, lon: 104.0668 },
+            { name: "重庆", lat: 29.5627, lon: 106.5528 },
+            { name: "杭州", lat: 30.2741, lon: 120.1551 },
+            { name: "武汉", lat: 30.5928, lon: 114.3055 },
+            { name: "西安", lat: 34.3416, lon: 108.9398 },
+            { name: "南京", lat: 32.0603, lon: 118.7969 },
+            { name: "天津", lat: 39.0842, lon: 117.2009 },
+            { name: "苏州", lat: 31.2989, lon: 120.5853 },
+            { name: "长沙", lat: 28.2282, lon: 112.9388 },
+            { name: "郑州", lat: 34.7466, lon: 113.6253 },
+
+            // --- 东部沿海 ---
+            { name: "青岛", lat: 36.0671, lon: 120.3826 },
+            { name: "大连", lat: 38.9140, lon: 121.6147 },
+            { name: "厦门", lat: 24.4798, lon: 118.0894 },
+            { name: "宁波", lat: 29.8683, lon: 121.5440 },
+            { name: "福州", lat: 26.0745, lon: 119.2965 },
+            { name: "济南", lat: 36.6512, lon: 117.1201 },
+
+            // --- 东北/西北 ---
+            { name: "哈尔滨", lat: 45.8038, lon: 126.5349 },
+            { name: "沈阳", lat: 41.8057, lon: 123.4315 },
+            { name: "长春", lat: 43.8171, lon: 125.3235 },
+            { name: "兰州", lat: 36.0611, lon: 103.8343 },
+            { name: "乌鲁木齐", lat: 43.8256, lon: 87.6168 },
+            { name: "呼和浩特", lat: 40.8419, lon: 111.7492 },
+
+            // --- 西南/旅游热门 ---
+            { name: "昆明", lat: 24.8801, lon: 102.8329 },
+            { name: "丽江", lat: 26.8721, lon: 100.2297 },
+            { name: "大理", lat: 25.6065, lon: 100.2676 },
+            { name: "拉萨", lat: 29.6525, lon: 91.1721 },
+            { name: "贵阳", lat: 26.6470, lon: 106.6302 },
+            { name: "三亚", lat: 18.2528, lon: 109.5120 },
+            { name: "海口", lat: 20.0440, lon: 110.1999 },
+            { name: "桂林", lat: 25.2345, lon: 110.1800 },
+
+            // --- 港澳台 ---
+            { name: "香港", lat: 22.3193, lon: 114.1694 },
+            { name: "澳门", lat: 22.1987, lon: 113.5439 },
+            { name: "台北", lat: 25.0330, lon: 121.5654 },
+            { name: "高雄", lat: 22.6273, lon: 120.3014 }
+        ],
+        international: [
+            // --- 亚洲 ---
+            { name: "东京", lat: 35.6895, lon: 139.6917 },
+            { name: "大阪", lat: 34.6937, lon: 135.5023 },
+            { name: "京都", lat: 35.0116, lon: 135.7681 },
+            { name: "首尔", lat: 37.5665, lon: 126.9780 },
+            { name: "曼谷", lat: 13.7563, lon: 100.5018 },
+            { name: "新加坡", lat: 1.3521, lon: 103.8198 },
+            { name: "吉隆坡", lat: 3.1390, lon: 101.6869 },
+            { name: "胡志明市", lat: 10.8231, lon: 106.6297 },
+            { name: "雅加达", lat: -6.2088, lon: 106.8456 },
+            { name: "马尼拉", lat: 14.5995, lon: 120.9842 },
+            { name: "新德里", lat: 28.6139, lon: 77.2090 },
+            { name: "迪拜", lat: 25.2048, lon: 55.2708 },
+
+            // --- 欧洲 ---
+            { name: "伦敦", lat: 51.5074, lon: -0.1278 },
+            { name: "巴黎", lat: 48.8566, lon: 2.3522 },
+            { name: "柏林", lat: 52.5200, lon: 13.4050 },
+            { name: "慕尼黑", lat: 48.1351, lon: 11.5820 },
+            { name: "罗马", lat: 41.9028, lon: 12.4964 },
+            { name: "米兰", lat: 45.4642, lon: 9.1900 },
+            { name: "马德里", lat: 40.4168, lon: -3.7038 },
+            { name: "巴塞罗那", lat: 41.3851, lon: 2.1734 },
+            { name: "莫斯科", lat: 55.7558, lon: 37.6173 },
+            { name: "阿姆斯特丹", lat: 52.3676, lon: 4.9041 },
+            { name: "苏黎世", lat: 47.3769, lon: 8.5417 },
+
+            // --- 北美 ---
+            { name: "纽约", lat: 40.7128, lon: -74.0060 },
+            { name: "洛杉矶", lat: 34.0522, lon: -118.2437 },
+            { name: "旧金山", lat: 37.7749, lon: -122.4194 },
+            { name: "芝加哥", lat: 41.8781, lon: -87.6298 },
+            { name: "西雅图", lat: 47.6062, lon: -122.3321 },
+            { name: "多伦多", lat: 43.6510, lon: -79.3470 },
+            { name: "温哥华", lat: 49.2827, lon: -123.1207 },
+
+            // --- 其他 ---
+            { name: "悉尼", lat: -33.8688, lon: 151.2093 },
+            { name: "墨尔本", lat: -37.8136, lon: 144.9631 },
+            { name: "奥克兰", lat: -36.8485, lon: 174.7633 },
+            { name: "开罗", lat: 30.0444, lon: 31.2357 },
+            { name: "里约热内卢", lat: -22.9068, lon: -43.1729 },
+            { name: "布宜诺斯艾利斯", lat: -34.6037, lon: -58.3816 }
+        ]
+    };
+
+    let currentTab = 'domestic';
+    let selectedCity = null; // 临时选中的城市对象
+
+    // --- 3. 弹窗与列表逻辑 ---
+    const modal = document.getElementById('city-modal');
+    const listContainer = document.getElementById('city-list-container');
+    const searchInput = document.getElementById('city-search');
+
+    function openCityModal() {
+        modal.style.display = 'flex';
+        renderCityList(); // 每次打开重新渲染列表
+        setTimeout(() => modal.classList.add('active'), 10);
+    }
+
+    function closeCityModal() {
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+        selectedCity = null; // 重置选择
+    }
+
+    // 切换 国内/国际 Tab
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        searchInput.value = ''; // 切换时清空搜索
+        renderCityList();
+    }
+
+    // 渲染列表 (支持搜索过滤)
+    function renderCityList() {
+        listContainer.innerHTML = '';
+        const keyword = searchInput.value.trim();
+        const cities = cityDatabase[currentTab];
+
+        cities.forEach(city => {
+            // 如果有搜索词，必须匹配名字
+            if (keyword && !city.name.includes(keyword)) return;
+
+            const item = document.createElement('div');
+            item.className = 'city-item';
+            if (selectedCity && selectedCity.name === city.name) {
+                item.classList.add('selected');
+            }
+
+            item.innerHTML = `
+                <div class="city-name">${city.name}</div>
+                <div class="city-sub">Lat: ${city.lat.toFixed(1)}</div>
+            `;
+
+            item.onclick = () => {
+                selectedCity = city;
+                renderCityList(); // 重新渲染以更新高亮状态
+            };
+            listContainer.appendChild(item);
+        });
+    }
+
+    function filterCities() {
+        renderCityList();
+    }
+
+    // --- 4. 核心：真实天气 API 获取 ---
+    function saveCitySelection() {
+        if (selectedCity) {
+            // 1. 获取天气
+            fetchWeather(selectedCity);
+
+            // 2. 【新增】把选中的城市存起来
+            // JSON.stringify 是把对象变成字符串，因为 storage 只能存字符串
+            localStorage.setItem('userCity', JSON.stringify(selectedCity));
+
+            // 3. 关闭弹窗
+            closeCityModal();
+        } else {
+            alert("请先选择一个城市！");
+        }
+    }
+
+    // 调用 Open-Meteo 免费 API
+    async function fetchWeather(city) {
+        const cityEl = document.getElementById('current-city');
+        const tempEl = document.querySelector('.weather-temp');
+        const descEl = document.querySelector('.weather-desc');
+        const iconEl = document.getElementById('weather-icon-container');
+
+        // 先显示加载状态
+        cityEl.textContent = city.name;
+        descEl.textContent = "更新中...";
+
+        try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current_weather=true&timezone=auto`;
+            const response = await fetch(url);
+            const data = await response.json();
+            const weather = data.current_weather;
+
+            // 更新 UI
+            tempEl.textContent = Math.round(weather.temperature) + "°";
+            const weatherInfo = getWeatherInfo(weather.weathercode);
+            descEl.textContent = weatherInfo.desc;
+            iconEl.innerHTML = weatherInfo.icon;
+
+        } catch (error) {
+            console.error(error);
+            descEl.textContent = "获取失败";
+        }
+    }
+
+    // --- 5. 天气代码映射 (全套图标) ---
+    // 根据 WMO Code 返回对应图标和描述
+    function getWeatherInfo(code) {
+        // ☀️ 晴天 (0, 1)
+        if (code <= 1) return {
+            desc: "晴朗",
+            icon: `<svg class="weather-svg" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="14" fill="#FFC107"/><g stroke="#FF9800" stroke-width="4" stroke-linecap="round"><path d="M32 6V10 M32 54V58 M6 32H10 M54 32H58 M13.6 13.6L16.4 16.4 M47.6 47.6L50.4 50.4 M13.6 50.4L16.4 47.6 M47.6 16.4L50.4 13.6"/></g></svg>`
+        };
+
+        // ⛅ 多云 (2, 3)
+        if (code <= 3) return {
+            desc: "多云",
+            icon: `<svg class="weather-svg" viewBox="0 0 64 64" fill="none"><path d="M18 42H46C51.5 42 56 37.5 56 32C56 26.5 51.5 22 46 22C46 16.5 41.5 12 36 12C30.5 12 26 16.5 26 22C20.5 22 16 26.5 16 32C16 37.5 20.5 42 26 42Z" fill="white" fill-opacity="0.9" filter="drop-shadow(0 4px 4px rgba(0,0,0,0.1))"/></svg>`
+        };
+
+        // 🌫️ 雾 (45, 48)
+        if (code <= 48) return {
+            desc: "有雾",
+            icon: `<svg class="weather-svg" viewBox="0 0 64 64" fill="none"><path d="M16 24H48 M12 32H52 M16 40H48" stroke="white" stroke-width="4" stroke-linecap="round" stroke-opacity="0.6"/></svg>`
+        };
+
+        // 🌧️ 雨 (51-67, 80-82)
+        if (code <= 67 || (code >= 80 && code <= 82)) return {
+            desc: "降雨",
+            icon: `<svg class="weather-svg" viewBox="0 0 64 64" fill="none"><path d="M20 32C20 25.3 25.3 20 32 20C38.6 20 44 25.3 44 32" fill="white" fill-opacity="0.9"/><path d="M20 32 H44 V34 H20 Z" fill="white" fill-opacity="0.9"/><path d="M24 40L22 48 M32 40L30 48 M40 40L38 48" stroke="#64B5F6" stroke-width="3" stroke-linecap="round"/></svg>`
+        };
+
+        // 🌨️ 雪 (71-77, 85-86)
+        if (code <= 77 || (code >= 85 && code <= 86)) return {
+            desc: "降雪",
+            icon: `<svg class="weather-svg" viewBox="0 0 64 64" fill="none"><path d="M20 32C20 25.3 25.3 20 32 20C38.6 20 44 25.3 44 32" fill="white" fill-opacity="0.9"/><circle cx="24" cy="46" r="2" fill="white"/><circle cx="32" cy="50" r="2" fill="white"/><circle cx="40" cy="46" r="2" fill="white"/></svg>`
+        };
+
+        // ⛈️ 雷暴 (95-99)
+        return {
+            desc: "雷暴",
+            icon: `<svg class="weather-svg" viewBox="0 0 64 64" fill="none"><path d="M20 30C20 23.3 25.3 18 32 18C38.6 18 44 23.3 44 30" fill="gray" fill-opacity="0.9"/><path d="M34 32L26 44H32L28 56L40 40H32L34 32Z" fill="#FFD700" stroke="#FFA000" stroke-width="1"/></svg>`
+        };
+    }
+
+    // --- 启动时：检查有没有存过的城市 ---
+    function initWeather() {
+        // 1. 尝试从本地拿城市数据
+        const savedCityStr = localStorage.getItem('userCity');
+
+        if (savedCityStr) {
+            // 2. 如果拿到了，就把它变回对象，然后查天气
+            const savedCity = JSON.parse(savedCityStr);
+            fetchWeather(savedCity);
+        } else {
+            // 3. 如果从没存过，默认显示北京
+            fetchWeather(cityDatabase.domestic[0]);
+        }
+    }
+
+    // 运行初始化
+    initWeather();
+
+    // --- 照片组件逻辑 ---
+
+    // 1. 点击组件，触发隐藏的 file input 点击事件
+    function triggerPhotoUpload() {
+        document.getElementById('photo-input').click();
+    }
+
+    // 修改后的上传逻辑 (支持大文件)
+    function handlePhotoUpload(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                const imageData = e.target.result;
+
+                // 1. 更新 UI
+                const display = document.getElementById('photo-display');
+                const placeholder = document.getElementById('photo-placeholder');
+                display.style.backgroundImage = `url(${imageData})`;
+                placeholder.style.display = 'none';
+                display.style.display = 'block';
+
+                // 2. 存入大容量数据库 (IndexedDB)
+                try {
+                    // 'userPhoto_1' 是这张图的ID，如果你以后有多个图，可以换名字
+                    await dbHelper.save('userPhoto_1', imageData);
+                    console.log("图片已保存到本地数据库");
+                } catch (err) {
+                    console.error("保存失败", err);
+                    alert("保存失败，可能是空间不足");
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // 修改后的初始化逻辑
+    async function initSavedPhoto() {
+        try {
+            // 从大容量数据库读取
+            const savedImage = await dbHelper.get('userPhoto_1');
+
+            if (savedImage) {
+                const display = document.getElementById('photo-display');
+                const placeholder = document.getElementById('photo-placeholder');
+
+                display.style.backgroundImage = `url(${savedImage})`;
+                placeholder.style.display = 'none';
+                display.style.display = 'block';
+            }
+        } catch (err) {
+            console.log("还没有保存过照片");
+        }
+    }
+
+    // 立即运行
+    initSavedPhoto();
+
+    // ================== 音乐组件核心逻辑 ==================
+    const audioPlayer = new Audio();
+    let isPlaying = false;
+    let tempMp3File = null;
+
+    // 1. 封面上传
+    function triggerCoverUpload() { document.getElementById('cover-input').click(); }
+    document.getElementById('cover-input').onchange = async function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = async function(evt) {
+                document.getElementById('music-cover').style.backgroundImage = `url(${evt.target.result})`;
+                await dbHelper.save('music_cover_img', evt.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // 2. 弹窗控制
+    const musicModal = document.getElementById('music-modal');
+    const fileNameDisplay = document.getElementById('music-file-name');
+
+    function openMusicModal() {
+        const meta = JSON.parse(localStorage.getItem('musicMeta') || '{}');
+        document.getElementById('edit-song-title').value = meta.title || '';
+        document.getElementById('edit-artist-name').value = meta.artist || '';
+        fileNameDisplay.textContent = "未选择新文件";
+        tempMp3File = null;
+        musicModal.style.display = 'flex';
+        setTimeout(()=>musicModal.classList.add('active'), 10);
+    }
+
+    function closeMusicModal() {
+        musicModal.classList.remove('active');
+        setTimeout(()=>musicModal.style.display = 'none', 300);
+    }
+
+    // 3. 监听MP3选择
+    document.getElementById('mp3-input').onchange = function(e) {
+        if (e.target.files && e.target.files[0]) {
+            tempMp3File = e.target.files[0];
+            fileNameDisplay.textContent = "已选择: " + tempMp3File.name;
+        }
+    };
+
+    // 4. 保存并播放
+    async function saveMusicInfo() {
+        const title = document.getElementById('edit-song-title').value || '未知歌曲';
+        const artist = document.getElementById('edit-artist-name').value || '未知艺术家';
+        const url = document.getElementById('edit-music-url').value;
+
+        const meta = { title, artist, url, hasLocalFile: !!tempMp3File };
+        localStorage.setItem('musicMeta', JSON.stringify(meta));
+
+        // 更新文字
+        document.querySelector('.song-title').textContent = title;
+        document.querySelector('.artist-name').textContent = artist;
+
+        // 处理音频
+        if (tempMp3File) {
+            await dbHelper.save('music_audio_file', tempMp3File); // 存入数据库
+            loadAndPlayAudio(URL.createObjectURL(tempMp3File));
+        } else if (url) {
+            await dbHelper.save('music_audio_file', null);
+            loadAndPlayAudio(url);
+        }
+        closeMusicModal();
+    }
+
+    function loadAndPlayAudio(src) {
+        audioPlayer.src = src;
+        audioPlayer.play().then(() => {
+            isPlaying = true; updatePlayPauseIcon();
+        }).catch(e => console.error("播放失败", e));
+    }
+
+    // 5. 播放控制按钮
+    const playBtn = document.getElementById('playPauseBtn');
+    playBtn.onclick = function() {
+        if (!audioPlayer.src) { openMusicModal(); return; }
+        if (isPlaying) audioPlayer.pause(); else audioPlayer.play();
+        isPlaying = !isPlaying;
+        updatePlayPauseIcon();
+    };
+
+    function updatePlayPauseIcon() {
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        if (isPlaying) {
+            playIcon.style.display = 'none'; pauseIcon.style.display = 'block';
+        } else {
+            playIcon.style.display = 'block'; pauseIcon.style.display = 'none';
+        }
+    }
+
+    // 6. 进度条更新
+    const progressBar = document.querySelector('.progress-bar-fill');
+    audioPlayer.ontimeupdate = function() {
+        if (audioPlayer.duration) {
+            progressBar.style.width = (audioPlayer.currentTime / audioPlayer.duration * 100) + '%';
+        }
+    };
+    audioPlayer.onended = function() {
+        isPlaying = false; updatePlayPauseIcon(); progressBar.style.width = '0%';
+    };
+
+    // 7. 初始化加载 (记忆功能)
+    async function initMusicState() {
+        const metaStr = localStorage.getItem('musicMeta');
+        if (metaStr) {
+            const meta = JSON.parse(metaStr);
+            document.querySelector('.song-title').textContent = meta.title;
+            document.querySelector('.artist-name').textContent = meta.artist;
+
+            // 加载音频
+            if (meta.hasLocalFile) {
+                const audioBlob = await dbHelper.get('music_audio_file');
+                if (audioBlob) audioPlayer.src = URL.createObjectURL(audioBlob);
+            } else if (meta.url) {
+                audioPlayer.src = meta.url;
+            }1
+        }
+        // 加载封面
+        const savedCover = await dbHelper.get('music_cover_img');
+        if (savedCover) document.getElementById('music-cover').style.backgroundImage = `url(${savedCover})`;
+    }
+    initMusicState();
+
+    // ================== 个人信息组件逻辑 ==================
+
+    // --- A. 头像上传逻辑 (存 IndexedDB 大仓库) ---
+    function triggerProfileUpload() { document.getElementById('profile-input').click(); }
+
+    document.getElementById('profile-input').onchange = async function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = async function(evt) {
+                // 1. 更新界面
+                document.getElementById('profile-avatar').style.backgroundImage = `url(${evt.target.result})`;
+                // 2. 存入数据库
+                await dbHelper.save('userAvatar_main', evt.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // --- B. 文字编辑弹窗逻辑 ---
+    const profileModal = document.getElementById('profile-modal');
+    const profileInput = document.getElementById('profile-edit-input');
+    const modalTitle = document.getElementById('profile-modal-title');
+    const editTypeHidden = document.getElementById('current-edit-type');
+
+    // 打开弹窗 (type 传入 'nickname' 或 'signature')
+    function openProfileEditModal(type) {
+        // 根据类型设置标题和回显内容
+        if (type === 'nickname') {
+            modalTitle.textContent = "修改昵称";
+            profileInput.value = document.getElementById('profile-nickname').textContent;
+        } else {
+            modalTitle.textContent = "修改个性签名";
+            profileInput.value = document.getElementById('profile-signature').textContent;
+        }
+        // 记录当前编辑类型
+        editTypeHidden.value = type;
+
+        profileModal.style.display = 'flex';
+        setTimeout(() => {
+            profileModal.classList.add('active');
+            profileInput.focus(); // 自动聚焦输入框
+        }, 10);
+    }
+
+    // 关闭弹窗
+    function closeProfileModal() {
+        profileModal.classList.remove('active');
+        setTimeout(() => profileModal.style.display = 'none', 300);
+    }
+
+    // 保存文字 (存 localStorage 小本子)
+    function saveProfileText() {
+        const type = editTypeHidden.value;
+        const text = profileInput.value.trim();
+
+        if (text) {
+            if (type === 'nickname') {
+                document.getElementById('profile-nickname').textContent = text;
+                localStorage.setItem('userNickname', text);
+            } else {
+                document.getElementById('profile-signature').textContent = text;
+                localStorage.setItem('userSignature', text);
+            }
+        }
+        closeProfileModal();
+    }
+
+    // --- C. 初始化加载 (断电记忆) ---
+    async function initProfileState() {
+        // 1. 加载文字 (localStorage)
+        const nick = localStorage.getItem('userNickname');
+        const sign = localStorage.getItem('userSignature');
+        if (nick) document.getElementById('profile-nickname').textContent = nick;
+        if (sign) document.getElementById('profile-signature').textContent = sign;
+
+        // 2. 加载头像 (IndexedDB)
+        const savedAvatar = await dbHelper.get('userAvatar_main');
+        if (savedAvatar) {
+            document.getElementById('profile-avatar').style.backgroundImage = `url(${savedAvatar})`;
+        }
+    }
+
+    // 启动时加载
+    initProfileState();
+
+    // ================== 壁纸 App 逻辑 ==================
+
+    // 临时存储，用于预览后保存
+    let tempWpImg = null;
+    let tempWpVideo = null;
+
+    // 1. 打开/关闭 App 动画
+    function openApp(appId) {
+        const app = document.getElementById(appId);
+        app.style.display = 'flex';
+        setTimeout(() => app.classList.add('active'), 10);
+    }
+    function closeApp(appId) {
+        const app = document.getElementById(appId);
+        app.classList.remove('active');
+        setTimeout(() => app.style.display = 'none', 300);
+    }
+
+    // 2. 处理上传预览
+    function handleWpPreview(type, input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const url = URL.createObjectURL(file);
+
+            if (type === 'image') {
+                const preview = document.getElementById('wp-img-preview');
+                preview.innerHTML = ''; // 清空文字
+                preview.style.background = `url(${url}) center/cover no-repeat`;
+                tempWpImg = file; // 存入临时变量
+                document.getElementById('btn-apply-img').classList.add('ready'); // 激活按钮
+            } else {
+                const video = document.getElementById('wp-video-preview');
+                const placeholder = document.getElementById('wp-video-placeholder');
+                video.src = url;
+                video.style.display = 'block';
+                video.play();
+                placeholder.style.display = 'none';
+                tempWpVideo = file;
+                document.getElementById('btn-apply-video').classList.add('ready');
+            }
+        }
+    }
+
+    // 3. 应用壁纸 (核心保存逻辑)
+    async function applyWallpaper(type) {
+        const body = document.body;
+        const globalVideo = document.getElementById('global-video-bg');
+
+        if (type === 'image' && tempWpImg) {
+            // --- 静态逻辑 ---
+            // 1. 存入数据库
+            await dbHelper.save('wallpaper_file', tempWpImg);
+            await dbHelper.save('wallpaper_type', 'image');
+
+            // 2. 应用 UI
+            const url = URL.createObjectURL(tempWpImg);
+            body.style.backgroundImage = `url(${url})`;
+            globalVideo.style.display = 'none'; // 隐藏视频层
+            globalVideo.src = ""; // 停止视频节省资源
+
+            alert("静态壁纸已应用！");
+            closeApp('app-wallpaper');
+
+        } else if (type === 'video' && tempWpVideo) {
+            // --- 动态逻辑 ---
+            if (tempWpVideo.size > 50 * 1024 * 1024) {
+                alert("视频有点大(超过50MB)，保存可能会慢一点，请稍等...");
+            }
+
+            // 1. 存入数据库
+            await dbHelper.save('wallpaper_file', tempWpVideo);
+            await dbHelper.save('wallpaper_type', 'video');
+
+            // 2. 应用 UI
+            const url = URL.createObjectURL(tempWpVideo);
+            globalVideo.src = url;
+            globalVideo.style.display = 'block';
+            globalVideo.play();
+            // 把 body 背景图去掉，否则会挡住视频
+            body.style.backgroundImage = 'none';
+
+            alert("动态壁纸已应用！");
+            closeApp('app-wallpaper');
+        }
+    }
+
+    // 4. 初始化加载 (开机读取壁纸)
+    async function initWallpaper() {
+        try {
+            const type = await dbHelper.get('wallpaper_type');
+            const file = await dbHelper.get('wallpaper_file');
+
+            if (type && file) {
+                const url = URL.createObjectURL(file);
+                const globalVideo = document.getElementById('global-video-bg');
+
+                if (type === 'image') {
+                    document.body.style.backgroundImage = `url(${url})`;
+                    globalVideo.style.display = 'none';
+                } else if (type === 'video') {
+                    document.body.style.backgroundImage = 'none';
+                    globalVideo.src = url;
+                    globalVideo.style.display = 'block';
+                    globalVideo.play();
+                }
+            }
+        } catch (e) {
+            console.log("使用默认壁纸");
+        }
+    }
+
+    // 启动
+    initWallpaper();
+
+    // ================== 8. 主题系统逻辑 (静音修复版) ==================
+
+    // 1. 切换主题模式 (增加 isSilent 参数)
+    function switchTheme(mode, isSilent = false) {
+        // 更新按钮状态
+        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+        const btn = document.getElementById(`btn-theme-${mode}`);
+        if(btn) btn.classList.add('active');
+
+        // 保存模式
+        localStorage.setItem('userThemeMode', mode);
+
+        // 更新设置页文字
+        const label = document.getElementById('current-theme-label');
+        if(label) label.textContent = (mode === 'dark' ? '深色' : (mode === 'light' ? '浅色' : '自定义'));
+
+        // --- 执行模式切换 ---
+        const body = document.body;
+        const editor = document.getElementById('custom-css-area');
+
+        // 重置状态
+        body.classList.remove('light-theme');
+        removeCustomStyle();
+
+        if (mode === 'light') {
+            body.classList.add('light-theme');
+            editor.style.display = 'none';
+            // 只有在不是静音(手动点击)时才弹窗
+            if(!isSilent) showToast('已切换至浅色模式');
+        }
+        else if (mode === 'dark') {
+            editor.style.display = 'none';
+            if(!isSilent) showToast('已切换至深色模式');
+        }
+        else if (mode === 'custom') {
+            editor.style.display = 'block';
+            const savedCSS = localStorage.getItem('userCustomCSS') || '';
+            document.getElementById('css-input').value = savedCSS;
+            applyCustomCSS(true); // 加载代码时默认静音
+        }
+    }
+
+    // 2. 应用自定义 CSS
+    function applyCustomCSS(isSilent = false) {
+        const cssText = document.getElementById('css-input').value;
+        removeCustomStyle();
+
+        const styleTag = document.createElement('style');
+        styleTag.id = 'user-custom-style';
+        styleTag.textContent = cssText;
+        document.head.appendChild(styleTag);
+
+        localStorage.setItem('userCustomCSS', cssText);
+
+        if(!isSilent) showToast('自定义主题已应用');
+    }
+
+    // 移除自定义样式标签
+    function removeCustomStyle() {
+        const oldStyle = document.getElementById('user-custom-style');
+        if (oldStyle) oldStyle.remove();
+    }
+
+    // 3. 初始化主题 (开机读取 - 开启静音模式)
+    function initTheme() {
+        const mode = localStorage.getItem('userThemeMode') || 'dark';
+        // 这里传 true，表示静音加载，不弹窗
+        switchTheme(mode, true);
+    }
+
+    // 启动
+    initTheme();
+
+    // ================== 9. AI 模型设置逻辑 (多配置版) ==================
+
+    // 1. 初始化
+    function initAISettings() {
+        // 读取当前激活的配置
+        const activeConfig = JSON.parse(localStorage.getItem('ai_active_config') || '{}');
+
+        document.getElementById('ai-endpoint').value = activeConfig.endpoint || '';
+        document.getElementById('ai-key').value = activeConfig.key || '';
+
+        // 更新UI显示
+        if (activeConfig.model) {
+            updateModelDisplay(activeConfig.model);
+        }
+        if (activeConfig.name) {
+            document.getElementById('current-config-name').textContent = activeConfig.name;
+        }
+    }
+
+    // 更新显示辅助函数
+    function updateModelDisplay(name) {
+        const el = document.getElementById('display-current-model');
+        const label = document.getElementById('current-model-label');
+        if(el) el.textContent = name || '未选择';
+        if(label) label.textContent = name || '未配置';
+    }
+
+    // 2. 拉取模型列表 (保持不变)
+    async function fetchModelList() {
+        const endpoint = getCleanEndpoint();
+        const key = document.getElementById('ai-key').value.trim();
+
+        if (!endpoint || !key) { showToast("请先填写地址和密钥"); return; }
+        showToast("正在连接...");
+
+        try {
+            const response = await fetch(`${endpoint}/v1/models`, {
+                method: 'GET', headers: { 'Authorization': `Bearer ${key}` }
+            });
+            if (!response.ok) throw new Error("HTTP " + response.status);
+            const data = await response.json();
+            const list = Array.isArray(data.data) ? data.data : data;
+
+            if (list && list.length > 0) {
+                cachedModelList = list.sort((a, b) => a.id.localeCompare(b.id));
+                renderModelList();
+                openSubPage('sub-model-select');
+                showToast(`获取到 ${list.length} 个模型`);
+            } else { throw new Error("列表为空"); }
+        } catch (err) { showToast("拉取失败: " + err.message); }
+    }
+
+    // 3. 渲染模型列表 (保持不变)
+    function renderModelList() {
+        const container = document.getElementById('model-list-container');
+        const keyword = document.getElementById('model-search').value.toLowerCase().trim();
+        container.innerHTML = '';
+
+        const group = document.createElement('div'); group.className = 'settings-group';
+
+        cachedModelList.filter(m => !keyword || m.id.toLowerCase().includes(keyword)).forEach(m => {
+            const item = document.createElement('div');
+            item.className = 'settings-item';
+            item.onclick = () => {
+                document.getElementById('display-current-model').textContent = m.id;
+                document.getElementById('display-current-model').dataset.value = m.id;
+                closeSubPage('sub-model-select');
+            };
+            item.innerHTML = `<div class="city-name" style="font-size:15px;">${m.id}</div>`;
+            group.appendChild(item);
+        });
+        container.appendChild(group);
+    }
+
+    // 4. 【核心】保存配置 (UI 弹窗版)
+
+    // 步骤 A: 校验并打开弹窗
+    function saveAISettings() {
+        const endpoint = getCleanEndpoint();
+        const key = document.getElementById('ai-key').value.trim();
+        const modelEl = document.getElementById('display-current-model');
+        const model = modelEl.dataset.value || modelEl.textContent.trim();
+
+        if (!endpoint || !key || model === '未选择') { showToast("配置不完整"); return; }
+
+        // 获取当前名字作为默认值
+        const currentName = document.getElementById('current-config-name').textContent;
+        const input = document.getElementById('config-name-input');
+        input.value = currentName === '默认' ? '' : currentName;
+
+        // 打开命名弹窗
+        const modal = document.getElementById('config-name-modal');
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.classList.add('active');
+            input.focus(); // 自动聚焦
+        }, 10);
+    }
+
+    // 步骤 B: 关闭弹窗
+    function closeConfigNameModal() {
+        const modal = document.getElementById('config-name-modal');
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+
+    // 步骤 C: 确认保存 (点击弹窗按钮触发)
+    function confirmSaveConfig() {
+        const nameInput = document.getElementById('config-name-input');
+        const configName = nameInput.value.trim() || "我的配置"; // 默认名
+
+        // 再次获取数据 (因为只是隔了一层弹窗，DOM里的数据还在)
+        const endpoint = getCleanEndpoint();
+        const key = document.getElementById('ai-key').value.trim();
+        const modelEl = document.getElementById('display-current-model');
+        const model = modelEl.dataset.value || modelEl.textContent.trim();
+
+        // 1. 构建配置对象
+        const newConfig = {
+            id: Date.now(),
+            name: configName,
+            endpoint: endpoint,
+            key: key,
+            model: model
+        };
+
+        // 2. 保存到历史列表
+        let configList = JSON.parse(localStorage.getItem('ai_config_list') || '[]');
+        const existIndex = configList.findIndex(c => c.name === configName);
+        if (existIndex >= 0) {
+            configList[existIndex] = newConfig; // 覆盖旧的
+        } else {
+            configList.push(newConfig); // 新增
+        }
+        localStorage.setItem('ai_config_list', JSON.stringify(configList));
+
+        // 3. 激活并关闭
+        activateConfig(newConfig);
+        showToast(`✅ 已保存: ${configName}`);
+        closeConfigNameModal();
+    }
+
+    // 5. 激活配置
+    function activateConfig(config) {
+        localStorage.setItem('ai_active_config', JSON.stringify(config));
+
+        // 兼容旧的存储方式 (给聊天App用)
+        localStorage.setItem('ai_endpoint', config.endpoint);
+        localStorage.setItem('ai_key', config.key);
+        localStorage.setItem('ai_model', config.model);
+
+        // 更新UI
+        document.getElementById('ai-endpoint').value = config.endpoint;
+        document.getElementById('ai-key').value = config.key;
+        document.getElementById('current-config-name').textContent = config.name;
+        updateModelDisplay(config.model);
+        document.getElementById('current-model-label').textContent = config.model;
+    }
+
+    // 6. 渲染已保存的配置列表 (UI弹窗版)
+    function renderConfigList() {
+        const container = document.getElementById('config-list-container');
+        const list = JSON.parse(localStorage.getItem('ai_config_list') || '[]');
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+            container.innerHTML = '<div style="text-align:center; color:#666; padding:40px;">暂无保存的配置</div>';
+            return;
+        }
+
+        const group = document.createElement('div'); group.className = 'settings-group';
+
+        list.forEach(config => {
+            const item = document.createElement('div');
+            item.className = 'settings-item';
+
+            // 点击加载配置
+            item.onclick = () => {
+                activateConfig(config);
+                showToast(`已切换至: ${config.name}`);
+                closeSubPage('sub-config-list');
+            };
+
+            item.innerHTML = `
+                <div>
+                    <div class="city-name">${config.name}</div>
+                    <div class="city-detail">${config.model}</div>
+                </div>
+                <span style="color:#666; font-size:12px;">${config.endpoint.replace('https://', '').replace('http://', '')}</span>
+            `;
+            group.appendChild(item);
+        });
+
+        container.appendChild(group);
+
+        // 底部清空按钮 (改为调用新弹窗)
+        const clearBtn = document.createElement('div');
+        clearBtn.style.textAlign = 'center';
+        clearBtn.style.padding = '20px';
+        clearBtn.style.color = '#FF3B30';
+        clearBtn.style.cursor = 'pointer';
+        clearBtn.style.fontSize = '14px';
+        clearBtn.innerHTML = '🗑️ 清空所有配置';
+
+        // 关键修改：不再用 confirm，而是打开自定义弹窗
+        clearBtn.onclick = openClearConfigModal;
+
+        container.appendChild(clearBtn);
+    }
+
+    // --- 清空确认弹窗逻辑 ---
+    function openClearConfigModal() {
+        const modal = document.getElementById('clear-config-modal');
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+    }
+
+    function closeClearConfigModal() {
+        const modal = document.getElementById('clear-config-modal');
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+
+    function confirmClearConfig() {
+        // 执行删除
+        localStorage.removeItem('ai_config_list');
+        // 刷新列表
+        renderConfigList();
+        // 提示并关闭
+        showToast("已清空所有配置");
+        closeClearConfigModal();
+    }
+
+    // 7. 测试逻辑 (保持不变)
+    async function testSimpleConnection() { /* ...同前... */ }
+    async function testAIConnection() { /* ...同前... */ }
+    function getCleanEndpoint() { /* ...同前... */ return document.getElementById('ai-endpoint').value.trim().replace(/\/v1\/?$/, '').replace(/\/$/, ''); }
+    function logTest(t) { const l=document.getElementById('ai-test-log'); l.innerText+=t+"\n"; l.scrollTop=l.scrollHeight; }
+
+    // 启动
+    initAISettings();
+
+    // ================== 10. 字体设置逻辑 (Pro) ==================
+
+    // 系统预设字体 (扩充版 - 安全无版权)
+    const systemFonts = [
+        { name: "系统默认", family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+        { name: "圆体 (Rounded)", family: 'ui-rounded, "Hiragino Maru Gothic ProN", "Quicksand", "Arial Rounded MT Bold", sans-serif' },
+        { name: "黑体 (Sans)", family: '"Noto Sans SC", "Heiti SC", "Microsoft YaHei", sans-serif' },
+        { name: "宋体 (Serif)", family: '"Songti SC", "Noto Serif SC", "SimSun", serif' },
+        { name: "楷体 (KaiTi)", family: '"KaiTi", "STKaiti", "BiauKai", serif' },
+        { name: "仿宋 (FangSong)", family: '"FangSong", "STFangsong", serif' },
+        { name: "手写 (Handwriting)", family: '"Comic Sans MS", "Chalkboard SE", "Wawati SC", cursive' },
+        { name: "代码 (Mono)", family: 'Monaco, Consolas, "Courier New", monospace' }
+    ];
+
+    // 当前配置
+    let currentFontConfig = {
+        family: systemFonts[0].family,
+        name: systemFonts[0].name,
+        size: 16,   // 实际上作为 base size 参考
+        weight: 400,
+        isCustom: false
+    };
+
+    // 1. 初始化字体
+    async function initFontSettings() {
+        const saved = JSON.parse(localStorage.getItem('userFontConfig') || 'null');
+
+        if (saved) {
+            currentFontConfig = saved;
+            // 恢复滑块位置
+            document.getElementById('range-size').value = saved.size;
+            document.getElementById('range-weight').value = saved.weight;
+        }
+
+        // 如果是自定义字体，从数据库加载并注册
+        if (currentFontConfig.isCustom) {
+            await loadCustomFontFromDB();
+        }
+
+        applyFontToBody();
+        renderFontList();
+    }
+
+    // 2. 应用到全局 (变量驱动版)
+    function applyFontToBody() {
+        const root = document.documentElement;
+
+        // 1. 设置字体族 (Font Family)
+        root.style.setProperty('--ui-font', currentFontConfig.family);
+
+        // 2. 设置粗细 (Font Weight)
+        root.style.setProperty('--ui-weight', currentFontConfig.weight);
+
+        // 3. 【关键】设置全局字体大小变量
+        // 这样 CSS 里的 var(--app-font-size) 就会收到通知
+        root.style.setProperty('--app-font-size', currentFontConfig.size + "px");
+
+        // 更新设置页的数字显示
+        document.getElementById('current-font-label').textContent = currentFontConfig.name;
+        const sizeLabel = document.getElementById('val-size');
+        const weightLabel = document.getElementById('val-weight');
+
+        if(sizeLabel) sizeLabel.textContent = currentFontConfig.size + "px";
+        if(weightLabel) weightLabel.textContent = currentFontConfig.weight;
+    }
+
+    // 3. 实时调整 (滑块事件)
+    function updateFontConfig() {
+        const size = document.getElementById('range-size').value;
+        const weight = document.getElementById('range-weight').value;
+
+        currentFontConfig.size = size;
+        currentFontConfig.weight = weight;
+
+        applyFontToBody();
+        saveFontConfig();
+    }
+
+    // 4. 选择字体
+    function selectFont(index) {
+        const font = systemFonts[index];
+        currentFontConfig.family = font.family;
+        currentFontConfig.name = font.name;
+        currentFontConfig.isCustom = false;
+
+        applyFontToBody();
+        renderFontList();
+        saveFontConfig();
+        showToast("字体已切换");
+    }
+
+    // 5. 上传自定义字体
+    async function handleFontUpload(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const fontName = "UserCustomFont";
+
+            showToast("正在处理字体...");
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                // 1. 注册字体 (浏览器 API)
+                const fontFace = new FontFace(fontName, arrayBuffer);
+                await fontFace.load();
+                document.fonts.add(fontFace);
+
+                // 2. 存入数据库
+                await dbHelper.save('custom_font_blob', file); // 存原文件
+
+                // 3. 应用
+                currentFontConfig.family = fontName;
+                currentFontConfig.name = "自定义 (" + file.name + ")";
+                currentFontConfig.isCustom = true;
+
+                applyFontToBody();
+                renderFontList();
+                saveFontConfig();
+                showToast("✅ 字体上传成功");
+
+            } catch (err) {
+                showToast("❌ 字体加载失败: " + err.message);
+            }
+        }
+    }
+
+    // 6. 从数据库加载自定义字体 (开机用)
+    async function loadCustomFontFromDB() {
+        try {
+            const file = await dbHelper.get('custom_font_blob');
+            if (file) {
+                const arrayBuffer = await file.arrayBuffer();
+                const fontFace = new FontFace("UserCustomFont", arrayBuffer);
+                await fontFace.load();
+                document.fonts.add(fontFace);
+            }
+        } catch (e) {
+            console.log("无自定义字体");
+        }
+    }
+
+    // 7. 渲染列表
+    function renderFontList() {
+        const container = document.getElementById('font-list-container');
+        if(!container) return;
+        container.innerHTML = '';
+
+        // 合并系统字体和当前自定义字体(如果存在)
+        let displayList = [...systemFonts];
+        if (currentFontConfig.isCustom) {
+            displayList.push({ name: currentFontConfig.name, family: "UserCustomFont", isCustom: true });
+        }
+
+        displayList.forEach((font, index) => {
+            const isSelected = currentFontConfig.family === font.family;
+            const item = document.createElement('div');
+            item.className = 'ai-list-item'; // 复用之前的样式
+
+            // 点击逻辑
+            item.onclick = () => {
+                if(font.isCustom) return; // 自定义的是上传后自动选中的
+                selectFont(index);
+            };
+
+            item.innerHTML = `
+                <div class="ai-item-label full" style="font-family:${font.family}">${font.name}</div>
+                ${isSelected ? '<span style="color:#0a84ff;font-weight:bold;">✔</span>' : ''}
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    function saveFontConfig() {
+        localStorage.setItem('userFontConfig', JSON.stringify(currentFontConfig));
+    }
+
+    // 恢复默认字体
+    function resetFontSettings() {
+        // 1. 重置数据
+        currentFontConfig = {
+            family: systemFonts[0].family,
+            name: systemFonts[0].name,
+            size: 16,
+            weight: 400,
+            isCustom: false
+        };
+
+        // 2. 恢复 UI 状态
+        document.getElementById('range-size').value = 16;
+        document.getElementById('range-weight').value = 400;
+
+        // 3. 应用并保存
+        applyFontToBody();
+        renderFontList();
+        saveFontConfig();
+
+        showToast("已恢复系统默认字体");
+    }
+
+    // 启动
+    initFontSettings();
+</script>
 </body>
 </html>
