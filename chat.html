@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Luna — 聊天</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="chat.css" />
+</head>
+<body>
+
+<div class="luna-wrap">
+  <div class="luna-frame">
+
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主内容区（四个 Tab 页面） -->
+    <div class="chat-body">
+
+      <!-- ① 消息页 -->
+      <div class="tab-page active" id="pageMessages">
+
+  <!-- Header -->
+  <div class="page-header" id="msgHeader">
+    <div class="hb-tl">
+      <i style="height:6px"></i><i style="height:10px"></i><i style="height:7px"></i><i style="height:13px"></i><i style="height:8px"></i><i style="height:11px"></i>
+    </div>
+    <div class="hb-ch-ring2"></div>
+    <div class="hb-ch-ring"></div>
+    <div class="hb-ch"></div>
+    <div class="hb-row">
+      <div class="hb-left">
+        <div class="hb-eyebrow">Luna · 2026</div>
+        <div class="hb-title">Messages</div>
+      </div>
+      <div class="hb-btns">
+        <button class="hb-btn ghost" onclick="openNewChat()">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="rgba(15,15,26,.5)" stroke-width="1.8" stroke-linecap="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+        <button class="hb-btn dk" onclick="history.back()">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.8" stroke-linecap="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="hb-line"></div>
+  </div>
+
+  <!-- 好友环 -->
+  <div class="story-ring-wrap">
+    <div class="story-ring-label">Online Now</div>
+    <div class="story-ring-list" id="storyRingList"></div>
+  </div>
+
+  <!-- 搜索栏 -->
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+    <input type="text" placeholder="Search messages..." class="search-input" />
+  </div>
+
+  <!-- Tab 筛选 -->
+  <div class="conv-tabs">
+    <button class="conv-tab active" onclick="switchConvTab(this,'all')">All</button>
+    <button class="conv-tab" onclick="switchConvTab(this,'unread')">Unread</button>
+    <button class="conv-tab" onclick="switchConvTab(this,'groups')">Groups</button>
+  </div>
+
+  <!-- 会话列表 -->
+  <div class="conv-list" id="convList"></div>
+
+</div>
+
+      <!-- ② 联系人页 -->
+      <div class="tab-page" id="pageContacts">
+        <div class="page-header">
+          <div class="page-title">联系人</div>
+          <button class="header-action-btn" onclick="openAddContact()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="contact-list" id="contactList">
+          <!-- 由 JS 渲染 -->
+        </div>
+      </div>
+
+      <!-- ③ 动态页 -->
+      <div class="tab-page" id="pageMoments">
+        <div class="page-header">
+          <div class="page-title">动态</div>
+          <button class="header-action-btn" onclick="openNewPost()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="moments-feed" id="momentsFeed">
+          <!-- 由 JS 渲染 -->
+        </div>
+      </div>
+
+      <!-- ④ 我的页 -->
+      <div class="tab-page" id="pageProfile">
+        <div class="profile-hero">
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar" id="profileAvatar"></div>
+          </div>
+          <div class="profile-name" id="profileName">用户</div>
+          <div class="profile-handle" id="profileHandle">@luna_user</div>
+        </div>
+
+        <div class="profile-stats">
+          <div class="stat-item">
+            <div class="stat-num">128</div>
+            <div class="stat-label">关注</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <div class="stat-num">364</div>
+            <div class="stat-label">粉丝</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <div class="stat-num">42</div>
+            <div class="stat-label">动态</div>
+          </div>
+        </div>
+
+        <div class="profile-menu">
+          <div class="profile-menu-item">
+            <div class="pm-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </div>
+            <span>编辑资料</span>
+            <svg class="pm-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none">
+              <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="profile-menu-item">
+            <div class="pm-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span>通知设置</span>
+            <svg class="pm-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none">
+              <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="profile-menu-item">
+            <div class="pm-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span>隐私与安全</span>
+            <svg class="pm-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none">
+              <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /chat-body -->
+
+    <!-- 底部导航栏 -->
+    <div class="tab-bar">
+      <div class="luna-decor-glow"></div>     <div class="luna-decor-line"></div>     <div class="luna-decor-dots"></div>     <div class="tab-indicator" id="tabArc"></div>
+      <button class="tab-btn active" id="tabMessages" onclick="switchTab('messages')">
+        <div class="tab-icon">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" class="icon-stroke">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" style="display:none" class="icon-fill">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="currentColor" stroke="currentColor" stroke-width="0.3"/>
+            </svg>
+        </div>
+        <div class="tab-label">Messages</div>
+        </button>
+      <button class="tab-btn" id="tabContacts" onclick="switchTab('contacts')">
+        <div class="tab-icon">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" class="icon-stroke">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" style="display:none" class="icon-fill">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" fill="currentColor"/>
+            <circle cx="9" cy="7" r="4" fill="currentColor"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div class="tab-label">Contacts</div>
+        </button>
+      <button class="tab-btn" id="tabMoments" onclick="switchTab('moments')">
+        <div class="tab-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" class="icon-stroke">
+            <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="1.7"/>
+            <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+            <path d="M3 15l5-4 4 3 3-3 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" style="display:none" class="icon-fill">
+            <rect x="3" y="3" width="18" height="18" rx="4" fill="currentColor"/>
+            <circle cx="8.5" cy="8.5" r="1.5" fill="#f5f5f9"/>
+            <path d="M3 15l5-4 4 3 3-3 6 5" stroke="#f5f5f9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="tab-label">Moments</div>
+        </button>
+      <button class="tab-btn" id="tabProfile" onclick="switchTab('profile')">
+        <div class="tab-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" class="icon-stroke">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.7"/>
+            </svg>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" style="display:none" class="icon-fill">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" fill="currentColor"/>
+            <circle cx="12" cy="7" r="4" fill="currentColor"/>
+            </svg>
+        </div>
+        <div class="tab-label">Profile</div>
+        </button>
+    </div>
+
+  </div>
+</div>
+
+<script src="chat.js"></script>
+</body>
+</html>

@@ -1,0 +1,954 @@
+/* ================================
+   Luna Phone — wallpaper.css
+   壁纸应用样式
+================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8eaf0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* ================================
+   手机外框（与 index 一致）
+================================ */
+.luna-wrap {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.luna-frame {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 15% 18%, rgba(210,220,255,0.75) 0%, transparent 52%),
+    radial-gradient(ellipse at 85% 14%, rgba(255,210,235,0.65) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 85%, rgba(195,240,255,0.6) 0%, transparent 55%),
+    linear-gradient(155deg, #eef1ff 0%, #fde8f0 45%, #e0f7fb 100%);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.95),
+    0 0 0 2.5px rgba(200,205,225,0.4),
+    0 32px 80px rgba(140,150,200,0.32),
+    0 8px 24px rgba(140,150,200,0.18);
+}
+
+.luna-bg-glow {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.22);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ================================
+   状态栏（与 index 完全一致）
+================================ */
+.status-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 22px 9px;
+  z-index: 15;
+}
+
+.status-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2a2a40;
+  letter-spacing: 0.2px;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 13px;
+}
+
+.signal i {
+  display: block;
+  width: 2.5px;
+  border-radius: 1px;
+  background: #3a3a55;
+  opacity: 0.85;
+}
+
+.signal i:nth-child(1) { height: 4px; }
+.signal i:nth-child(2) { height: 7px; }
+.signal i:nth-child(3) { height: 10px; }
+.signal i:nth-child(4) { height: 13px; }
+
+.battery {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.bat-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3a3a55;
+  opacity: 0.85;
+}
+
+.bat-shell {
+  width: 24px;
+  height: 12px;
+  border: 1.5px solid rgba(55,55,80,0.5);
+  border-radius: 3.5px;
+  padding: 1.5px;
+  position: relative;
+}
+
+.bat-inner {
+  width: 76%;
+  height: 100%;
+  border-radius: 1.5px;
+  background: linear-gradient(90deg, #6ee7b7, #34d399);
+}
+
+.bat-nub {
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.5px;
+  height: 5px;
+  background: rgba(55,55,80,0.4);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ================================
+   壁纸 App 主体
+================================ */
+.wp-app {
+  position: absolute;
+  top: 52px;
+  left: 0; right: 0; bottom: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 0 40px;
+  z-index: 5;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.wp-app::-webkit-scrollbar { display: none; }
+
+/* ================================
+   顶部导航
+================================ */
+.wp-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px 10px;
+  gap: 10px;
+}
+
+.wp-back {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.52);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: 0 2px 10px rgba(140,150,200,0.12);
+  color: #3a3a60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.wp-back:active { transform: scale(0.9); opacity: 0.7; }
+
+.wp-title-wrap {
+  flex: 1;
+}
+
+.wp-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e1e38;
+  letter-spacing: -0.3px;
+  line-height: 1.1;
+}
+
+.wp-subtitle {
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(60,60,100,0.4);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+.wp-reset-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.52);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: 0 2px 10px rgba(140,150,200,0.12);
+  color: rgba(60,60,100,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.wp-reset-btn:active { transform: rotate(-180deg) scale(0.9); }
+
+/* ================================
+   状态提示条
+================================ */
+.wp-status-bar {
+  margin: 0 18px 14px;
+  padding: 9px 14px;
+  background: rgba(255,255,255,0.48);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.82);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(40,40,70,0.65);
+  font-weight: 500;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 8px rgba(140,150,200,0.08);
+}
+
+.wp-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(180,180,210,0.45);
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+.wp-status-dot.active {
+  background: #6ee7b7;
+  box-shadow: 0 0 0 3px rgba(110,231,183,0.2);
+}
+
+.wp-status-dot.dynamic {
+  background: #a5b4fc;
+  box-shadow: 0 0 0 3px rgba(165,180,252,0.2);
+}
+
+/* ================================
+   类型切换（静态 / 动态）
+================================ */
+.wp-type-switch {
+  margin: 0 18px 16px;
+  display: flex;
+  gap: 8px;
+  background: rgba(255,255,255,0.38);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.78);
+  border-radius: 16px;
+  padding: 5px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+.wp-type-btn {
+  flex: 1;
+  padding: 9px 8px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(60,60,90,0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.22s ease;
+  font-family: inherit;
+}
+
+.wp-type-btn.active {
+  background: rgba(255,255,255,0.85);
+  color: #3730a3;
+  font-weight: 600;
+  box-shadow: 0 2px 12px rgba(100,100,180,0.12);
+}
+
+/* ================================
+   预览区域
+================================ */
+.wp-preview-section {
+  padding: 0 18px 16px;
+}
+
+.wp-preview-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(40,40,70,0.45);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.wp-preview-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(100,100,160,0.5);
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(200,205,235,0.5);
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+/* 手机外框 */
+.wp-phone-frame {
+  /* 9:16 比例 */
+  width: 148px;
+  height: calc(148px * 16 / 9);
+  margin: 0 auto;
+  border-radius: 22px;
+  background: #e8eaf0;
+  box-shadow:
+    0 0 0 1.5px rgba(255,255,255,0.95),
+    0 0 0 3px rgba(180,185,215,0.35),
+    0 16px 48px rgba(120,130,180,0.25),
+    0 4px 16px rgba(120,130,180,0.14);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.wp-phone-notch {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 5px;
+  background: rgba(40,40,70,0.12);
+  border-radius: 3px;
+  z-index: 10;
+}
+
+.wp-phone-screen {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px 22px 18px 18px;
+}
+
+.wp-phone-bar {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 3px;
+  background: rgba(40,40,70,0.18);
+  border-radius: 2px;
+  z-index: 10;
+}
+
+/* 默认壁纸背景 */
+.wp-default-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 15% 18%, rgba(210,220,255,0.75) 0%, transparent 52%),
+    radial-gradient(ellipse at 85% 14%, rgba(255,210,235,0.65) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 85%, rgba(195,240,255,0.6) 0%, transparent 55%),
+    linear-gradient(155deg, #eef1ff 0%, #fde8f0 45%, #e0f7fb 100%);
+}
+
+.wp-default-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(30px);
+}
+.g1 {
+  width: 80px; height: 80px;
+  top: 10%; left: 10%;
+  background: rgba(196,181,253,0.35);
+}
+.g2 {
+  width: 70px; height: 70px;
+  top: 15%; right: 10%;
+  background: rgba(253,186,216,0.3);
+}
+.g3 {
+  width: 90px; height: 90px;
+  bottom: 20%; left: 20%;
+  background: rgba(186,230,253,0.3);
+}
+
+/* 预览图 / 视频 */
+.wp-preview-img,
+.wp-preview-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 预览叠层UI */
+.wp-overlay-ui {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 22px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.wp-ov-time {
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.92);
+  text-shadow: 0 1px 6px rgba(0,0,0,0.18);
+  letter-spacing: -0.5px;
+}
+
+.wp-ov-date {
+  font-size: 8px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.72);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.14);
+  margin-top: 2px;
+  letter-spacing: 0.2px;
+}
+
+.wp-ov-icons {
+  position: absolute;
+  bottom: 18px;
+  display: flex;
+  gap: 8px;
+}
+
+.wp-ov-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.25);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.4);
+}
+
+/* ================================
+   上传区域
+================================ */
+.wp-upload-section {
+  padding: 0 18px 14px;
+}
+
+.wp-upload-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  border-bottom: 1.5px solid rgba(180,185,220,0.18);
+}
+
+.wp-upload-tab {
+  padding: 8px 18px 10px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(60,60,100,0.4);
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+  font-family: inherit;
+}
+
+.wp-upload-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -1.5px;
+  left: 0; right: 0;
+  height: 1.5px;
+  background: #6366f1;
+  border-radius: 1px;
+  transform: scaleX(0);
+  transition: transform 0.22s ease;
+}
+
+.wp-upload-tab.active {
+  color: #3730a3;
+  font-weight: 600;
+}
+
+.wp-upload-tab.active::after {
+  transform: scaleX(1);
+}
+
+/* 拖拽上传区 */
+.wp-drop-zone {
+  border: 1.5px dashed rgba(165,180,252,0.45);
+  border-radius: 18px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(255,255,255,0.38);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all 0.22s ease;
+}
+
+.wp-drop-zone:hover,
+.wp-drop-zone.drag-over {
+  background: rgba(224,231,255,0.45);
+  border-color: #a5b4fc;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(140,150,210,0.12);
+}
+
+.wp-drop-icon {
+  color: rgba(130,140,200,0.6);
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+.wp-drop-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(40,40,80,0.65);
+  margin-bottom: 4px;
+}
+
+.wp-drop-sub {
+  font-size: 11px;
+  color: rgba(100,110,160,0.45);
+  letter-spacing: 0.2px;
+}
+
+/* URL 输入 */
+.wp-url-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.wp-url-input {
+  flex: 1;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(165,180,252,0.3);
+  border-radius: 14px;
+  font-size: 13px;
+  color: #1e1e38;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+.wp-url-input:focus {
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 3px rgba(165,180,252,0.14);
+}
+.wp-url-input::placeholder { color: rgba(100,110,160,0.38); }
+
+.wp-url-load {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85));
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.1s;
+  font-family: inherit;
+}
+.wp-url-load:active { opacity: 0.85; transform: scale(0.97); }
+.wp-url-load:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.wp-url-hint {
+  font-size: 10.5px;
+  color: rgba(100,110,160,0.38);
+  padding-left: 4px;
+}
+
+.wp-url-status {
+  margin-top: 8px;
+  font-size: 12px;
+  min-height: 16px;
+  color: #059669;
+  padding-left: 4px;
+}
+.wp-url-status.err { color: #dc2626; }
+
+/* ================================
+   操作按钮区
+================================ */
+.wp-actions {
+  display: flex;
+  gap: 10px;
+  padding: 0 18px 16px;
+}
+
+.wp-action-btn {
+  flex: 1;
+  padding: 13px;
+  border: none;
+  border-radius: 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: opacity 0.2s, transform 0.12s;
+  font-family: inherit;
+  letter-spacing: 0.1px;
+}
+.wp-action-btn:active { opacity: 0.82; transform: scale(0.97); }
+
+.wp-save-btn {
+  background: rgba(255,255,255,0.58);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1.5px solid rgba(255,255,255,0.85);
+  color: #3730a3;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 10px rgba(140,150,200,0.1);
+}
+
+.wp-save-btn.saved {
+  background: rgba(209,250,229,0.5);
+  border-color: rgba(110,231,183,0.5);
+  color: #065f46;
+}
+
+.wp-apply-btn {
+  background: linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  box-shadow: 0 4px 18px rgba(99,102,241,0.28), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+
+/* ================================
+   收藏列表
+================================ */
+.wp-favorites-section {
+  padding: 0 18px;
+}
+
+.wp-fav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.wp-fav-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(40,40,70,0.45);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.wp-fav-count {
+  font-size: 11px;
+  color: rgba(100,110,160,0.45);
+}
+
+.wp-fav-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.wp-fav-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 0;
+  color: rgba(130,140,180,0.4);
+  font-size: 12px;
+}
+
+/* 收藏卡片 */
+.wp-fav-card {
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 9 / 16;
+  cursor: pointer;
+  border: 1.5px solid rgba(255,255,255,0.75);
+  box-shadow: 0 4px 14px rgba(120,130,180,0.14);
+  transition: transform 0.15s ease;
+}
+.wp-fav-card:active { transform: scale(0.95); }
+
+.wp-fav-card img,
+.wp-fav-card video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wp-fav-card .wp-fav-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 50%);
+}
+
+.wp-fav-card .wp-fav-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(4px);
+  padding: 2px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
+.wp-fav-card .wp-fav-del {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(4px);
+  border: none;
+  color: rgba(255,255,255,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 10px;
+  transition: background 0.15s;
+}
+.wp-fav-del:hover { background: rgba(220,38,38,0.6); }
+
+.wp-fav-card.wp-fav-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(165,180,252,0.9);
+  border-radius: 13px;
+  pointer-events: none;
+}
+
+/* ================================
+   通用确认弹窗
+================================ */
+#lunaConfirmMask {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 30, 60, 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.26s ease;
+}
+
+#lunaConfirmMask.show {
+  opacity: 1;
+}
+
+.luna-confirm-box {
+  width: calc(100% - 32px);
+  max-width: 360px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  padding: 26px 22px 18px;
+  box-shadow:
+    0 8px 40px rgba(80, 90, 160, 0.18),
+    inset 0 1px 0 rgba(255,255,255,1);
+  transform: scale(0.92);
+  transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+#lunaConfirmMask.show .luna-confirm-box {
+  transform: scale(1);
+}
+
+.luna-confirm-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e1e38;
+  margin-bottom: 8px;
+  letter-spacing: -0.2px;
+}
+
+.luna-confirm-desc {
+  font-size: 13px;
+  color: rgba(60, 60, 100, 0.6);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.luna-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.luna-confirm-cancel,
+.luna-confirm-ok {
+  flex: 1;
+  padding: 13px;
+  border: none;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.luna-confirm-cancel:active,
+.luna-confirm-ok:active {
+  opacity: 0.8;
+  transform: scale(0.97);
+}
+
+.luna-confirm-cancel {
+  background: rgba(180, 185, 220, 0.18);
+  color: rgba(60, 60, 100, 0.7);
+  border: 1px solid rgba(180,185,220,0.25);
+}
+
+.luna-confirm-ok {
+  background: linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88));
+  color: white;
+  box-shadow: 0 4px 14px rgba(99,102,241,0.25);
+}
+
+.luna-confirm-ok.danger {
+  background: linear-gradient(135deg, rgba(239,68,68,0.85), rgba(220,38,38,0.85));
+  box-shadow: 0 4px 14px rgba(220,38,38,0.22);
+}
+
+/* ================================
+   状态栏灵动岛（同步 style.css）
+================================ */
+.status-island {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: 6px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+
+/* 基础胶囊 */
+.si-capsule {
+  background: #000;
+  border-radius: 24px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34,1.2,0.64,1);
+}
+
+/* 各样式尺寸 */
+.si-minimal  .si-capsule { width: 110px; height: 32px; }
+.si-glow     .si-capsule { width: 110px; height: 32px; box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); animation: siGlow 2s ease-in-out infinite; }
+.si-clock    .si-capsule { width: 130px; height: 32px; gap: 6px; padding: 0 10px; }
+.si-pulse    .si-capsule { width: 72px;  height: 32px; gap: 12px; }
+.si-ripple   .si-capsule { width: 110px; height: 32px; overflow: visible; }
+.si-rainbow  .si-capsule { width: 110px; height: 32px; }
+.si-music    .si-capsule { width: 110px; height: 32px; gap: 3px; padding: 0 12px; align-items: flex-end; padding-bottom: 5px; }
+.si-scan     .si-capsule { width: 110px; height: 32px; overflow: hidden; }
+
+@keyframes siGlow {
+  0%,100% { box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); }
+  50%      { box-shadow: 0 0 4px 1px rgba(255,255,255,0.15); }
+}
+.si-clock-text {
+  font-size: 13px; font-weight: 600; color: #fff;
+  letter-spacing: -0.3px; font-family: -apple-system, sans-serif;
+  white-space: nowrap;
+}
+.si-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.9; }
+.si-dot-l { animation: siPulse 1.4s ease-in-out infinite; }
+.si-dot-r { animation: siPulse 1.4s ease-in-out 0.7s infinite; }
+@keyframes siPulse {
+  0%,100% { transform: scale(1); opacity: 0.9; }
+  50%      { transform: scale(0.4); opacity: 0.2; }
+}
+.si-ring { position: absolute; inset: -1px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.6); animation: siRipple 1.8s ease-out infinite; pointer-events: none; }
+@keyframes siRipple {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.si-rainbow .si-capsule { background: linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6,#a78bfa,#f43f5e); background-size: 300% 100%; animation: siRainbow 2.5s linear infinite; }
+@keyframes siRainbow { 0% { background-position: 0% 0; } 100% { background-position: 300% 0; } }
+.si-bar { width: 3px; background: #fff; border-radius: 2px; opacity: 0.9; }
+.si-bar:nth-child(1) { animation: siBar 0.9s ease-in-out infinite; }
+.si-bar:nth-child(2) { animation: siBar 0.9s ease-in-out 0.15s infinite; }
+.si-bar:nth-child(3) { animation: siBar 0.9s ease-in-out 0.3s infinite; }
+.si-bar:nth-child(4) { animation: siBar 0.9s ease-in-out 0.45s infinite; }
+.si-bar:nth-child(5) { animation: siBar 0.9s ease-in-out 0.6s infinite; }
+@keyframes siBar {
+  0%,100% { height: 5px; }
+  50%      { height: 20px; }
+}
+.si-scanline { position: absolute; left: 0; right: 0; height: 1.5px; background: linear-gradient(90deg,transparent,rgba(255,255,255,0.9),transparent); animation: siScan 1.6s linear infinite; }
+@keyframes siScan { 0% { top: 0; } 100% { top: 100%; } }

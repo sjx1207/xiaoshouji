@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Luna — 设置</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+
+<div class="luna-wrap">
+  <div class="luna-frame">
+
+    <!-- 状态栏（同步index） -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal">
+          <i></i><i></i><i></i><i></i>
+        </div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 页面主体 -->
+    <div class="settings-app" id="settingsApp">
+
+      <!-- 顶部导航 -->
+      <div class="st-header">
+        <button class="st-back" onclick="goBack()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="st-title-wrap">
+          <div class="st-title">设置</div>
+          <div class="st-subtitle">Settings</div>
+        </div>
+      </div>
+
+      <!-- 搜索栏 -->
+      <div class="st-search-wrap">
+        <svg class="st-search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <input class="st-search" type="text" placeholder="搜索" id="searchInput" oninput="filterSettings(this.value)" />
+      </div>
+
+      <!-- 分组：个性化 -->
+<div class="st-section">
+  <div class="st-section-label">个性化</div>
+  <div class="st-group">
+
+    <!-- 字体设置 -->
+    <div class="st-row" onclick="openFontPage()">
+      <div class="st-icon ic-indigo">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <path d="M4 20h16M8 20L12 4l4 16M9.5 14h5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">字体设置</div>
+        <div class="st-row-sub">Inter · 常规</div>
+      </div>
+      <div class="st-row-right">
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 灵动岛设置 -->
+    <div class="st-row" onclick="openIslandPage()">
+      <div class="st-icon" style="background: linear-gradient(135deg,#1c1c1e,#3a3a3c);">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <rect x="7" y="3" width="10" height="5" rx="2.5" fill="#fff" opacity="0.9"/>
+          <path d="M5 10h14M5 14h14M7 18h10" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">灵动岛</div>
+        <div class="st-row-sub">通知 · 音乐 · 活动</div>
+      </div>
+      <div class="st-row-right">
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 分组：系统 -->
+<div class="st-section">
+  <div class="st-section-label">系统</div>
+  <div class="st-group">
+
+    <!-- 时区设置 -->
+    <div class="st-row" onclick="openTzPanel()">
+      <div class="st-icon ic-blue">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="#fff" stroke-width="1.6"/>
+          <path d="M12 3c-2 3-3 5.5-3 9s1 6 3 9" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M12 3c2 3 3 5.5 3 9s-1 6-3 9" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M3 12h18" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">时区</div>
+        <div class="st-row-sub" id="tzCurrentSub">Asia/Shanghai · UTC+8</div>
+      </div>
+      <div class="st-row-right">
+        <span class="st-row-value" id="tzCurrentVal">北京</span>
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 语言设置 -->
+    <div class="st-row">
+      <div class="st-icon ic-orange">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <path d="M5 8h14M5 12h9M5 16h6" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="18" cy="16" r="3" stroke="#fff" stroke-width="1.4"/>
+          <path d="M20.5 18.5l1.5 1.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">语言</div>
+        <div class="st-row-sub">简体中文</div>
+      </div>
+      <div class="st-row-right">
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 声音设置 -->
+    <div class="st-row">
+      <div class="st-icon ic-red">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <path d="M11 5L6 9H2v6h4l5 4V5z" fill="#fff" stroke="#fff" stroke-width="0.5"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">声音</div>
+        <div class="st-row-sub">铃声 · 通知 · 系统音效</div>
+      </div>
+      <div class="st-row-right">
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 分组：开发者 -->
+<div class="st-section">
+  <div class="st-section-label">开发者</div>
+  <div class="st-group">
+
+    <!-- API 设置 -->
+    <div class="st-row" onclick="openApiPage()">
+      <div class="st-icon" style="background: linear-gradient(135deg,#6366f1,#8b5cf6);">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <circle cx="12" cy="12" r="3" stroke="#fff" stroke-width="1.6"/>
+          <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">AI 模型</div>
+        <div class="st-row-sub" id="apiCurrentSub">未配置</div>
+      </div>
+      <div class="st-row-right">
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 备份设置 -->
+    <div class="st-row">
+      <div class="st-icon ic-teal">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="17 8 12 3 7 8" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="12" y1="3" x2="12" y2="15" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">备份</div>
+        <div class="st-row-sub">上次备份：从未</div>
+      </div>
+      <div class="st-row-right">
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+      <div class="st-bottom-safe"></div>
+
+    </div><!-- /settings-app -->
+
+  </div><!-- /luna-frame -->
+</div><!-- /luna-wrap -->
+
+<!-- 时区选择弹窗 -->
+<!-- 时区子页面 -->
+<div class="tz-page" id="tzPage">
+
+  <div class="tz-page-header">
+    <button class="tz-back" onclick="closeTzPage()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="tz-page-title">时区</div>
+  </div>
+
+  <!-- 当前时区卡 -->
+  <div class="tz-current-card">
+    <div class="tz-current-label">当前时区</div>
+    <div class="tz-current-time" id="tzLiveTime">--:--</div>
+    <div class="tz-current-name" id="tzLiveName">Asia/Shanghai · UTC+8 · 北京</div>
+  </div>
+
+  <!-- 搜索 -->
+  <div class="tz-search-wrap">
+    <svg class="tz-search-ico" viewBox="0 0 24 24" width="14" height="14" fill="none">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+    <input class="tz-search" type="text" placeholder="搜索城市或时区..."
+      id="tzSearchInput" oninput="filterTz(this.value)" />
+  </div>
+
+  <div class="tz-list" id="tzList"></div>
+
+</div>
+
+<!-- 字体子页面 -->
+<div class="font-page" id="fontPage">
+
+  <div class="font-page-header">
+    <button class="font-back" onclick="closeFontPage()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="font-page-title">字体</div>
+  </div>
+
+  <div class="font-scroll">
+
+    <!-- 实时预览卡 -->
+    <div class="font-section">
+      <div class="font-preview-card">
+        <div class="font-preview-label">实时预览</div>
+        <div class="font-preview-text" id="fontPreviewText">你好世界 Hello World</div>
+        <div class="font-preview-sub" id="fontPreviewSub">Luna · 字体预览 · 1234567890</div>
+      </div>
+    </div>
+
+    <!-- 颜色 & 大小 -->
+    <div class="font-section">
+      <div class="font-section-label">外观</div>
+      <div class="font-group">
+
+        <!-- 颜色 -->
+        <div class="font-row font-row-color">
+          <div class="font-row-label">颜色</div>
+          <div class="font-color-wrap">
+            <div class="font-swatches">
+              <div class="font-swatch" data-color="#1a1a2e" onclick="pickSwatch(this)" style="background:#1a1a2e;" title="墨黑"></div>
+              <div class="font-swatch" data-color="#ffffff" onclick="pickSwatch(this)" style="background:#ffffff;" title="纯白"></div>
+              <div class="font-swatch" data-color="#6b7280" onclick="pickSwatch(this)" style="background:#6b7280;" title="石墨灰"></div>
+              <div class="font-swatch" data-color="#f1f5f9" onclick="pickSwatch(this)" style="background:#f1f5f9;" title="象牙白"></div>
+              <div class="font-swatch" data-color="#6366f1" onclick="pickSwatch(this)" style="background:#6366f1;" title="蓝紫"></div>
+              <div class="font-swatch" data-color="#ec4899" onclick="pickSwatch(this)" style="background:#ec4899;" title="桃粉"></div>
+              <div class="font-swatch" data-color="#f59e0b" onclick="pickSwatch(this)" style="background:#f59e0b;" title="金黄"></div>
+              <div class="font-swatch" data-color="#10b981" onclick="pickSwatch(this)" style="background:#10b981;" title="薄荷"></div>
+              <div class="font-swatch" data-color="#3b82f6" onclick="pickSwatch(this)" style="background:#3b82f6;" title="天蓝"></div>
+              <div class="font-swatch" data-color="#f43f5e" onclick="pickSwatch(this)" style="background:#f43f5e;" title="珊瑚"></div>
+            </div>
+            <div class="font-color-current">
+              <div class="font-color-dot" id="fontColorDot" style="background:#1a1a2e;"></div>
+              <span class="font-color-hex" id="fontColorHex">#1a1a2e</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 大小 -->
+        <div class="font-row">
+          <div class="font-row-label">大小</div>
+          <div class="font-size-wrap">
+            <span style="font-size:12px;color:rgba(60,60,90,0.4);">A</span>
+            <input class="font-slider" id="fontSizeSlider" type="range"
+              min="10" max="24" value="16" oninput="onFontSizeChange(this.value)" />
+            <span style="font-size:18px;color:rgba(60,60,90,0.4);">A</span>
+            <span class="font-size-val" id="fontSizeVal">16px</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 上传字体 -->
+    <div class="font-section">
+      <div class="font-section-label">上传字体</div>
+      <div class="font-group" style="padding:14px 16px;">
+
+        <div class="font-tabs">
+          <button class="font-tab active" id="fontTabFile" onclick="switchFontTab('file')">上传文件</button>
+          <button class="font-tab" id="fontTabUrl" onclick="switchFontTab('url')">输入链接</button>
+        </div>
+
+        <!-- 文件上传 -->
+        <div id="fontPanelFile">
+          <div class="font-drop-zone" onclick="document.getElementById('fontFileInput').click()">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                stroke="rgba(99,107,255,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+              <polyline points="17 8 12 3 7 8"
+                stroke="rgba(99,107,255,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="12" y1="3" x2="12" y2="15"
+                stroke="rgba(99,107,255,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <div class="font-drop-title">点击上传字体文件</div>
+            <div class="font-drop-sub">支持 TTF · OTF · WOFF · WOFF2</div>
+            <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2"
+              style="display:none" onchange="handleFontFile(this)" />
+          </div>
+        </div>
+
+        <!-- URL 输入 -->
+        <div id="fontPanelUrl" style="display:none;">
+          <div class="font-url-wrap">
+            <input class="font-url-input" id="fontUrlInput"
+              type="text" placeholder="粘贴字体文件直链..." />
+            <button class="font-url-btn" onclick="loadFontFromUrl()">载入</button>
+          </div>
+          <div style="font-size:12px;color:rgba(60,60,90,0.35);margin-top:6px;">
+            链接需以 .ttf / .otf / .woff / .woff2 结尾
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 已保存字体 -->
+    <div class="font-section">
+      <div class="font-section-label">已保存字体</div>
+      <div class="font-group" id="fontSavedList">
+        <div class="font-empty">还没有保存的字体</div>
+      </div>
+    </div>
+
+    <!-- 保存按钮 -->
+    <button class="font-save-btn" onclick="saveFontSettings()">保存并应用</button>
+
+    <div style="height:20px;"></div>
+
+  </div>
+</div>
+
+<!-- 通用输入弹窗 -->
+<div class="luna-modal-mask" id="lunaInputMask">
+  <div class="luna-modal-box">
+    <div class="luna-modal-title" id="lunaInputTitle">请输入字体名称</div>
+    <input class="luna-modal-input" id="lunaInputField" type="text" placeholder="字体名称..." />
+    <div class="luna-modal-actions">
+      <button class="luna-modal-cancel" id="lunaInputCancel">取消</button>
+      <button class="luna-modal-confirm" id="lunaInputConfirm">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 通用确认弹窗 -->
+<div class="luna-modal-mask" id="lunaConfirmMask">
+  <div class="luna-modal-box">
+    <div class="luna-modal-title" id="lunaConfirmTitle">确认删除</div>
+    <div class="luna-modal-desc" id="lunaConfirmDesc">确定要删除这个字体吗？</div>
+    <div class="luna-modal-actions">
+      <button class="luna-modal-cancel" id="lunaConfirmCancel">取消</button>
+      <button class="luna-modal-confirm danger" id="lunaConfirmOk">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 灵动岛子页面 -->
+<div class="font-page" id="islandPage">
+  <div class="font-page-header">
+    <button class="font-back" onclick="closeIslandPage()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="font-page-title">灵动岛</div>
+  </div>
+
+  <div class="font-scroll">
+
+    <!-- 开关 -->
+    <div class="font-section">
+      <div class="font-group" style="padding:16px;">
+        <div class="di-toggle-row">
+          <div class="di-toggle-info">
+            <div class="di-toggle-title">启用灵动岛</div>
+            <div class="di-toggle-sub">在顶部显示灵动岛组件</div>
+          </div>
+          <label class="di-switch">
+            <input type="checkbox" id="islandToggle" onchange="onIslandToggle(this.checked)"/>
+            <span class="di-switch-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 预览 -->
+    <div class="font-section" id="islandPreviewSection" style="display:none">
+      <div class="font-section-label">预览</div>
+      <div class="di-preview-wrap">
+        <div class="di-preview-island" id="islandPreviewEl">
+          <div class="di-pv-glow-ring" id="pvGlowRing" style="display:none"></div>
+          <div class="di-pv-ring" id="pvRippleRing" style="display:none"></div>
+          <div class="di-pv-pill-grad" id="pvRainbowPill" style="display:none"></div>
+          <div class="di-pv-pill-scan" id="pvScanPill" style="display:none"><div class="di-pv-scanline"></div></div>
+          <div class="di-pv-clock" id="pvClockWrap" style="display:none">
+            <span class="di-pv-time" id="pvClockTime">9:41</span>
+          </div>
+          <div class="di-pv-bars" id="pvMusicBars" style="display:none">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="di-pv-dots" id="pvPulseDots" style="display:none">
+            <div class="di-pv-dot-l"></div>
+            <div class="di-pv-dot-r"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 样式选择 -->
+    <div class="font-section" id="islandStyleSection" style="display:none">
+      <div class="font-section-label">样式</div>
+
+      <div class="di-style-card" data-style="minimal" onclick="selectIslandStyle('minimal')">
+        <div class="di-style-preview"><div class="di-sp di-sp-minimal"></div></div>
+        <div class="di-style-info"><div class="di-style-name">极简胶囊</div><div class="di-style-desc">纯黑椭圆，克制优雅</div></div>
+        <div class="di-style-check" id="check-minimal"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-style="glow" onclick="selectIslandStyle('glow')">
+        <div class="di-style-preview"><div class="di-sp di-sp-glow"></div></div>
+        <div class="di-style-info"><div class="di-style-name">外发光</div><div class="di-style-desc">白色光晕持续向外扩散</div></div>
+        <div class="di-style-check" id="check-glow"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-style="clock" onclick="selectIslandStyle('clock')">
+        <div class="di-style-preview"><div class="di-sp di-sp-clock"><span>9:41</span></div></div>
+        <div class="di-style-info"><div class="di-style-name">时间展开</div><div class="di-style-desc">右侧显示实时时间</div></div>
+        <div class="di-style-check" id="check-clock"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-style="pulse" onclick="selectIslandStyle('pulse')">
+        <div class="di-style-preview"><div class="di-sp di-sp-pulse"><div></div><div></div></div></div>
+        <div class="di-style-info"><div class="di-style-name">双点呼吸</div><div class="di-style-desc">两点交替呼吸动效</div></div>
+        <div class="di-style-check" id="check-pulse"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-style="ripple" onclick="selectIslandStyle('ripple')">
+        <div class="di-style-preview"><div class="di-sp di-sp-ripple"><div class="di-sp-ring"></div></div></div>
+        <div class="di-style-info"><div class="di-style-name">波纹扩散</div><div class="di-style-desc">光圈持续向外扩散</div></div>
+        <div class="di-style-check" id="check-ripple"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-style="rainbow" onclick="selectIslandStyle('rainbow')">
+        <div class="di-style-preview"><div class="di-sp di-sp-rainbow"></div></div>
+        <div class="di-style-info"><div class="di-style-name">彩虹流动</div><div class="di-style-desc">渐变色在边框上流动</div></div>
+        <div class="di-style-check" id="check-rainbow"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-style="music" onclick="selectIslandStyle('music')">
+        <div class="di-style-preview"><div class="di-sp di-sp-music"><span></span><span></span><span></span><span></span><span></span></div></div>
+        <div class="di-style-info"><div class="di-style-name">音乐律动</div><div class="di-style-desc">频谱柱跳动动效</div></div>
+        <div class="di-style-check" id="check-music"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-style="scan" onclick="selectIslandStyle('scan')">
+        <div class="di-style-preview"><div class="di-sp di-sp-scan"><div class="di-sp-scanline"></div></div></div>
+        <div class="di-style-info"><div class="di-style-name">扫描线</div><div class="di-style-desc">光线从上到下匀速扫过</div></div>
+        <div class="di-style-check" id="check-scan"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- AI 模型子页面 -->
+<div class="font-page" id="apiPage">
+  <div class="font-page-header">
+    <button class="font-back" onclick="closeApiPage()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="font-page-title">AI 模型</div>
+  </div>
+
+  <div class="font-scroll">
+
+    <!-- Step 1: 接入配置 -->
+    <div class="font-section">
+      <div class="font-section-label">接入配置</div>
+      <div class="font-group" style="padding:16px;gap:12px;display:flex;flex-direction:column;">
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">反代地址</div>
+          <input class="api-input" id="apiBaseUrl" type="text"
+            placeholder="https://your-proxy.com/v1"
+            oninput="onApiConfigInput()" />
+        </div>
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">API 密钥</div>
+          <div class="api-key-wrap">
+            <input class="api-input" id="apiKey" type="password"
+              placeholder="sk-..."
+              oninput="onApiConfigInput()" />
+            <button class="api-eye-btn" onclick="toggleApiKeyVisible()" id="apiEyeBtn">
+              <svg id="apiEyeIcon" viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="api-fetch-btn" id="apiFetchBtn" onclick="fetchModels()" disabled>
+          获取可用模型
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Step 2: 模型选择（获取后出现） -->
+    <div class="font-section" id="apiModelSection" style="display:none">
+      <div class="font-section-label">选择模型</div>
+      <div class="font-group" style="padding:12px 16px;">
+        <div class="api-model-loading" id="apiModelLoading" style="display:none">
+          <div class="api-spinner"></div>
+          <span>正在获取模型列表...</span>
+        </div>
+        <div id="apiModelList" class="api-model-list"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: 测试区域（选了模型后出现） -->
+    <div class="font-section" id="apiTestSection" style="display:none">
+      <div class="font-section-label">连接测试</div>
+      <div class="font-group" style="padding:16px;gap:12px;display:flex;flex-direction:column;">
+
+        <div class="api-test-output" id="apiTestOutput">
+          <span class="api-test-placeholder">发送消息后，回复将显示在这里</span>
+        </div>
+
+        <div class="api-test-input-wrap">
+          <input class="api-input" id="apiTestInput" type="text"
+            placeholder="输入测试消息，如：你好"
+            onkeydown="if(event.key==='Enter')sendApiTest()" />
+          <button class="api-send-btn" onclick="sendApiTest()" id="apiSendBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Step 4: 保存预设 -->
+    <div class="font-section" id="apiSaveSection" style="display:none">
+      <div class="font-section-label">保存预设</div>
+      <div class="font-group" style="padding:16px;">
+        <button class="font-save-btn" onclick="openSaveApiModal()">保存当前配置</button>
+      </div>
+    </div>
+
+    <!-- 已保存预设列表 -->
+    <div class="font-section">
+      <div class="font-section-label">已保存预设</div>
+      <div class="font-group" id="apiPresetList" style="padding:4px 0;">
+        <div class="font-empty" id="apiPresetEmpty">还没有保存的预设</div>
+      </div>
+    </div>
+
+    <!-- 使用说明 -->
+    <div class="font-section">
+      <div class="font-section-label">使用说明</div>
+      <div class="api-guide-wrap">
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">反代地址</div>
+          <div class="api-guide-desc">填写你的 OpenAI 兼容接口地址，以 /v1 结尾。OpenAI 官方为 https://api.openai.com/v1，其他服务商请参考其文档。</div>
+        </div>
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">API 密钥</div>
+          <div class="api-guide-desc">填写对应平台的密钥，通常以 sk- 开头。密钥仅存储在本地，不会上传至任何服务器。</div>
+        </div>
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">常见错误</div>
+          <div class="api-guide-desc">
+            <div class="api-error-row"><span class="api-error-code">401</span><span>密钥无效或已过期，请重新检查</span></div>
+            <div class="api-error-row"><span class="api-error-code">403</span><span>无权限访问，请确认账户状态</span></div>
+            <div class="api-error-row"><span class="api-error-code">404</span><span>反代地址错误，确认路径以 /v1 结尾</span></div>
+            <div class="api-error-row"><span class="api-error-code">429</span><span>请求过于频繁，稍后再试</span></div>
+            <div class="api-error-row"><span class="api-error-code">500</span><span>服务端错误，反代服务异常</span></div>
+            <div class="api-error-row"><span class="api-error-code">CORS</span><span>浏览器跨域限制，请使用支持跨域的反代</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="height:32px;"></div>
+
+  </div>
+</div>
+
+<!-- 保存预设弹窗 -->
+<div class="luna-modal-mask" id="apiSaveMask">
+  <div class="luna-modal-box">
+    <div class="luna-modal-title">保存预设</div>
+    <div class="luna-modal-desc">为这个配置起一个名字，方便以后快速调用</div>
+    <input class="luna-modal-input" id="apiPresetNameInput" type="text" placeholder="如：GPT-4o · 我的服务器" />
+    <div class="luna-modal-actions">
+      <button class="luna-modal-cancel" onclick="closeSaveApiModal()">取消</button>
+      <button class="luna-modal-confirm" onclick="confirmSaveApi()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除预设确认弹窗 -->
+<div class="luna-modal-mask" id="apiDeleteMask">
+  <div class="luna-modal-box">
+    <div class="luna-modal-title">删除预设</div>
+    <div class="luna-modal-desc" id="apiDeleteDesc">确定要删除这个预设吗？</div>
+    <div class="luna-modal-actions">
+      <button class="luna-modal-cancel" onclick="closeDeleteApiModal()">取消</button>
+      <button class="luna-modal-confirm danger" onclick="confirmDeleteApi()">删除</button>
+    </div>
+  </div>
+</div>
+
+<script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Luna — 壁纸</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="wallpaper.css" />
+</head>
+<body>
+
+<div class="luna-wrap">
+  <div class="luna-frame">
+
+    <!-- 背景光晕 -->
+    <div class="luna-bg-glow"></div>
+
+    <!-- 状态栏（与 index 同步） -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal">
+          <i></i><i></i><i></i><i></i>
+        </div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 页面主体 -->
+    <div class="wp-app">
+
+      <!-- 顶部导航 -->
+      <div class="wp-header">
+        <button class="wp-back" onclick="history.back()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="wp-title-wrap">
+          <div class="wp-title">壁纸</div>
+          <div class="wp-subtitle">Wallpaper</div>
+        </div>
+        <button class="wp-reset-btn" onclick="resetWallpaper()" title="恢复默认">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 3v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 当前状态条 -->
+      <div class="wp-status-bar" id="wpStatusBar">
+        <div class="wp-status-dot" id="wpStatusDot"></div>
+        <span id="wpStatusText">当前使用默认壁纸</span>
+      </div>
+
+      <!-- 类型切换 -->
+      <div class="wp-type-switch">
+        <button class="wp-type-btn active" id="btnStatic" onclick="switchType('static')">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+            <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/>
+            <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+            <path d="M3 15l5-4 4 3.5 3-3 6 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          静态图片
+        </button>
+        <button class="wp-type-btn" id="btnDynamic" onclick="switchType('dynamic')">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M10 8.5l5 3.5-5 3.5V8.5z" fill="currentColor"/>
+          </svg>
+          动态视频
+        </button>
+      </div>
+
+      <!-- 预览区域 -->
+      <div class="wp-preview-section">
+        <div class="wp-preview-label">
+          <span>预览</span>
+          <span class="wp-preview-badge" id="previewBadge">9:16</span>
+        </div>
+
+        <div class="wp-phone-frame">
+          <!-- 手机顶部细节 -->
+          <div class="wp-phone-notch"></div>
+
+          <!-- 预览内容容器 -->
+          <div class="wp-phone-screen" id="phoneScreen">
+
+            <!-- 默认壁纸（初始状态） -->
+            <div class="wp-default-bg" id="defaultBg">
+              <div class="wp-default-glow g1"></div>
+              <div class="wp-default-glow g2"></div>
+              <div class="wp-default-glow g3"></div>
+            </div>
+
+            <!-- 图片预览 -->
+            <img class="wp-preview-img" id="previewImg" src="" alt="" style="display:none" />
+
+            <!-- 视频预览 -->
+            <video class="wp-preview-video" id="previewVideo" autoplay loop muted playsinline style="display:none"></video>
+
+            <!-- 预览叠层：模拟桌面元素 -->
+            <div class="wp-overlay-ui">
+              <div class="wp-ov-time" id="ovTime">9:41</div>
+              <div class="wp-ov-date" id="ovDate">4月19日 星期六</div>
+              <div class="wp-ov-icons">
+                <div class="wp-ov-icon"></div>
+                <div class="wp-ov-icon"></div>
+                <div class="wp-ov-icon"></div>
+                <div class="wp-ov-icon"></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 手机底部横条 -->
+          <div class="wp-phone-bar"></div>
+        </div>
+      </div>
+
+      <!-- 上传区域 -->
+      <div class="wp-upload-section">
+
+        <!-- 上传方式切换 -->
+        <div class="wp-upload-tabs">
+          <button class="wp-upload-tab active" id="tabFile" onclick="switchUploadTab('file')">上传文件</button>
+          <button class="wp-upload-tab" id="tabUrl" onclick="switchUploadTab('url')">输入链接</button>
+        </div>
+
+        <!-- 文件上传 -->
+        <div class="wp-upload-panel" id="panelFile">
+          <div class="wp-drop-zone" id="dropZone"
+            onclick="document.getElementById('fileInput').click()"
+            ondragover="handleDragOver(event)"
+            ondragleave="handleDragLeave(event)"
+            ondrop="handleDrop(event)">
+            <div class="wp-drop-icon">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="wp-drop-title">点击或拖拽上传</div>
+            <div class="wp-drop-sub" id="dropSub">支持 JPG · PNG · WebP · MP4 · MOV</div>
+            <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFileInput(this)" />
+          </div>
+        </div>
+
+        <!-- URL 输入 -->
+        <div class="wp-upload-panel" id="panelUrl" style="display:none">
+          <div class="wp-url-wrap">
+            <input type="text" class="wp-url-input" id="urlInput"
+              placeholder="粘贴图片或视频的直链地址..."
+              oninput="onUrlInput()" />
+            <button class="wp-url-load" id="urlLoadBtn" onclick="loadFromUrl()">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+                <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              载入
+            </button>
+          </div>
+          <div class="wp-url-hint">直链地址需以 .jpg / .png / .webp / .mp4 结尾</div>
+          <div class="wp-url-status" id="urlStatus"></div>
+        </div>
+
+      </div>
+
+      <!-- 操作按钮区 -->
+      <div class="wp-actions" id="wpActions" style="display:none">
+
+        <!-- 保存到收藏 -->
+        <button class="wp-action-btn wp-save-btn" id="saveBtn" onclick="saveToFavorites()">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          保存到收藏
+        </button>
+
+        <!-- 应用壁纸 -->
+        <button class="wp-action-btn wp-apply-btn" onclick="applyWallpaper()">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+            <polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          应用壁纸
+        </button>
+
+      </div>
+
+      <!-- 收藏列表 -->
+      <div class="wp-favorites-section" id="favSection">
+        <div class="wp-fav-header">
+          <span class="wp-fav-title">已保存</span>
+          <span class="wp-fav-count" id="favCount">0 项</span>
+        </div>
+        <div class="wp-fav-list" id="favList">
+          <div class="wp-fav-empty" id="favEmpty">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="rgba(140,150,190,0.4)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>还没有保存的壁纸</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /wp-app -->
+
+  </div><!-- /luna-frame -->
+</div><!-- /luna-wrap -->
+
+<script src="wallpaper.js"></script>
+</body>
+</html>
