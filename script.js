@@ -95,7 +95,7 @@ function openApp(name) {
 
   // App 路由表
   const routes = {
-    'wallpaper': 'wallpaper.html',
+    'wallpaper': 'Wallpaper.html',
     // 后续加其他 app：
     'settings': 'settings.html',
     'chat': 'chat.html',
