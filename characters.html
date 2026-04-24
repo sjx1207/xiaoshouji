@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>角色档案</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="characters.css"/>
+</head>
+<body>
+
+<div class="ch-wrap">
+
+  <!-- 状态栏 — 完整同步 index -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 头部 ========== -->
+  <div class="ch-header">
+
+    <!-- 导航行 -->
+    <div class="ch-nav-row">
+      <button class="ch-back" onclick="goBack()">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="ch-nav-label">CHARACTER STUDIO</div>
+      <button class="ch-add-btn" onclick="openNewCard()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 主 Hero 区 -->
+    <div class="ch-hero">
+      <!-- 左侧文字 -->
+      <div class="ch-hero-text">
+        <div class="ch-hero-kicker">
+          <span class="ch-kicker-dot"></span>
+          PERSONA DESIGN
+        </div>
+        <h1 class="ch-hero-title">
+          <span class="ch-hero-title-en">角色</span>
+          <em class="ch-hero-title-it">档案</em>
+        </h1>
+        <p class="ch-hero-desc">为 AI 定制专属人格<br>与角色设定</p>
+      </div>
+
+      <!-- 右侧数据卡 -->
+      <div class="ch-hero-card">
+        <div class="ch-hero-card-inner">
+          <div class="ch-hero-stat">
+            <div class="ch-hero-stat-num" id="statCount">03</div>
+            <div class="ch-hero-stat-lbl">PROFILES</div>
+          </div>
+          <div class="ch-hero-sep"></div>
+          <div class="ch-hero-stat">
+            <div class="ch-hero-stat-num">01</div>
+            <div class="ch-hero-stat-lbl">ACTIVE</div>
+          </div>
+        </div>
+        <!-- 装饰线 -->
+        <div class="ch-hero-card-deco">AI · PERSONA</div>
+      </div>
+    </div>
+
+    <!-- 装饰分割带 -->
+    <div class="ch-header-rule">
+      <div class="ch-rule-line"></div>
+      <div class="ch-rule-tag">COLLECTION</div>
+      <div class="ch-rule-line"></div>
+    </div>
+
+  </div>
+
+  <!-- ========== 卡片列表 ========== -->
+  <div class="ch-list" id="chList">
+  <!-- JS 动态渲染 -->
+  </div>
+
+<!-- 弹窗遮罩 -->
+<div class="ch-modal-overlay" id="chModalOverlay" onclick="closeModal()"></div>
+
+<!-- 编辑弹窗 -->
+<div class="ch-modal" id="chModal">
+  <div class="ch-modal-handle"></div>
+
+  <!-- 顶部标题行 -->
+  <div class="ch-modal-header">
+    <div class="ch-modal-title-wrap">
+      <div class="ch-modal-eyebrow">CHARACTER STUDIO</div>
+      <div class="ch-modal-title" id="chModalTitle">新建角色</div>
+    </div>
+    <button class="ch-modal-close" onclick="closeModal()">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 卡片预览区 -->
+  <div class="ch-preview-zone">
+    <div class="ch-preview-card" id="previewCard">
+      <!-- 背景层 -->
+      <div class="ch-preview-bg" id="previewBg"></div>
+      <div class="ch-preview-bg-overlay"></div>
+      <!-- 内容 -->
+      <div class="ch-preview-content">
+        <!-- 头像上传 -->
+        <div class="ch-preview-avatar-wrap" onclick="document.getElementById('avatarInput').click()">
+          <div class="ch-preview-avatar" id="previewAvatar">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+              <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="ch-preview-avatar-hint">上传头像</div>
+          <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)"/>
+        </div>
+        <!-- 名字预览 -->
+        <div class="ch-preview-name" id="previewName">角色名称</div>
+        <div class="ch-preview-meta" id="previewMeta">定位 · 性别 · 年龄</div>
+      </div>
+      <!-- 背景上传按钮 -->
+      <button class="ch-preview-bg-btn" onclick="document.getElementById('bgInput').click()">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none">
+          <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+          <path d="M3 15l5-4 4 3 3-3 6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        更换背景
+      </button>
+      <input type="file" id="bgInput" accept="image/*" style="display:none" onchange="handleBgUpload(this)"/>
+    </div>
+  </div>
+
+  <!-- 表单 -->
+  <div class="ch-form">
+
+    <!-- 第一行：名称 + 定位 -->
+    <div class="ch-form-row">
+      <div class="ch-form-group">
+        <label class="ch-form-label">
+          <span class="ch-form-label-dot"></span>昵称
+        </label>
+        <input class="ch-form-input" id="formName" type="text" placeholder="Luna"
+          oninput="document.getElementById('previewName').textContent = this.value || '角色名称'"/>
+      </div>
+      <div class="ch-form-group">
+        <label class="ch-form-label">
+          <span class="ch-form-label-dot"></span>定位
+        </label>
+        <input class="ch-form-input" id="formRole" type="text" placeholder="创作助手"
+          oninput="updatePreviewMeta()"/>
+      </div>
+    </div>
+
+    <!-- 第二行：性别 + 年龄 + 生日 -->
+    <div class="ch-form-row ch-form-row-3">
+      <div class="ch-form-group">
+        <label class="ch-form-label">
+          <span class="ch-form-label-dot"></span>性别
+        </label>
+        <div class="ch-gender-row">
+          <button class="ch-gender-btn active" data-gender="女" onclick="selectGender(this)">♀ 女</button>
+          <button class="ch-gender-btn" data-gender="男" onclick="selectGender(this)">♂ 男</button>
+          <button class="ch-gender-btn" data-gender="未知" onclick="selectGender(this)">? 未</button>
+        </div>
+      </div>
+      <div class="ch-form-group">
+        <label class="ch-form-label">
+          <span class="ch-form-label-dot"></span>年龄
+        </label>
+        <input class="ch-form-input" id="formAge" type="number" placeholder="18" min="1" max="999"
+          oninput="updatePreviewMeta()"/>
+      </div>
+      <div class="ch-form-group">
+        <label class="ch-form-label">
+          <span class="ch-form-label-dot"></span>生日
+        </label>
+        <input class="ch-form-input" id="formBirthday" type="text" placeholder="03/15"/>
+      </div>
+    </div>
+
+    <!-- 人设描述 -->
+    <div class="ch-form-group">
+      <label class="ch-form-label">
+        <span class="ch-form-label-dot"></span>人设描述
+        <span class="ch-form-label-count" id="descCount">0</span>
+      </label>
+      <textarea class="ch-form-textarea ch-form-textarea-desc" id="formDesc"
+        placeholder="描述角色的性格、说话风格、背景故事、习惯爱好…不限字数，越详细越好。"
+        oninput="document.getElementById('descCount').textContent = this.value.length"></textarea>
+    </div>
+
+    <!-- 性格标签 -->
+    <div class="ch-form-group">
+      <label class="ch-form-label">
+        <span class="ch-form-label-dot"></span>性格标签
+        <span class="ch-form-label-hint">逗号分隔</span>
+      </label>
+      <input class="ch-form-input" id="formTraits" type="text" placeholder="温柔, 创意, 感性, 善于倾听"/>
+    </div>
+
+    <!-- 系统提示词 -->
+    <div class="ch-form-group">
+        <label class="ch-form-label">
+            <span class="ch-form-label-dot" style="background:var(--accent)"></span>系统提示词
+            <span class="ch-form-label-hint">选填 · 不填则自动生成</span>
+        </label>
+        <textarea class="ch-form-textarea ch-form-textarea-lg" id="formPrompt"
+            placeholder="留空则根据上方信息自动生成角色指令，也可以在这里手动补充更细节的行为规则..."></textarea>
+    </div>
+
+  </div>
+
+  <!-- 底部操作 -->
+  <div class="ch-modal-footer">
+    <button class="ch-btn-cancel" onclick="closeModal()">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      取消
+    </button>
+    <button class="ch-btn-save" onclick="saveCard()">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      保存角色
+    </button>
+  </div>
+</div>
+
+
+<!-- ========== 角色详情页 ========== -->
+<div class="cv-page" id="cvPage">
+
+  <!-- 顶部大图区 -->
+  <div class="cv-hero" id="cvHero">
+    <div class="cv-hero-bg" id="cvHeroBg"></div>
+    <div class="cv-hero-overlay"></div>
+
+    <!-- 状态栏：悬浮在大图上 -->
+    <div class="status-bar cv-status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-island"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 顶部操作栏 -->
+    <div class="cv-topbar">
+      <button class="cv-topbar-btn" onclick="closeView()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="cv-topbar-label">CHARACTER</div>
+      <button class="cv-topbar-btn" onclick="openMoreMenu()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+          <circle cx="5" cy="12" r="1.5" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+          <circle cx="19" cy="12" r="1.5" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 头像+名字浮在底部 -->
+    <div class="cv-hero-bottom">
+      <div class="cv-hero-avatar" id="cvAvatar"></div>
+      <div class="cv-hero-info">
+        <div class="cv-hero-name" id="cvName">—</div>
+        <div class="cv-hero-role" id="cvRole">—</div>
+      </div>
+      <!-- 激活状态胶囊 -->
+      <div class="cv-hero-status" id="cvStatus"></div>
+    </div>
+
+    <!-- 装饰线 -->
+    <div class="cv-hero-rule"></div>
+  </div>
+
+  <!-- 内容滚动区 -->
+<div class="cv-body">
+
+  <!-- 浮出卡：基本信息，从 hero 底部浮起 -->
+  <div class="cv-info-float">
+    <div class="cv-info-cell">
+      <div class="cv-info-key">性别</div>
+      <div class="cv-info-val" id="cvGender">—</div>
+    </div>
+    <div class="cv-info-cell">
+      <div class="cv-info-key">年龄</div>
+      <div class="cv-info-val" id="cvAge">—</div>
+    </div>
+    <div class="cv-info-cell">
+      <div class="cv-info-key">生日</div>
+      <div class="cv-info-val" id="cvBirthday">—</div>
+    </div>
+  </div>
+
+  <!-- 性格标签 -->
+  <div class="cv-section">
+    <div class="cv-section-label">
+      <div class="cv-section-label-line"></div>
+      <span>PERSONA</span>
+      <div class="cv-section-label-line"></div>
+    </div>
+    <div class="cv-trait-row" id="cvTraits"></div>
+  </div>
+
+  <!-- 人设描述 -->
+  <div class="cv-section">
+    <div class="cv-section-label">
+      <div class="cv-section-label-line"></div>
+      <span>ABOUT</span>
+      <div class="cv-section-label-line"></div>
+    </div>
+    <div class="cv-desc-card">
+      <span class="cv-desc-quote">"</span>
+      <div class="cv-desc-text" id="cvDesc">—</div>
+      <div class="cv-desc-rule"></div>
+    </div>
+  </div>
+
+  <!-- 系统提示词 -->
+  <div class="cv-section" id="cvPromptSection">
+    <div class="cv-section-label">
+      <div class="cv-section-label-line"></div>
+      <span>SYSTEM PROMPT</span>
+      <div class="cv-section-label-line"></div>
+    </div>
+    <div class="cv-prompt-card">
+      <div class="cv-prompt-topbar">
+        <div class="cv-prompt-dot"></div>
+        <div class="cv-prompt-dot"></div>
+        <div class="cv-prompt-dot"></div>
+        <span class="cv-prompt-tag">SYSTEM · PROMPT</span>
+      </div>
+      <div class="cv-prompt-body">
+        <span class="cv-prompt-prefix">› </span><span id="cvPrompt">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部操作 -->
+  <div class="cv-actions">
+    <button class="cv-act-apply" id="cvApplyBtn" onclick="applyFromView()">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+        <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      应用角色
+    </button>
+    <div class="cv-act-row">
+      <button class="cv-act-edit" onclick="openEditFromView()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        编辑资料
+      </button>
+      <button class="cv-act-delete" onclick="openDeleteConfirm()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        删除角色
+      </button>
+    </div>
+  </div>
+
+  <div style="height:40px"></div>
+</div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div class="cv-confirm-overlay" id="cvConfirmOverlay"></div>
+<div class="cv-confirm" id="cvConfirm">
+  <div class="cv-confirm-icon">
+    <svg viewBox="0 0 48 48" width="36" height="36" fill="none">
+      <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M24 14v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="24" cy="32" r="1.5" fill="currentColor"/>
+    </svg>
+  </div>
+  <div class="cv-confirm-title">确认删除</div>
+  <div class="cv-confirm-desc">删除后无法恢复，该角色的所有设定将被清除。</div>
+  <div class="cv-confirm-actions">
+    <button class="cv-confirm-cancel" onclick="closeDeleteConfirm()">取消</button>
+    <button class="cv-confirm-ok" onclick="confirmDelete()">确认删除</button>
+  </div>
+</div>
+
+
+<script src="characters.js"></script>
+</body>
+</html>

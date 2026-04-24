@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Icon Beauty</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="iconbeauty.css"/>
+</head>
+<body>
+
+<div class="ib-wrap">
+
+  <!-- 状态栏 -->
+  <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal">
+          <i></i><i></i><i></i><i></i>
+        </div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- 头部 -->
+  <div class="ib-header">
+    <button class="ib-back" onclick="goBack()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="ib-header-center">
+      <div class="ib-header-eyebrow">STUDIO</div>
+      <div class="ib-header-title">Icon <em>Beauty</em></div>
+      <div class="ib-header-line"></div>
+    </div>
+    <div class="ib-header-meta">
+      <div class="ib-meta-dot"></div>
+      <span>LIVE</span>
+    </div>
+  </div>
+
+  <!-- 主内容 -->
+  <div class="ib-body">
+
+    <!-- App 列表 -->
+    <div class="ib-section-label">
+        <div class="ib-section-tag">APP SELECT</div>
+        <div class="ib-section-rule"></div>
+    </div>
+
+    <div class="ib-app-grid" id="ibAppGrid">
+      <!-- 由 JS 生成 -->
+    </div>
+
+    <!-- 预览区 -->
+    <div class="ib-preview-zone" id="ibPreviewZone" style="display:none">
+      <div class="ib-section-label">
+        <div class="ib-section-tag">PREVIEW</div>
+        <div class="ib-section-rule"></div>
+      </div>
+      <div class="ib-preview-card">
+        <div class="ib-preview-icon-wrap">
+          <div class="ib-preview-icon" id="ibPreviewIcon">
+            <!-- 当前图标 -->
+          </div>
+          <div class="ib-preview-arrow">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="ib-preview-icon new" id="ibPreviewNew">
+            <div class="ib-preview-placeholder">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="ib-preview-label" id="ibPreviewLabel">选择一个 App 开始编辑</div>
+      </div>
+    </div>
+
+    <!-- 编辑面板 -->
+    <div class="ib-edit-panel" id="ibEditPanel" style="display:none">
+      <div class="ib-section-label">
+        <div class="ib-section-tag">REPLACE ICON</div>
+        <div class="ib-section-rule"></div>
+        </div>
+
+      <!-- Tab 切换 -->
+      <div class="ib-tabs">
+        <button class="ib-tab active" data-tab="upload" onclick="ibSwitchTab(this)">上传图片</button>
+        <button class="ib-tab" data-tab="url" onclick="ibSwitchTab(this)">图片 URL</button>
+      </div>
+
+      <!-- 上传 -->
+      <div class="ib-tab-panel active" id="ib-tab-upload">
+        <div class="ib-upload-zone" id="ibUploadZone" onclick="document.getElementById('ibFileInput').click()">
+          <div class="ib-upload-icon">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="ib-upload-text">点击上传图片</div>
+          <div class="ib-upload-sub">JPG · PNG · WebP · GIF</div>
+          <input type="file" id="ibFileInput" accept="image/*" style="display:none" onchange="ibHandleFile(this)"/>
+        </div>
+      </div>
+
+      <!-- URL -->
+      <div class="ib-tab-panel" id="ib-tab-url" style="display:none">
+        <div class="ib-url-row">
+          <input class="ib-url-input" id="ibUrlInput" type="text" placeholder="https://example.com/icon.png"/>
+          <button class="ib-url-load" onclick="ibLoadUrl()">加载</button>
+        </div>
+        <div class="ib-url-hint">支持任意公开图片链接</div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="ib-actions">
+        <button class="ib-btn-save" id="ibBtnSave" onclick="ibSaveIcon()" disabled>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          保存图标
+        </button>
+        <button class="ib-btn-reset" onclick="ibConfirmReset()">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 3v5h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          恢复原始
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /ib-body -->
+
+</div><!-- /ib-wrap -->
+
+<!-- 自定义弹窗：保存成功 -->
+<div class="ib-toast" id="ibToastSaved">
+  <div class="ib-toast-inner">
+    <div class="ib-toast-icon success">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+        <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="ib-toast-text">图标已保存并同步</div>
+  </div>
+</div>
+
+<!-- 自定义弹窗：恢复确认 -->
+<div class="ib-modal-overlay" id="ibResetOverlay"></div>
+<div class="ib-modal" id="ibResetModal">
+  <div class="ib-modal-icon">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M3 3v5h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="ib-modal-title">恢复原始图标</div>
+  <div class="ib-modal-desc">将清除自定义图标，恢复为默认 SVG 样式。此操作不可撤销。</div>
+  <div class="ib-modal-actions">
+    <button class="ib-modal-cancel" onclick="ibCloseReset()">取消</button>
+    <button class="ib-modal-confirm" onclick="ibDoReset()">确认恢复</button>
+  </div>
+</div>
+
+<!-- 自定义弹窗：加载失败 -->
+<div class="ib-toast error" id="ibToastError">
+  <div class="ib-toast-inner">
+    <div class="ib-toast-icon error">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="ib-toast-text" id="ibToastErrorText">图片加载失败</div>
+  </div>
+</div>
+
+<script src="iconbeauty.js"></script>
+</body>
+</html>

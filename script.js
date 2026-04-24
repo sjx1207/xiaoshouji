@@ -8,33 +8,39 @@ function updateTime() {
   const el = document.getElementById('statusTime');
   const wt = document.getElementById('widgetTime');
   const wd = document.getElementById('widgetDate');
-  const ww = document.getElementById('widgetWeek');
   const dayFill = document.getElementById('dayFill');
   const dayPct = document.getElementById('dayPct');
 
   const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
   const now = new Date();
-
-  // 时间字符串跟随时区
-  const timeStr = now.toLocaleTimeString('zh-CN', {
-    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
-  });
-
-  // 用时区换算后的本地时间对象
+  
+  // 核心：定义 tzNow 以修复报错
   const tzNow = new Date(now.toLocaleString('en-US', { timeZone: tz }));
 
-  if (el) el.textContent = timeStr;
-  if (wt) wt.textContent = timeStr;
+  // 状态栏时间（24小时制）
+  const statusTimeStr = now.toLocaleTimeString('zh-CN', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  
+  // 机票时间：改为英文 AM/PM 格式
+  const timeStr = now.toLocaleTimeString('en-US', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: true
+  });
+  
+  // 日期：英文大写格式
+  const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+  const dateStr = `${monthNames[tzNow.getMonth()]} ${tzNow.getDate()}, ${tzNow.getFullYear()}`;
 
-  const weeks = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
-  if (wd) wd.textContent = `${tzNow.getFullYear()}年 ${tzNow.getMonth()+1}月 ${tzNow.getDate()}日`;
-  if (ww) ww.textContent = weeks[tzNow.getDay()];
+  if (el) el.textContent = statusTimeStr;
+  if (wt) wt.textContent = timeStr.toUpperCase(); 
+  if (wd) wd.textContent = dateStr;
 
   const totalMins = 24 * 60;
   const passedMins = tzNow.getHours() * 60 + tzNow.getMinutes();
   const pct = Math.round(passedMins / totalMins * 100);
+  
   if (dayFill) dayFill.style.width = pct + '%';
-  if (dayPct) dayPct.textContent = `已过 ${pct}%`;
+  if (dayPct) dayPct.textContent = `PASS ${pct}%`; // 进度也改为英文更高级
 }
 
 
@@ -98,8 +104,11 @@ function openApp(name) {
     'wallpaper': 'Wallpaper.html',
     // 后续加其他 app：
     'settings': 'settings.html',
-    'chat': 'chat.html',
-    'clock': 'clock.html',
+    'chat': 'Chat.html',
+    'characters': 'characters.html',
+    'worldbook': 'worldbook.html',
+    'iconbeauty': 'iconbeauty.html',
+    'memory': 'memory.html',
   };
 
   const url = routes[name];
@@ -128,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateTime();
   setInterval(updateTime, 1000);
   applyIsland();
+  applyCustomIcons();
 });
 
 function setWeather(type, label) {
@@ -157,8 +167,9 @@ function closeWeatherPanel() {
 function switchTab(name, btn) {
   document.querySelectorAll('.wp-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
-  ['api','custom','style'].forEach(t => {
-    document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+  ['api','custom'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = t === name ? 'block' : 'none';
   });
 }
 
@@ -170,19 +181,10 @@ function loadPanelData() {
   if (d.city)     document.getElementById('inputCity').value = d.city;
   if (d.temp)     document.getElementById('inputTemp').value = d.temp;
   if (d.desc)     document.getElementById('inputDesc').value = d.desc;
-  if (d.opacity !== undefined) {
-    document.getElementById('opacitySlider').value = d.opacity;
-    document.getElementById('opacityVal').textContent = d.opacity;
-    applyOpacity(d.opacity);
-  }
   if (d.selectedWI) {
     document.querySelectorAll('.wi-opt').forEach(o => {
       o.classList.toggle('selected', o.dataset.wi === d.selectedWI);
     });
-  }
-  if (d.bgImage) {
-    document.getElementById('bgPreview').style.display = 'block';
-    document.getElementById('bgThumb').src = d.bgImage;
   }
 }
 
@@ -233,7 +235,6 @@ function applyAllSettings(d) {
   } else {
     if (d.city)  document.querySelector('.city').textContent = d.city;
     if (d.temp)  document.querySelector('.temp-num').textContent = d.temp;
-    if (d.desc)  document.querySelector('.wi-label') && (document.querySelector('.wi-label').textContent = d.desc);
     if (d.selectedWI) setWeather(d.selectedWI, d.desc || '');
   }
 }
@@ -281,8 +282,10 @@ async function fetchWeatherAPI(apiKey, city) {
     const code = data.current_weather.weathercode;
     const cityName = name || city;
 
-    document.querySelector('.city').textContent = `· ${cityName} ·`;
-    document.querySelector('.temp-num').textContent = temp;
+    const cityEl = document.getElementById('bpCityCode');
+    const tempEl = document.getElementById('bpTempCode');
+    if (cityEl) cityEl.textContent = cityName;
+    if (tempEl) tempEl.textContent = temp + '°';
 
     let wiType = 'sunny';
     let desc = '晴天';
@@ -311,8 +314,14 @@ async function saveCustomSettings() {
   const desc = document.getElementById('inputDesc').value.trim();
   const selectedWI = document.querySelector('.wi-opt.selected')?.dataset.wi || 'sunny';
 
-  if (city) document.querySelector('.city').textContent = city;
-  if (temp) document.querySelector('.temp-num').textContent = temp;
+  if (city) {
+    const cityEl = document.getElementById('bpCityCode');
+    if (cityEl) cityEl.textContent = city;
+  }
+  if (temp) {
+    const tempEl = document.getElementById('bpTempCode');
+    if (tempEl) tempEl.textContent = temp + '°';
+  }
   const lblEl = document.querySelector('.wi-label');
   if (lblEl && desc) lblEl.textContent = desc;
   setWeather(selectedWI, desc);
@@ -326,62 +335,23 @@ function selectWI(el) {
   el.classList.add('selected');
 }
 
-/* ---- 外观设置 ---- */
-function previewOpacity(val) {
-  document.getElementById('opacityVal').textContent = val;
-  applyOpacity(val);
+/* ---- 卡片样式切换 ---- */
+function selectCardStyle(el) {
+  document.querySelectorAll('.style-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  const style = el.getAttribute('data-style');
+  applyCardStyle(style);
+  _cache = { ..._cache, cardStyle: style };
 }
-function applyOpacity(val) {
+
+function applyCardStyle(style) {
   const card = document.getElementById('mainCard');
   if (!card) return;
-  const alpha = (val / 100 * 0.38).toFixed(3);
-  card.style.background = `rgba(255,255,255,${alpha})`;
-}
-async function saveOpacity(val) {
-  _cache = { ..._cache, opacity: parseInt(val) };
-  await saveDB(_cache);
+  card.classList.remove('bp-style-02', 'bp-style-03');
+  if (style === '02') card.classList.add('bp-style-02');
+  if (style === '03') card.classList.add('bp-style-03');
 }
 
-function applyBgImage(dataUrl) {
-  const card = document.getElementById('mainCard');
-  if (card) {
-    card.style.backgroundImage = `url(${dataUrl})`;
-    card.style.backgroundSize = 'cover';
-    card.style.backgroundPosition = 'center';
-  }
-}
-
-function handleBgUpload(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const dataUrl = e.target.result;
-    document.getElementById('bgThumb').src = dataUrl;
-    document.getElementById('bgPreview').style.display = 'block';
-    applyBgImage(dataUrl);
-    _cache = { ..._cache, bgImage: dataUrl };
-  };
-  reader.readAsDataURL(file);
-}
-
-async function removeBg() {
-  document.getElementById('bgPreview').style.display = 'none';
-  const card = document.getElementById('mainCard');
-  if (card) { card.style.backgroundImage = ''; }
-  _cache = { ..._cache, bgImage: null };
-  await saveDB(_cache);
-}
-async function saveStyleSettings() {
-  await saveDB(_cache);
-  closeWeatherPanel();
-}
-
-function showSaved(msg) {
-  const all = document.querySelectorAll('.wp-status');
-  all.forEach(el => { el.textContent = msg; el.className = 'wp-status'; });
-  setTimeout(() => all.forEach(el => el.textContent = ''), 2000);
-}
 
 /* ---- 初始化加载 ---- */
 document.addEventListener('DOMContentLoaded', () => {
@@ -670,7 +640,7 @@ let _fontDb = null;
 function openFontDB() {
   return new Promise((res, rej) => {
     if (_fontDb) return res(_fontDb);
-    const req = indexedDB.open('LunaFontDB', 1);
+    const req = indexedDB.open('LunaFontDB', 2);
     req.onupgradeneeded = e => {
       e.target.result.createObjectStore('fonts', { keyPath: 'id' });
     };
@@ -696,7 +666,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 1);
+        const req = indexedDB.open('LunaFontDB', 2);
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });
@@ -764,3 +734,29 @@ function applyIsland() {
     window._siClockTimer = setInterval(tick, 10000);
   }
 }
+
+/* 图标美化同步 — 页面加载时读取自定义图标 */
+async function applyCustomIcons() {
+  try {
+    const db = await new Promise((res, rej) => {
+      const req = indexedDB.open('LunaIconBeautyDB', 1);
+      req.onsuccess = e => res(e.target.result);
+      req.onerror = () => rej();
+    });
+    const icons = await new Promise(res => {
+      const r = db.transaction('icons').objectStore('icons').getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror = () => res([]);
+    });
+    icons.forEach(row => {
+      const face = document.querySelector(`[data-app="${row.appId}"] .app-face, [data-app="${row.appId}"] .dock-face`);
+      if (!face) return;
+      face.innerHTML = `<img src="${row.imageData}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt=""/>`;
+    });
+  } catch(e) {}
+}
+
+// 监听 iconbeauty 保存事件
+window.addEventListener('storage', e => {
+  if (e.key === 'luna_icon_update') applyCustomIcons();
+});

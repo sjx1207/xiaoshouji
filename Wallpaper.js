@@ -479,7 +479,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 1);
+        const req = indexedDB.open('LunaFontDB', 2);
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });

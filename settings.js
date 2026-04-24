@@ -340,7 +340,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 1);
+        const req = indexedDB.open('LunaFontDB', 2);
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });
@@ -571,9 +571,12 @@ let _fontDb = null;
 function openFontDB() {
   return new Promise((res, rej) => {
     if (_fontDb) return res(_fontDb);
-    const req = indexedDB.open('LunaFontDB', 1);
+    const req = indexedDB.open('LunaFontDB', 2);  // ← 只改这里，1 → 2
     req.onupgradeneeded = e => {
-      e.target.result.createObjectStore('fonts', { keyPath: 'id' });
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('fonts')) {  // ← 加这个判断，防止重复创建报错
+        db.createObjectStore('fonts', { keyPath: 'id' });
+      }
     };
     req.onsuccess = e => { _fontDb = e.target.result; res(_fontDb); };
     req.onerror = () => rej();
