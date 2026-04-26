@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Wavr Music</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <!-- Music app fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Instrument+Sans:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Sync with index: shared system fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="music.css" />
+</head>
+<body>
+
+<!-- ====== 手机外框 ====== -->
+<div class="luna-wrap">
+  <div class="luna-frame">
+
+    <!-- 背景渐变层 -->
+    <div class="music-bg"></div>
+    <div class="music-bg-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+
+    <!-- App 转场遮罩 -->
+    <div id="appTransMask"></div>
+
+    <!-- ====== 状态栏（与 index 同步） ====== -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland">
+        <!-- 灵动岛 由 JS 注入 -->
+      </div>
+      <div class="status-right">
+        <div class="signal">
+          <i></i><i></i><i></i><i></i>
+        </div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== 页面容器 ====== -->
+    <div class="pages-container" id="pagesContainer">
+
+      <!-- ========== PAGE 1: HOME ========== -->
+<div class="page page-home active" id="pageHome">
+
+  <!-- 顶部栏 -->
+  <!-- 顶部栏 -->
+  <div class="home-topbar">
+    <button class="back-btn" id="backToIndex">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="home-topbar-title">WAVR</div>
+    <div class="topbar-right-btns">
+      <button class="add-song-btn" id="openChangeBg">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="9" cy="15" r="1" fill="currentColor"/>
+          <circle cx="15" cy="15" r="1" fill="currentColor"/>
+        </svg>
+      </button>
+      <button class="add-song-btn" id="openAddSong">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 装饰线条 -->
+  <div class="deco-lines">
+    <div class="deco-line dl-1"></div>
+    <div class="deco-line dl-2"></div>
+    <div class="deco-line dl-3"></div>
+  </div>
+
+  <!-- 歌单区块 -->
+  <div class="section-label">PLAYLISTS</div>
+  <div class="playlist-row">
+    <div class="playlist-list" id="playlistList">
+      <!-- 由JS渲染 -->
+    </div>
+    <button class="create-playlist-btn" id="openCreatePlaylist">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      NEW PLAYLIST
+    </button>
+  </div>
+
+  <!-- 歌曲库区块 -->
+  <div class="section-label" style="margin-top:18px;">ALL TRACKS</div>
+  <div class="track-library" id="trackLibrary">
+    <!-- 由JS渲染 -->
+  </div>
+
+  <div class="page-bottom-spacer"></div>
+</div>
+
+<!-- ========== PAGE 2: PLAYER ========== -->
+<div class="page page-player" id="pagePlayer">
+
+  <!-- 顶部栏 -->
+  <div class="player-topbar">
+    <div class="player-back" id="playerBack">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>NOW PLAYING</span>
+    </div>
+    <div class="player-topbar-right">
+      <!-- 播放列表按钮 -->
+      <button class="player-icon-btn" id="openQueuePanel">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <line x1="8" y1="6" x2="21" y2="6"/>
+          <line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+      <!-- 喜欢按钮 -->
+      <button class="player-icon-btn" id="playerLikeBtn">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 唱片封面 -->
+  <div class="vinyl-stage">
+    <div class="vinyl-glow"></div>
+    <div class="vinyl-disc" id="vinylDisc">
+      <div class="vinyl-grooves"></div>
+      <div class="vinyl-center">
+        <div class="vinyl-label">
+          <div class="vinyl-label-ring"></div>
+          <div class="vinyl-art-cover"></div>
+        </div>
+      </div>
+      <div class="vinyl-shine"></div>
+    </div>
+    <div class="tonearm-wrap" id="tonearmWrap">
+      <div class="tonearm-pivot"></div>
+      <div class="tonearm-arm">
+        <div class="tonearm-head"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 歌词区域 -->
+  <div class="lyric-area" id="lyricArea">
+    <div class="lyric-empty" id="lyricEmpty">
+      <div class="lyric-empty-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <div class="lyric-empty-text">NO LYRICS YET</div>
+      <div class="lyric-empty-sub">Upload a .lrc file or type manually</div>
+      <button class="lyric-add-btn" id="openLyricPanel">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        ADD LYRICS
+      </button>
+    </div>
+    <div class="lyric-lines" id="lyricLines" style="display:none">
+      <!-- 由JS渲染 -->
+    </div>
+  </div>
+
+  <!-- 歌曲信息 -->
+  <div class="player-meta">
+    <div class="player-meta-text">
+      <div class="player-song-title" id="playerSongTitle">Cerulean Dreams</div>
+      <div class="player-song-artist" id="playerSongArtist">Wavr Collective · Frequencies Vol. II</div>
+    </div>
+  </div>
+
+  <!-- 波形进度条 -->
+  <div class="waveform-area">
+    <div class="waveform-track" id="waveformTrack">
+      <canvas id="waveCanvas" width="340" height="54"></canvas>
+      <div class="waveform-progress-line" id="waveProgressLine"></div>
+    </div>
+    <div class="waveform-times">
+      <span class="wt-elapsed" id="wtElapsed">0:00</span>
+      <span class="wt-total" id="wtTotal">0:00</span>
+    </div>
+  </div>
+
+  <!-- 播放模式 + 控制按钮 -->
+  <div class="player-controls">
+    <!-- 播放模式循环按钮（单曲/顺序/随机 三合一） -->
+    <button class="ctrl-btn ctrl-secondary" id="ctrlPlayMode" title="顺序播放">
+      <!-- 顺序播放图标（默认） -->
+      <svg class="pm-icon pm-order" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+      <!-- 单曲循环图标 -->
+      <svg class="pm-icon pm-repeat" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="display:none">
+        <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+        <text x="9" y="14" font-size="7" fill="currentColor" stroke="none" font-weight="700">1</text>
+      </svg>
+      <!-- 随机播放图标 -->
+      <svg class="pm-icon pm-shuffle" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="display:none">
+        <polyline points="16 3 21 3 21 8"/><polyline points="4 20 21 3"/>
+        <polyline points="21 16 21 21 16 21"/><line x1="4" y1="4" x2="9" y2="9"/>
+      </svg>
+    </button>
+
+    <button class="ctrl-btn ctrl-prev" id="ctrlPrev">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
+      </svg>
+    </button>
+
+    <button class="ctrl-btn ctrl-play" id="ctrlPlay">
+      <svg class="icon-play" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M8 5.14v14l11-7-11-7z"/>
+      </svg>
+      <svg class="icon-pause" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+      </svg>
+    </button>
+
+    <button class="ctrl-btn ctrl-next" id="ctrlNext">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+      </svg>
+    </button>
+
+    <!-- 一起听按钮 -->
+    <button class="ctrl-btn ctrl-secondary" id="ctrlListenTogether">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="7" r="3"/>
+        <circle cx="17" cy="7" r="3"/>
+        <path d="M3 21v-1a5 5 0 0 1 5-5h4"/>
+        <path d="M17 14v4m0 0v2m0-2h2m-2 0h-2" stroke-width="1.8"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="page-bottom-spacer"></div>
+</div>
+
+    <!-- ========== PAGE 3: COMMUNITY ========== -->
+<div class="page page-community" id="pageCommunity">
+
+  <!-- 顶部 -->
+  <div class="comm-header">
+    <div class="comm-title-block">
+      <div class="comm-title">Wavr<br>Social</div>
+      <div class="comm-subtitle">你的角色们都在这里</div>
+    </div>
+    <button class="comm-gen-btn" id="commGenBtn" onclick="generateFeedPosts()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <path d="M12 2a10 10 0 1 0 10 10"/><path d="M18 2v4h4"/><path d="M12 7v5l3 3"/>
+      </svg>
+      刷新广场
+    </button>
+  </div>
+
+  <!-- 活跃好友 -->
+  <div class="section-header" style="padding:0 20px 0">
+    <span class="section-title">ONLINE</span>
+  </div>
+  <div class="live-friends-scroll" id="commFriendsList">
+    <!-- 由JS渲染 -->
+  </div>
+
+  <!-- Feed -->
+  <div class="section-header" style="padding:0 20px;margin-top:6px;">
+    <span class="section-title">FEED</span>
+  </div>
+
+  <!-- 空状态提示 -->
+  <div class="comm-empty" id="commEmpty">
+    <div class="comm-empty-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <div class="comm-empty-title">广场还没有内容</div>
+    <div class="comm-empty-sub">点击右上角「刷新广场」<br>让角色们开始发帖吧 ✦</div>
+  </div>
+
+  <!-- 生成中状态 -->
+  <div class="comm-generating" id="commGenerating" style="display:none">
+    <div class="comm-gen-dots"><span></span><span></span><span></span></div>
+    <div class="comm-gen-text">角色们正在发帖中...</div>
+  </div>
+
+  <!-- 帖子列表 -->
+  <div id="commFeedList">
+    <!-- 由JS渲染 -->
+  </div>
+
+  <div class="page-bottom-spacer"></div>
+</div>
+
+      <!-- ====== 弹窗遮罩 ====== -->
+<div class="modal-overlay" id="modalOverlay"></div>
+
+<!-- ====== 添加歌曲弹窗 ====== -->
+<div class="modal-panel" id="addSongPanel">
+  <div class="modal-handle"></div>
+  <div class="modal-header">
+    <div class="modal-title">ADD TRACK</div>
+    <button class="modal-close" id="closeAddSong">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 封面预览 -->
+  <div class="cover-upload-row">
+    <div class="cover-preview" id="songCoverPreview">
+      <div class="cover-placeholder">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.4"/>
+          <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+          <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span>COVER</span>
+      </div>
+      <img id="songCoverImg" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:12px;"/>
+    </div>
+    <button class="upload-cover-btn" onclick="document.getElementById('songCoverInput').click()">
+      UPLOAD COVER
+    </button>
+    <input type="file" id="songCoverInput" accept="image/*" style="display:none"/>
+  </div>
+
+  <!-- 歌曲信息输入 -->
+  <div class="modal-field">
+    <div class="field-label">TRACK NAME</div>
+    <input class="modal-input" id="songNameInput" type="text" placeholder="Enter track name" maxlength="50"/>
+  </div>
+  <div class="modal-field">
+    <div class="field-label">ARTIST</div>
+    <input class="modal-input" id="songArtistInput" type="text" placeholder="Enter artist name" maxlength="50"/>
+  </div>
+
+  <!-- 上传方式切换 -->
+  <div class="upload-tabs">
+    <button class="upload-tab active" id="tabFile" onclick="switchUploadTab('file')">FILE</button>
+    <button class="upload-tab" id="tabUrl" onclick="switchUploadTab('url')">URL</button>
+  </div>
+
+  <div id="uploadFileArea">
+    <div class="file-drop-zone" id="fileDropZone" onclick="document.getElementById('songFileInput').click()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <span id="fileDropLabel">CLICK TO SELECT AUDIO FILE</span>
+      <span class="file-hint">MP3 · WAV · FLAC · M4A</span>
+    </div>
+    <input type="file" id="songFileInput" accept="audio/*" style="display:none"/>
+  </div>
+
+  <div id="uploadUrlArea" style="display:none;">
+    <div class="modal-field">
+      <div class="field-label">AUDIO URL</div>
+      <input class="modal-input" id="songUrlInput" type="text" placeholder="Paste audio URL or NetEase link"/>
+    </div>
+  </div>
+
+  <button class="modal-save-btn" id="saveSongBtn">ADD TO LIBRARY</button>
+</div>
+
+<!-- ====== 创建歌单弹窗 ====== -->
+<div class="modal-panel" id="createPlaylistPanel">
+  <div class="modal-handle"></div>
+  <div class="modal-header">
+    <div class="modal-title">NEW PLAYLIST</div>
+    <button class="modal-close" id="closeCreatePlaylist">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="cover-upload-row">
+    <div class="cover-preview" id="plCoverPreview">
+      <div class="cover-placeholder">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.4"/>
+          <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+          <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span>COVER</span>
+      </div>
+      <img id="plCoverImg" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:12px;"/>
+    </div>
+    <button class="upload-cover-btn" onclick="document.getElementById('plCoverInput').click()">
+      UPLOAD COVER
+    </button>
+    <input type="file" id="plCoverInput" accept="image/*" style="display:none"/>
+  </div>
+
+  <div class="modal-field">
+    <div class="field-label">PLAYLIST NAME</div>
+    <input class="modal-input" id="plNameInput" type="text" placeholder="Enter playlist name" maxlength="40"/>
+  </div>
+  <div class="modal-field">
+    <div class="field-label">DESCRIPTION</div>
+    <input class="modal-input" id="plDescInput" type="text" placeholder="Optional description" maxlength="80"/>
+  </div>
+
+  <button class="modal-save-btn" id="savePlaylistBtn">CREATE PLAYLIST</button>
+</div>
+
+<!-- ====== 歌单详情页（内嵌，不是弹窗） ====== -->
+<div class="playlist-detail-overlay" id="playlistDetail" style="display:none;">
+  <div class="pd-topbar">
+    <button class="back-btn" id="closePlaylistDetail">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="pd-title" id="pdTitle">Playlist</div>
+    <div style="width:32px;"></div>
+  </div>
+  <div class="pd-cover-wrap">
+    <div class="pd-cover" id="pdCover"></div>
+    <div class="pd-info">
+      <div class="pd-name" id="pdName"></div>
+      <div class="pd-desc" id="pdDesc"></div>
+      <div class="pd-count" id="pdCount"></div>
+    </div>
+  </div>
+  <button class="add-to-pl-btn" id="openAddToPlaylist">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    ADD TRACKS
+  </button>
+  <div class="pd-track-list" id="pdTrackList">
+    <!-- 由JS渲染 -->
+  </div>
+</div>
+
+<!-- ====== 从歌库选歌加入歌单弹窗 ====== -->
+<div class="modal-panel" id="addToPlaylistPanel">
+  <div class="modal-handle"></div>
+  <div class="modal-header">
+    <div class="modal-title">SELECT TRACKS</div>
+    <button class="modal-close" id="closeAddToPlaylist">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+  <div class="select-track-list" id="selectTrackList">
+    <!-- 由JS渲染 -->
+  </div>
+  <button class="modal-save-btn" id="confirmAddToPlaylist">ADD SELECTED</button>
+</div>
+
+    </div><!-- /pages-container -->
+
+    <!-- ====== 一起听弹窗 ====== -->
+<div class="lt-overlay" id="ltOverlay"></div>
+<div class="lt-modal" id="ltModal">
+  <!-- 装饰光晕 -->
+  <div class="lt-modal-glow"></div>
+  <div class="lt-modal-handle"></div>
+
+  <!-- 标题区 -->
+  <div class="lt-modal-head">
+    <div class="lt-modal-eyebrow">WAVR · TOGETHER</div>
+    <div class="lt-modal-title">一起听歌</div>
+    <div class="lt-modal-sub">选择一个角色，邀请 TA 陪你听</div>
+    <button class="lt-modal-close" id="ltModalClose">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 装饰分隔 -->
+  <div class="lt-divider">
+    <div class="lt-divider-line"></div>
+    <div class="lt-divider-tag">SELECT CHARACTER</div>
+    <div class="lt-divider-line"></div>
+  </div>
+
+  <!-- 角色列表 -->
+  <div class="lt-char-list" id="ltCharList">
+    <!-- 由JS渲染 -->
+  </div>
+
+  <!-- 邀请中动画层（默认隐藏） -->
+  <div class="lt-inviting" id="ltInviting" style="display:none">
+    <div class="lt-invite-rings">
+      <div class="lt-ring lt-ring-1"></div>
+      <div class="lt-ring lt-ring-2"></div>
+      <div class="lt-ring lt-ring-3"></div>
+      <div class="lt-invite-avatar" id="ltInviteAvatar"></div>
+    </div>
+    <div class="lt-invite-name" id="ltInviteName"></div>
+    <div class="lt-invite-status">正在连接...</div>
+    <div class="lt-invite-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 一起听聊天页面（全屏覆盖） ====== -->
+<div class="lt-chat-page" id="ltChatPage" style="display:none">
+
+  <!-- 背景装饰 -->
+  <div class="lt-chat-bg"></div>
+
+  <!-- 聊天页状态栏（独立同步） -->
+  <div class="status-bar lt-chat-statusbar">
+    <div class="status-time" id="ltStatusTime">9:41</div>
+    <div class="status-island" id="ltStatusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="ltBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="ltBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="lt-chat-bg-orb lt-orb-1"></div>
+  <div class="lt-chat-bg-orb lt-orb-2"></div>
+
+  <!-- 顶部栏 -->
+  <div class="lt-chat-topbar">
+    <button class="lt-chat-back" id="ltChatBack">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <!-- 双头像连接区 -->
+    <div class="lt-chat-duo">
+      <div class="lt-chat-avatar lt-chat-avatar-me" id="ltChatAvatarMe">
+        <div class="lt-chat-avatar-placeholder">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          </svg>
+        </div>
+      </div>
+      <div class="lt-chat-connector">
+        <div class="lt-connector-line"></div>
+        <div class="lt-connector-dot lt-dot-1"></div>
+        <div class="lt-connector-dot lt-dot-2"></div>
+        <div class="lt-connector-dot lt-dot-3"></div>
+        <div class="lt-connector-pulse"></div>
+      </div>
+      <div class="lt-chat-avatar lt-chat-avatar-char" id="ltChatAvatarChar">
+        <div class="lt-chat-avatar-placeholder">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="lt-chat-topbar-info">
+      <div class="lt-chat-char-name" id="ltChatCharName">—</div>
+      <div class="lt-chat-status">
+        <div class="lt-status-dot"></div>
+        <span>同步收听中</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 正在播放小条 -->
+  <div class="lt-now-playing-bar">
+    <div class="lt-npb-eq">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="lt-npb-info">
+      <span class="lt-npb-label">NOW PLAYING</span>
+      <span class="lt-npb-title" id="ltNpbTitle">—</span>
+    </div>
+  </div>
+
+  <!-- 聊天消息区 -->
+  <div class="lt-chat-messages" id="ltChatMessages">
+    <!-- 由JS渲染 -->
+  </div>
+
+  <!-- 输入栏 -->
+  <div class="lt-chat-input-bar">
+    <div class="lt-ai-reply-row">
+      <button class="lt-ai-reply-btn" id="ltAiReplyBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/>
+          <path d="M8 12h4M12 8l4 4-4 4" stroke-width="1.8"/>
+        </svg>
+        AI 回复
+      </button>
+    </div>
+    <div class="lt-chat-input-wrap">
+      <input class="lt-chat-input" id="ltChatInput" type="text" placeholder="说点什么..."/>
+      <button class="lt-chat-send" id="ltChatSend">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ====== 用户信息设置弹窗（上传头像+填关系） ====== -->
+<div class="lt-overlay" id="ltUserOverlay"></div>
+<div class="lt-modal lt-user-modal" id="ltUserModal" style="display:none">
+  <div class="lt-modal-glow"></div>
+  <div class="lt-modal-handle"></div>
+  <div class="lt-modal-head">
+    <div class="lt-modal-eyebrow">YOUR PROFILE</div>
+    <div class="lt-modal-title">设置你的信息</div>
+    <div class="lt-modal-sub">让角色知道 TA 在陪谁听歌</div>
+    <button class="lt-modal-close" id="ltUserModalClose">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+  <!-- 头像上传 -->
+  <div class="lt-user-avatar-row">
+    <div class="lt-user-avatar-wrap" id="ltUserAvatarWrap" onclick="document.getElementById('ltUserAvatarInput').click()">
+      <div class="lt-user-avatar" id="ltUserAvatarPreview">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+      </div>
+      <div class="lt-user-avatar-hint">上传头像</div>
+    </div>
+    <input type="file" id="ltUserAvatarInput" accept="image/*" style="display:none"/>
+  </div>
+  <!-- 与角色的关系 -->
+  <div class="lt-user-field">
+    <div class="lt-user-field-label">与角色的关系</div>
+    <input class="lt-user-field-input" id="ltUserRelation" type="text" placeholder="例如：朋友、恋人、搭档..."/>
+  </div>
+  <!-- 你的称呼 -->
+  <div class="lt-user-field">
+    <div class="lt-user-field-label">你的称呼</div>
+    <input class="lt-user-field-input" id="ltUserNickname" type="text" placeholder="角色会怎么叫你？"/>
+  </div>
+  <button class="lt-user-confirm-btn" id="ltUserConfirm">进入聊天</button>
+</div>
+
+<!-- ====== 一起听悬浮球（全局，所有页面可见） ====== -->
+    <div class="lt-float-ball" id="ltFloatBall" style="display:none">
+      <div class="lt-float-ball-inner">
+        <div class="lt-float-avatar" id="ltFloatAvatar"></div>
+        <div class="lt-float-wave">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== 底部导航栏 ====== -->
+    <nav class="nav-bar" id="navBar">
+      <div class="nav-liquid-bg"></div>
+      <div class="nav-items">
+
+        <div class="nav-item active" id="navHome" onclick="switchPage('home')">
+          <div class="nav-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
+            <div class="nav-active-dot"></div>
+          </div>
+          <span class="nav-label">Home</span>
+        </div>
+
+        <div class="nav-item" id="navPlayer" onclick="switchPage('player')">
+          <div class="nav-icon-wrap">
+            <div class="nav-disc-icon">
+              <div class="ndi-outer"></div>
+              <div class="ndi-inner"></div>
+            </div>
+            <div class="nav-active-dot"></div>
+          </div>
+          <span class="nav-label">Player</span>
+        </div>
+
+        <div class="nav-item" id="navCommunity" onclick="switchPage('community')">
+          <div class="nav-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <div class="nav-active-dot"></div>
+          </div>
+          <span class="nav-label">Social</span>
+        </div>
+
+      </div>
+      <div class="home-bar"></div>
+    </nav>
+
+  </div>
+</div>
+
+<!-- ====== 播放列表弹窗 ====== -->
+<div class="modal-overlay" id="queueOverlay"></div>
+<div class="modal-panel" id="queuePanel">
+  <div class="modal-handle"></div>
+  <div class="modal-header">
+    <div class="modal-title">QUEUE</div>
+    <button class="modal-close" id="closeQueuePanel">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+  <div class="queue-track-list" id="queueTrackList">
+    <!-- 由JS渲染 -->
+  </div>
+</div>
+
+<!-- ====== 歌词编辑弹窗 ====== -->
+<div class="modal-overlay" id="lyricOverlay"></div>
+<div class="modal-panel" id="lyricPanel">
+  <div class="modal-handle"></div>
+  <div class="modal-header">
+    <div class="modal-title">ADD LYRICS</div>
+    <button class="modal-close" id="closeLyricPanel">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+  <div class="lyric-format-tip">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span>支持 .lrc 格式 · 例如: [00:12.34]歌词内容</span>
+  </div>
+  <div class="lyric-tabs">
+    <button class="lyric-tab active" id="ltabUpload" onclick="switchLyricTab('upload')">UPLOAD FILE</button>
+    <button class="lyric-tab" id="ltabManual" onclick="switchLyricTab('manual')">MANUAL INPUT</button>
+  </div>
+  <div id="lyricUploadArea">
+    <div class="file-drop-zone" id="lyricDropZone" onclick="document.getElementById('lyricFileInput').click()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <span id="lyricFileLabel">CLICK TO SELECT .LRC FILE</span>
+      <span class="file-hint">LRC · TXT</span>
+    </div>
+    <input type="file" id="lyricFileInput" accept=".lrc,.txt" style="display:none"/>
+  </div>
+  <div id="lyricManualArea" style="display:none">
+    <div class="field-label" style="margin-bottom:6px;">PASTE LRC CONTENT</div>
+    <textarea class="lyric-textarea" id="lyricManualInput" placeholder="[00:00.00]第一句歌词&#10;[00:05.20]第二句歌词&#10;[00:10.80]第三句歌词"></textarea>
+  </div>
+  <button class="modal-save-btn" id="saveLyricBtn">SAVE LYRICS</button>
+</div>
+
+<audio id="audioPlayer" preload="none"></audio>
+
+<script src="music.js"></script>
+</body>
+</html>

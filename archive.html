@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>角色档案</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="archive.css"/>
+</head>
+<body>
+
+<div class="arc-wrap">
+
+  <!-- 状态栏 -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 顶部导航 -->
+  <div class="arc-nav">
+    <button class="arc-back" onclick="goBack()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="arc-nav-center">
+      <div class="arc-nav-sub">PERSONA ARCHIVE</div>
+      <div class="arc-nav-title">角色档案</div>
+    </div>
+    <button class="arc-add" onclick="goToCharacters()">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 顶部装饰带 -->
+  <div class="arc-header-band">
+    <div class="arc-band-left">
+      <div class="arc-band-label">COLLECTION</div>
+      <div class="arc-band-count" id="arcCount">00</div>
+    </div>
+    <div class="arc-band-divider"></div>
+    <div class="arc-band-right">
+      <div class="arc-band-label">ACTIVE</div>
+      <div class="arc-band-active" id="arcActive">—</div>
+    </div>
+    <!-- 装饰线条 -->
+    <div class="arc-band-deco-lines">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- 卡片列表 -->
+  <div class="arc-list" id="arcList">
+    <!-- JS渲染 -->
+  </div>
+
+</div>
+
+<!-- 详情页遮罩 -->
+<div class="arc-detail-overlay" id="arcDetailOverlay" onclick="closeDetail()"></div>
+
+<!-- 详情页 -->
+<div class="arc-detail" id="arcDetail">
+  <!-- 明信片正面 -->
+  <div class="arc-postcard" id="arcPostcard">
+
+    <!-- 邮票区 -->
+    <div class="arc-stamp-zone">
+      <div class="arc-stamp" id="detailStamp">
+        <div class="arc-stamp-inner" id="detailStampInner">
+          <!-- 头像或首字母 -->
+        </div>
+        <div class="arc-stamp-perf top"></div>
+        <div class="arc-stamp-perf bottom"></div>
+        <div class="arc-stamp-perf left"></div>
+        <div class="arc-stamp-perf right"></div>
+      </div>
+      <div class="arc-stamp-label">PERSONA · STAMP</div>
+    </div>
+
+    <!-- 明信片头部 -->
+    <div class="arc-pc-header">
+      <div class="arc-pc-postmark">
+        <div class="arc-postmark-circle">
+          <div class="arc-postmark-inner">
+            <div class="arc-postmark-date" id="detailBirthday">—</div>
+            <div class="arc-postmark-city">LUNA · AI</div>
+          </div>
+        </div>
+        <div class="arc-postmark-lines">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+      <div class="arc-pc-status-wrap">
+        <div class="arc-pc-status" id="detailStatusBadge">待机</div>
+      </div>
+    </div>
+
+    <!-- 分割线 -->
+    <div class="arc-pc-rule">
+      <div class="arc-pc-rule-label">CHARACTER FILE</div>
+    </div>
+
+    <!-- 主体信息 -->
+    <div class="arc-pc-body">
+
+      <!-- 左列：基本信息 -->
+      <div class="arc-pc-left">
+        <div class="arc-pc-name" id="detailName">—</div>
+        <div class="arc-pc-role" id="detailRole">—</div>
+
+        <div class="arc-pc-meta-grid">
+          <div class="arc-pc-meta-item">
+            <div class="arc-meta-key">GENDER</div>
+            <div class="arc-meta-val" id="detailGender">—</div>
+          </div>
+          <div class="arc-pc-meta-item">
+            <div class="arc-meta-key">AGE</div>
+            <div class="arc-meta-val" id="detailAge">—</div>
+          </div>
+        </div>
+
+        <!-- 性格标签 -->
+        <div class="arc-pc-traits" id="detailTraits"></div>
+      </div>
+
+      <!-- 右列：地址栏式装饰 -->
+      <div class="arc-pc-right">
+        <div class="arc-pc-address-lines">
+          <div class="arc-addr-line thick"></div>
+          <div class="arc-addr-line"></div>
+          <div class="arc-addr-line"></div>
+          <div class="arc-addr-line short"></div>
+        </div>
+        <div class="arc-pc-serial">
+          <span class="arc-serial-label">NO.</span>
+          <span class="arc-serial-num" id="detailSerial">001</span>
+        </div>
+        <!-- 条形码装饰 -->
+        <div class="arc-pc-barcode">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 描述区 -->
+    <div class="arc-pc-desc-zone">
+      <div class="arc-pc-desc-label">ABOUT</div>
+      <div class="arc-pc-desc-text" id="detailDesc">—</div>
+    </div>
+
+    <!-- 底部操作 -->
+    <div class="arc-pc-footer">
+      <div class="arc-pc-footer-deco">
+        <div class="arc-footer-dot"></div>
+        <div class="arc-footer-line"></div>
+        <div class="arc-footer-dot"></div>
+        <div class="arc-footer-line"></div>
+        <div class="arc-footer-dot"></div>
+      </div>
+      <div class="arc-pc-actions">
+        <button class="arc-act-apply" id="detailApplyBtn" onclick="applyFromDetail()">应用角色</button>
+        <button class="arc-act-edit" onclick="editFromDetail()">编辑</button>
+        <button class="arc-act-close" onclick="closeDetail()">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==============================
+     关系链编辑页（全屏覆盖）
+============================== -->
+<div class="cl-overlay" id="clOverlay"></div>
+<div class="cl-page" id="clPage">
+
+  <!-- 状态栏（复用） -->
+  <div class="status-bar">
+    <div class="status-time" id="clStatusTime">9:41</div>
+    <div class="status-island" id="clStatusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="clBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="clBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导航栏 -->
+  <div class="cl-nav">
+    <button class="arc-back" onclick="closeCharLink()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="arc-nav-center">
+      <div class="arc-nav-sub">CHARACTER NETWORK</div>
+      <div class="arc-nav-title" id="clNavTitle">关系链</div>
+    </div>
+    <button class="arc-add" id="clSaveBtn" onclick="saveCharLink()">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+        <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Tab 切换 -->
+  <div class="cl-tabs">
+    <button class="cl-tab active" id="clTab0" onclick="switchClTab(0)">
+      <div class="cl-tab-label">WORLD MAP</div>
+      <div class="cl-tab-name">世界地图</div>
+    </button>
+    <button class="cl-tab" id="clTab1" onclick="switchClTab(1)">
+      <div class="cl-tab-label">NPC LIST</div>
+      <div class="cl-tab-name">关系人物</div>
+    </button>
+    <button class="cl-tab" id="clTab2" onclick="switchClTab(2)">
+      <div class="cl-tab-label">NET GRAPH</div>
+      <div class="cl-tab-name">关系网图</div>
+    </button>
+  </div>
+
+  <!-- ====== Tab 0: 世界地图 ====== -->
+  <div class="cl-panel" id="clPanel0">
+
+    <div class="cl-section-rule">
+      <div class="cl-rule-label">WORLD TYPE</div>
+    </div>
+
+    <!-- 真实/虚拟切换 -->
+    <div class="cl-world-type-row">
+      <button class="cl-wtype-btn active" id="clWtypeReal" onclick="switchWorldType('real')">
+        <span class="cl-wtype-dot"></span>真实城市
+      </button>
+      <button class="cl-wtype-btn" id="clWtypeVirtual" onclick="switchWorldType('virtual')">
+        <span class="cl-wtype-dot"></span>虚拟世界
+      </button>
+    </div>
+
+    <!-- 真实城市面板 -->
+    <div id="clRealPanel">
+      <div class="cl-section-rule" style="margin-top:20px">
+        <div class="cl-rule-label">CITY INPUT</div>
+      </div>
+      <div class="cl-input-row">
+        <input class="cl-input" id="clCityInput" placeholder="输入城市名，例：东京、巴黎、上海…" />
+        <button class="cl-ai-btn" id="clCityAiBtn" onclick="aiGenerateCity()">
+          <span class="cl-ai-btn-text">AI 生成</span>
+          <div class="cl-ai-spinner" id="clCitySpinner" style="display:none"></div>
+        </button>
+      </div>
+      <div class="cl-map-result" id="clCityResult" style="display:none">
+        <div class="cl-section-rule">
+          <div class="cl-rule-label">CITY ATLAS</div>
+        </div>
+        <div class="cl-map-nodes" id="clCityNodes"></div>
+      </div>
+    </div>
+
+    <!-- 虚拟世界面板 -->
+    <div id="clVirtualPanel" style="display:none">
+      <div class="cl-section-rule" style="margin-top:20px">
+        <div class="cl-rule-label">WORLD SETTING</div>
+      </div>
+      <input class="cl-input" id="clWorldName" placeholder="世界名称，例：艾泽尔大陆、星辰纪…" style="margin-bottom:10px"/>
+      <textarea class="cl-textarea" id="clWorldDesc" placeholder="简短描述这个世界的背景、风貌、氛围…" rows="3"></textarea>
+      <button class="cl-ai-btn cl-ai-btn-full" id="clWorldAiBtn" onclick="aiGenerateWorld()">
+        <span class="cl-ai-btn-text">AI 生成世界地图节点</span>
+        <div class="cl-ai-spinner" id="clWorldSpinner" style="display:none"></div>
+      </button>
+      <div class="cl-map-result" id="clWorldResult" style="display:none">
+        <div class="cl-section-rule">
+          <div class="cl-rule-label">WORLD NODES</div>
+        </div>
+        <div class="cl-map-nodes" id="clWorldNodes"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ====== Tab 1: 关系人物 ====== -->
+  <div class="cl-panel" id="clPanel1" style="display:none">
+
+    <div class="cl-npc-toolbar">
+      <div class="cl-section-rule" style="flex:1">
+        <div class="cl-rule-label">RELATIONS</div>
+      </div>
+      <div class="cl-npc-actions">
+        <button class="cl-npc-manual-btn" onclick="openAddNpcModal()">手动添加</button>
+        <button class="cl-ai-btn" id="clNpcAiBtn" onclick="aiGenerateNpcs()">
+          <span class="cl-ai-btn-text">AI 生成</span>
+          <div class="cl-ai-spinner" id="clNpcSpinner" style="display:none"></div>
+        </button>
+      </div>
+    </div>
+
+    <div class="cl-npc-list" id="clNpcList">
+      <!-- JS 渲染 -->
+    </div>
+
+  </div>
+
+  <!-- ====== Tab 2: 关系网图 ====== -->
+  <div class="cl-panel" id="clPanel2" style="display:none">
+    <div class="cl-section-rule">
+      <div class="cl-rule-label">NETWORK GRAPH</div>
+    </div>
+    <div class="cl-graph-wrap">
+      <canvas id="clNetCanvas"></canvas>
+      <div class="cl-graph-legend">
+        <div class="cl-legend-item"><span class="cl-legend-dot" style="background:#c8a97e"></span>恋人</div>
+        <div class="cl-legend-item"><span class="cl-legend-dot" style="background:#8eaec8"></span>友人</div>
+        <div class="cl-legend-item"><span class="cl-legend-dot" style="background:#c87e7e"></span>宿敌</div>
+        <div class="cl-legend-item"><span class="cl-legend-dot" style="background:#8ec8a3"></span>家人</div>
+        <div class="cl-legend-item"><span class="cl-legend-dot" style="background:#b8b8b0"></span>其他</div>
+      </div>
+    </div>
+    <div class="cl-node-tooltip" id="clNodeTooltip" style="display:none">
+      <div class="cl-tt-name" id="clTtName"></div>
+      <div class="cl-tt-rel" id="clTtRel"></div>
+      <div class="cl-tt-desc" id="clTtDesc"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 手动添加 NPC 弹窗 -->
+<div class="cl-modal-mask" id="clNpcModalMask">
+  <div class="cl-modal">
+    <div class="cl-modal-title" id="clNpcModalTitle">添加关系人物</div>
+    <div class="cl-modal-row">
+      <input class="cl-input cl-input-half" id="clNpcName" placeholder="姓名"/>
+      <input class="cl-input cl-input-half" id="clNpcNickname" placeholder="昵称/外号（选填）"/>
+    </div>
+    <div class="cl-modal-row" style="margin-top:10px">
+      <input class="cl-input cl-input-half" id="clNpcGender" placeholder="性别（男/女）"/>
+      <input class="cl-input cl-input-half" id="clNpcAge" placeholder="年龄"/>
+    </div>
+    <div class="cl-rel-type-row" id="clRelTypeRow" style="margin-top:10px">
+      <button class="cl-rel-btn active" data-rel="恋人" onclick="pickRelType(this)">恋人</button>
+      <button class="cl-rel-btn" data-rel="友人" onclick="pickRelType(this)">友人</button>
+      <button class="cl-rel-btn" data-rel="宿敌" onclick="pickRelType(this)">宿敌</button>
+      <button class="cl-rel-btn" data-rel="家人" onclick="pickRelType(this)">家人</button>
+      <button class="cl-rel-btn" data-rel="其他" onclick="pickRelType(this)">其他</button>
+    </div>
+    <textarea class="cl-textarea" id="clNpcPersonality" placeholder="性格特点…" rows="2" style="margin-top:10px"></textarea>
+    <textarea class="cl-textarea" id="clNpcRelDesc" placeholder="与主角的关系描述…" rows="2" style="margin-top:8px"></textarea>
+    <textarea class="cl-textarea" id="clNpcDesc" placeholder="人物简介（外貌、背景…）" rows="3" style="margin-top:8px"></textarea>
+    <div class="cl-modal-footer">
+      <button class="cl-modal-cancel" onclick="closeNpcModal()">取消</button>
+      <button class="cl-modal-confirm" onclick="confirmAddNpc()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- NPC 详情弹窗 -->
+<div class="nd-mask" id="npcDetailMask">
+  <div class="nd-sheet">
+
+    <div class="nd-header">
+      <div class="nd-avatar-wrap">
+        <div class="nd-avatar" id="ndAvatar">
+          <span id="ndAvatarLetter"></span>
+        </div>
+        <button class="nd-avatar-edit-btn" onclick="ndUploadAvatar()">更换头像</button>
+      </div>
+      <div class="nd-header-info">
+        <div class="nd-name" id="ndName">—</div>
+        <div class="nd-nickname" id="ndNickname"></div>
+        <div class="nd-rel-badge" id="ndRelBadge">其他</div>
+      </div>
+      <button class="nd-close-btn" onclick="closeNpcDetail()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="nd-bg-upload-row">
+      <button class="nd-bg-btn" onclick="ndUploadBg()">更换卡片背景图</button>
+    </div>
+
+    <div class="nd-rule"><div class="nd-rule-label">PROFILE</div></div>
+
+    <div class="nd-meta-grid">
+      <div class="nd-meta-item">
+        <div class="nd-meta-key">GENDER</div>
+        <div class="nd-meta-val" id="ndGender">—</div>
+      </div>
+      <div class="nd-meta-item">
+        <div class="nd-meta-key">AGE</div>
+        <div class="nd-meta-val" id="ndAge">—</div>
+      </div>
+      <div class="nd-meta-item">
+        <div class="nd-meta-key">PERSONALITY</div>
+        <div class="nd-meta-val" id="ndPersonality">—</div>
+      </div>
+    </div>
+
+    <div class="nd-rule"><div class="nd-rule-label">RELATION</div></div>
+    <div class="nd-field-text" id="ndRelDesc">—</div>
+
+    <div class="nd-rule"><div class="nd-rule-label">ABOUT</div></div>
+    <div class="nd-field-text" id="ndDesc">—</div>
+
+    <div class="nd-footer">
+      <button class="nd-bind-btn" id="ndBindBtn" onclick="toggleBindNpc()">绑定关系</button>
+      <button class="nd-edit-btn" onclick="openEditNpcModal()">编辑</button>
+      <button class="nd-del-btn" onclick="deleteNpcFromDetail()">删除</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="archive.js"></script>
+</body>
+</html>

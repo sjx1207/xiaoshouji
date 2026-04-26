@@ -2,6 +2,53 @@
    Luna Phone — app.js
    桌面交互逻辑
 ================================ */
+/* ================================
+   页面左右滑动
+================================ */
+(function() {
+  let startX = 0, startY = 0, curPage = 0;
+  const totalPages = 2;
+  const wrap = document.getElementById('pagesWrap');
+  const dots = document.querySelectorAll('.dot');
+
+  function goTo(page) {
+    curPage = Math.max(0, Math.min(totalPages - 1, page));
+    wrap.style.transform = `translateX(${-curPage * 50}%)`;
+    dots.forEach((d, i) => d.classList.toggle('on', i === curPage));
+  }
+
+  wrap.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+      goTo(dx < 0 ? curPage + 1 : curPage - 1);
+    }
+  }, { passive: true });
+
+  // 鼠标拖拽（桌面调试用）
+  wrap.addEventListener('mousedown', e => { startX = e.clientX; });
+  wrap.addEventListener('mouseup', e => {
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 40) goTo(dx < 0 ? curPage + 1 : curPage - 1);
+  });
+
+  // 支持触控板两指左右滑动
+  wrap.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (e.deltaX > 30) {
+      goTo(curPage + 1);
+    } else if (e.deltaX < -30) {
+      goTo(curPage - 1);
+    }
+  }, { passive: false });
+
+  document.addEventListener('DOMContentLoaded', () => goTo(0));
+})();
 
 /* ---- 实时时间 ---- */
 function updateTime() {
@@ -109,6 +156,9 @@ function openApp(name) {
     'worldbook': 'worldbook.html',
     'iconbeauty': 'iconbeauty.html',
     'memory': 'memory.html',
+    'archive': 'archive.html',
+    'music': 'music.html',
+    'forum': 'forum.html',
   };
 
   const url = routes[name];
@@ -760,3 +810,4 @@ async function applyCustomIcons() {
 window.addEventListener('storage', e => {
   if (e.key === 'luna_icon_update') applyCustomIcons();
 });
+

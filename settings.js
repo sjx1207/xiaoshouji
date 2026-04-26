@@ -1084,6 +1084,7 @@ async function applyApiPreset(id) {
   if (!p) return;
   localStorage.setItem('luna_api_active_id', id);
   localStorage.setItem('luna_api_current', JSON.stringify({ baseUrl: p.baseUrl, apiKey: p.apiKey }));
+  localStorage.setItem('luna_api_model', p.model || '');   // ← 加这一行
   // 填入表单
   document.getElementById('apiBaseUrl').value = p.baseUrl;
   document.getElementById('apiKey').value = p.apiKey;
