@@ -7,7 +7,7 @@
 ================================ */
 (function() {
   let startX = 0, startY = 0, curPage = 0;
-  const totalPages = 2;
+  const totalPages = 3;
   const wrap = document.getElementById('pagesWrap');
   const dots = document.querySelectorAll('.dot');
 
@@ -159,7 +159,8 @@ function openApp(name) {
     'archive': 'archive.html',
     'music': 'music.html',
     'forum': 'forum.html',
-  };
+    'beautify': 'beautify.html',
+  }
 
   const url = routes[name];
   if (!url) return; // 没有对应页面就不跳转
@@ -744,7 +745,7 @@ async function applyGlobalFont() {
   const colorRule  = style.color ? `color: ${style.color} !important;` : '';
   const sizeRule   = style.size  ? `font-size: ${style.size}px !important;` : '';
   const familyRule = name        ? `font-family: '${name}', sans-serif !important;` : '';
-  tag.textContent  = `* { ${colorRule} ${sizeRule} ${familyRule} }`;
+  tag.textContent  = `*:not(.countdown-widget-ab1):not(.countdown-widget-ab1 *):not(.bp-card):not(.bp-card *):not(.photo-diary-widget):not(.photo-diary-widget *) { ${colorRule} ${sizeRule} ${familyRule} }`;
 }
 
 /* ================================
