@@ -263,12 +263,11 @@ let _tzDb = null;
 function openTzDB() {
   return new Promise((res, rej) => {
     if (_tzDb) return res(_tzDb);
-    const req = indexedDB.open('LunaTzDB', 1);
+    const req = indexedDB.open('LunaTzDB', 2);
     req.onupgradeneeded = e => {
       e.target.result.createObjectStore('settings', { keyPath: 'id' });
     };
     req.onsuccess = e => { _tzDb = e.target.result; res(_tzDb); };
-    req.onerror = () => rej();
   });
 }
 
@@ -340,7 +339,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 2);
+        const req = indexedDB.open('LunaFontDB', 3);
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });
@@ -571,7 +570,7 @@ let _fontDb = null;
 function openFontDB() {
   return new Promise((res, rej) => {
     if (_fontDb) return res(_fontDb);
-    const req = indexedDB.open('LunaFontDB', 2);  // ← 只改这里，1 → 2
+    const req = indexedDB.open('LunaFontDB', 3);  // ← 只改这里，1 → 2
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('fonts')) {  // ← 加这个判断，防止重复创建报错
@@ -831,7 +830,7 @@ let apiDb = null;
 function openApiDb() {
   return new Promise((res, rej) => {
     if (apiDb) return res(apiDb);
-    const req = indexedDB.open(apiDbName, 1);
+    const req = indexedDB.open(apiDbName, 2);
     req.onupgradeneeded = e => {
       e.target.result.createObjectStore(apiStoreName, { keyPath: 'id', autoIncrement: true });
     };

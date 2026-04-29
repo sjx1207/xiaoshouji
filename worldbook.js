@@ -111,7 +111,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 2);
+        const req = indexedDB.open('LunaFontDB',3 );
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });
@@ -146,7 +146,7 @@ let _wbDb = null;
 function openWbDB() {
   return new Promise((res, rej) => {
     if (_wbDb) return res(_wbDb);
-    const req = indexedDB.open('LunaWorldBookDB', 1);
+    const req = indexedDB.open('LunaWorldBookDB', 2);
     req.onupgradeneeded = e => {
       e.target.result.createObjectStore('entries', { keyPath: 'id', autoIncrement: true });
     };
@@ -190,7 +190,7 @@ async function deleteEntry_db(id) {
 async function getAllChars() {
   try {
     const db = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaCharDB', 1);
+      const req = indexedDB.open('LunaCharDB', 2);
       req.onsuccess = e => res(e.target.result);
       req.onerror   = () => rej();
     });

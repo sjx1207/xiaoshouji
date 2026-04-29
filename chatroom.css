@@ -1,0 +1,592 @@
+/* ================================
+   Chatroom — chatroom.css
+   黑白偏白 · 直角头部 · 状态栏同步 index
+================================ */
+
+/* ---- Fonts (同步 index.html) ---- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap');
+
+/* ---- Keyframes ---- */
+@keyframes tb {
+  0%, 60%, 100% { transform: translateY(0); }
+  30%           { transform: translateY(-6px); }
+}
+@keyframes spin-dash {
+  to { stroke-dashoffset: -80; }
+}
+@keyframes breathe {
+  0%, 100% { opacity: .5; }
+  50%       { opacity: 1; }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(1);    opacity: .6; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* ---- Reset ---- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ================================
+   页面背景
+================================ */
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dedad3;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ================================
+   手机外框
+================================ */
+.cr-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 32px 20px 40px;
+}
+
+.cr-frame {
+  width: 370px;
+  background: #f2f0eb;
+  border-radius: 52px;
+  overflow: hidden;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ================================
+   状态栏 — 完全同步 index.html 结构与样式
+   背景与头部共用 #ffffff
+================================ */
+.status-bar {
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 22px 9px;
+  background: #ffffff;        /* 与头部共用白色 */
+  flex-shrink: 0;
+}
+
+.status-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: 0.2px;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* 信号格 — 同 index.html 用 <i> 标签 */
+.signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 13px;
+}
+.signal i {
+  display: block;
+  width: 2.5px;
+  border-radius: 1px;
+  background: #1a1a1a;
+  opacity: 0.85;
+}
+.signal i:nth-child(1) { height: 4px; }
+.signal i:nth-child(2) { height: 7px; }
+.signal i:nth-child(3) { height: 10px; }
+.signal i:nth-child(4) { height: 13px; }
+
+/* 电量 — 同 index.html */
+.battery {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.bat-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a1a1a;
+  opacity: 0.85;
+}
+.bat-shell {
+  width: 24px;
+  height: 12px;
+  border: 1.5px solid rgba(26,26,26,0.5);
+  border-radius: 3.5px;
+  padding: 1.5px;
+  position: relative;
+}
+.bat-inner {
+  width: 76%;
+  height: 100%;
+  border-radius: 1.5px;
+  background: #1a1a1a;        /* 黑白色调，去掉绿色 */
+}
+.bat-nub {
+  position: absolute;
+  right: -4px; top: 50%;
+  transform: translateY(-50%);
+  width: 2.5px; height: 5px;
+  background: rgba(26,26,26,0.4);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ================================
+   头部 — 直角、两边不留白、白色
+   与状态栏背景无缝融合
+================================ */
+.cr-header {
+  background: #ffffff;
+  /* 不设 margin，不设 border-radius，直角全宽 */
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  border-bottom: 0.5px solid rgba(0,0,0,0.08);
+}
+
+/* 装饰背景纹路 */
+.cr-header-bg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+/* 主内容行 */
+.cr-header-main {
+  position: relative;
+  padding: 18px 20px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+/* ---- 头像 = 返回按钮 ---- */
+.cr-back-btn {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px; height: 64px;
+  border: none; background: transparent; padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cr-back-btn:active .cr-avatar { transform: scale(0.91); }
+
+.cr-pulse-ring {
+  position: absolute;
+  inset: -6px; border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.10);
+  animation: pulse-ring 2.4s ease-out infinite;
+  pointer-events: none;
+}
+.cr-orbit-ring {
+  position: absolute;
+  inset: -3px; border-radius: 50%;
+  border: 1px dashed rgba(0,0,0,0.08);
+  pointer-events: none;
+}
+.cr-avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: #efefef;
+  border: 2px solid rgba(0,0,0,0.08);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+  position: relative;
+}
+/* 返回箭头 hover 覆盖 */
+.cr-back-hint {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.88);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+.cr-back-btn:hover .cr-back-hint,
+.cr-back-btn:active .cr-back-hint { opacity: 1; }
+
+/* 在线绿点 → 改为深灰（黑白调） */
+.cr-online-dot {
+  position: absolute;
+  bottom: 2px; right: 2px;
+  width: 12px; height: 12px;
+  background: #5a5a5a;
+  border-radius: 50%;
+  border: 2.5px solid #ffffff;
+}
+
+/* ---- 名字 & 信息区 ---- */
+.cr-info { flex: 1; padding-top: 4px; }
+
+.cr-name-row {
+  display: flex; align-items: center;
+  gap: 8px; margin-bottom: 5px;
+}
+.cr-name {
+  font-size: 22px; font-weight: 700;
+  color: #1a1a1a; letter-spacing: -.3px;
+  font-family: 'Playfair Display', serif;
+}
+.cr-moon {
+  opacity: 0.25;
+}
+.cr-badge {
+  background: rgba(0,0,0,0.05);
+  border: 0.5px solid rgba(0,0,0,0.12);
+  border-radius: 20px; padding: 2px 8px;
+  display: flex; align-items: center; gap: 4px;
+}
+.cr-badge span {
+  font-size: 10px; color: #666;
+  letter-spacing: .8px; font-weight: 500;
+  font-family: 'Space Mono', monospace;
+}
+
+.cr-sub {
+  margin: 0 0 8px;
+  font-size: 12px; color: #aaa;
+  letter-spacing: .5px;
+  font-family: 'Inter', sans-serif;
+}
+
+.cr-status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.04);
+  border: 0.5px solid rgba(0,0,0,0.10);
+  border-radius: 20px; padding: 3px 10px;
+}
+.cr-status-dot {
+  width: 5px; height: 5px;
+  background: #4a4a4a; border-radius: 50%;
+  animation: breathe 2s ease infinite;
+}
+.cr-status-pill span {
+  font-size: 11px; color: #4a4a4a;
+  letter-spacing: .4px; font-weight: 500;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ---- 右侧操作按钮 ---- */
+.cr-actions {
+  display: flex; flex-direction: column;
+  gap: 7px; flex-shrink: 0;
+}
+.cr-action-btn {
+  width: 36px; height: 36px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.04);
+  border: 0.5px solid rgba(0,0,0,0.09);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cr-action-btn:hover { background: rgba(0,0,0,0.08); }
+
+/* ---- 头部统计行 ---- */
+.cr-stats {
+  display: flex; align-items: center;
+  border-top: 0.5px solid rgba(0,0,0,0.07);
+  padding: 10px 20px;
+}
+.cr-stat { flex: 1; text-align: center; }
+.cr-stat + .cr-stat {
+  border-left: 0.5px solid rgba(0,0,0,0.07);
+}
+.cr-stat-val {
+  font-size: 18px; font-weight: 700;
+  color: #1a1a1a;
+  font-family: 'Playfair Display', serif;
+}
+.cr-stat-lbl {
+  margin-top: 2px; font-size: 10px; color: #bbb;
+  letter-spacing: .5px;
+  font-family: 'Space Mono', monospace;
+}
+.cr-stat-luna {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 2px;
+}
+.cr-stat-luna-row {
+  display: flex; align-items: center; gap: 4px;
+}
+.cr-stat-luna-row span {
+  font-size: 12px; font-weight: 600;
+  color: #1a1a1a;
+  font-family: 'Playfair Display', serif;
+}
+
+/* ================================
+   消息区
+================================ */
+.cr-messages {
+  flex: 1;
+  padding: 20px 14px 10px;
+  display: flex; flex-direction: column;
+  gap: 6px;
+  background: #f2f0eb;
+  min-height: 420px;
+  overflow-y: auto;
+}
+
+/* 日期分割线 */
+.cr-date-div {
+  display: flex; align-items: center;
+  gap: 10px; margin-bottom: 8px;
+}
+.cr-date-line {
+  flex: 1; height: 0.5px;
+  background: linear-gradient(to right, transparent, rgba(0,0,0,0.1));
+}
+.cr-date-line.rev {
+  background: linear-gradient(to left, transparent, rgba(0,0,0,0.1));
+}
+.cr-date-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 12px;
+  border: 0.5px solid rgba(0,0,0,0.09);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.5);
+}
+.cr-date-pill span {
+  font-size: 10px; color: #9a9690;
+  letter-spacing: .8px; font-weight: 500;
+  font-family: 'Space Mono', monospace;
+}
+
+/* Luna 消息 */
+.cr-msg-luna {
+  display: flex; align-items: flex-end;
+  gap: 8px; max-width: 80%;
+  align-self: flex-start;
+}
+.cr-mini-av {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: #e8e8e8;
+  border: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0; overflow: hidden;
+}
+.cr-luna-bubble {
+  background: #fff;
+  border: 0.5px solid rgba(0,0,0,0.07);
+  border-radius: 22px 22px 22px 6px;
+  padding: 13px 16px;
+  position: relative;
+}
+.cr-luna-accent {
+  position: absolute;
+  left: 0; top: 14px; bottom: 14px;
+  width: 3px; background: #d0d0d0;
+  border-radius: 0 3px 3px 0;
+}
+.cr-msg-p {
+  margin: 0; font-size: 14.5px;
+  color: #1a1a1a; line-height: 1.6;
+  padding-left: 8px;
+  font-family: 'Inter', sans-serif;
+}
+.cr-msg-p + .cr-msg-p { margin-top: 5px; }
+
+.cr-msg-footer {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 10px; padding: 7px 8px 0;
+  border-top: 0.5px solid rgba(0,0,0,0.07);
+}
+.cr-footer-lbl {
+  font-size: 10px; color: #bbb;
+  letter-spacing: 1px; font-weight: 600;
+  font-family: 'Space Mono', monospace;
+}
+.cr-footer-dot {
+  width: 4px; height: 4px;
+  border-radius: 50%; background: #ccc;
+}
+.cr-msg-time {
+  margin: 5px 0 0 8px;
+  font-size: 10px; color: #b8b2aa;
+  letter-spacing: .3px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* 建议芯片 */
+.cr-chips {
+  display: flex; gap: 6px;
+  flex-wrap: wrap; margin-top: 10px;
+}
+.cr-chip {
+  background: #f2f0eb;
+  border: 0.5px solid rgba(0,0,0,0.12);
+  border-radius: 20px; padding: 4px 10px;
+  cursor: pointer; transition: background 0.15s;
+}
+.cr-chip:hover { background: #e8e6e0; }
+.cr-chip span {
+  font-size: 11px; color: #5a5a5a; font-weight: 500;
+  font-family: 'Inter', sans-serif;
+}
+
+/* 我的消息 */
+.cr-msg-mine {
+  display: flex; flex-direction: column;
+  align-items: flex-end;
+  max-width: 78%; align-self: flex-end;
+}
+.cr-mine-bubble {
+  background: #1a1a1a;
+  border-radius: 22px 22px 6px 22px;
+  padding: 13px 16px;
+}
+.cr-mine-bubble .cr-msg-p {
+  color: #f2f0eb; padding-left: 0;
+}
+.cr-mine-meta {
+  display: flex; align-items: center;
+  gap: 5px; margin-top: 5px; padding-right: 2px;
+}
+.cr-mine-time {
+  font-size: 10px; color: #b8b2aa;
+  letter-spacing: .3px;
+  font-family: 'Inter', sans-serif;
+}
+.cr-read-lbl {
+  font-size: 10px; color: #5a5550;
+  font-weight: 600; letter-spacing: .3px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* 正在输入 */
+.cr-typing {
+  display: flex; align-items: flex-end;
+  gap: 8px; align-self: flex-start; margin-top: 2px;
+}
+.cr-typing-bubble {
+  background: #fff;
+  border: 0.5px solid rgba(0,0,0,0.07);
+  border-radius: 22px 22px 22px 6px;
+  padding: 15px 20px;
+  display: flex; gap: 6px; align-items: center;
+}
+.cr-tdot {
+  width: 6px; height: 6px;
+  background: #c8c8c8; border-radius: 50%;
+  animation: tb 1.2s ease infinite;
+}
+.cr-tdot:nth-child(2) { animation-delay: .2s; }
+.cr-tdot:nth-child(3) { animation-delay: .4s; }
+
+/* ================================
+   输入区
+================================ */
+.cr-input-area {
+  background: #eae7e0;
+  border-top: 0.5px solid rgba(0,0,0,0.09);
+  padding: 14px 14px 32px;
+  flex-shrink: 0;
+}
+
+/* 星座装饰分割线 */
+.cr-const-div {
+  display: flex; align-items: center;
+  gap: 6px; margin-bottom: 12px;
+}
+.cr-const-line {
+  flex: 1; height: 0.5px;
+  background: rgba(0,0,0,0.1);
+}
+
+.cr-input-row {
+  display: flex; align-items: flex-end; gap: 9px;
+}
+
+/* + 按钮 */
+.cr-add-btn {
+  width: 42px; height: 42px;
+  border-radius: 14px;
+  background: #f2f0eb;
+  border: 0.5px solid rgba(0,0,0,0.12);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer; position: relative;
+  transition: background 0.15s;
+}
+.cr-add-btn:hover { background: #eae8e2; }
+.cr-add-dot {
+  position: absolute; top: 5px; right: 5px;
+  width: 5px; height: 5px;
+  border-radius: 50%; background: #c0c0c0;
+}
+
+/* 输入框 */
+.cr-input-box {
+  flex: 1;
+  background: #f2f0eb;
+  border: 0.5px solid rgba(0,0,0,0.12);
+  border-radius: 22px;
+  min-height: 42px;
+  padding: 10px 16px;
+  display: flex; align-items: center;
+  outline: none; cursor: text;
+  font-size: 14px; color: #c0bab2;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: .1px;
+}
+.cr-input-box:focus { border-color: rgba(0,0,0,0.22); }
+
+/* 右侧按钮组 */
+.cr-right-btns {
+  display: flex; gap: 8px;
+  align-items: center; flex-shrink: 0;
+}
+
+/* AI 按钮 */
+.cr-ai-btn {
+  width: 42px; height: 42px;
+  border-radius: 14px;
+  background: #f0eeea;
+  border: 0.5px solid rgba(0,0,0,0.12);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; overflow: visible;
+  transition: background 0.15s;
+}
+.cr-ai-btn:hover { background: #e8e5de; }
+.cr-ai-ring {
+  position: absolute; top: -5px; left: -5px;
+  pointer-events: none;
+}
+
+/* 发送按钮 */
+.cr-send-btn {
+  width: 42px; height: 42px;
+  border-radius: 14px;
+  background: #1a1a1a; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s;
+}
+.cr-send-btn:hover { background: #2e2e2e; }
+
+/* Home bar */
+.cr-home-bar {
+  display: flex; justify-content: center;
+  margin-top: 16px;
+}
+.cr-home-pill {
+  width: 120px; height: 4px;
+  background: rgba(0,0,0,0.18);
+  border-radius: 4px;
+}

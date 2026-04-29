@@ -91,7 +91,7 @@ let _ibDb = null;
 function openIbDB() {
   return new Promise((res, rej) => {
     if (_ibDb) return res(_ibDb);
-    const req = indexedDB.open('LunaIconBeautyDB', 1);
+    const req = indexedDB.open('LunaIconBeautyDB', 2);
     req.onupgradeneeded = e => {
       e.target.result.createObjectStore('icons', { keyPath: 'appId' });
     };
@@ -477,7 +477,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 2);
+        const req = indexedDB.open('LunaFontDB', 3);
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });

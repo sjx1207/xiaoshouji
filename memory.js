@@ -170,7 +170,7 @@ async function deleteMemory(id) {
 ================================ */
 async function loadCharsFromDB() {
   return new Promise((res) => {
-    const req = indexedDB.open('LunaCharDB', 1);
+    const req = indexedDB.open('LunaCharDB', 2);
     req.onsuccess = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('chars')) { res([]); return; }

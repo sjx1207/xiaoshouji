@@ -73,7 +73,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 2);
+        const req = indexedDB.open('LunaFontDB', 3);
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });
@@ -543,7 +543,7 @@ let _waveDB = null;
 function openWaveDB() {
   return new Promise((res, rej) => {
     if (_waveDB) return res(_waveDB);
-    const req = indexedDB.open('WavrMusicDB', 1);
+    const req = indexedDB.open('WavrMusicDB', 2);
     req.onupgradeneeded = e => {
       e.target.result.createObjectStore('tracks', { keyPath: 'id' });
     };
@@ -1044,7 +1044,7 @@ document.getElementById('ltOverlay')?.addEventListener('click', closeLtModal);
 // 从 LunaCharDB 读取角色
 function loadCharsFromDB() {
   return new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 1);
+    const req = indexedDB.open('LunaCharDB', 2);
     req.onsuccess = e => {
       const db  = e.target.result;
       if (!db.objectStoreNames.contains('chars')) return res([]);
@@ -1505,7 +1505,7 @@ const FEED_STORE   = 'posts';
 
 function openFeedDB() {
   return new Promise((res, rej) => {
-    const req = indexedDB.open(FEED_DB_NAME, 1);
+    const req = indexedDB.open(FEED_DB_NAME, 2);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains(FEED_STORE)) {

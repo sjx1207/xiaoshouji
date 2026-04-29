@@ -9,7 +9,7 @@
   function openFontDB() {
     return new Promise((res, rej) => {
       if (_fontDb) return res(_fontDb);
-      const req = indexedDB.open('LunaFontDB', 2);
+      const req = indexedDB.open('LunaFontDB', 3);
       req.onupgradeneeded = e => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('fonts')) {
@@ -170,7 +170,7 @@ let _db = null;
 function openCharDB() {
   return new Promise((res, rej) => {
     if (_db) return res(_db);
-    const req = indexedDB.open('LunaCharDB', 1);
+    const req = indexedDB.open('LunaCharDB', 2);
     req.onupgradeneeded = e => {
       e.target.result.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
     };

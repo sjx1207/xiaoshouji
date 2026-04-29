@@ -44,8 +44,8 @@ document.getElementById('btBack').addEventListener('click', () => {
 
 // ---- 组件卡片路由 ----
 const widgetRoutes = {
-  weather:      () => openWeatherSettings(),
-  music:        () => openMusicSettings(),
+  weather: () => openWeatherSettings(),
+  music: () => wmOpen(),
   countdown:    () => openCountdownSettings(),
   profile:      () => openProfileSettings(),
   chat:         () => showToast('聊天组件设置 — 即将开放'),
@@ -73,7 +73,157 @@ function navigateTo(url) {
 // 预留：各组件设置面板触发函数（后续在此扩展）
 function openWeatherSettings() { wwOpen(); }
 function openMusicSettings()     { showToast('音乐组件设置 — 即将开放'); }
-function openCountdownSettings() { showToast('倒数日组件设置 — 即将开放'); }
+function openCountdownSettings() { openCdPanel(); }
+
+/* ============ 倒数日面板 ============ */
+let _cd = {};
+
+function openCdPanel() {
+  document.getElementById('cdOverlay').style.display = 'block';
+  document.getElementById('cdPanel').style.transform = 'translateX(0)';
+  cdLoadPanel();
+}
+function closeCdPanel() {
+  document.getElementById('cdOverlay').style.display = 'none';
+  document.getElementById('cdPanel').style.transform = 'translateX(100%)';
+}
+
+async function cdLoadPanel() {
+  _cd = await cdLoadDB();
+  if (_cd.date)       document.getElementById('cdDateInput').value       = _cd.date;
+  if (_cd.eyebrow)    document.getElementById('cdEyebrowInput').value    = _cd.eyebrow;
+  if (_cd.unit)       document.getElementById('cdUnitInput').value       = _cd.unit;
+  if (_cd.event)      document.getElementById('cdEventInput').value      = _cd.event;
+  if (_cd.dateLabel)  document.getElementById('cdDateLabelInput').value  = _cd.dateLabel;
+  if (_cd.opacity !== undefined) {
+    document.getElementById('cdOpacitySlider').value = _cd.opacity;
+    document.getElementById('cdOpacityVal').textContent = _cd.opacity;
+  }
+  if (_cd.pol1) { const d=document.getElementById('cdPrevPol1'); d.style.background='none'; d.innerHTML=`<img src="${_cd.pol1}" style="width:100%;height:100%;object-fit:cover;"/>`; }
+  if (_cd.pol2) { const d=document.getElementById('cdPrevPol2'); d.style.background='none'; d.innerHTML=`<img src="${_cd.pol2}" style="width:100%;height:100%;object-fit:cover;"/>`; }
+  if (_cd.bgImage) {
+    document.getElementById('cdBgPreview').style.display = 'block';
+    document.getElementById('cdBgThumb').src = _cd.bgImage;
+  }
+  cdCalc();
+  cdApplyBg();
+}
+
+function cdCalc() {
+  const val = document.getElementById('cdDateInput').value;
+  if (!val) return;
+  const target = new Date(val);
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const diff   = Math.round((target - today) / 86400000);
+  _cd.date = val;
+  _cd.days = diff;
+  document.getElementById('cdPrevNumber').textContent = Math.abs(diff);
+  // 自动更新单位提示（不覆盖用户自定义）
+  const unitEl = document.getElementById('cdUnitInput');
+  if (!unitEl.value) {
+    document.getElementById('cdPrevUnit').textContent = diff >= 0 ? 'days away' : 'days ago';
+  }
+  cdPreviewText();
+}
+
+function cdPreviewText() {
+  const eyebrow   = document.getElementById('cdEyebrowInput').value;
+  const unit      = document.getElementById('cdUnitInput').value;
+  const event     = document.getElementById('cdEventInput').value;
+  const dateLabel = document.getElementById('cdDateLabelInput').value;
+  const diff      = _cd.days;
+  if (eyebrow)   document.getElementById('cdPrevEyebrow').textContent = eyebrow;
+  if (unit)      document.getElementById('cdPrevUnit').textContent    = unit;
+  else if (diff !== undefined) document.getElementById('cdPrevUnit').textContent = diff >= 0 ? 'days away' : 'days ago';
+  if (event)     document.getElementById('cdPrevEvent').textContent   = event;
+  if (dateLabel) document.getElementById('cdPrevDate').textContent    = dateLabel;
+}
+
+function cdPreviewOpacity(val) {
+  document.getElementById('cdOpacityVal').textContent = val;
+  _cd.opacity = parseInt(val);
+  cdApplyBg();
+}
+
+function cdApplyBg() {
+  const bg   = document.getElementById('cdPrevBg');
+  const mask = document.getElementById('cdPrevMask');
+  const alpha = (_cd.opacity !== undefined ? _cd.opacity : 65) / 100;
+  if (_cd.bgImage) {
+    bg.style.backgroundImage    = `url(${_cd.bgImage})`;
+    bg.style.backgroundSize     = 'cover';
+    bg.style.backgroundPosition = 'center';
+    mask.style.background       = 'rgba(255,255,255,0)'; // 有图不受透明度影响
+  } else {
+    bg.style.backgroundImage = 'none';
+    mask.style.background    = `rgba(255,255,255,${alpha})`;
+  }
+}
+
+function cdHandlePol(input, idx) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    _cd['pol' + idx] = url;
+    const d = document.getElementById('cdPrevPol' + idx);
+    d.style.background = 'none';
+    d.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function cdHandleBg(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _cd.bgImage = e.target.result;
+    document.getElementById('cdBgPreview').style.display = 'block';
+    document.getElementById('cdBgThumb').src = _cd.bgImage;
+    cdApplyBg();
+  };
+  reader.readAsDataURL(file);
+}
+
+function cdRemoveBg() {
+  _cd.bgImage = null;
+  document.getElementById('cdBgPreview').style.display = 'none';
+  document.getElementById('cdBgInput').value = '';
+  cdApplyBg();
+}
+
+function cdOpenDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('LunaCountdownDB', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('cd', { keyPath: 'id' });
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = () => rej();
+  });
+}
+async function cdLoadDB() {
+  const db = await cdOpenDB();
+  return new Promise(res => {
+    const req = db.transaction('cd').objectStore('cd').get('widget');
+    req.onsuccess = () => res(req.result || {});
+    req.onerror   = () => res({});
+  });
+}
+async function cdSave() {
+  _cd.eyebrow   = document.getElementById('cdEyebrowInput').value.trim();
+  _cd.unit      = document.getElementById('cdUnitInput').value.trim();
+  _cd.event     = document.getElementById('cdEventInput').value.trim();
+  _cd.dateLabel = document.getElementById('cdDateLabelInput').value.trim();
+  _cd.opacity   = parseInt(document.getElementById('cdOpacitySlider').value);
+  const db = await cdOpenDB();
+  const tx = db.transaction('cd', 'readwrite');
+  tx.objectStore('cd').put({ id: 'widget', ..._cd });
+  tx.oncomplete = () => {
+    localStorage.setItem('luna_countdown_update', Date.now().toString());
+    showToast('已保存');
+    setTimeout(() => closeCdPanel(), 800);
+  };
+  tx.onerror = () => showToast('保存失败');
+}
 function openProfileSettings()   { showToast('名片组件设置 — 即将开放'); }
 
 // ---- 数据管理 ----
@@ -102,7 +252,7 @@ async function exportData() {
   // 2. 壁纸 DB（applied + favorites）
   try {
     const wpDb = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaWallpaperDB', 1);
+      const req = indexedDB.open('LunaWallpaperDB', 2);
       req.onsuccess = e => res(e.target.result);
       req.onerror = () => rej();
     });
@@ -117,7 +267,7 @@ async function exportData() {
   // 3. 图标 DB
   try {
     const ibDb = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaIconBeautyDB', 1);
+      const req = indexedDB.open('LunaIconBeautyDB', 2);
       req.onsuccess = e => res(e.target.result);
       req.onerror = () => rej();
     });
@@ -132,7 +282,7 @@ async function exportData() {
   // 4. 音乐 DB
   try {
     const muDb = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaMusicDB', 1);
+      const req = indexedDB.open('LunaMusicDB', 2);
       req.onsuccess = e => res(e.target.result);
       req.onerror = () => rej();
     });
@@ -150,7 +300,7 @@ async function exportData() {
   // 5. 字体 DB（字体文件本身，base64 会很大）
   try {
     const ftDb = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaFontDB', 2);
+      const req = indexedDB.open('LunaFontDB', 3);
       req.onsuccess = e => res(e.target.result);
       req.onerror = () => rej();
     });
@@ -200,7 +350,7 @@ function importData(e) {
       // 2. 还原壁纸 DB
       if (backup.wallpaper && backup.wallpaper.length > 0) {
         const wpDb = await new Promise((res, rej) => {
-          const req = indexedDB.open('LunaWallpaperDB', 1);
+          const req = indexedDB.open('LunaWallpaperDB', 2);
           req.onupgradeneeded = e => { e.target.result.createObjectStore('data', { keyPath: 'key' }); };
           req.onsuccess = e => res(e.target.result);
           req.onerror = () => rej();
@@ -217,7 +367,7 @@ function importData(e) {
       // 3. 还原图标 DB
       if (backup.icons && backup.icons.length > 0) {
         const ibDb = await new Promise((res, rej) => {
-          const req = indexedDB.open('LunaIconBeautyDB', 1);
+          const req = indexedDB.open('LunaIconBeautyDB', 2);
           req.onupgradeneeded = e => { e.target.result.createObjectStore('icons', { keyPath: 'appId' }); };
           req.onsuccess = e => res(e.target.result);
           req.onerror = () => rej();
@@ -235,7 +385,7 @@ function importData(e) {
       if (backup.music && backup.music.length > 0) {
         try {
           const muDb = await new Promise((res, rej) => {
-            const req = indexedDB.open('LunaMusicDB', 1);
+            const req = indexedDB.open('LunaMusicDB', 2);
             req.onsuccess = e => res(e.target.result);
             req.onerror = () => rej();
           });
@@ -252,7 +402,7 @@ function importData(e) {
       // 5. 还原字体 DB
       if (backup.fonts && backup.fonts.length > 0) {
         const ftDb = await new Promise((res, rej) => {
-          const req = indexedDB.open('LunaFontDB', 2);
+          const req = indexedDB.open('LunaFontDB', 3);
           req.onupgradeneeded = e => { e.target.result.createObjectStore('fonts', { keyPath: 'id' }); };
           req.onsuccess = e => res(e.target.result);
           req.onerror = () => rej();
@@ -329,7 +479,8 @@ function applyIsland() {
   const style   = localStorage.getItem('luna_island_style') || 'minimal';
   const targets = [
     document.getElementById('statusIsland'),
-    document.getElementById('wwStatusIsland')
+    document.getElementById('wwStatusIsland'),
+    document.getElementById('wmStatusIsland')
   ];
   const styleMap = {
     minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
@@ -356,7 +507,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 2);
+        const req = indexedDB.open('LunaFontDB', 3);
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });
@@ -388,36 +539,41 @@ async function applyGlobalFont() {
 /* ============================================
    天气组件设置面板 — ww
 ============================================ */
-const WW_TINT = {
-  none:   '',
-  blue:   'radial-gradient(ellipse at 30% 40%,rgba(147,197,253,0.4) 0%,transparent 60%),radial-gradient(ellipse at 75% 70%,rgba(147,197,253,0.22) 0%,transparent 55%)',
-  purple: 'radial-gradient(ellipse at 30% 40%,rgba(196,181,253,0.4) 0%,transparent 60%),radial-gradient(ellipse at 75% 70%,rgba(196,181,253,0.22) 0%,transparent 55%)',
-  pink:   'radial-gradient(ellipse at 30% 40%,rgba(249,168,212,0.38) 0%,transparent 60%),radial-gradient(ellipse at 75% 70%,rgba(249,168,212,0.25) 0%,transparent 55%)',
-  amber:  'radial-gradient(ellipse at 30% 40%,rgba(252,211,77,0.38) 0%,transparent 60%),radial-gradient(ellipse at 75% 70%,rgba(252,211,77,0.22) 0%,transparent 55%)',
-  teal:   'radial-gradient(ellipse at 30% 40%,rgba(94,234,212,0.38) 0%,transparent 60%),radial-gradient(ellipse at 75% 70%,rgba(94,234,212,0.22) 0%,transparent 55%)',
-};
 
-let _ww = { bgDataUrl: null, opacity: 100, glassOn: false, blur: 18, sat: 160, tint: 'none' };
+let _ww = { bgDataUrl: null, opacity: 100 };
 
 async function wwOpen() {
-  // 读取已保存
+  // 从 IndexedDB 读取已保存的设置（和 wwSave 存的地方一致）
   try {
-    const s = localStorage.getItem('luna_weather_widget_style');
-    if (s) _ww = Object.assign(_ww, JSON.parse(s));
-    const bg = localStorage.getItem('luna_weather_widget_bg');
-    if (bg) _ww.bgDataUrl = bg;
+    const db = await new Promise((res, rej) => {
+      const req = indexedDB.open('LunaWeatherDB', 2);
+      req.onupgradeneeded = e => {
+        if (!e.target.result.objectStoreNames.contains('settings'))
+          e.target.result.createObjectStore('settings', { keyPath: 'id' });
+      };
+      req.onsuccess = e => res(e.target.result);
+      req.onerror = () => rej();
+    });
+    const saved = await new Promise((res, rej) => {
+      const r = db.transaction('settings').objectStore('settings').get('weather');
+      r.onsuccess = () => res(r.result || {});
+      r.onerror = () => res({});
+    });
+    if (saved.opacity !== undefined) _ww.opacity = saved.opacity;
+    if (saved.bgImage) _ww.bgDataUrl = saved.bgImage;
   } catch(e) {}
 
   wwApply();
+
   // 同步壁纸到底层预览
   const base = document.getElementById('wwWallpaperBase');
   if (base && _ww.bgDataUrl) {
     base.style.background = `url(${_ww.bgDataUrl}) center/cover no-repeat`;
   }
-  // 尝试读取主页壁纸（如果有）
+  // 没有组件背景图时，尝试读取主页壁纸作为底层预览背景
   try {
     const wpDb = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaWallpaperDB', 1);
+      const req = indexedDB.open('LunaWallpaperDB', 2);
       req.onsuccess = e => res(e.target.result);
       req.onerror = () => rej();
     });
@@ -430,6 +586,30 @@ async function wwOpen() {
       base.style.background = `url(${rec.value.dataUrl}) center/cover no-repeat`;
     }
   } catch(e) {}
+
+  // 同步到预览卡片
+  wmPreviewSong(_wm.song || 'Super Shy');
+  wmPreviewArtist(_wm.artist || 'NewJeans');
+  if (_wm.coverImage) wmPreviewCover(_wm.coverImage);
+  wmApplyBg();
+// 同步灵动岛
+const island = document.getElementById('wmStatusIsland');
+if (island) {
+  const enabled = localStorage.getItem('luna_island_enabled') === 'true';
+  const style   = localStorage.getItem('luna_island_style') || 'minimal';
+  const html = {
+    minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+    glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+    clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">${new Date().toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit',hour12:false})}</span></div></div>`,
+    pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+    ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+    rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+    music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+    scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+  };
+  island.innerHTML = enabled ? (html[style] || html.minimal) : '';
+}
+
   document.getElementById('wwOverlay').classList.add('show');
   document.getElementById('wwPanel').classList.add('show');
 }
@@ -443,14 +623,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('wwClose').addEventListener('click', wwClose);
   document.getElementById('wwOverlay').addEventListener('click', wwClose);
 
-  document.getElementById('wwPanel').querySelectorAll('.ww-tint-dot').forEach(dot => {
-    dot.addEventListener('click', () => {
-      _ww.tint = dot.dataset.tint;
-      document.getElementById('wwPanel').querySelectorAll('.ww-tint-dot')
-        .forEach(d => d.classList.toggle('selected', d === dot));
-      wwApplyGlass();
-    });
-  });
 });
 
 function wwApply() {
@@ -469,92 +641,6 @@ function wwApply() {
   document.getElementById('wwOpacitySlider').value = _ww.opacity;
 document.getElementById('wwOpacityNum').textContent = _ww.opacity;
 wwApplyBg();
-
-  // 玻璃开关
-  document.getElementById('wwGlassToggle').checked = _ww.glassOn;
-  document.getElementById('wwGlassControls').style.display = _ww.glassOn ? 'block' : 'none';
-
-  // 滑块值
-  document.getElementById('wwBlurSlider').value = _ww.blur;
-  document.getElementById('wwBlurNum').textContent = _ww.blur;
-  document.getElementById('wwSatSlider').value = _ww.sat;
-  document.getElementById('wwSatNum').textContent = _ww.sat;
-
-  // 光晕色选中态
-  document.getElementById('wwPanel').querySelectorAll('.ww-tint-dot')
-    .forEach(d => d.classList.toggle('selected', d.dataset.tint === _ww.tint));
-
-  wwApplyGlass();
-}
-
-function wwApplyGlass() {
-  const card = document.getElementById('wwBpCard');
-  const bg   = document.getElementById('wwCardBg');
-  if (!card || !bg) return;
-
-  if (!_ww.glassOn) {
-    // 关闭玻璃：背景层恢复为图片或纯白，移除所有玻璃滤镜
-    bg.style.backdropFilter       = 'none';
-    bg.style.webkitBackdropFilter = 'none';
-    bg.style.backgroundImage      = _ww.bgDataUrl ? `url(${_ww.bgDataUrl})` : 'none';
-    bg.style.backgroundColor      = _ww.bgDataUrl ? 'transparent' : '#ffffff';
-    bg.style.backgroundSize       = 'cover';
-    bg.style.backgroundPosition   = 'center';
-    card.style.boxShadow          = '0 6px 32px rgba(0,0,0,.13), 0 2px 8px rgba(0,0,0,.07)';
-    card.style.border             = 'none';
-    return;
-  }
-
-  // 开启液态玻璃
-  const blur = _ww.blur || 18;
-  const sat  = _ww.sat  || 160;
-
-  // 背景层变成半透明 + 毛玻璃
-  // 有背景图时：图片本身就是玻璃底层，opacity 由滑块控制
-  // 无背景图时：用非常轻的白色让 backdrop-filter 能作用于卡片后方壁纸
-  if (_ww.bgDataUrl) {
-    bg.style.backgroundImage    = `url(${_ww.bgDataUrl})`;
-    bg.style.backgroundColor    = 'transparent';
-    bg.style.backgroundSize     = 'cover';
-    bg.style.backgroundPosition = 'center';
-  } else {
-    // 没有背景图：背景层必须透明才能透出壁纸
-    bg.style.backgroundImage    = 'none';
-    bg.style.backgroundColor    = 'rgba(255,255,255,0.15)';
-  }
-
-  // 核心：毛玻璃滤镜
-  bg.style.backdropFilter       = `blur(${blur}px) saturate(${sat}%)`;
-  bg.style.webkitBackdropFilter = `blur(${blur}px) saturate(${sat}%)`;
-
-  // 光晕颜色叠加
-  const tintGradient = WW_TINT[_ww.tint] || '';
-  if (tintGradient) {
-    if (_ww.bgDataUrl) {
-      bg.style.backgroundImage = `url(${_ww.bgDataUrl})`;
-    } else {
-      bg.style.backgroundImage = 'none';
-    }
-    // 用 outline 层叠加光晕，不破坏背景图
-    bg.style.boxShadow = 'none';
-    // 在 bg 上面创建光晕伪效果（通过 outline 不行，改用额外内联 div）
-    let glowEl = document.getElementById('wwGlowLayer');
-    if (!glowEl) {
-      glowEl = document.createElement('div');
-      glowEl.id = 'wwGlowLayer';
-      glowEl.style.cssText = 'position:absolute;inset:0;z-index:1;pointer-events:none;border-radius:inherit;';
-      card.insertBefore(glowEl, card.firstChild);
-    }
-    glowEl.style.background = tintGradient;
-    glowEl.style.opacity    = '0.55';
-  } else {
-    const glowEl = document.getElementById('wwGlowLayer');
-    if (glowEl) glowEl.style.background = 'none';
-  }
-
-  // iOS 26 玻璃高光边框
-  card.style.boxShadow = '0 8px 32px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(255,255,255,0.15)';
-  card.style.border    = '1px solid rgba(255,255,255,0.4)';
 }
 
 function wwHandleBg(input) {
@@ -586,24 +672,27 @@ function wwHandleOpacity(val) {
   _ww.opacity = parseInt(val);
   document.getElementById('wwOpacityNum').textContent = val;
   wwApplyBg();   // 统一由 wwApplyBg 处理
-  wwApplyGlass();
 }
 
 function wwApplyBg() {
   const bg = document.getElementById('wwCardBg');
   const alpha = _ww.opacity / 100;
   if (_ww.bgDataUrl) {
-    // 有背景图：用图片，opacity 控制整个背景层
     bg.style.backgroundImage    = `url(${_ww.bgDataUrl})`;
     bg.style.backgroundColor    = 'transparent';
     bg.style.backgroundSize     = 'cover';
     bg.style.backgroundPosition = 'center';
     bg.style.opacity            = alpha;
   } else {
-    // 没有背景图：用 rgba 白色，alpha 直接响应滑块
     bg.style.backgroundImage = 'none';
     bg.style.backgroundColor = `rgba(255,255,255,${alpha})`;
-    bg.style.opacity         = 1;  // opacity 保持1，靠 rgba 的 alpha 来控制
+    bg.style.opacity         = 1;
+  }
+
+  // 黑色顶栏跟着透明度一起变
+  const header = document.querySelector('#wwBpCard .bp-header');
+  if (header) {
+    header.style.background = `rgba(10,10,10,${alpha})`;
   }
 }
 
@@ -626,18 +715,190 @@ function wwHandleSat(val) {
 }
 
 function wwSave() {
-  try {
-    const toSave = { opacity: _ww.opacity, glassOn: _ww.glassOn, blur: _ww.blur, sat: _ww.sat, tint: _ww.tint };
-    localStorage.setItem('luna_weather_widget_style', JSON.stringify(toSave));
-    if (_ww.bgDataUrl) {
-      localStorage.setItem('luna_weather_widget_bg', _ww.bgDataUrl);
-    } else {
-      localStorage.removeItem('luna_weather_widget_bg');
+  const req = indexedDB.open('LunaWeatherDB', 2);
+  req.onupgradeneeded = e => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains('settings')) {
+      db.createObjectStore('settings', { keyPath: 'id' });
     }
-    localStorage.setItem('luna_weather_widget_update', Date.now().toString());
-    showToast('已保存');
-    setTimeout(() => wwClose(), 800);
-  } catch(e) {
-    showToast('保存失败，图片可能过大');
+  };
+  req.onsuccess = e => {
+    const db = e.target.result;
+    const toSave = {
+      id: 'weather',
+      opacity: _ww.opacity,
+      bgImage: _ww.bgDataUrl || null,
+    };
+    const tx = db.transaction('settings', 'readwrite');
+    tx.objectStore('settings').put(toSave);
+    tx.oncomplete = () => {
+      // 通知 index.html 刷新
+      localStorage.setItem('luna_weather_widget_update', Date.now().toString());
+      showToast('已保存');
+      setTimeout(() => wwClose(), 800);
+    };
+    tx.onerror = () => showToast('保存失败');
+  };
+  req.onerror = () => showToast('保存失败，无法打开数据库');
+}
+
+/* ============================================
+   音乐组件设置面板 — wm
+============================================ */
+let _wm = { coverImage: null, bgImage: null, opacity: 42, song: '', artist: '' };
+
+async function wmOpen() {
+  // 从 LunaMusicDB 读取已保存数据
+  try {
+    const db = await new Promise((res, rej) => {
+      const req = indexedDB.open('LunaMusicDB', 2);
+      req.onupgradeneeded = e => {
+        if (!e.target.result.objectStoreNames.contains('music'))
+          e.target.result.createObjectStore('music', { keyPath: 'id' });
+      };
+      req.onsuccess = e => res(e.target.result);
+      req.onerror = () => rej();
+    });
+    const saved = await new Promise(res => {
+      const r = db.transaction('music').objectStore('music').get('widget');
+      r.onsuccess = () => res(r.result || {});
+      r.onerror = () => res({});
+    });
+    if (saved.song)        _wm.song        = saved.song;
+    if (saved.artist)      _wm.artist      = saved.artist;
+    if (saved.coverImage)  _wm.coverImage  = saved.coverImage;
+    if (saved.bgImage)     _wm.bgImage     = saved.bgImage;
+    if (saved.opacity !== undefined) _wm.opacity = saved.opacity;
+  } catch(e) {}
+
+  // 填入面板
+  document.getElementById('wmSongInput').value   = _wm.song   || '';
+  document.getElementById('wmArtistInput').value = _wm.artist || '';
+  document.getElementById('wmOpacitySlider').value    = _wm.opacity;
+  document.getElementById('wmOpacityNum').textContent = _wm.opacity;
+
+  if (_wm.coverImage) {
+    document.getElementById('wmCoverPreview').innerHTML =
+      `<img src="${_wm.coverImage}" style="width:72px;height:72px;object-fit:cover;border-radius:14px;display:block;"/>`;
   }
+  if (_wm.bgImage) {
+    document.getElementById('wmBgPreview').style.display = 'block';
+    document.getElementById('wmBgThumb').src = _wm.bgImage;
+  } else {
+    document.getElementById('wmBgPreview').style.display = 'none';
+  }
+
+  wmApplyBg();
+
+  document.getElementById('wmOverlay').style.display = 'block';
+  document.getElementById('wmPanel').style.transform = 'translateX(0)';
+}
+
+function wmClose() {
+  document.getElementById('wmOverlay').style.display = 'none';
+  document.getElementById('wmPanel').style.transform = 'translateX(100%)';
+}
+
+function wmHandleCover(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _wm.coverImage = e.target.result;
+    wmPreviewCover(e.target.result);
+    document.getElementById('wmCoverPreview').innerHTML =
+      `<img src="${e.target.result}" style="width:72px;height:72px;object-fit:cover;border-radius:14px;display:block;"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function wmHandleBg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _wm.bgImage = e.target.result;
+    document.getElementById('wmBgPreview').style.display = 'block';
+    document.getElementById('wmBgThumb').src = e.target.result;
+    wmApplyBg();
+  };
+  reader.readAsDataURL(file);
+}
+
+function wmRemoveBg() {
+  _wm.bgImage = null;
+  document.getElementById('wmBgPreview').style.display = 'none';
+  document.getElementById('wmBgInput').value = '';
+  wmApplyBg();
+}
+
+function wmHandleOpacity(val) {
+  _wm.opacity = parseInt(val);
+  document.getElementById('wmOpacityNum').textContent = val;
+  wmApplyBg();
+}
+
+function wmApplyBg() {
+  const bg   = document.getElementById('wmPreviewBg');
+  const mask = document.getElementById('wmPreviewMask');
+  const band = document.getElementById('wmPreviewBand');
+  const alpha = _wm.opacity / 100;
+  if (!bg || !mask || !band) return;
+
+  if (_wm.bgImage) {
+    bg.style.backgroundImage    = `url(${_wm.bgImage})`;
+    bg.style.backgroundSize     = 'cover';
+    bg.style.backgroundPosition = 'center';
+    bg.style.backgroundColor    = 'transparent';
+    mask.style.background       = 'rgba(255,255,255,0)';
+    band.style.background       = `rgba(26,25,22,${alpha})`;  // ← 跟滑条联动
+  } else {
+    bg.style.backgroundImage = 'none';
+    bg.style.backgroundColor = 'transparent';
+    mask.style.background    = `rgba(255,255,255,${alpha})`;
+    band.style.background    = '#1a1916';                      // ← 无背景图时保持不透明
+  }
+}
+
+async function wmSave() {
+  _wm.song   = document.getElementById('wmSongInput').value.trim();
+  _wm.artist = document.getElementById('wmArtistInput').value.trim();
+
+  const req = indexedDB.open('LunaMusicDB', 2);
+  req.onupgradeneeded = e => {
+    if (!e.target.result.objectStoreNames.contains('music'))
+      e.target.result.createObjectStore('music', { keyPath: 'id' });
+  };
+  req.onsuccess = e => {
+    const db = e.target.result;
+    const tx = db.transaction('music', 'readwrite');
+    tx.objectStore('music').put({
+      id: 'widget',
+      song:        _wm.song,
+      artist:      _wm.artist,
+      coverImage:  _wm.coverImage,
+      bgImage:     _wm.bgImage,
+      opacity:     _wm.opacity,
+    });
+    tx.oncomplete = () => {
+      localStorage.setItem('luna_music_widget_update', Date.now().toString());
+      showToast('已保存');
+      setTimeout(() => wmClose(), 800);
+    };
+    tx.onerror = () => showToast('保存失败');
+  };
+  req.onerror = () => showToast('保存失败，无法打开数据库');
+}
+
+function wmPreviewSong(val) {
+  const el = document.getElementById('wmPreviewSong');
+  if (el) el.textContent = val || 'Super Shy';
+}
+function wmPreviewArtist(val) {
+  const el = document.getElementById('wmPreviewArtist');
+  if (el) el.textContent = val || 'NewJeans';
+}
+function wmPreviewCover(url) {
+  const el = document.getElementById('wmPreviewCover');
+  if (el) el.innerHTML = `<img src="${url}" style="width:40px;height:40px;object-fit:cover;border-radius:9px;display:block;"/>`;
 }

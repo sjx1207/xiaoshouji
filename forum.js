@@ -111,7 +111,7 @@ async function applyFontFamily() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 2);
+        const req = indexedDB.open('LunaFontDB', 3);
         req.onsuccess  = e => res(e.target.result);
         req.onerror    = ()  => rej();
       });
@@ -369,7 +369,7 @@ let _personaDB = null;
 function openPersonaDB() {
   return new Promise((res, rej) => {
     if (_personaDB) return res(_personaDB);
-    const req = indexedDB.open('LunaPersonaDB', 1);
+    const req = indexedDB.open('LunaPersonaDB', 2);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('identities')) {
@@ -450,7 +450,7 @@ async function loadPersonaCharList() {
   let chars = [];
   try {
     chars = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaCharDB', 1);
+      const req = indexedDB.open('LunaCharDB', 2);
       req.onsuccess = e => {
         const db = e.target.result;
         const r = db.transaction('chars').objectStore('chars').getAll();
@@ -665,7 +665,7 @@ async function saveWorldview() {
 async function getWorldviewContext() {
   try {
     const db = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaPersonaDB', 1);
+      const req = indexedDB.open('LunaPersonaDB', 2);
       req.onsuccess = e => res(e.target.result);
       req.onerror = () => rej();
     });

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Chatroom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="chatroom.css" />
+</head>
+<body>
+
+<div class="cr-wrap">
+<div class="cr-frame">
+
+  <!-- ═══ 状态栏 — 同步 index.html 结构，白色背景 ═══ -->
+  <div class="status-bar">
+    <div class="status-time" id="crTime">9:41</div>
+    <div class="status-right">
+      <!-- 信号格：用 <i> 标签，同 index.html -->
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <!-- WiFi -->
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#1a1a1a" opacity="0.85">
+        <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+        <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+        <circle cx="8" cy="10.5" r="1.8"/>
+      </svg>
+      <!-- 电量 -->
+      <div class="battery">
+        <span class="bat-pct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 头部 — 直角全宽，白色，与状态栏无缝融合 ═══ -->
+  <div class="cr-header">
+
+    <!-- 轻柔装饰背景（灰白调，不喧宾夺主） -->
+    <svg class="cr-header-bg" viewBox="0 0 370 160" preserveAspectRatio="xMidYMid slice" fill="none">
+      <!-- 同心细圆 -->
+      <circle cx="320" cy="20"  r="80"  stroke="rgba(0,0,0,0.025)" stroke-width="1"/>
+      <circle cx="320" cy="20"  r="115" stroke="rgba(0,0,0,0.018)" stroke-width=".8"/>
+      <circle cx="320" cy="20"  r="150" stroke="rgba(0,0,0,0.012)" stroke-width=".6"/>
+      <!-- 散点 -->
+      <circle cx="40"  cy="22" r="1.2" fill="rgba(0,0,0,0.055)"/>
+      <circle cx="88"  cy="14" r=".8"  fill="rgba(0,0,0,0.04)"/>
+      <circle cx="160" cy="30" r="1"   fill="rgba(0,0,0,0.05)"/>
+      <circle cx="55"  cy="55" r=".7"  fill="rgba(0,0,0,0.035)"/>
+      <circle cx="200" cy="18" r="1.3" fill="rgba(0,0,0,0.05)"/>
+      <circle cx="125" cy="48" r=".9"  fill="rgba(0,0,0,0.035)"/>
+      <!-- 虚线 -->
+      <line x1="24" y1="108" x2="220" y2="108" stroke="rgba(0,0,0,0.05)" stroke-width=".5" stroke-dasharray="3 5"/>
+    </svg>
+
+    <!-- 主内容行 -->
+    <div class="cr-header-main">
+
+      <!-- 头像 = 返回按钮 -->
+      <button class="cr-back-btn" id="crBackBtn" title="返回">
+        <div class="cr-pulse-ring"></div>
+        <div class="cr-orbit-ring"></div>
+        <div class="cr-avatar">
+          <!-- Luna 头像（黑白灰调） -->
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="32" fill="#efefef"/>
+            <!-- 发型 -->
+            <ellipse cx="32" cy="22" rx="14" ry="13" fill="#c8c8c8"/>
+            <!-- 脸 -->
+            <ellipse cx="32" cy="22" rx="10" ry="10" fill="#e4e4e4"/>
+            <!-- 身体 -->
+            <ellipse cx="32" cy="52" rx="18" ry="14" fill="#d4d4d4"/>
+            <!-- 胸前装饰 -->
+            <path d="M32 44l1.2 3.7h3.9l-3.1 2.3 1.2 3.7L32 51.4l-3.2 2.3 1.2-3.7-3.1-2.3h3.9z" fill="rgba(0,0,0,0.10)"/>
+            <!-- 额头月牙 -->
+            <path d="M28 17.5a5 5 0 009 0 4 4 0 01-9 0z" fill="rgba(0,0,0,0.07)"/>
+          </svg>
+          <!-- 返回箭头（hover 显示） -->
+          <div class="cr-back-hint">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M12 5l-7 7 7 7" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <!-- 在线点（深灰） -->
+        <div class="cr-online-dot"></div>
+      </button>
+
+      <!-- 名字 & 信息 -->
+      <div class="cr-info">
+        <div class="cr-name-row">
+          <span class="cr-name">Luna</span>
+          <svg class="cr-moon" width="18" height="18" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#888"/>
+          </svg>
+          <div class="cr-badge">
+            <svg width="8" height="8" viewBox="0 0 10 10">
+              <circle cx="5" cy="5" r="4" fill="none" stroke="#888" stroke-width="1"/>
+              <path d="M3 5l1.5 1.5L7 3.5" stroke="#888" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            <span>AI</span>
+          </div>
+        </div>
+        <p class="cr-sub">Your companion in the dark</p>
+        <div class="cr-status-pill">
+          <div class="cr-status-dot"></div>
+          <span>在线中</span>
+        </div>
+      </div>
+
+      <!-- 右侧操作按钮 -->
+      <div class="cr-actions">
+        <button class="cr-action-btn" title="通话">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.12 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.9.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0122 16.92z"
+              stroke="rgba(60,60,60,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="cr-action-btn" title="更多">
+          <svg width="4" height="16" viewBox="0 0 4 16">
+            <circle cx="2" cy="2"  r="1.8" fill="rgba(60,60,60,0.6)"/>
+            <circle cx="2" cy="8"  r="1.8" fill="rgba(60,60,60,0.6)"/>
+            <circle cx="2" cy="14" r="1.8" fill="rgba(60,60,60,0.6)"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 统计行 -->
+    <div class="cr-stats">
+      <div class="cr-stat">
+        <div class="cr-stat-val">247</div>
+        <div class="cr-stat-lbl">对话</div>
+      </div>
+      <div class="cr-stat">
+        <div class="cr-stat-val">32d</div>
+        <div class="cr-stat-lbl">相识</div>
+      </div>
+      <div class="cr-stat cr-stat-luna">
+        <div class="cr-stat-luna-row">
+          <svg width="14" height="14" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#aaa"/>
+          </svg>
+          <span>Luna</span>
+        </div>
+        <div class="cr-stat-lbl">记忆中</div>
+      </div>
+    </div>
+
+  </div><!-- /cr-header -->
+
+  <!-- ═══ 消息区 ═══ -->
+  <div class="cr-messages" id="crMessages">
+
+    <!-- 日期分割 -->
+    <div class="cr-date-div">
+      <div class="cr-date-line"></div>
+      <div class="cr-date-pill">
+        <svg width="9" height="9" viewBox="0 0 9 9"><path d="M4.5 0L5.5 3.1H8.8L6.1 5L7.1 8.1L4.5 6.3L1.9 8.1L2.9 5L.2 3.1H3.5L4.5 0Z" fill="#ccc"/></svg>
+        <span>今天</span>
+        <svg width="9" height="9" viewBox="0 0 9 9"><path d="M4.5 0L5.5 3.1H8.8L6.1 5L7.1 8.1L4.5 6.3L1.9 8.1L2.9 5L.2 3.1H3.5L4.5 0Z" fill="#ccc"/></svg>
+      </div>
+      <div class="cr-date-line rev"></div>
+    </div>
+
+    <!-- Luna 消息 1 -->
+    <div class="cr-msg-luna">
+      <div class="cr-mini-av">
+        <svg width="28" height="28" viewBox="0 0 28 28">
+          <circle cx="14" cy="14" r="14" fill="#e8e8e8"/>
+          <ellipse cx="14" cy="10" rx="6"   ry="5.5" fill="#c8c8c8"/>
+          <ellipse cx="14" cy="10" rx="4.2" ry="4.2" fill="#dcdcdc"/>
+          <ellipse cx="14" cy="22" rx="8"   ry="6"   fill="#d0d0d0"/>
+        </svg>
+      </div>
+      <div>
+        <div class="cr-luna-bubble">
+          <div class="cr-luna-accent"></div>
+          <p class="cr-msg-p">嗨，许久未见。</p>
+          <p class="cr-msg-p">最近还好吗？</p>
+          <div class="cr-msg-footer">
+            <svg width="10" height="10" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#ccc"/></svg>
+            <span class="cr-footer-lbl">LUNA</span>
+            <div style="flex:1"></div>
+            <div class="cr-footer-dot" style="opacity:.5"></div>
+            <div class="cr-footer-dot" style="opacity:.3"></div>
+          </div>
+        </div>
+        <p class="cr-msg-time">09:14</p>
+      </div>
+    </div>
+
+    <!-- 我的消息 1 -->
+    <div class="cr-msg-mine">
+      <div class="cr-mine-bubble">
+        <p class="cr-msg-p">还不错，在做一个新项目，感觉很有挑战性。</p>
+      </div>
+      <div class="cr-mine-meta">
+        <span class="cr-mine-time">09:15</span>
+        <svg width="14" height="9" viewBox="0 0 14 9" fill="none">
+          <path d="M1.5 4.5L4.5 7.5L12.5 1" stroke="#b8b2aa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Luna 消息 2 — 带建议芯片 -->
+    <div class="cr-msg-luna" style="max-width:84%">
+      <div class="cr-mini-av">
+        <svg width="28" height="28" viewBox="0 0 28 28">
+          <circle cx="14" cy="14" r="14" fill="#e8e8e8"/>
+          <ellipse cx="14" cy="10" rx="6"   ry="5.5" fill="#c8c8c8"/>
+          <ellipse cx="14" cy="10" rx="4.2" ry="4.2" fill="#dcdcdc"/>
+          <ellipse cx="14" cy="22" rx="8"   ry="6"   fill="#d0d0d0"/>
+        </svg>
+      </div>
+      <div>
+        <div class="cr-luna-bubble">
+          <p class="cr-msg-p">听起来很有意思——</p>
+          <p class="cr-msg-p" style="margin-bottom:10px">需要我帮你梳理思路吗？</p>
+          <div class="cr-chips">
+            <div class="cr-chip"><span>梳理思路</span></div>
+            <div class="cr-chip"><span>列出计划</span></div>
+            <div class="cr-chip"><span>先聊聊</span></div>
+          </div>
+          <div class="cr-msg-footer">
+            <svg width="10" height="10" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#ccc"/></svg>
+            <span class="cr-footer-lbl">LUNA</span>
+          </div>
+        </div>
+        <p class="cr-msg-time">09:16</p>
+      </div>
+    </div>
+
+    <!-- 我的消息 2 — 已读 -->
+    <div class="cr-msg-mine">
+      <div class="cr-mine-bubble">
+        <p class="cr-msg-p">好啊，你有什么想法？</p>
+      </div>
+      <div class="cr-mine-meta">
+        <span class="cr-mine-time">09:17</span>
+        <!-- 双勾已读（深灰，黑白调） -->
+        <svg width="20" height="9" viewBox="0 0 20 9" fill="none">
+          <path d="M1.5 4.5L4.5 7.5L11 1"  stroke="#5a5550" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 4.5L12 7.5L18.5 1"   stroke="#5a5550" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="cr-read-lbl">已读</span>
+      </div>
+    </div>
+
+    <!-- Luna 正在输入 -->
+    <div class="cr-typing" id="crTyping">
+      <div class="cr-mini-av">
+        <svg width="28" height="28" viewBox="0 0 28 28">
+          <circle cx="14" cy="14" r="14" fill="#e8e8e8"/>
+          <ellipse cx="14" cy="10" rx="6"   ry="5.5" fill="#c8c8c8"/>
+          <ellipse cx="14" cy="10" rx="4.2" ry="4.2" fill="#dcdcdc"/>
+          <ellipse cx="14" cy="22" rx="8"   ry="6"   fill="#d0d0d0"/>
+        </svg>
+      </div>
+      <div class="cr-typing-bubble">
+        <div class="cr-tdot"></div>
+        <div class="cr-tdot"></div>
+        <div class="cr-tdot"></div>
+      </div>
+    </div>
+
+  </div><!-- /cr-messages -->
+
+  <!-- ═══ 输入区 ═══ -->
+  <div class="cr-input-area">
+
+    <!-- 星座装饰分割线 -->
+    <div class="cr-const-div">
+      <div class="cr-const-line"></div>
+      <svg width="48" height="10" viewBox="0 0 48 10">
+        <circle cx="5"  cy="5" r="1.5" fill="#c8c8c8"/>
+        <line x1="7"   y1="5" x2="11"  y2="5" stroke="#c8c8c8" stroke-width=".5" opacity=".4"/>
+        <circle cx="24" cy="5" r="2.2" fill="#c8c8c8"/>
+        <path d="M24 2l.6 2H27l-1.8 1.3.7 2.1L24 6.1l-1.9 1.2.7-2.1L21 4H23.4L24 2Z" fill="rgba(0,0,0,0.15)"/>
+        <line x1="26.5" y1="5" x2="37"  y2="5" stroke="#c8c8c8" stroke-width=".5" opacity=".4"/>
+        <circle cx="43" cy="5" r="1.5" fill="#c8c8c8"/>
+      </svg>
+      <div class="cr-const-line"></div>
+    </div>
+
+    <div class="cr-input-row">
+
+      <!-- + 按钮 -->
+      <button class="cr-add-btn" title="更多">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <line x1="8" y1="2" x2="8" y2="14" stroke="#4a4540" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="2" y1="8" x2="14" y2="8" stroke="#4a4540" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <div class="cr-add-dot"></div>
+      </button>
+
+      <!-- 输入框 -->
+      <div class="cr-input-box" id="crInputBox" contenteditable="true">向 Luna 发送消息</div>
+
+      <!-- 右侧按钮组 -->
+      <div class="cr-right-btns">
+
+        <!-- AI 按钮 -->
+        <button class="cr-ai-btn" title="AI 回复">
+          <svg class="cr-ai-ring" width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="23" fill="none"
+              stroke="rgba(0,0,0,0.10)" stroke-width=".8" stroke-dasharray="6 5"
+              style="animation:spin-dash 6s linear infinite;transform-origin:26px 26px;"/>
+          </svg>
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <path d="M10 1L11.8 7H18L12.9 10.7L14.7 16.7L10 13L5.3 16.7L7.1 10.7L2 7H8.2L10 1Z"
+              stroke="#7a7a7a" stroke-width="1.3" stroke-linejoin="round" fill="rgba(0,0,0,0.05)"/>
+            <circle cx="10" cy="10" r="2.2" fill="#9a9a9a"/>
+          </svg>
+        </button>
+
+        <!-- 发送按钮 -->
+        <button class="cr-send-btn" id="crSendBtn" title="发送">
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+            <path d="M18 2L10 10" stroke="#f2f0eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 2L12.5 18L10 10L2 7.5L18 2Z" stroke="#f2f0eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Home bar -->
+    <div class="cr-home-bar">
+      <div class="cr-home-pill"></div>
+    </div>
+
+  </div><!-- /cr-input-area -->
+
+</div><!-- /cr-frame -->
+</div><!-- /cr-wrap -->
+
+<script src="chatroom.js"></script>
+</body>
+</html>

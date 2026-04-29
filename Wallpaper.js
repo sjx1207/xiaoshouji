@@ -21,7 +21,7 @@ let _db = null;
 function openDB() {
   return new Promise((res, rej) => {
     if (_db) return res(_db);
-    const req = indexedDB.open('LunaWallpaperDB', 1);
+    const req = indexedDB.open('LunaWallpaperDB', 2);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('data')) {
@@ -479,7 +479,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 2);
+        const req = indexedDB.open('LunaFontDB', 3);
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });
