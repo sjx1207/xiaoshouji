@@ -151,7 +151,7 @@ function openApp(name) {
     'wallpaper': 'Wallpaper.html',
     // 后续加其他 app：
     'settings': 'settings.html',
-    'chat': 'Chat.html',
+    'chat': 'chat.html',
     'characters': 'characters.html',
     'worldbook': 'worldbook.html',
     'iconbeauty': 'iconbeauty.html',
