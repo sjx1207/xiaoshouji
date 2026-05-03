@@ -3115,7 +3115,7 @@ body {
 
 /* 面板 */
 .nc-panel { display: none; }
-.nc-panel.active { display: block; animation: ncUp .3s ease both; }
+.nc-panel.active { display: flex; flex-direction: column; animation: ncUp .3s ease both; }
 @keyframes ncUp {
   from { opacity:0; transform:translateY(8px); }
   to   { opacity:1; transform:none; }
@@ -3397,3 +3397,105 @@ body {
   padding: 16px 20px 28px;
 }
 .nc-page-footer.show { display: flex; }
+
+/* ================================
+   灵动岛样式（与 index/music/chat 同步）
+================================ */
+.status-island {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.si-capsule {
+  background: #000;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34,1.2,0.64,1);
+}
+
+.si-minimal  .si-capsule { width: 110px; height: 32px; }
+.si-glow     .si-capsule { width: 110px; height: 32px; box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); animation: siGlow 2s ease-in-out infinite; }
+.si-clock    .si-capsule { width: 130px; height: 32px; gap: 6px; padding: 0 10px; }
+.si-pulse    .si-capsule { width: 72px;  height: 32px; gap: 12px; }
+.si-ripple   .si-capsule { width: 110px; height: 32px; overflow: visible; }
+.si-rainbow  .si-capsule { width: 110px; height: 32px; }
+.si-music    .si-capsule { width: 110px; height: 32px; gap: 3px; padding: 0 12px; align-items: flex-end; padding-bottom: 5px; }
+.si-scan     .si-capsule { width: 110px; height: 32px; overflow: hidden; }
+
+@keyframes siGlow {
+  0%,100% { box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); }
+  50%      { box-shadow: 0 0 4px 1px rgba(255,255,255,0.15); }
+}
+
+.si-clock-text {
+  font-size: 13px; font-weight: 600; color: #fff;
+  letter-spacing: -0.3px; font-family: -apple-system, sans-serif;
+  white-space: nowrap;
+}
+
+.si-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.9;
+}
+.si-dot-l { animation: siPulse 1.4s ease-in-out infinite; }
+.si-dot-r { animation: siPulse 1.4s ease-in-out 0.7s infinite; }
+@keyframes siPulse {
+  0%,100% { transform: scale(1); opacity: 0.9; }
+  50%      { transform: scale(0.4); opacity: 0.2; }
+}
+
+.si-ring {
+  position: absolute; inset: -1px; border-radius: 20px;
+  border: 1.5px solid rgba(255,255,255,0.6);
+  animation: siRipple 1.8s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes siRipple {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.si-rainbow .si-capsule {
+  background: linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6,#a78bfa,#f43f5e);
+  background-size: 300% 100%;
+  animation: siRainbow 2.5s linear infinite;
+}
+@keyframes siRainbow {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 300% 0; }
+}
+
+.si-bar {
+  width: 3px;
+  background: #fff;
+  border-radius: 2px;
+  opacity: 0.9;
+}
+.si-bar:nth-child(1) { animation: siBar 0.9s ease-in-out infinite; }
+.si-bar:nth-child(2) { animation: siBar 0.9s ease-in-out 0.15s infinite; }
+.si-bar:nth-child(3) { animation: siBar 0.9s ease-in-out 0.3s infinite; }
+.si-bar:nth-child(4) { animation: siBar 0.9s ease-in-out 0.45s infinite; }
+.si-bar:nth-child(5) { animation: siBar 0.9s ease-in-out 0.6s infinite; }
+@keyframes siBar {
+  0%,100% { height: 5px; }
+  50%      { height: 20px; }
+}
+
+.si-scanline {
+  position: absolute; left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+  animation: siScan 1.6s linear infinite;
+}
+@keyframes siScan {
+  0%   { top: 0; }
+  100% { top: 100%; }
+}
