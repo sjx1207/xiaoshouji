@@ -263,7 +263,7 @@ let _tzDb = null;
 function openTzDB() {
   return new Promise((res, rej) => {
     if (_tzDb) return res(_tzDb);
-    const req = indexedDB.open('LunaTzDB', 2);
+    const req = indexedDB.open('LunaTzDB', 4);
     req.onupgradeneeded = e => {
       e.target.result.createObjectStore('settings', { keyPath: 'id' });
     };
@@ -339,7 +339,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 3);
+        const req = indexedDB.open('LunaFontDB', 4);
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });
@@ -570,7 +570,7 @@ let _fontDb = null;
 function openFontDB() {
   return new Promise((res, rej) => {
     if (_fontDb) return res(_fontDb);
-    const req = indexedDB.open('LunaFontDB', 3);  // ← 只改这里，1 → 2
+    const req = indexedDB.open('LunaFontDB', 4);  // ← 只改这里，1 → 2
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('fonts')) {  // ← 加这个判断，防止重复创建报错
@@ -830,7 +830,7 @@ let apiDb = null;
 function openApiDb() {
   return new Promise((res, rej) => {
     if (apiDb) return res(apiDb);
-    const req = indexedDB.open(apiDbName, 2);
+    const req = indexedDB.open(apiDbName, 4);
     req.onupgradeneeded = e => {
       e.target.result.createObjectStore(apiStoreName, { keyPath: 'id', autoIncrement: true });
     };
@@ -1100,4 +1100,34 @@ function updateApiSubtitle() {
   const cur = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
   const model = localStorage.getItem('luna_api_model') || '';
   sub.textContent = model || (cur.baseUrl ? new URL(cur.baseUrl).hostname : '已配置');
+}
+
+/* ================================
+   货币体系 → 跳转独立页面
+================================ */
+function openCurrencyPage() {
+  const frame = document.querySelector('.luna-frame');
+  if (frame) {
+    frame.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+    frame.style.opacity = '0';
+    frame.style.transform = 'scale(0.96)';
+  }
+  setTimeout(() => {
+    window.location.href = 'wallet_cards.html';
+  }, 200);
+}
+
+/* ================================
+   邮箱体系 → 跳转独立页面
+================================ */
+function openMailPage() {
+  const frame = document.querySelector('.luna-frame');
+  if (frame) {
+    frame.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+    frame.style.opacity = '0';
+    frame.style.transform = 'scale(0.96)';
+  }
+  setTimeout(() => {
+    window.location.href = 'mail_system.html';
+  }, 200);
 }

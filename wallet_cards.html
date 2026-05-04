@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luna 钱包 · 使用说明</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap" rel="stylesheet"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #f5f3ee;
+    --bg2: #ffffff;
+    --bg3: #ede9e1;
+    --border: #ddd9cf;
+    --text: #1a1814;
+    --text2: #5a5548;
+    --text3: #9a9488;
+    --accent: #3d2f8a;
+    --accent-light: #ebe8f7;
+    --gold: #9a6e00;
+    --gold-light: #fdf3d8;
+    --teal: #1a7a5e;
+    --teal-light: #e0f5ee;
+    --red: #b03030;
+    --red-light: #fce8e8;
+    --blue: #1a5a8a;
+    --blue-light: #e0eef8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── 顶部导航 ── */
+  .top-bar {
+  position: fixed;
+  top: 52px;
+    z-index: 100;
+    background: var(--text);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .top-bar::-webkit-scrollbar { display: none; }
+
+  .top-logo {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    padding: 14px 16px 14px 0;
+    border-right: 1px solid rgba(255,255,255,0.15);
+    margin-right: 8px;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+  }
+
+  .nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 14px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    white-space: nowrap;
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+  }
+  .nav-tab:hover { color: rgba(255,255,255,0.85); }
+  .nav-tab.active { color: #fff; border-bottom-color: #a898f0; font-weight: 500; }
+  .nav-tab .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+
+  /* ── 主内容 ── */
+  .main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 16px 80px;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── 页面头部 ── */
+  .page-header {
+    padding: 36px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .chapter-num {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+
+  .page-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 10px;
+  }
+
+  .page-lead {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.8;
+  }
+
+  /* ── 区块 ── */
+  .block { margin-bottom: 36px; }
+
+  .block-title {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+    font-weight: 500;
+  }
+
+  /* ── 说明卡片 ── */
+  .explain-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 10px;
+  }
+
+  .explain-card + .explain-card { margin-top: 8px; }
+
+  .ec-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .ec-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .ec-tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .tag-purple { background: var(--accent-light); color: var(--accent); }
+  .tag-gold { background: var(--gold-light); color: var(--gold); }
+  .tag-teal { background: var(--teal-light); color: var(--teal); }
+  .tag-gray { background: var(--bg3); color: var(--text2); }
+  .tag-red { background: var(--red-light); color: var(--red); }
+  .tag-blue { background: var(--blue-light); color: var(--blue); }
+
+  .ec-sub {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 10px;
+  }
+
+  .ec-body {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.75;
+  }
+
+  /* ── 对比表 ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .compare-table th {
+    background: var(--bg3);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .compare-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    vertical-align: top;
+    line-height: 1.6;
+  }
+
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table td:first-child { color: var(--text); font-weight: 500; }
+
+  /* ── 步骤列表 ── */
+  .step-list { list-style: none; }
+
+  .step-item {
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .step-item:last-child { border-bottom: none; }
+
+  .step-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-content { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .step-desc { font-size: 13px; color: var(--text2); line-height: 1.65; }
+
+  /* ── 要点列表 ── */
+  .point-list { list-style: none; }
+
+  .point-item {
+    display: flex;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.65;
+  }
+
+  .point-item:last-child { border-bottom: none; }
+
+  .point-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--accent);
+    flex-shrink: 0;
+    align-self: stretch;
+    min-height: 18px;
+    opacity: 0.5;
+  }
+
+  /* ── 总览模块 ── */
+  .overview-module {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .overview-module:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 12px rgba(61,47,138,0.08);
+  }
+
+  .om-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .om-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .om-desc {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+
+  .om-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .om-arrow {
+    font-size: 16px;
+    color: var(--text3);
+    flex-shrink: 0;
+  }
+
+  /* ── 信用分模拟 ── */
+  .score-demo {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .score-display {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .score-big {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text);
+    transition: color 0.3s;
+  }
+
+  .score-level {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    transition: all 0.3s;
+  }
+
+  .bar-track {
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease, background 0.4s ease;
+  }
+
+  .bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text3);
+    margin-bottom: 16px;
+  }
+
+  .score-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .score-slider-label {
+    font-size: 12px;
+    color: var(--text2);
+    width: 56px;
+    flex-shrink: 0;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    outline: none;
+    border: 1px solid var(--border);
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .score-effect {
+    background: var(--bg3);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.65;
+  }
+
+  /* ── 套餐模拟 ── */
+  .plan-sim {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .sim-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-size: 13px;
+  }
+
+  .sim-label {
+    width: 60px;
+    color: var(--text2);
+    flex-shrink: 0;
+    font-size: 12px;
+  }
+
+  .sim-val {
+    min-width: 64px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Noto Sans SC', sans-serif;
+    flex: 1;
+    outline: none;
+  }
+
+  .usage-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .usage-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .usage-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s, background 0.3s;
+  }
+
+  .usage-label {
+    width: 60px;
+    font-size: 11px;
+    color: var(--text3);
+    flex-shrink: 0;
+  }
+
+  .usage-val {
+    min-width: 56px;
+    text-align: right;
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .total-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .total-item-label {
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 3px;
+  }
+
+  .total-item-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .total-item-val.big {
+    font-size: 22px;
+    color: var(--accent);
+  }
+
+  /* ── 号码预览 ── */
+  .number-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 10px;
+  }
+
+  .number-display {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    margin: 12px 0 8px;
+  }
+
+  .number-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .num-prefix {
+    font-size: 14px;
+    color: var(--text2);
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  input[type=text] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: 'Noto Serif SC', serif;
+    letter-spacing: 0.08em;
+    outline: none;
+    width: 88px;
+    font-weight: 600;
+  }
+
+  input[type=text]:focus { border-color: var(--accent); }
+  input[type=text]::placeholder { color: var(--text3); font-size: 12px; letter-spacing: 0; font-family: 'Noto Sans SC'; font-weight: 400; }
+
+  .rand-btn {
+    background: var(--accent-light);
+    border: 1px solid rgba(61,47,138,0.25);
+    color: var(--accent);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 500;
+    margin-top: 6px;
+    transition: background 0.2s;
+  }
+  .rand-btn:hover { background: rgba(61,47,138,0.12); }
+
+  /* ── 提示框 ── */
+  .tip-box {
+    background: var(--accent-light);
+    border: 1px solid rgba(61,47,138,0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--accent);
+    line-height: 1.65;
+    margin-top: 12px;
+  }
+
+  .tip-box.warn {
+    background: var(--gold-light);
+    border-color: rgba(154,110,0,0.2);
+    color: var(--gold);
+  }
+
+  .tip-box.success {
+    background: var(--teal-light);
+    border-color: rgba(26,122,94,0.2);
+    color: var(--teal);
+  }
+
+  /* ── 卡片展示 ── */
+  .card-visual {
+    border-radius: 12px;
+    padding: 18px;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-visual::after {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .cv-standard { background: linear-gradient(135deg, #2a2a35, #1e1e28); }
+  .cv-gold { background: linear-gradient(135deg, #3d2e0a, #2a1f05); }
+  .cv-platinum { background: linear-gradient(135deg, #1a2a35, #101e28); }
+  .cv-noir { background: linear-gradient(135deg, #111, #000); }
+  .cv-family { background: linear-gradient(135deg, #1a2535, #101928); }
+  .cv-credit { background: linear-gradient(135deg, #2a1a35, #1e1028); }
+
+  .cv-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .cv-type {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 2px;
+  }
+
+  .cv-num {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.12em;
+  }
+
+  /* ── 卡组 ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  /* ── 升级路径 ── */
+  .upgrade-path {
+    position: relative;
+    padding-left: 20px;
+  }
+
+  .upgrade-path::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 16px;
+    bottom: 16px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .upgrade-node {
+    position: relative;
+    padding: 0 0 20px 20px;
+  }
+
+  .upgrade-node::before {
+    content: '';
+    position: absolute;
+    left: -15px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--bg2);
+    border: 2px solid var(--border);
+  }
+
+  .upgrade-node.reached::before {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .un-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .un-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .un-cond {
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  .un-perks {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+
+  /* ── tier切换 ── */
+  .tier-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .tier-tab {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text2);
+    transition: all 0.15s;
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+
+  .tier-tab:hover { border-color: var(--accent); color: var(--accent); }
+  .tier-tab.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+
+  .tier-detail { display: none; }
+  .tier-detail.active { display: block; }
+
+  /* ── 响应式 ── */
+  @media (max-width: 480px) {
+    .page-title { font-size: 24px; }
+    .cards-grid { grid-template-columns: 1fr; }
+    .compare-table th, .compare-table td { padding: 8px 10px; font-size: 12px; }
+  }
+
+  /* ── 状态栏 1:1 复刻 index ── */
+.status-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 22px 9px;
+  z-index: 200;
+  background: rgba(245,243,238,0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.status-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2a2a40;
+  letter-spacing: 0.2px;
+}
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 13px;
+}
+.signal i {
+  display: block;
+  width: 2.5px;
+  border-radius: 1px;
+  background: #3a3a55;
+  opacity: 0.85;
+}
+.signal i:nth-child(1) { height: 4px; }
+.signal i:nth-child(2) { height: 7px; }
+.signal i:nth-child(3) { height: 10px; }
+.signal i:nth-child(4) { height: 13px; }
+.battery {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.bat-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3a3a55;
+  opacity: 0.85;
+}
+.bat-shell {
+  width: 24px;
+  height: 12px;
+  border: 1.5px solid rgba(55,55,80,0.5);
+  border-radius: 3.5px;
+  padding: 1.5px;
+  position: relative;
+}
+.bat-inner {
+  width: 76%;
+  height: 100%;
+  border-radius: 1.5px;
+  background: linear-gradient(90deg, #6ee7b7, #34d399);
+}
+.bat-nub {
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.5px;
+  height: 5px;
+  background: rgba(55,55,80,0.4);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ── 灵动岛 1:1 复刻 index ── */
+.status-island {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: 6px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.si-capsule {
+  background: #000;
+  border-radius: 24px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34,1.2,0.64,1);
+}
+.si-minimal  .si-capsule { width: 110px; height: 32px; }
+.si-glow     .si-capsule { width: 110px; height: 32px; box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); animation: siGlow 2s ease-in-out infinite; }
+.si-clock    .si-capsule { width: 130px; height: 32px; gap: 6px; padding: 0 10px; }
+.si-pulse    .si-capsule { width: 72px;  height: 32px; gap: 12px; }
+.si-ripple   .si-capsule { width: 110px; height: 32px; overflow: visible; }
+.si-rainbow  .si-capsule { width: 110px; height: 32px; }
+.si-music    .si-capsule { width: 110px; height: 32px; gap: 3px; padding: 0 12px; align-items: flex-end; padding-bottom: 5px; }
+.si-scan     .si-capsule { width: 110px; height: 32px; overflow: hidden; }
+@keyframes siGlow {
+  0%,100% { box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); }
+  50%      { box-shadow: 0 0 4px 1px rgba(255,255,255,0.15); }
+}
+.si-clock-text {
+  font-size: 13px; font-weight: 600; color: #fff;
+  letter-spacing: -0.3px; font-family: -apple-system, sans-serif;
+  white-space: nowrap;
+}
+.si-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.9; }
+.si-dot-l { animation: siPulse 1.4s ease-in-out infinite; }
+.si-dot-r { animation: siPulse 1.4s ease-in-out 0.7s infinite; }
+@keyframes siPulse {
+  0%,100% { transform: scale(1); opacity: 0.9; }
+  50%      { transform: scale(0.4); opacity: 0.2; }
+}
+.si-ring {
+  position: absolute; inset: -1px; border-radius: 20px;
+  border: 1.5px solid rgba(255,255,255,0.6);
+  animation: siRipple 1.8s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes siRipple {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.si-rainbow .si-capsule {
+  background: linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6,#a78bfa,#f43f5e);
+  background-size: 300% 100%;
+  animation: siRainbow 2.5s linear infinite;
+}
+@keyframes siRainbow {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 300% 0; }
+}
+.si-bar { width: 3px; background: #fff; border-radius: 2px; opacity: 0.9; }
+.si-bar:nth-child(1) { animation: siBar 0.9s ease-in-out infinite; }
+.si-bar:nth-child(2) { animation: siBar 0.9s ease-in-out 0.15s infinite; }
+.si-bar:nth-child(3) { animation: siBar 0.9s ease-in-out 0.3s infinite; }
+.si-bar:nth-child(4) { animation: siBar 0.9s ease-in-out 0.45s infinite; }
+.si-bar:nth-child(5) { animation: siBar 0.9s ease-in-out 0.6s infinite; }
+@keyframes siBar {
+  0%,100% { height: 5px; }
+  50%      { height: 20px; }
+}
+.si-scanline {
+  position: absolute; left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+  animation: siScan 1.6s linear infinite;
+}
+@keyframes siScan {
+  0%   { top: 0; }
+  100% { top: 100%; }
+}
+
+/* 状态栏占位，防止内容被遮住 */
+body { padding-top: 104px; }
+</style>
+</head>
+<body>
+
+<!-- 状态栏 1:1 复刻 index -->
+<div class="status-bar">
+  <div class="status-time" id="statusTime">9:41</div>
+  <div class="status-island" id="statusIsland"></div>
+  <div class="status-right">
+    <div class="signal">
+      <i></i><i></i><i></i><i></i>
+    </div>
+    <div class="battery">
+      <span class="bat-pct" id="batPct">76</span>
+      <div class="bat-shell">
+        <div class="bat-inner" id="batInner"></div>
+        <div class="bat-nub"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 顶部导航 -->
+<nav class="top-bar">
+  <div class="top-logo" onclick="goBack()" style="cursor:pointer;">Luna 钱包</div>
+  <button class="nav-tab active" onclick="showPage('overview')"><span class="dot"></span>总览</button>
+  <button class="nav-tab" onclick="showPage('currency')"><span class="dot"></span>货币</button>
+  <button class="nav-tab" onclick="showPage('cards')"><span class="dot"></span>银行卡</button>
+  <button class="nav-tab" onclick="showPage('credit')"><span class="dot"></span>信用分</button>
+  <button class="nav-tab" onclick="showPage('family')"><span class="dot"></span>副卡</button>
+  <button class="nav-tab" onclick="showPage('number')"><span class="dot"></span>号码</button>
+  <button class="nav-tab" onclick="showPage('plan')"><span class="dot"></span>套餐</button>
+</nav>
+
+<!-- 主内容区 -->
+<main class="main">
+
+  <!-- ── 总览 ── -->
+  <div class="page active" id="page-overview">
+    <div class="page-header">
+      <div class="chapter-num">第一章</div>
+      <div class="page-title">Luna 钱包是什么</div>
+      <div class="page-lead">Luna 钱包是一套完整的虚拟金融体系，包含三大模块：货币与兑换、银行卡等级、专属电话号码。本说明书带你逐章了解每项功能的使用方法。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">三大模块</div>
+      <div class="overview-module" onclick="showPage('currency')">
+        <div class="om-head">
+          <div class="om-title">货币与汇率</div>
+          <div class="om-arrow">›</div>
+        </div>
+        <div class="om-desc">钱包内使用四种货币，就像现实中的分、角、元和外汇。你可以在不同货币之间兑换，汇率每天变化。</div>
+        <div class="om-tags">
+          <span class="ec-tag tag-purple">Lune 主币</span>
+          <span class="ec-tag tag-gold">Mond 稀有币</span>
+        </div>
+      </div>
+      <div class="overview-module" onclick="showPage('cards')">
+        <div class="om-head">
+          <div class="om-title">银行卡等级</div>
+          <div class="om-arrow">›</div>
+        </div>
+        <div class="om-desc">注册即拥有普通卡，随着使用积累可升级为金卡、白金卡、黑卡，等级越高权益越多。</div>
+        <div class="om-tags">
+          <span class="ec-tag tag-gray">普通卡</span>
+          <span class="ec-tag tag-gold">金卡</span>
+          <span class="ec-tag tag-blue">白金卡</span>
+          <span class="ec-tag tag-purple">黑卡</span>
+        </div>
+      </div>
+      <div class="overview-module" onclick="showPage('number')">
+        <div class="om-head">
+          <div class="om-title">专属电话号码</div>
+          <div class="om-arrow">›</div>
+        </div>
+        <div class="om-desc">在 Luna 世界里拥有一个专属号码，格式为 LN · 区段码 · 个人号，可以发短信、打电话，按月付套餐费。</div>
+        <div class="om-tags">
+          <span class="ec-tag tag-purple">买断制</span>
+          <span class="ec-tag tag-gray">月付套餐</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">常见问题</div>
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">钱包里的钱是真实货币吗？</div>
+        </div>
+        <div class="ec-body">不是。Lune 是 Luna 世界观内的虚拟货币，与现实货币无关，仅用于游戏内消费和交互。</div>
+      </div>
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">需要联网才能使用吗？</div>
+        </div>
+        <div class="ec-body">所有数据保存在设备本地，不需要服务器。即使离线也能正常使用钱包功能。</div>
+      </div>
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">从哪里开始比较好？</div>
+        </div>
+        <div class="ec-body">建议先看「货币」章节了解钱包中的钱怎么算，再看「银行卡」了解等级权益，最后按需了解号码和套餐。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 货币 ── -->
+  <div class="page" id="page-currency">
+    <div class="page-header">
+      <div class="chapter-num">第二章</div>
+      <div class="page-title">货币与兑换</div>
+      <div class="page-lead">钱包里有四种货币，从最小的找零单位到最稀有的高价值货币，就像现实中的分、元、外汇一样。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">四种货币，从小到大</div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">Lune 分</div>
+          <span class="ec-tag tag-gray">最小单位</span>
+        </div>
+        <div class="ec-sub">100 Lune 分 = 1 Lune</div>
+        <div class="ec-body">相当于现实中的"分"，主要用于找零。100 个 Lune 分会自动合并为 1 Lune，你不需要手动操作。</div>
+      </div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">Lune（卢恩）</div>
+          <span class="ec-tag tag-purple">主币</span>
+        </div>
+        <div class="ec-sub">日常消费和交易的基本货币</div>
+        <div class="ec-body">钱包里最常用的货币，就像现实中的"元"。购买号码、支付套餐费、消费信用卡都以 Lune 为单位计算。</div>
+      </div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">Syl（希尔）</div>
+          <span class="ec-tag tag-teal">辅助币</span>
+        </div>
+        <div class="ec-sub">1 Syl = 10 Lune</div>
+        <div class="ec-body">中等面额货币，适合特定场景下的大额支付。白金卡用户每月可收到利息奖励，单位就是 Syl。</div>
+      </div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">Mond（蒙德）</div>
+          <span class="ec-tag tag-gold">稀有币</span>
+        </div>
+        <div class="ec-sub">1 Mond = 100 Lune</div>
+        <div class="ec-body">最稀有、价值最高的货币，用于高价值交易。每人每周能兑换的 Mond 数量有上限，上限根据你的卡级不同而变化。黑卡用户无上限。</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">兑换规则</div>
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">选择兑换方向</div>
+            <div class="step-desc">支持 Lune 与 Syl 互换，以及 Lune 兑换 Mond，兑换率每天刷新一次。</div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">注意兑换手续费</div>
+            <div class="step-desc">普通卡每次兑换收 1% 手续费，金卡 0.5%，白金卡 0.2%，黑卡免费。</div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Mond 每周有兑换上限</div>
+            <div class="step-desc">普通卡每周最多兑换 10 Mond，金卡 50 Mond，白金卡 200 Mond，黑卡不限。</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="block-title">汇率是怎么变化的</div>
+      <div class="explain-card">
+        <div class="ec-body">
+          汇率每天自动刷新，会在正常值上下浮动约 5%。影响汇率的因素包括：世界里正在发生的大事件、节日活动、以及大量 Mond 流通。<br><br>
+          如果你担心汇率不利，白金卡和黑卡用户可以使用「汇率锁定」功能，将今天的汇率冻结下来，避免明天变差。
+        </div>
+      </div>
+      <div class="tip-box">汇率锁定次数：白金卡每周 1 次，黑卡每周 3 次，普通卡和金卡不支持此功能。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">各卡级兑换权益对比</div>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>卡级</th>
+            <th>兑换手续费</th>
+            <th>Mond 上限/周</th>
+            <th>汇率锁定</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>普通卡</td><td>1%</td><td>10 Mond</td><td>不支持</td></tr>
+          <tr><td>金卡</td><td>0.5%</td><td>50 Mond</td><td>每两周 1 次</td></tr>
+          <tr><td>白金卡</td><td>0.2%</td><td>200 Mond</td><td>每周 1 次</td></tr>
+          <tr><td>黑卡</td><td>免费</td><td>不限</td><td>每周 3 次</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── 银行卡 ── -->
+  <div class="page" id="page-cards">
+    <div class="page-header">
+      <div class="chapter-num">第三章</div>
+      <div class="page-title">银行卡等级</div>
+      <div class="page-lead">注册时自动开通普通卡。随着你在 Luna 里的使用积累，达到一定条件后可以自动升级为更高级别的卡，获得更多权益。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">四种卡的外观</div>
+      <div class="cards-grid">
+        <div>
+          <div class="card-visual cv-standard">
+            <div>
+              <div class="cv-name">Luna Standard</div>
+              <div class="cv-type">普通卡 · 储蓄</div>
+            </div>
+            <div class="cv-num">**** **** 0001</div>
+          </div>
+        </div>
+        <div>
+          <div class="card-visual cv-gold">
+            <div>
+              <div class="cv-name" style="color:#f0c060">Luna Gold</div>
+              <div class="cv-type" style="color:rgba(240,192,96,0.5)">金卡 · 储蓄</div>
+            </div>
+            <div class="cv-num" style="color:rgba(240,192,96,0.4)">**** **** 2024</div>
+          </div>
+        </div>
+        <div>
+          <div class="card-visual cv-platinum">
+            <div>
+              <div class="cv-name" style="color:#7ab8eb">Luna Platinum</div>
+              <div class="cv-type" style="color:rgba(122,184,235,0.5)">白金卡 · 储蓄</div>
+            </div>
+            <div class="cv-num" style="color:rgba(122,184,235,0.4)">**** **** 8888</div>
+          </div>
+        </div>
+        <div>
+          <div class="card-visual cv-noir">
+            <div>
+              <div class="cv-name">Luna Noir</div>
+              <div class="cv-type">黑卡 · 顶级</div>
+            </div>
+            <div class="cv-num">**** **** ????</div>
+          </div>
+        </div>
+      </div>
+      <div class="cards-grid">
+        <div>
+          <div class="card-visual cv-family">
+            <div>
+              <div class="cv-name" style="color:#5dcaa5">Luna Family</div>
+              <div class="cv-type" style="color:rgba(93,202,165,0.5)">亲属副卡</div>
+            </div>
+            <div class="cv-num" style="color:rgba(93,202,165,0.4)">主卡绑定</div>
+          </div>
+        </div>
+        <div>
+          <div class="card-visual cv-credit">
+            <div>
+              <div class="cv-name" style="color:#c4b5fd">Luna Credit</div>
+              <div class="cv-type" style="color:rgba(196,181,253,0.5)">信用卡</div>
+            </div>
+            <div class="cv-num" style="color:rgba(196,181,253,0.4)">先用后还</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">升级条件与权益</div>
+      <div class="tier-tabs">
+        <button class="tier-tab active" onclick="showTier('std', this)">普通卡</button>
+        <button class="tier-tab" onclick="showTier('gold', this)">金卡</button>
+        <button class="tier-tab" onclick="showTier('plat', this)">白金卡</button>
+        <button class="tier-tab" onclick="showTier('noir', this)">黑卡</button>
+      </div>
+
+      <div id="tier-std" class="tier-detail active">
+        <div class="explain-card">
+          <div class="ec-head">
+            <div class="ec-name">普通卡</div>
+            <span class="ec-tag tag-gray">注册即得</span>
+          </div>
+          <div class="ec-sub">升级条件：无，注册即自动开通</div>
+          <ul class="point-list">
+            <li class="point-item"><div class="point-bar"></div>基础转账、收款、余额查看</li>
+            <li class="point-item"><div class="point-bar"></div>每天签到可领取 Lune 奖励</li>
+            <li class="point-item"><div class="point-bar"></div>Lune 分自动归集为 Lune，无需手动操作</li>
+            <li class="point-item"><div class="point-bar"></div>查看完整的消费账单记录</li>
+          </ul>
+          <div class="tip-box" style="margin-top:12px">普通卡不支持信用卡功能和亲属副卡，也不能锁定汇率。</div>
+        </div>
+      </div>
+
+      <div id="tier-gold" class="tier-detail">
+        <div class="explain-card">
+          <div class="ec-head">
+            <div class="ec-name">金卡</div>
+            <span class="ec-tag tag-gold">中级</span>
+          </div>
+          <div class="ec-sub">升级条件：累计收入 ≥ 500 Lune，信用分 ≥ 550 分</div>
+          <ul class="point-list">
+            <li class="point-item"><div class="point-bar"></div>可开通 1 张亲属副卡，为家人或朋友设置每日限额</li>
+            <li class="point-item"><div class="point-bar"></div>开通信用卡功能，额度 200 Lune，先消费后还款</li>
+            <li class="point-item"><div class="point-bar"></div>兑换手续费降至 0.5%</li>
+            <li class="point-item"><div class="point-bar"></div>Mond 每周兑换上限提升至 50 Mond</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="tier-plat" class="tier-detail">
+        <div class="explain-card">
+          <div class="ec-head">
+            <div class="ec-name">白金卡</div>
+            <span class="ec-tag tag-blue">高级</span>
+          </div>
+          <div class="ec-sub">升级条件：累计收入 ≥ 2000 Lune，信用分 ≥ 700 分</div>
+          <ul class="point-list">
+            <li class="point-item"><div class="point-bar"></div>可开通最多 2 张亲属副卡</li>
+            <li class="point-item"><div class="point-bar"></div>信用卡额度提升至 500 Lune</li>
+            <li class="point-item"><div class="point-bar"></div>汇率锁定功能，每周可用 1 次</li>
+            <li class="point-item"><div class="point-bar"></div>每月赠送 10 Syl 利息奖励</li>
+            <li class="point-item"><div class="point-bar"></div>兑换手续费降至 0.2%</li>
+            <li class="point-item"><div class="point-bar"></div>卡级保护期：如果条件不达标，有 7 天缓冲期，期间内恢复则不降级</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="tier-noir" class="tier-detail">
+        <div class="explain-card">
+          <div class="ec-head">
+            <div class="ec-name">黑卡</div>
+            <span class="ec-tag tag-purple">顶级 · 极稀有</span>
+          </div>
+          <div class="ec-sub">升级条件：累计收入 ≥ 10000 Lune，当前余额 ≥ 5000 Lune，信用分 ≥ 800 分</div>
+          <ul class="point-list">
+            <li class="point-item"><div class="point-bar"></div>可开通最多 3 张亲属副卡</li>
+            <li class="point-item"><div class="point-bar"></div>信用卡额度最高 2000 Lune</li>
+            <li class="point-item"><div class="point-bar"></div>所有兑换手续费全免</li>
+            <li class="point-item"><div class="point-bar"></div>汇率锁定每周可用 3 次</li>
+            <li class="point-item"><div class="point-bar"></div>Mond 兑换无上限</li>
+            <li class="point-item"><div class="point-bar"></div>每月赠送 1 Mond 尊享奖励</li>
+            <li class="point-item"><div class="point-bar"></div>全服专属稀有标识展示</li>
+          </ul>
+          <div class="tip-box" style="margin-top:12px">黑卡是全服最高级别，极少数人拥有。需要长期积累才能达到条件。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">升级路径一览</div>
+      <div class="explain-card">
+        <table class="compare-table" style="border:none;border-radius:0">
+          <thead>
+            <tr>
+              <th>卡级</th>
+              <th>累计收入要求</th>
+              <th>信用分要求</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>普通卡</td><td>注册即得</td><td>无</td></tr>
+            <tr><td>金卡</td><td>≥ 500 Lune</td><td>≥ 550 分</td></tr>
+            <tr><td>白金卡</td><td>≥ 2000 Lune</td><td>≥ 700 分</td></tr>
+            <tr><td>黑卡</td><td>≥ 10000 Lune</td><td>≥ 800 分</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tip-box warn">升级是自动触发的，只要同时满足收入和信用分两个条件，系统会立刻将你的卡升级，无需手动申请。</div>
+    </div>
+  </div>
+
+  <!-- ── 信用分 ── -->
+  <div class="page" id="page-credit">
+    <div class="page-header">
+      <div class="chapter-num">第四章</div>
+      <div class="page-title">信用分是什么</div>
+      <div class="page-lead">信用分反映你在 Luna 里的使用记录是否良好。分数越高，能使用的功能越多、限制越少。分数范围是 300 到 850。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">分数模拟器</div>
+      <div class="score-demo">
+        <div class="score-display">
+          <div class="score-big" id="cs-score">620</div>
+          <div class="score-level tag-gray" id="cs-level">正常</div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" id="cs-bar" style="width: 58%"></div>
+        </div>
+        <div class="bar-labels">
+          <span>300</span><span>400</span><span>550</span><span>700</span><span>800</span><span>850</span>
+        </div>
+        <div class="score-slider-row">
+          <span class="score-slider-label">拖动查看</span>
+          <input type="range" min="300" max="850" value="620" id="cs-slider" oninput="updateCS(this.value)">
+          <span class="sim-val" id="cs-val" style="min-width:48px;font-size:13px;font-weight:600">620</span>
+        </div>
+        <div class="score-effect" id="cs-effect">基础功能完全正常，可以申请金卡（需同时满足收入条件），信用卡额度正常，可以正常兑换货币。</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">五个分段说明</div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">800 – 850 分</div>
+          <span class="ec-tag tag-purple">优秀</span>
+        </div>
+        <div class="ec-body">可申请黑卡，Mond 兑换无上限，所有手续费全免，全功能解锁。这是信用最好的状态。</div>
+      </div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">700 – 799 分</div>
+          <span class="ec-tag tag-teal">良好</span>
+        </div>
+        <div class="ec-body">可申请白金卡，高额度信用卡，支持汇率锁定功能。大部分高级功能都可以使用。</div>
+      </div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">550 – 699 分</div>
+          <span class="ec-tag tag-gray">正常</span>
+        </div>
+        <div class="ec-body">基础功能全部正常，可申请金卡，可开通信用卡，兑换货币正常进行。这是大多数普通用户所在的区间。</div>
+      </div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">400 – 549 分</div>
+          <span class="ec-tag tag-gold">偏低</span>
+        </div>
+        <div class="ec-body">Mond 兑换每周上限会降低，信用卡额度被压缩，部分功能受到限制。需要注意改善使用习惯。</div>
+      </div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">300 – 399 分</div>
+          <span class="ec-tag tag-red">危险</span>
+        </div>
+        <div class="ec-body">信用卡会被冻结，黑卡和白金卡资格取消，只能保留基础功能。需要尽快恢复信用分。</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">如何影响信用分</div>
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-num" style="background:var(--teal)">+</div>
+          <div class="step-content">
+            <div class="step-title">准时还款（加分）</div>
+            <div class="step-desc">每月信用卡按时还款，信用分会缓慢上升。连续 3 个月按时还款还能获得额外额度提升。</div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num" style="background:var(--teal)">+</div>
+          <div class="step-content">
+            <div class="step-title">信用卡使用率低（加分）</div>
+            <div class="step-desc">如果你长期只用了信用额度的 30% 以下，系统会认为你财务状况良好，主动为你提额。</div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num" style="background:var(--red)">−</div>
+          <div class="step-content">
+            <div class="step-title">逾期未还（扣分）</div>
+            <div class="step-desc">当月信用卡到期没有还款，扣 20 分。连续多月逾期，每月扣 40 分。</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── 副卡 ── -->
+  <div class="page" id="page-family">
+    <div class="page-header">
+      <div class="chapter-num">第五章</div>
+      <div class="page-title">亲属副卡与信用卡</div>
+      <div class="page-lead">金卡及以上的用户可以为亲属或好友开通副卡，副卡共享主卡的信用额度，主卡持有人可以管理副卡的每日消费上限。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">亲属副卡怎么用</div>
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">开通副卡</div>
+            <div class="step-desc">金卡用户最多开通 1 张副卡，白金卡最多 2 张，黑卡最多 3 张。副卡需要绑定一个 Luna 号码。</div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">设置每日限额</div>
+            <div class="step-desc">主卡持有人可以为每张副卡单独设置每日消费上限，防止超支。</div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">查看消费记录</div>
+            <div class="step-desc">所有副卡的消费记录，主卡持有人都可以查看，透明管理。</div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">随时停用或解绑</div>
+            <div class="step-desc">主卡持有人可以在任意时间停用或解绑副卡，即时生效。</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="block-title">副卡规则汇总</div>
+      <table class="compare-table">
+        <thead>
+          <tr><th>规则项</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>开通条件</td><td>需要持有金卡或以上等级</td></tr>
+          <tr><td>副卡张数</td><td>金卡 1 张 / 白金卡 2 张 / 黑卡 3 张</td></tr>
+          <tr><td>额度共享</td><td>所有副卡共享主卡的信用额度，不单独计算</td></tr>
+          <tr><td>每日限额</td><td>可为每张副卡单独设置不同的每日上限</td></tr>
+          <tr><td>消费记录</td><td>副卡消费记录主卡可全部查看</td></tr>
+          <tr><td>号码绑定</td><td>每张副卡必须绑定一个 Luna 专属号码</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="block">
+      <div class="block-title">信用卡功能说明</div>
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">什么是信用卡</div>
+        </div>
+        <div class="ec-body">信用卡是先消费、月底再还款的功能。初始额度根据你的卡级决定：金卡 200 Lune、白金卡 500 Lune、黑卡 2000 Lune。</div>
+      </div>
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">还款时间</div>
+        </div>
+        <div class="ec-body">每月结算日系统会自动从你的余额里扣款。如果余额不足导致逾期，信用分会扣 20 分，请确保账户有足够余额。</div>
+      </div>
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">如何提升额度</div>
+        </div>
+        <div class="ec-body">连续 3 个月按时还款，额度自动增加 50 Lune。信用分升入更高区间时也会自动提额。如果你长期只用了额度的 30% 以下，系统也会主动提额。</div>
+      </div>
+      <div class="tip-box warn">信用卡最高额度受卡级限制，金卡上限 200 Lune，白金卡 500 Lune，黑卡 2000 Lune，不能无限提升。</div>
+    </div>
+  </div>
+
+  <!-- ── 号码 ── -->
+  <div class="page" id="page-number">
+    <div class="page-header">
+      <div class="chapter-num">第六章</div>
+      <div class="page-title">专属电话号码</div>
+      <div class="page-lead">在 Luna 世界里，你可以拥有一个专属号码，格式是 LN · 四位区段码 · 四位个人号。号码是买断制的，一次购买永久持有。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">号码格式说明</div>
+      <div class="number-box">
+        <div style="font-size:12px;color:var(--text3)">号码格式示例</div>
+        <div class="number-display" id="num-preview">LN · 0421 · 8871</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+          <span class="ec-tag tag-purple">LN 固定前缀</span>
+          <span class="ec-tag tag-gray">区段码 0000–9999</span>
+          <span class="ec-tag tag-gray">个人号 0000–9999</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3)">共 1 亿个号码可供选择，完全开放，想选哪个选哪个。</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">两种购买方式</div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">系统随机生成</div>
+          <span class="ec-tag tag-teal">50 Lune</span>
+        </div>
+        <div class="ec-sub">固定价格，最实惠</div>
+        <div class="ec-body">由系统随机给你分配一个号码，价格固定 50 Lune，是最便宜的方式。如果不喜欢可以重新生成。</div>
+        <div id="rand-num" style="font-family:'Noto Serif SC',serif;font-size:20px;font-weight:700;color:var(--accent);letter-spacing:0.1em;margin:12px 0">LN · 4521 · 3847</div>
+        <button class="rand-btn" onclick="genRand()">重新随机生成</button>
+      </div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">自己选号码</div>
+          <span class="ec-tag tag-purple">100 Lune 起</span>
+        </div>
+        <div class="ec-sub">价格根据号码稀有度而定</div>
+        <div class="number-input-row">
+          <span class="num-prefix">LN ·</span>
+          <input type="text" id="seg-in" maxlength="4" placeholder="区段码" oninput="updateNum()">
+          <span class="num-prefix">·</span>
+          <input type="text" id="per-in" maxlength="4" placeholder="个人号" oninput="updateNum()">
+        </div>
+        <div id="num-result" style="font-size:13px;color:var(--text3);margin-bottom:8px">请输入 4 位区段码和 4 位个人号</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:11px;color:var(--text3)">购买价格</div>
+            <div style="font-size:20px;font-weight:700;color:var(--accent)" id="num-price">— Lune</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">号码稀有度与定价</div>
+      <table class="compare-table">
+        <thead>
+          <tr><th>号码类型</th><th>举例</th><th>价格</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>随机生成</td><td>LN · 4521 · 3847</td><td>50 Lune</td></tr>
+          <tr><td>普通自选</td><td>LN · 0812 · 5643</td><td>100 Lune</td></tr>
+          <tr><td>含顺子号<br><span style="font-size:11px;font-weight:400;color:var(--text3)">个人号含连续数字</span></td><td>LN · 0812 · 1234</td><td>300 Lune</td></tr>
+          <tr><td>豹子号<br><span style="font-size:11px;font-weight:400;color:var(--text3)">个人号四位相同</span></td><td>LN · 0812 · 8888</td><td>1000 Lune</td></tr>
+          <tr><td>全顺号<br><span style="font-size:11px;font-weight:400;color:var(--text3)">区段+个人号全连续</span></td><td>LN · 0123 · 4567</td><td>2000 Lune</td></tr>
+        </tbody>
+      </table>
+      <div class="tip-box">买断后永久持有，不需要续费。可以同时持有多个号码，并设置其中一个为主号码。</div>
+    </div>
+  </div>
+
+  <!-- ── 套餐 ── -->
+  <div class="page" id="page-plan">
+    <div class="page-header">
+      <div class="chapter-num">第七章</div>
+      <div class="page-title">通话套餐</div>
+      <div class="page-lead">号码买断后，发短信和打电话需要按月付套餐费。验证码永远免费。如果不买套餐，每条短信和每分钟通话会单独计费，费用较高。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">四档套餐方案</div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">星光套餐</div>
+          <span class="ec-tag tag-gray">入门</span>
+        </div>
+        <div class="ec-sub">30 Lune / 月</div>
+        <ul class="point-list">
+          <li class="point-item"><div class="point-bar"></div>每月短信 50 条</li>
+          <li class="point-item"><div class="point-bar"></div>每月通话 30 分钟</li>
+          <li class="point-item"><div class="point-bar"></div>验证码不限次数（免费）</li>
+        </ul>
+      </div>
+
+      <div class="explain-card" style="border-color:var(--accent)">
+        <div class="ec-head">
+          <div class="ec-name">月华套餐</div>
+          <span class="ec-tag tag-purple">推荐</span>
+        </div>
+        <div class="ec-sub">80 Lune / 月</div>
+        <ul class="point-list">
+          <li class="point-item"><div class="point-bar"></div>每月短信 200 条</li>
+          <li class="point-item"><div class="point-bar"></div>每月通话 120 分钟</li>
+          <li class="point-item"><div class="point-bar"></div>验证码不限次数（免费）</li>
+        </ul>
+      </div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">星核套餐</div>
+          <span class="ec-tag tag-gold">畅享</span>
+        </div>
+        <div class="ec-sub">150 Lune / 月</div>
+        <ul class="point-list">
+          <li class="point-item"><div class="point-bar"></div>每月短信 500 条</li>
+          <li class="point-item"><div class="point-bar"></div>每月通话 300 分钟</li>
+          <li class="point-item"><div class="point-bar"></div>验证码不限次数（免费）</li>
+        </ul>
+      </div>
+
+      <div class="explain-card">
+        <div class="ec-head">
+          <div class="ec-name">无界套餐</div>
+          <span class="ec-tag tag-teal">无限</span>
+        </div>
+        <div class="ec-sub">300 Lune / 月</div>
+        <ul class="point-list">
+          <li class="point-item"><div class="point-bar"></div>每月短信不限条数</li>
+          <li class="point-item"><div class="point-bar"></div>每月通话不限分钟</li>
+          <li class="point-item"><div class="point-bar"></div>验证码不限次数（免费）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">超出套餐怎么算</div>
+      <table class="compare-table">
+        <thead>
+          <tr><th>类型</th><th>有套餐时超出</th><th>没有套餐时</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>短信</td><td>0.5 Lune / 条</td><td>1 Lune / 条</td></tr>
+          <tr><td>通话</td><td>1 Lune / 分钟</td><td>2 Lune / 分钟</td></tr>
+          <tr><td>验证码</td><td colspan="2" style="color:var(--teal);font-weight:600">永远免费，不计费</td></tr>
+        </tbody>
+      </table>
+      <div class="tip-box warn">套餐到期后未续费，会自动切换到「无套餐」费率，短信和通话费用会翻倍，建议提前续费。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">费用模拟器</div>
+      <div class="plan-sim">
+        <div class="sim-row">
+          <span class="sim-label">选择套餐</span>
+          <select id="p-sel" onchange="calcPlan()">
+            <option value="none">无套餐（按量计费）</option>
+            <option value="30" data-sms="50" data-call="30">星光套餐 30 Lune/月</option>
+            <option value="80" data-sms="200" data-call="120" selected>月华套餐 80 Lune/月</option>
+            <option value="150" data-sms="500" data-call="300">星核套餐 150 Lune/月</option>
+            <option value="300" data-sms="99999" data-call="99999">无界套餐 300 Lune/月</option>
+          </select>
+        </div>
+        <div class="sim-row">
+          <span class="sim-label">本月短信</span>
+          <input type="range" min="0" max="600" value="120" id="sms-r" oninput="calcPlan()">
+          <span class="sim-val" id="sms-v">120 条</span>
+        </div>
+        <div class="sim-row">
+          <span class="sim-label">本月通话</span>
+          <input type="range" min="0" max="400" value="80" id="call-r" oninput="calcPlan()">
+          <span class="sim-val" id="call-v">80 分钟</span>
+        </div>
+
+        <div class="usage-bar-row">
+          <span class="usage-label">短信用量</span>
+          <div class="usage-bar-track">
+            <div class="usage-bar-fill" id="sms-bar"></div>
+          </div>
+          <span class="usage-val" id="sms-ov"></span>
+        </div>
+        <div class="usage-bar-row">
+          <span class="usage-label">通话用量</span>
+          <div class="usage-bar-track">
+            <div class="usage-bar-fill" id="call-bar"></div>
+          </div>
+          <span class="usage-val" id="call-ov"></span>
+        </div>
+
+        <div class="total-block">
+          <div>
+            <div class="total-item-label">套餐费</div>
+            <div class="total-item-val" id="p-fee">80 Lune</div>
+          </div>
+          <div>
+            <div class="total-item-label">超出费</div>
+            <div class="total-item-val" id="o-fee">0 Lune</div>
+          </div>
+          <div style="text-align:right">
+            <div class="total-item-label">本月合计</div>
+            <div class="total-item-val big" id="t-fee">80 Lune</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+function goBack() {
+  window.location.href = 'settings.html';
+}
+// ── 页面切换 ──
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+      n.classList.add('active');
+    }
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── 卡级切换 ──
+function showTier(id, el) {
+  document.querySelectorAll('.tier-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tier-detail').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tier-' + id).classList.add('active');
+}
+
+// ── 信用分模拟 ──
+const csZones = [
+  { min: 300, max: 399, label: '危险', cls: 'tag-red', bar: '#c0504040', barSolid: '#c05040', effect: '信用卡已冻结，黑卡和白金卡资格取消，只保留基础钱包功能。需要通过按时还款来逐步恢复信用分。' },
+  { min: 400, max: 549, label: '偏低', cls: 'tag-gold', bar: '#c0881040', barSolid: '#c08810', effect: 'Mond 兑换的每周上限会降低，信用卡额度被压缩，部分高级功能受到限制。注意按时还款，避免进一步扣分。' },
+  { min: 550, max: 699, label: '正常', cls: 'tag-gray', bar: '#6060806c', barSolid: '#606080', effect: '基础功能完全正常，可以申请金卡（需同时满足收入条件），可以正常申请和使用信用卡，货币兑换正常。' },
+  { min: 700, max: 799, label: '良好', cls: 'tag-teal', bar: '#1a7a5e60', barSolid: '#1a7a5e', effect: '达到白金卡申请要求，可以使用汇率锁定功能，信用卡额度较高，大部分高级功能可以使用。' },
+  { min: 800, max: 850, label: '优秀', cls: 'tag-purple', bar: '#3d2f8a60', barSolid: '#3d2f8a', effect: '达到黑卡申请要求，Mond 兑换无上限，兑换手续费全免，所有功能完全解锁，是最理想的信用状态。' },
+];
+
+function updateCS(v) {
+  v = parseInt(v);
+  document.getElementById('cs-score').textContent = v;
+  document.getElementById('cs-val').textContent = v;
+  const pct = ((v - 300) / 550 * 100).toFixed(1);
+  const z = csZones.find(z => v >= z.min && v <= z.max);
+  const bar = document.getElementById('cs-bar');
+  bar.style.width = pct + '%';
+  bar.style.background = z.barSolid;
+  const lv = document.getElementById('cs-level');
+  lv.textContent = z.label;
+  lv.className = 'score-level ec-tag ' + z.cls;
+  document.getElementById('cs-effect').textContent = z.effect;
+}
+updateCS(620);
+
+// ── 号码定价 ──
+function calcPrice(seg, num) {
+  if (!seg || !num || seg.length < 4 || num.length < 4) return null;
+  const allSame = s => /^(\d)\1{3}$/.test(s);
+  const allSeq = s => ['0123','1234','2345','3456','4567','5678','6789','9876','8765','7654','6543','5432','4321','3210'].includes(s);
+  const hasSeq = s => { for(let i=0;i<s.length-1;i++) if(parseInt(s[i+1])-parseInt(s[i])===1) return true; return false; };
+  if (allSame(num) && allSame(seg)) return { p: 2000, l: '极稀有 · 全豹子号' };
+  if (allSeq(seg+num.slice(0,4)) || allSeq(num+seg.slice(0,4))) return { p: 2000, l: '极稀有 · 全顺号' };
+  if (allSame(num)) return { p: 1000, l: '稀有 · 豹子号（四位相同）' };
+  if (allSeq(num)) return { p: 300, l: '进阶 · 顺子号（四位连续）' };
+  if (hasSeq(num)) return { p: 300, l: '进阶 · 含连续数字' };
+  return { p: 100, l: '标准 · 普通自选号' };
+}
+
+function updateNum() {
+  const seg = document.getElementById('seg-in').value.replace(/\D/g,'');
+  const per = document.getElementById('per-in').value.replace(/\D/g,'');
+  document.getElementById('seg-in').value = seg;
+  document.getElementById('per-in').value = per;
+  const preview = 'LN · ' + seg.padEnd(4,'_') + ' · ' + per.padEnd(4,'_');
+  document.getElementById('num-preview').textContent = preview;
+  if (seg.length === 4 && per.length === 4) {
+    const r = calcPrice(seg, per);
+    document.getElementById('num-result').textContent = r.l;
+    document.getElementById('num-result').style.color = 'var(--accent)';
+    document.getElementById('num-price').textContent = r.p + ' Lune';
+  } else {
+    document.getElementById('num-result').textContent = '请输入完整的 4 位区段码和 4 位个人号';
+    document.getElementById('num-result').style.color = 'var(--text3)';
+    document.getElementById('num-price').textContent = '— Lune';
+  }
+}
+
+function genRand() {
+  const r4 = () => String(Math.floor(Math.random() * 9000) + 1000);
+  document.getElementById('rand-num').textContent = 'LN · ' + r4() + ' · ' + r4();
+}
+
+// ── 套餐模拟 ──
+function calcPlan() {
+  const sel = document.getElementById('p-sel');
+  const opt = sel.options[sel.selectedIndex];
+  const pc = sel.value === 'none' ? 0 : parseInt(sel.value);
+  const sc = sel.value === 'none' ? 0 : parseInt(opt.dataset.sms);
+  const cc = sel.value === 'none' ? 0 : parseInt(opt.dataset.call);
+  const sms = parseInt(document.getElementById('sms-r').value);
+  const call = parseInt(document.getElementById('call-r').value);
+  document.getElementById('sms-v').textContent = sms + ' 条';
+  document.getElementById('call-v').textContent = call + ' 分钟';
+  const so = sel.value === 'none' ? sms : Math.max(0, sms - sc);
+  const co = sel.value === 'none' ? call : Math.max(0, call - cc);
+  const sr = sel.value === 'none' ? 1 : 0.5;
+  const cr = sel.value === 'none' ? 2 : 1;
+  const oc = Math.round(so * sr + co * cr);
+  document.getElementById('p-fee').textContent = pc + ' Lune';
+  document.getElementById('o-fee').textContent = oc + ' Lune';
+  document.getElementById('t-fee').textContent = (pc + oc) + ' Lune';
+  if (sc > 0) {
+    const sp = Math.min(100, Math.round(sms / sc * 100));
+    document.getElementById('sms-bar').style.width = sp + '%';
+    document.getElementById('sms-bar').style.background = sp >= 100 ? '#b03030' : '#1a5a8a';
+    document.getElementById('sms-ov').textContent = so > 0 ? '+' + so + ' 条超出' : '套餐内';
+    document.getElementById('sms-ov').style.color = so > 0 ? '#b03030' : 'var(--text3)';
+    const cp = Math.min(100, Math.round(call / cc * 100));
+    document.getElementById('call-bar').style.width = cp + '%';
+    document.getElementById('call-bar').style.background = cp >= 100 ? '#b03030' : '#1a7a5e';
+    document.getElementById('call-ov').textContent = co > 0 ? '+' + co + ' 分超出' : '套餐内';
+    document.getElementById('call-ov').style.color = co > 0 ? '#b03030' : 'var(--text3)';
+  } else {
+    document.getElementById('sms-bar').style.width = '100%';
+    document.getElementById('sms-bar').style.background = '#b03030';
+    document.getElementById('sms-ov').textContent = '全额计费';
+    document.getElementById('sms-ov').style.color = '#b03030';
+    document.getElementById('call-bar').style.width = '100%';
+    document.getElementById('call-bar').style.background = '#b03030';
+    document.getElementById('call-ov').textContent = '全额计费';
+    document.getElementById('call-ov').style.color = '#b03030';
+  }
+}
+calcPlan();
+
+/* ── 时间同步（读 luna_tz，与 index 一致） ── */
+function updateTime() {
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('zh-CN', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  const el = document.getElementById('statusTime');
+  if (el) el.textContent = timeStr;
+}
+updateTime();
+setInterval(updateTime, 1000);
+
+/* ── 电量同步（与 index 一致） ── */
+function updateBattery() {
+  const pctEl = document.getElementById('batPct');
+  const innerEl = document.getElementById('batInner');
+  function render(pct) {
+    const p = Math.round(pct);
+    if (pctEl) pctEl.textContent = p;
+    if (innerEl) {
+      innerEl.style.width = p + '%';
+      innerEl.style.background = p <= 20
+        ? 'linear-gradient(90deg,#f87171,#ef4444)'
+        : 'linear-gradient(90deg,#6ee7b7,#34d399)';
+    }
+  }
+  if ('getBattery' in navigator) {
+    navigator.getBattery().then(b => {
+      render(b.level * 100);
+      b.addEventListener('levelchange', () => render(b.level * 100));
+    });
+  } else { render(76); }
+}
+updateBattery();
+
+/* ── 灵动岛同步（读 localStorage，与 index 的 applyIsland 完全一致） ── */
+function applyIsland() {
+  const enabled = localStorage.getItem('luna_island_enabled') === 'true';
+  const style   = localStorage.getItem('luna_island_style') || 'minimal';
+  const el      = document.getElementById('statusIsland');
+  if (!el) return;
+  if (!enabled) { el.innerHTML = ''; return; }
+  const styleMap = {
+    minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+    glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+    clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text" id="siClockText">--:--</span></div></div>`,
+    pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+    ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+    rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+    music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+    scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+  };
+  el.innerHTML = styleMap[style] || styleMap.minimal;
+  clearInterval(window._siClockTimer);
+  if (style === 'clock') {
+    const tick = () => {
+      const t = document.getElementById('siClockText');
+      if (!t) return;
+      const now = new Date();
+      t.textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+    };
+    tick();
+    window._siClockTimer = setInterval(tick, 10000);
+  }
+}
+applyIsland();
+
+/* ── 字体同步（与 index 的 applyGlobalFont 完全一致） ── */
+async function applyGlobalFont() {
+  const style = JSON.parse(localStorage.getItem('luna_font_style') || '{}');
+  const name  = localStorage.getItem('luna_font_active_name');
+  const id    = parseInt(localStorage.getItem('luna_font_active_id'));
+  if (name && id) {
+    try {
+      const db = await new Promise((res, rej) => {
+        const req = indexedDB.open('LunaFontDB', 4);
+        req.onsuccess = e => res(e.target.result);
+        req.onerror = () => rej();
+      });
+      const all = await new Promise(res => {
+        const r = db.transaction('fonts').objectStore('fonts').getAll();
+        r.onsuccess = () => res(r.result || []);
+        r.onerror = () => res([]);
+      });
+      const f = all.find(x => x.id === id);
+      if (f) {
+        const face = new FontFace(name, `url(${f.data})`);
+        await face.load();
+        document.fonts.add(face);
+      }
+    } catch(e) {}
+  }
+  let tag = document.getElementById('luna-font-override');
+  if (!tag) {
+    tag = document.createElement('style');
+    tag.id = 'luna-font-override';
+    document.head.appendChild(tag);
+  }
+  const familyRule = name ? `font-family: '${name}', sans-serif !important;` : '';
+  /* 注意：不同步颜色和大小，只同步字体族 */
+  tag.textContent = `* { ${familyRule} }`;
+}
+applyGlobalFont();
+
+/* ── 监听 settings 实时变化（切换字体/岛后立即生效） ── */
+window.addEventListener('storage', e => {
+  if (e.key === 'luna_font_update')   applyGlobalFont();
+  if (e.key === 'luna_island_update') applyIsland();
+  if (e.key === 'luna_tz_update')     updateTime();
+});
+
+/* ── pageshow 防缓存（与 index 一致） ── */
+window.addEventListener('pageshow', e => {
+  if (e.persisted) window.location.reload();
+  applyGlobalFont();
+});
+</script>
+</body>
+</html>

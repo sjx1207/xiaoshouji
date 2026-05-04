@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Luna Wallet</title>
+  <!-- 与 index.html 完全同步的字体栈 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="wallet.css" />
+</head>
+<body>
+
+<div class="w-frame">
+
+  <!-- =====================
+       状态栏 — 与 index.html 结构完全一致
+  ===================== -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================
+       页面滑动容器（Tab 视图）
+  ===================== -->
+  <div class="w-page-wrap" id="wPageWrap">
+
+    <!-- ── Tab 1: 首页 Home ── -->
+    <div class="w-page" id="pageHome">
+
+      <!-- 顶部标题区 -->
+      <div class="w-header">
+        <div class="w-header-left">
+          <div class="w-greeting" id="wGreeting">Good morning</div>
+          <div class="w-username">Luna User</div>
+        </div>
+        <div class="w-header-right">
+          <div class="w-notif-btn" id="wNotifBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- 余额主卡 -->
+      <div class="w-balance-card" id="wBalanceCard">
+        <div class="w-bc-label">Lune 余额</div>
+        <div class="w-bc-amount">
+          <span class="w-bc-currency">L</span>
+          <span class="w-bc-num" id="wBalanceNum">12,480.00</span>
+        </div>
+        <div class="w-bc-sub">
+          <span class="w-bc-sub-item">本月收入 <strong id="wIncomeNum">+3,200</strong></span>
+          <span class="w-bc-sub-divider"></span>
+          <span class="w-bc-sub-item">本月支出 <strong id="wSpendNum">-1,840</strong></span>
+        </div>
+        <!-- 卡片装饰线 -->
+        <div class="w-bc-deco"></div>
+      </div>
+
+      <!-- 快捷操作 -->
+      <div class="w-quick-row">
+        <div class="w-quick-btn" onclick="wAction('receive')">
+          <div class="w-quick-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 19V5"/><path d="M5 12l7 7 7-7"/></svg>
+          </div>
+          <span>收款</span>
+        </div>
+        <div class="w-quick-btn" onclick="wAction('transfer')">
+          <div class="w-quick-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M19 12l-7-7-7 7"/></svg>
+          </div>
+          <span>转账</span>
+        </div>
+        <div class="w-quick-btn" onclick="wAction('topup')">
+          <div class="w-quick-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+          </div>
+          <span>充值</span>
+        </div>
+        <div class="w-quick-btn" onclick="wAction('exchange')">
+          <div class="w-quick-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 16V4m0 0L3 8m4-4 4 4"/><path d="M17 8v12m0 0 4-4m-4 4-4-4"/></svg>
+          </div>
+          <span>兑换</span>
+        </div>
+      </div>
+
+      <!-- 默认卡预览 -->
+      <div class="w-section-header">
+        <span class="w-section-title">我的卡</span>
+        <span class="w-section-link" onclick="switchTab('cards')">查看全部</span>
+      </div>
+      <div class="w-default-card" id="wDefaultCard">
+        <div class="w-card-chip"></div>
+        <div class="w-card-top">
+          <span class="w-card-brand">LUNA</span>
+          <span class="w-card-type">Standard</span>
+        </div>
+        <div class="w-card-num">**** **** **** 4821</div>
+        <div class="w-card-bottom">
+          <span class="w-card-holder">Luna User</span>
+          <span class="w-card-expire">12 / 28</span>
+        </div>
+      </div>
+
+      <!-- 最近交易 -->
+      <div class="w-section-header">
+        <span class="w-section-title">最近交易</span>
+        <span class="w-section-link" onclick="switchTab('bills')">全部</span>
+      </div>
+      <div class="w-tx-list" id="wTxList">
+        <div class="w-tx-item">
+          <div class="w-tx-icon w-tx-out">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M19 12l-7-7-7 7"/></svg>
+          </div>
+          <div class="w-tx-info">
+            <div class="w-tx-name">转账至 @alex</div>
+            <div class="w-tx-date">今天 · 14:32</div>
+          </div>
+          <div class="w-tx-amount out">-200.00</div>
+        </div>
+        <div class="w-tx-item">
+          <div class="w-tx-icon w-tx-in">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+          </div>
+          <div class="w-tx-info">
+            <div class="w-tx-name">收款自 @sara</div>
+            <div class="w-tx-date">昨天 · 09:18</div>
+          </div>
+          <div class="w-tx-amount in">+500.00</div>
+        </div>
+        <div class="w-tx-item">
+          <div class="w-tx-icon w-tx-out">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M19 12l-7-7-7 7"/></svg>
+          </div>
+          <div class="w-tx-info">
+            <div class="w-tx-name">Mond 兑换</div>
+            <div class="w-tx-date">04/28 · 16:44</div>
+          </div>
+          <div class="w-tx-amount out">-1,000.00</div>
+        </div>
+      </div>
+
+      <!-- 套餐用量提示 -->
+      <div class="w-plan-banner" id="wPlanBanner">
+        <div class="w-plan-info">
+          <div class="w-plan-label">Luna 小手机套餐</div>
+          <div class="w-plan-sub">本月剩余 1.2 GB · 还有 8 天到期</div>
+        </div>
+        <div class="w-plan-bar-wrap">
+          <div class="w-plan-bar"><div class="w-plan-fill" style="width:38%"></div></div>
+          <span class="w-plan-pct">38%</span>
+        </div>
+      </div>
+
+    </div><!-- /pageHome -->
+
+
+    <!-- ── Tab 2: 卡包 Cards ── -->
+    <div class="w-page" id="pageCards">
+      <div class="w-page-title">卡包</div>
+      <!-- 卡片列表占位 -->
+      <div class="w-cards-stack" id="wCardsStack">
+        <div class="w-card-item">
+          <div class="w-ci-left">
+            <div class="w-ci-dot" style="background:#c8cdd6"></div>
+            <div>
+              <div class="w-ci-name">Standard 储值卡</div>
+              <div class="w-ci-num">**** 4821</div>
+            </div>
+          </div>
+          <div class="w-ci-right">L 12,480</div>
+        </div>
+        <div class="w-card-item">
+          <div class="w-ci-left">
+            <div class="w-ci-dot" style="background:#b8bec8"></div>
+            <div>
+              <div class="w-ci-name">信用卡</div>
+              <div class="w-ci-num">**** 9023</div>
+            </div>
+          </div>
+          <div class="w-ci-right">额度 50,000</div>
+        </div>
+      </div>
+      <div class="w-apply-btn" onclick="wAction('apply-card')">申请新卡</div>
+    </div>
+
+
+    <!-- ── Tab 3: 通讯 Connect ── -->
+    <div class="w-page" id="pageConnect">
+      <div class="w-page-title">通讯</div>
+      <!-- 号码卡 -->
+      <div class="w-connect-card">
+        <div class="w-cc-label">Luna 小手机号码</div>
+        <div class="w-cc-num">+86 138 0000 0000</div>
+        <div class="w-cc-plan">基础套餐 · 月费 ¥9</div>
+      </div>
+      <div class="w-connect-grid">
+        <div class="w-cg-item" onclick="wAction('mail')">
+          <div class="w-cg-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </div>
+          <span>Luna Mail</span>
+        </div>
+        <div class="w-cg-item" onclick="wAction('sms')">
+          <div class="w-cg-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <span>验证码</span>
+        </div>
+        <div class="w-cg-item" onclick="wAction('plan')">
+          <div class="w-cg-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+          </div>
+          <span>套餐</span>
+        </div>
+        <div class="w-cg-item" onclick="wAction('call-bill')">
+          <div class="w-cg-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+          </div>
+          <span>通话账单</span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ── Tab 4: 账单 Bills ── -->
+    <div class="w-page" id="pageBills">
+      <div class="w-page-title">账单</div>
+      <!-- 月度汇总 -->
+      <div class="w-bills-summary">
+        <div class="w-bs-item">
+          <div class="w-bs-label">本月收入</div>
+          <div class="w-bs-value in">+3,200.00</div>
+        </div>
+        <div class="w-bs-divider"></div>
+        <div class="w-bs-item">
+          <div class="w-bs-label">本月支出</div>
+          <div class="w-bs-value out">-1,840.00</div>
+        </div>
+      </div>
+      <!-- 筛选行 -->
+      <div class="w-filter-row">
+        <div class="w-filter-chip active">全部</div>
+        <div class="w-filter-chip">收入</div>
+        <div class="w-filter-chip">支出</div>
+        <div class="w-filter-chip">兑换</div>
+      </div>
+      <!-- 流水列表（复用样式） -->
+      <div class="w-tx-list" id="wBillsList">
+        <div class="w-tx-item">
+          <div class="w-tx-icon w-tx-out"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M19 12l-7-7-7 7"/></svg></div>
+          <div class="w-tx-info"><div class="w-tx-name">转账至 @alex</div><div class="w-tx-date">05/04 · 14:32</div></div>
+          <div class="w-tx-amount out">-200.00</div>
+        </div>
+        <div class="w-tx-item">
+          <div class="w-tx-icon w-tx-in"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"/></svg></div>
+          <div class="w-tx-info"><div class="w-tx-name">收款自 @sara</div><div class="w-tx-date">05/03 · 09:18</div></div>
+          <div class="w-tx-amount in">+500.00</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ── Tab 5: 我的 Me ── -->
+    <div class="w-page" id="pageMe">
+      <div class="w-page-title">我的</div>
+      <!-- 头像区 -->
+      <div class="w-me-header">
+        <div class="w-me-avatar" id="wMeAvatar">L</div>
+        <div class="w-me-name">Luna User</div>
+        <div class="w-me-id">ID: LN-20240001</div>
+      </div>
+      <!-- 设置列表 -->
+      <div class="w-me-list">
+        <div class="w-me-row" onclick="wAction('account')">
+          <span>账号信息</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="w-me-row" onclick="wAction('security')">
+          <span>安全设置</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="w-me-row" onclick="wAction('kyc')">
+          <span>实名认证</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="w-me-row" onclick="wAction('notify-settings')">
+          <span>通知设置</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="w-me-row" onclick="wAction('about')">
+          <span>关于 / 帮助</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+      <!-- 退出 -->
+      <div class="w-logout-btn" onclick="wAction('logout')">退出登录</div>
+    </div>
+
+  </div><!-- /w-page-wrap -->
+
+
+  <!-- =====================
+       底部导航栏
+  ===================== -->
+  <div class="w-nav">
+    <div class="w-nav-item active" id="navHome" onclick="switchTab('home')">
+      <div class="w-nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <span>首页</span>
+    </div>
+    <div class="w-nav-item" id="navCards" onclick="switchTab('cards')">
+      <div class="w-nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+      </div>
+      <span>卡包</span>
+    </div>
+    <div class="w-nav-item" id="navConnect" onclick="switchTab('connect')">
+      <div class="w-nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+      </div>
+      <span>通讯</span>
+    </div>
+    <div class="w-nav-item" id="navBills" onclick="switchTab('bills')">
+      <div class="w-nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+      </div>
+      <span>账单</span>
+    </div>
+    <div class="w-nav-item" id="navMe" onclick="switchTab('me')">
+      <div class="w-nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+      <span>我的</span>
+    </div>
+  </div>
+
+  <!-- Home Bar -->
+  <div class="home-bar"></div>
+
+  <!-- 转场遮罩（与 index.html 同构） -->
+  <div id="wTransMask"></div>
+
+</div><!-- /w-frame -->
+
+<script src="wallet.js"></script>
+</body>
+</html>
