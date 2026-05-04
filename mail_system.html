@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luna Mail · 邮箱体系说明</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap" rel="stylesheet"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #f5f3ee;
+    --bg2: #ffffff;
+    --bg3: #ede9e1;
+    --border: #ddd9cf;
+    --text: #1a1814;
+    --text2: #5a5548;
+    --text3: #9a9488;
+    --accent: #3d2f8a;
+    --accent-light: #ebe8f7;
+    --gold: #9a6e00;
+    --gold-light: #fdf3d8;
+    --teal: #1a7a5e;
+    --teal-light: #e0f5ee;
+    --red: #b03030;
+    --red-light: #fce8e8;
+    --blue: #1a5a8a;
+    --blue-light: #e0eef8;
+    --rose: #7a2a5a;
+    --rose-light: #f5e8f0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  .top-bar {
+  position: fixed;
+  top: 52px;
+    z-index: 100;
+    background: var(--text);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .top-bar::-webkit-scrollbar { display: none; }
+
+  .top-logo {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    padding: 14px 16px 14px 0;
+    border-right: 1px solid rgba(255,255,255,0.15);
+    margin-right: 8px;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+  }
+
+  .nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 14px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    white-space: nowrap;
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+  }
+  .nav-tab:hover { color: rgba(255,255,255,0.85); }
+  .nav-tab.active { color: #fff; border-bottom-color: #a898f0; font-weight: 500; }
+  .nav-tab .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.6; flex-shrink: 0; }
+
+  .main { max-width: 720px; margin: 0 auto; padding: 0 16px 80px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .page-header {
+    padding: 36px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .chapter-num {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+
+  .page-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 10px;
+  }
+
+  .page-lead { font-size: 14px; color: var(--text2); line-height: 1.8; }
+
+  .block { margin-bottom: 36px; }
+
+  .block-title {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+    font-weight: 500;
+  }
+
+  .explain-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 10px;
+  }
+
+  .ec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .ec-name { font-size: 16px; font-weight: 700; color: var(--text); }
+
+  .ec-tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .tag-purple { background: var(--accent-light); color: var(--accent); }
+  .tag-gold { background: var(--gold-light); color: var(--gold); }
+  .tag-teal { background: var(--teal-light); color: var(--teal); }
+  .tag-gray { background: var(--bg3); color: var(--text2); }
+  .tag-red { background: var(--red-light); color: var(--red); }
+  .tag-blue { background: var(--blue-light); color: var(--blue); }
+  .tag-rose { background: var(--rose-light); color: var(--rose); }
+
+  .ec-sub { font-size: 13px; color: var(--text2); margin-bottom: 10px; }
+  .ec-body { font-size: 13px; color: var(--text); line-height: 1.75; }
+
+  .point-list { list-style: none; }
+  .point-item {
+    display: flex;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.65;
+  }
+  .point-item:last-child { border-bottom: none; }
+  .point-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--accent);
+    flex-shrink: 0;
+    align-self: stretch;
+    min-height: 18px;
+    opacity: 0.5;
+  }
+
+  .tip-box {
+    background: var(--accent-light);
+    border: 1px solid rgba(61,47,138,0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--accent);
+    line-height: 1.65;
+    margin-top: 12px;
+  }
+  .tip-box.warn { background: var(--gold-light); border-color: rgba(154,110,0,0.2); color: var(--gold); }
+  .tip-box.success { background: var(--teal-light); border-color: rgba(26,122,94,0.2); color: var(--teal); }
+  .tip-box.info { background: var(--blue-light); border-color: rgba(26,90,138,0.2); color: var(--blue); }
+
+  /* 域名卡 */
+  .domain-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .domain-badge {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-light);
+    border-radius: 8px;
+    padding: 6px 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+  }
+
+  .domain-info { flex: 1; }
+  .domain-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+  .domain-desc { font-size: 13px; color: var(--text2); line-height: 1.65; }
+
+  /* 邮件预览 */
+  .mail-preview {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .mail-header {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 18px;
+  }
+
+  .mail-subject {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .mail-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .mail-meta-row {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .mail-meta-key { color: var(--text3); width: 28px; flex-shrink: 0; }
+  .mail-meta-val { color: var(--text2); }
+
+  .mail-body {
+    padding: 18px 18px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.8;
+  }
+
+  .mail-body p { margin-bottom: 10px; }
+  .mail-body p:last-child { margin-bottom: 0; }
+
+  .mail-code-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    text-align: center;
+  }
+
+  .mail-code {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+  }
+
+  .mail-code-hint {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  .mail-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.6;
+  }
+
+  .mail-sig {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  /* 规则表格 */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .compare-table th {
+    background: var(--bg3);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    vertical-align: top;
+    line-height: 1.6;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table td:first-child { color: var(--text); font-weight: 500; }
+
+  /* 地址演示 */
+  .address-demo {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 10px;
+  }
+
+  .addr-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 12px;
+  }
+
+  .addr-input {
+    border: 1px solid var(--border);
+    border-radius: 8px 0 0 8px;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: 'Noto Serif SC', serif;
+    color: var(--accent);
+    font-weight: 700;
+    background: var(--bg);
+    width: 160px;
+    outline: none;
+  }
+  .addr-input:focus { border-color: var(--accent); }
+
+  .addr-at {
+    background: var(--bg3);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 9px 10px;
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 500;
+  }
+
+  .addr-domain-sel {
+    border: 1px solid var(--border);
+    border-radius: 0 8px 8px 0;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: 'Noto Sans SC', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    cursor: pointer;
+    flex: 1;
+  }
+  .addr-domain-sel:focus { border-color: var(--accent); }
+
+  .addr-preview {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    padding: 10px 14px;
+    background: var(--accent-light);
+    border-radius: 8px;
+    word-break: break-all;
+  }
+
+  .addr-label {
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 6px;
+    letter-spacing: 0.08em;
+  }
+
+  /* 总览模块 */
+  .overview-module {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .overview-module:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(61,47,138,0.08); }
+  .om-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .om-title { font-size: 15px; font-weight: 700; color: var(--text); }
+  .om-desc { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 12px; }
+  .om-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .om-arrow { font-size: 16px; color: var(--text3); flex-shrink: 0; }
+
+  /* 步骤 */
+  .step-list { list-style: none; }
+  .step-item { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step-item:last-child { border-bottom: none; }
+  .step-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-content { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .step-desc { font-size: 13px; color: var(--text2); line-height: 1.65; }
+
+  /* 格式规则 */
+  .rule-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 10px;
+  }
+
+  .rule-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .rule-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--accent-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .rule-title { font-size: 14px; font-weight: 700; color: var(--text); }
+  .rule-body { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+  .inline-code {
+    font-family: 'Noto Serif SC', serif;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  @media (max-width: 480px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    .addr-input { width: 100px; }
+  }
+
+  /* ── 状态栏 1:1 复刻 index ── */
+.status-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 22px 9px;
+  z-index: 200;
+  background: rgba(245,243,238,0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.status-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2a2a40;
+  letter-spacing: 0.2px;
+}
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 13px;
+}
+.signal i {
+  display: block;
+  width: 2.5px;
+  border-radius: 1px;
+  background: #3a3a55;
+  opacity: 0.85;
+}
+.signal i:nth-child(1) { height: 4px; }
+.signal i:nth-child(2) { height: 7px; }
+.signal i:nth-child(3) { height: 10px; }
+.signal i:nth-child(4) { height: 13px; }
+.battery {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.bat-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3a3a55;
+  opacity: 0.85;
+}
+.bat-shell {
+  width: 24px;
+  height: 12px;
+  border: 1.5px solid rgba(55,55,80,0.5);
+  border-radius: 3.5px;
+  padding: 1.5px;
+  position: relative;
+}
+.bat-inner {
+  width: 76%;
+  height: 100%;
+  border-radius: 1.5px;
+  background: linear-gradient(90deg, #6ee7b7, #34d399);
+}
+.bat-nub {
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.5px;
+  height: 5px;
+  background: rgba(55,55,80,0.4);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ── 灵动岛 1:1 复刻 index ── */
+.status-island {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: 6px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.si-capsule {
+  background: #000;
+  border-radius: 24px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34,1.2,0.64,1);
+}
+.si-minimal  .si-capsule { width: 110px; height: 32px; }
+.si-glow     .si-capsule { width: 110px; height: 32px; box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); animation: siGlow 2s ease-in-out infinite; }
+.si-clock    .si-capsule { width: 130px; height: 32px; gap: 6px; padding: 0 10px; }
+.si-pulse    .si-capsule { width: 72px;  height: 32px; gap: 12px; }
+.si-ripple   .si-capsule { width: 110px; height: 32px; overflow: visible; }
+.si-rainbow  .si-capsule { width: 110px; height: 32px; }
+.si-music    .si-capsule { width: 110px; height: 32px; gap: 3px; padding: 0 12px; align-items: flex-end; padding-bottom: 5px; }
+.si-scan     .si-capsule { width: 110px; height: 32px; overflow: hidden; }
+@keyframes siGlow {
+  0%,100% { box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); }
+  50%      { box-shadow: 0 0 4px 1px rgba(255,255,255,0.15); }
+}
+.si-clock-text {
+  font-size: 13px; font-weight: 600; color: #fff;
+  letter-spacing: -0.3px; font-family: -apple-system, sans-serif;
+  white-space: nowrap;
+}
+.si-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.9; }
+.si-dot-l { animation: siPulse 1.4s ease-in-out infinite; }
+.si-dot-r { animation: siPulse 1.4s ease-in-out 0.7s infinite; }
+@keyframes siPulse {
+  0%,100% { transform: scale(1); opacity: 0.9; }
+  50%      { transform: scale(0.4); opacity: 0.2; }
+}
+.si-ring {
+  position: absolute; inset: -1px; border-radius: 20px;
+  border: 1.5px solid rgba(255,255,255,0.6);
+  animation: siRipple 1.8s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes siRipple {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.si-rainbow .si-capsule {
+  background: linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6,#a78bfa,#f43f5e);
+  background-size: 300% 100%;
+  animation: siRainbow 2.5s linear infinite;
+}
+@keyframes siRainbow {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 300% 0; }
+}
+.si-bar { width: 3px; background: #fff; border-radius: 2px; opacity: 0.9; }
+.si-bar:nth-child(1) { animation: siBar 0.9s ease-in-out infinite; }
+.si-bar:nth-child(2) { animation: siBar 0.9s ease-in-out 0.15s infinite; }
+.si-bar:nth-child(3) { animation: siBar 0.9s ease-in-out 0.3s infinite; }
+.si-bar:nth-child(4) { animation: siBar 0.9s ease-in-out 0.45s infinite; }
+.si-bar:nth-child(5) { animation: siBar 0.9s ease-in-out 0.6s infinite; }
+@keyframes siBar {
+  0%,100% { height: 5px; }
+  50%      { height: 20px; }
+}
+.si-scanline {
+  position: absolute; left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+  animation: siScan 1.6s linear infinite;
+}
+@keyframes siScan {
+  0%   { top: 0; }
+  100% { top: 100%; }
+}
+
+/* 状态栏占位，防止内容被遮住 */
+body { padding-top: 104px; }
+</style>
+</head>
+<body>
+
+<!-- 状态栏 1:1 复刻 index -->
+<div class="status-bar">
+  <div class="status-time" id="statusTime">9:41</div>
+  <div class="status-island" id="statusIsland"></div>
+  <div class="status-right">
+    <div class="signal">
+      <i></i><i></i><i></i><i></i>
+    </div>
+    <div class="battery">
+      <span class="bat-pct" id="batPct">76</span>
+      <div class="bat-shell">
+        <div class="bat-inner" id="batInner"></div>
+        <div class="bat-nub"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="top-bar">
+  <div class="top-logo" onclick="goBack()" style="cursor:pointer;">Luna Mail</div>
+  <button class="nav-tab active" onclick="showPage('overview')"><span class="dot"></span>总览</button>
+  <button class="nav-tab" onclick="showPage('domains')"><span class="dot"></span>域名体系</button>
+  <button class="nav-tab" onclick="showPage('address')"><span class="dot"></span>地址规则</button>
+  <button class="nav-tab" onclick="showPage('formats')"><span class="dot"></span>邮件格式</button>
+  <button class="nav-tab" onclick="showPage('verify')"><span class="dot"></span>验证码</button>
+</nav>
+
+<main class="main">
+
+  <!-- ── 总览 ── -->
+  <div class="page active" id="page-overview">
+    <div class="page-header">
+      <div class="chapter-num">Chapter 01 · Overview</div>
+      <div class="page-title">Luna Mail 邮箱体系</div>
+      <div class="page-lead">架空世界的通用电子邮件服务，覆盖日常通讯、账号验证、系统通知与商务往来。免费开放注册，所有人均可使用。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">这套体系能做什么</div>
+      <div class="overview-module" onclick="showPage('domains')">
+        <div class="om-head"><div class="om-title">域名体系</div><div class="om-arrow">→</div></div>
+        <div class="om-desc">六个月亮/星空系虚构域名，风格各异，从大众通用到商务专属，角色可根据身份和喜好选择。</div>
+        <div class="om-tags">
+          <span class="ec-tag tag-gray">@lunmail.net</span>
+          <span class="ec-tag tag-purple">@starveil.io</span>
+          <span class="ec-tag tag-gold">@celestira.co</span>
+          <span class="ec-tag tag-teal">@moonshard.me</span>
+          <span class="ec-tag tag-blue">@aethermsg.net</span>
+          <span class="ec-tag tag-rose">@voidpost.io</span>
+        </div>
+      </div>
+
+      <div class="overview-module" onclick="showPage('address')">
+        <div class="om-head"><div class="om-title">地址规则</div><div class="om-arrow">→</div></div>
+        <div class="om-desc">用户名自由起名，格式为 用户名@域名，支持字母、数字、点号与下划线，全小写，简单直观。</div>
+        <div class="om-tags">
+          <span class="ec-tag tag-gray">自由命名</span>
+          <span class="ec-tag tag-gray">全小写</span>
+          <span class="ec-tag tag-gray">2–30 字符</span>
+        </div>
+      </div>
+
+      <div class="overview-module" onclick="showPage('formats')">
+        <div class="om-head"><div class="om-title">邮件格式</div><div class="om-arrow">→</div></div>
+        <div class="om-desc">涵盖四类场景：角色间私信、系统通知、账单账单账单账单账单账单，以及商务往来，每类都有示例模板可参考。</div>
+        <div class="om-tags">
+          <span class="ec-tag tag-purple">私信</span>
+          <span class="ec-tag tag-blue">系统通知</span>
+          <span class="ec-tag tag-gold">账单</span>
+          <span class="ec-tag tag-teal">商务</span>
+        </div>
+      </div>
+
+      <div class="overview-module" onclick="showPage('verify')">
+        <div class="om-head"><div class="om-title">验证码邮件</div><div class="om-arrow">→</div></div>
+        <div class="om-desc">注册账号、找回密码、绑定设备时发送的 6 位数字验证码邮件，15 分钟内有效，可与 Luna 小手机短信验证码并列使用。</div>
+        <div class="om-tags">
+          <span class="ec-tag tag-gray">6 位数字</span>
+          <span class="ec-tag tag-gray">15 分钟有效</span>
+          <span class="ec-tag tag-gray">免费无限次</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">与其他体系的关系</div>
+      <table class="compare-table">
+        <thead>
+          <tr><th>功能</th><th>Luna Mail 邮箱</th><th>Luna 小手机短信</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>验证码接收</td><td style="color:var(--teal)">✓ 支持（免费无限次）</td><td style="color:var(--teal)">✓ 支持（套餐内计费）</td></tr>
+          <tr><td>角色间通讯</td><td style="color:var(--teal)">✓ 长文邮件，适合正式场合</td><td style="color:var(--text2)">短信（简短即时）</td></tr>
+          <tr><td>账单 / 通知</td><td style="color:var(--teal)">✓ 主要渠道</td><td style="color:var(--text3)">—</td></tr>
+          <tr><td>费用</td><td style="color:var(--teal)">完全免费</td><td style="color:var(--text2)">套餐或按量付费</td></tr>
+          <tr><td>关联 Lune 货币</td><td style="color:var(--text3)">无关联</td><td style="color:var(--text2)">消费 Lune</td></tr>
+        </tbody>
+      </table>
+      <div class="tip-box">两套体系互补：短信适合即时、简短的信息，邮箱适合正式、详细的内容。注册账号时两者可同时作为验证方式。</div>
+    </div>
+  </div>
+
+  <!-- ── 域名体系 ── -->
+  <div class="page" id="page-domains">
+    <div class="page-header">
+      <div class="chapter-num">Chapter 02 · Domains</div>
+      <div class="page-title">域名体系</div>
+      <div class="page-lead">六个虚构域名，风格各有侧重。选择哪个域名，往往也是角色性格与身份的一种映射。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">公共免费域名</div>
+
+      <div class="domain-card">
+        <div class="domain-badge">@lunmail.net</div>
+        <div class="domain-info">
+          <div class="domain-name">月邮 · 标准域</div>
+          <div class="domain-desc">最通用的大众域名，无任何风格倾向，类似现实的 Gmail。适合所有人，用于日常通讯或不想暴露个人偏好时。</div>
+        </div>
+        <span class="ec-tag tag-gray">大众</span>
+      </div>
+
+      <div class="domain-card">
+        <div class="domain-badge" style="color:var(--accent)">@starveil.io</div>
+        <div class="domain-info">
+          <div class="domain-name">星幕 · 文艺域</div>
+          <div class="domain-desc">「星之幕布」，带有浪漫诗意色彩。受文人、艺术家、写作者偏爱，也常见于年轻人的私人邮箱。</div>
+        </div>
+        <span class="ec-tag tag-purple">文艺</span>
+      </div>
+
+      <div class="domain-card">
+        <div class="domain-badge" style="color:var(--teal);background:var(--teal-light)">@moonshard.me</div>
+        <div class="domain-info">
+          <div class="domain-name">月碎 · 个性域</div>
+          <div class="domain-desc">「月亮的碎片」，.me 后缀带有强烈个人色彩。喜欢彰显个性的角色首选，常见于网络创作者群体。</div>
+        </div>
+        <span class="ec-tag tag-teal">个性</span>
+      </div>
+
+      <div class="domain-card">
+        <div class="domain-badge" style="color:var(--rose);background:var(--rose-light)">@voidpost.io</div>
+        <div class="domain-info">
+          <div class="domain-name">虚空邮递 · 暗调域</div>
+          <div class="domain-desc">「寄往虚空的信」，带有神秘、边缘感。常见于黑市从业者、神秘主义者，或只是觉得这个名字很酷的普通人。</div>
+        </div>
+        <span class="ec-tag tag-rose">暗调</span>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">专属身份域名</div>
+      <div class="tip-box info" style="margin-bottom:14px">以下两个域名需要满足特定条件才能使用，在现实叙事里可以用来区分角色的社会身份层级。</div>
+
+      <div class="domain-card">
+        <div class="domain-badge" style="color:var(--gold);background:var(--gold-light)">@celestira.co</div>
+        <div class="domain-info">
+          <div class="domain-name">天穹 · 商务域</div>
+          <div class="domain-desc">「天空之都」，商务注册制域名，需持有合法注册的商业实体方可申请。企业、品牌、机构的官方邮箱首选，格式通常为 姓名@公司名.celestira.co 或 info@品牌.celestira.co。</div>
+          <ul class="point-list" style="margin-top:10px">
+            <li class="point-item"><div class="point-bar" style="background:var(--gold);"></div>需持有注册商业实体</li>
+            <li class="point-item"><div class="point-bar" style="background:var(--gold);"></div>可申请子域名（如 @yourshop.celestira.co）</li>
+            <li class="point-item"><div class="point-bar" style="background:var(--gold);"></div>邮件头部会显示「已认证商业发件人」标识</li>
+          </ul>
+        </div>
+        <span class="ec-tag tag-gold">商务</span>
+      </div>
+
+      <div class="domain-card">
+        <div class="domain-badge" style="color:var(--blue);background:var(--blue-light)">@aethermsg.net</div>
+        <div class="domain-info">
+          <div class="domain-name">以太通讯 · 官方域</div>
+          <div class="domain-desc">「以太层信使」，政府机构、公共服务平台的专用域名，类似现实的 .gov。所有来自官方机构的系统邮件均以此域名发送，用户不可注册。</div>
+          <ul class="point-list" style="margin-top:10px">
+            <li class="point-item"><div class="point-bar" style="background:var(--blue);"></div>仅官方机构使用，用户不可注册</li>
+            <li class="point-item"><div class="point-bar" style="background:var(--blue);"></div>Luna 钱包、Luna 小手机的系统通知均由此域发出</li>
+            <li class="point-item"><div class="point-bar" style="background:var(--blue);"></div>收到此域名邮件即代表官方来源</li>
+          </ul>
+        </div>
+        <span class="ec-tag tag-blue">官方</span>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">域名速查</div>
+      <table class="compare-table">
+        <thead>
+          <tr><th>域名</th><th>别称</th><th>适合角色</th><th>可自由注册</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>@lunmail.net</td><td>月邮</td><td>任何人</td><td style="color:var(--teal)">✓ 是</td></tr>
+          <tr><td>@starveil.io</td><td>星幕</td><td>文艺/年轻人</td><td style="color:var(--teal)">✓ 是</td></tr>
+          <tr><td>@moonshard.me</td><td>月碎</td><td>个性/创作者</td><td style="color:var(--teal)">✓ 是</td></tr>
+          <tr><td>@voidpost.io</td><td>虚空</td><td>暗调/神秘</td><td style="color:var(--teal)">✓ 是</td></tr>
+          <tr><td>@celestira.co</td><td>天穹</td><td>商业实体</td><td style="color:var(--gold)">需认证</td></tr>
+          <tr><td>@aethermsg.net</td><td>以太</td><td>官方机构</td><td style="color:var(--red)">✗ 不可</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── 地址规则 ── -->
+  <div class="page" id="page-address">
+    <div class="page-header">
+      <div class="chapter-num">Chapter 03 · Address Rules</div>
+      <div class="page-title">地址规则</div>
+      <div class="page-lead">邮箱地址格式为 用户名@域名，规则简单，和现实逻辑基本一致。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">自由组合预览</div>
+      <div class="address-demo">
+        <div class="addr-label">USER NAME · 用户名</div>
+        <div class="addr-row">
+          <input class="addr-input" type="text" id="addr-user" placeholder="yourname" maxlength="30" oninput="updateAddr()" value="luna">
+          <div class="addr-at">@</div>
+          <select class="addr-domain-sel" id="addr-domain" onchange="updateAddr()">
+            <option value="lunmail.net">lunmail.net · 月邮</option>
+            <option value="starveil.io">starveil.io · 星幕</option>
+            <option value="moonshard.me">moonshard.me · 月碎</option>
+            <option value="voidpost.io">voidpost.io · 虚空</option>
+          </select>
+        </div>
+        <div class="addr-label" style="margin-top:14px">PREVIEW · 预览</div>
+        <div class="addr-preview" id="addr-preview">luna@lunmail.net</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">命名规则</div>
+
+      <div class="rule-block">
+        <div class="rule-head">
+          <div class="rule-icon">✓</div>
+          <div class="rule-title">允许使用的字符</div>
+        </div>
+        <div class="rule-body">
+          小写英文字母 <span class="inline-code">a–z</span>、数字 <span class="inline-code">0–9</span>、点号 <span class="inline-code">.</span>、下划线 <span class="inline-code">_</span>、连字符 <span class="inline-code">-</span>。长度限制 2 至 30 个字符。
+        </div>
+        <ul class="point-list" style="margin-top:10px">
+          <li class="point-item"><div class="point-bar"></div><span class="inline-code">luna</span> · <span class="inline-code">star.girl</span> · <span class="inline-code">night_owl</span> · <span class="inline-code">user-2099</span> · <span class="inline-code">mr.chen</span> ✓</li>
+        </ul>
+      </div>
+
+      <div class="rule-block">
+        <div class="rule-head">
+          <div class="rule-icon" style="background:var(--red-light)">✕</div>
+          <div class="rule-title">不允许的情况</div>
+        </div>
+        <div class="rule-body">不能以点号、下划线或连字符开头或结尾；不能包含连续两个点号；不能使用大写字母或中文。</div>
+        <ul class="point-list" style="margin-top:10px">
+          <li class="point-item"><div class="point-bar" style="background:var(--red)"></div><span class="inline-code">.luna</span> · <span class="inline-code">luna.</span> · <span class="inline-code">star..girl</span> · <span class="inline-code">Luna</span> · <span class="inline-code">月亮</span> ✕</li>
+        </ul>
+      </div>
+
+      <div class="rule-block">
+        <div class="rule-head">
+          <div class="rule-icon" style="background:var(--gold-light)">!</div>
+          <div class="rule-title">唯一性与保留词</div>
+        </div>
+        <div class="rule-body">同一域名下用户名不可重复。以下用户名被系统保留，不可注册：<span class="inline-code">admin</span>、<span class="inline-code">system</span>、<span class="inline-code">noreply</span>、<span class="inline-code">support</span>、<span class="inline-code">luna</span>、<span class="inline-code">mail</span>、<span class="inline-code">info</span>。</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">常见地址示例</div>
+      <table class="compare-table">
+        <thead>
+          <tr><th>地址示例</th><th>适合什么角色</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>silvana@lunmail.net</td><td>普通市民，低调务实</td></tr>
+          <tr><td>night.bloom@starveil.io</td><td>文艺青年，喜欢诗意感</td></tr>
+          <tr><td>x_void@voidpost.io</td><td>神秘人物或地下从业者</td></tr>
+          <tr><td>rey2099@moonshard.me</td><td>年轻网络创作者</td></tr>
+          <tr><td>chen.li@firma.celestira.co</td><td>企业员工的工作邮箱</td></tr>
+          <tr><td>noreply@aethermsg.net</td><td>官方系统发送的通知（仅内部用）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── 邮件格式 ── -->
+  <div class="page" id="page-formats">
+    <div class="page-header">
+      <div class="chapter-num">Chapter 04 · Mail Formats</div>
+      <div class="page-title">邮件格式</div>
+      <div class="page-lead">四类使用场景各有对应的格式惯例，下方提供可参考的示例模板。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">私信 · 角色间通讯</div>
+      <div class="mail-preview">
+        <div class="mail-header">
+          <div class="mail-subject">Re: 关于上次的委托</div>
+          <div class="mail-meta">
+            <div class="mail-meta-row"><span class="mail-meta-key">发件</span><span class="mail-meta-val">silvana@starveil.io</span></div>
+            <div class="mail-meta-row"><span class="mail-meta-key">收件</span><span class="mail-meta-val">night.owl@moonshard.me</span></div>
+            <div class="mail-meta-row"><span class="mail-meta-key">时间</span><span class="mail-meta-val">周三 · 23:14</span></div>
+          </div>
+        </div>
+        <div class="mail-body">
+          <p>你好，</p>
+          <p>收到你的消息了。上次说的那批货我已经确认过了，没有问题，可以按原计划进行。</p>
+          <p>时间我这边都可以，你定就好，提前告诉我地点。</p>
+          <div class="mail-sig">— Sil<br><span style="color:var(--text3);font-size:11px">silvana@starveil.io</span></div>
+        </div>
+      </div>
+      <div class="tip-box">私信格式自由，签名可以只写昵称或全名，不需要正式称谓。邮件地址本身就是身份标识。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">商务邮件 · 工作往来</div>
+      <div class="mail-preview">
+        <div class="mail-header">
+          <div class="mail-subject">关于合作提案——Vela 工作室</div>
+          <div class="mail-meta">
+            <div class="mail-meta-row"><span class="mail-meta-key">发件</span><span class="mail-meta-val">m.chen@vela-studio.celestira.co</span></div>
+            <div class="mail-meta-row"><span class="mail-meta-key">收件</span><span class="mail-meta-val">contact@nova-press.celestira.co</span></div>
+            <div class="mail-meta-row"><span class="mail-meta-key">时间</span><span class="mail-meta-val">周一 · 09:30</span></div>
+          </div>
+        </div>
+        <div class="mail-body">
+          <p>您好，</p>
+          <p>我是 Vela 工作室的陈明，负责对外合作事务。近期注意到贵方在视觉领域的项目，认为双方有一定合作空间，故发此邮件表达意向。</p>
+          <p>如有兴趣，期待与您进一步沟通，可回复此邮件约定时间。</p>
+          <div class="mail-sig">陈明 · 合作负责人<br>Vela 工作室<br><span style="color:var(--text3);font-size:11px">m.chen@vela-studio.celestira.co</span></div>
+        </div>
+      </div>
+      <div class="tip-box">商务邮件建议使用 @celestira.co 的认证商业域名，签名包含姓名、职务、公司名，增加可信度。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">系统通知 · Luna 钱包 / 小手机</div>
+      <div class="mail-preview">
+        <div class="mail-header">
+          <div class="mail-subject">【账单通知】本月 Luna 小手机费用明细</div>
+          <div class="mail-meta">
+            <div class="mail-meta-row"><span class="mail-meta-key">发件</span><span class="mail-meta-val">billing@aethermsg.net</span></div>
+            <div class="mail-meta-row"><span class="mail-meta-key">收件</span><span class="mail-meta-val">silvana@starveil.io</span></div>
+            <div class="mail-meta-row"><span class="mail-meta-key">时间</span><span class="mail-meta-val">本月最后一天 · 00:01</span></div>
+          </div>
+        </div>
+        <div class="mail-body">
+          <p>您好，以下是您本月的通讯账单。</p>
+          <table style="width:100%;font-size:13px;border-collapse:collapse;margin:10px 0">
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--text2)">套餐费用（月华套餐）</td><td style="text-align:right;font-weight:600">80 Lune</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--text2)">短信超出（+14 条）</td><td style="text-align:right;font-weight:600">7 Lune</td></tr>
+            <tr><td style="padding:6px 0;color:var(--text)">本月合计</td><td style="text-align:right;font-weight:700;color:var(--accent);font-size:16px">87 Lune</td></tr>
+          </table>
+          <p>已从您的 Luna 钱包自动扣款，感谢使用。</p>
+        </div>
+        <div class="mail-footer">此邮件由 Luna 系统自动发送，请勿直接回复 · billing@aethermsg.net</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 验证码 ── -->
+  <div class="page" id="page-verify">
+    <div class="page-header">
+      <div class="chapter-num">Chapter 05 · Verification</div>
+      <div class="page-title">验证码邮件</div>
+      <div class="page-lead">用于账号注册、密码找回、设备绑定的 6 位数字验证码，由官方 @aethermsg.net 域名发出，免费且不限次数。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title">验证码邮件示例</div>
+      <div class="mail-preview">
+        <div class="mail-header">
+          <div class="mail-subject">【Luna 账号】您的验证码</div>
+          <div class="mail-meta">
+            <div class="mail-meta-row"><span class="mail-meta-key">发件</span><span class="mail-meta-val">noreply@aethermsg.net</span></div>
+            <div class="mail-meta-row"><span class="mail-meta-key">收件</span><span class="mail-meta-val">silvana@starveil.io</span></div>
+            <div class="mail-meta-row"><span class="mail-meta-key">时间</span><span class="mail-meta-val">今天 · 14:22</span></div>
+          </div>
+        </div>
+        <div class="mail-body">
+          <p>您好，</p>
+          <p>您正在进行账号注册操作，以下是您的验证码：</p>
+          <div class="mail-code-block">
+            <div class="mail-code" id="demo-code">4 8 2 7 1 6</div>
+            <div class="mail-code-hint">验证码 15 分钟内有效 · 请勿泄露给任何人</div>
+          </div>
+          <p>如果这不是您本人的操作，请忽略此邮件。您的账号不会受到任何影响。</p>
+        </div>
+        <div class="mail-footer">此邮件由 Luna 系统自动发送，请勿直接回复 · noreply@aethermsg.net</div>
+      </div>
+      <button onclick="genCode()" style="margin-top:10px;padding:9px 18px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);font-family:'Noto Sans SC',sans-serif;font-size:13px;cursor:pointer;color:var(--accent);font-weight:500">↺ 生成新验证码示例</button>
+    </div>
+
+    <div class="block">
+      <div class="block-title">使用场景与规则</div>
+
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">账号注册</div>
+            <div class="step-desc">在第三方平台注册时选择「邮箱验证」，填写 Luna Mail 地址后，平台向该地址发送验证码邮件。收到后填入即可完成注册。</div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">密码找回</div>
+            <div class="step-desc">忘记密码时，输入注册邮箱，系统发送验证码。验证通过后可重置密码。注意：验证码 15 分钟后失效，过期需重新申请。</div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">设备绑定 / 异地登录</div>
+            <div class="step-desc">在新设备上登录已有账号，或从异地 IP 登录时，系统可能要求邮箱验证以确认身份。此场景与 Luna 小手机短信验证码等价，二选一即可。</div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">关键操作二次确认</div>
+            <div class="step-desc">部分高风险操作（如修改绑定手机号、大额转账二次确认）会同时向邮箱和手机发送验证码，需两者都填入才能通过。</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="block-title">与短信验证码的对比</div>
+      <table class="compare-table">
+        <thead>
+          <tr><th>对比项</th><th>邮箱验证码</th><th>短信验证码</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>费用</td><td style="color:var(--teal)">完全免费</td><td style="color:var(--text2)">验证码免费（Luna 小手机设定）</td></tr>
+          <tr><td>有效期</td><td>15 分钟</td><td>5 分钟</td></tr>
+          <tr><td>到达速度</td><td style="color:var(--text2)">略慢（秒级~分钟级）</td><td style="color:var(--teal)">即时（秒级）</td></tr>
+          <tr><td>离线可用</td><td style="color:var(--teal)">可（只要能收邮件）</td><td style="color:var(--text2)">需要信号</td></tr>
+          <tr><td>适用场景</td><td>所有验证场景</td><td>所有验证场景</td></tr>
+        </tbody>
+      </table>
+      <div class="tip-box warn">叙事提示：邮箱验证码有效期更长（15 分钟 vs 5 分钟），适合用在「角色正在忙其他事、稍后才回来查看」的情节中，增加生活感。</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+function goBack() {
+  window.location.href = 'settings.html';
+}
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+      n.classList.add('active');
+    }
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateAddr() {
+  const user = document.getElementById('addr-user').value.toLowerCase().replace(/[^a-z0-9._-]/g,'') || 'yourname';
+  const domain = document.getElementById('addr-domain').value;
+  document.getElementById('addr-preview').textContent = user + '@' + domain;
+}
+
+function genCode() {
+  const digits = Array.from({length:6}, () => Math.floor(Math.random()*10));
+  document.getElementById('demo-code').textContent = digits.join(' ');
+}
+
+/* ── 时间同步（读 luna_tz，与 index 一致） ── */
+function updateTime() {
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('zh-CN', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  const el = document.getElementById('statusTime');
+  if (el) el.textContent = timeStr;
+}
+updateTime();
+setInterval(updateTime, 1000);
+
+/* ── 电量同步（与 index 一致） ── */
+function updateBattery() {
+  const pctEl = document.getElementById('batPct');
+  const innerEl = document.getElementById('batInner');
+  function render(pct) {
+    const p = Math.round(pct);
+    if (pctEl) pctEl.textContent = p;
+    if (innerEl) {
+      innerEl.style.width = p + '%';
+      innerEl.style.background = p <= 20
+        ? 'linear-gradient(90deg,#f87171,#ef4444)'
+        : 'linear-gradient(90deg,#6ee7b7,#34d399)';
+    }
+  }
+  if ('getBattery' in navigator) {
+    navigator.getBattery().then(b => {
+      render(b.level * 100);
+      b.addEventListener('levelchange', () => render(b.level * 100));
+    });
+  } else { render(76); }
+}
+updateBattery();
+
+/* ── 灵动岛同步（读 localStorage，与 index 的 applyIsland 完全一致） ── */
+function applyIsland() {
+  const enabled = localStorage.getItem('luna_island_enabled') === 'true';
+  const style   = localStorage.getItem('luna_island_style') || 'minimal';
+  const el      = document.getElementById('statusIsland');
+  if (!el) return;
+  if (!enabled) { el.innerHTML = ''; return; }
+  const styleMap = {
+    minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+    glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+    clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text" id="siClockText">--:--</span></div></div>`,
+    pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+    ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+    rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+    music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+    scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+  };
+  el.innerHTML = styleMap[style] || styleMap.minimal;
+  clearInterval(window._siClockTimer);
+  if (style === 'clock') {
+    const tick = () => {
+      const t = document.getElementById('siClockText');
+      if (!t) return;
+      const now = new Date();
+      t.textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+    };
+    tick();
+    window._siClockTimer = setInterval(tick, 10000);
+  }
+}
+applyIsland();
+
+/* ── 字体同步（与 index 的 applyGlobalFont 完全一致） ── */
+async function applyGlobalFont() {
+  const style = JSON.parse(localStorage.getItem('luna_font_style') || '{}');
+  const name  = localStorage.getItem('luna_font_active_name');
+  const id    = parseInt(localStorage.getItem('luna_font_active_id'));
+  if (name && id) {
+    try {
+      const db = await new Promise((res, rej) => {
+        const req = indexedDB.open('LunaFontDB', 4);
+        req.onsuccess = e => res(e.target.result);
+        req.onerror = () => rej();
+      });
+      const all = await new Promise(res => {
+        const r = db.transaction('fonts').objectStore('fonts').getAll();
+        r.onsuccess = () => res(r.result || []);
+        r.onerror = () => res([]);
+      });
+      const f = all.find(x => x.id === id);
+      if (f) {
+        const face = new FontFace(name, `url(${f.data})`);
+        await face.load();
+        document.fonts.add(face);
+      }
+    } catch(e) {}
+  }
+  let tag = document.getElementById('luna-font-override');
+  if (!tag) {
+    tag = document.createElement('style');
+    tag.id = 'luna-font-override';
+    document.head.appendChild(tag);
+  }
+  const familyRule = name ? `font-family: '${name}', sans-serif !important;` : '';
+  /* 注意：不同步颜色和大小，只同步字体族 */
+  tag.textContent = `* { ${familyRule} }`;
+}
+applyGlobalFont();
+
+/* ── 监听 settings 实时变化（切换字体/岛后立即生效） ── */
+window.addEventListener('storage', e => {
+  if (e.key === 'luna_font_update')   applyGlobalFont();
+  if (e.key === 'luna_island_update') applyIsland();
+  if (e.key === 'luna_tz_update')     updateTime();
+});
+
+/* ── pageshow 防缓存（与 index 一致） ── */
+window.addEventListener('pageshow', e => {
+  if (e.persisted) window.location.reload();
+  applyGlobalFont();
+});
+</script>
+</body>
+</html>
