@@ -15,6 +15,308 @@
 
 <div class="w-frame">
 
+<!-- =====================
+     启动 Splash 页
+===================== -->
+<!-- =====================
+     首次引导页（Onboarding）
+===================== -->
+<div id="wOnboarding" style="display:none;position:fixed;inset:0;z-index:20000;background:#edecea;flex-direction:column;align-items:center;overflow:hidden">
+
+  <!-- 背景同心圆 -->
+  <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">
+    <div class="ws-arc" style="width:520px;height:520px;top:50%;left:50%;transform:translate(-50%,-50%)"></div>
+    <div class="ws-arc" style="width:380px;height:380px;top:50%;left:50%;transform:translate(-50%,-50%);border-color:rgba(160,158,148,.12)"></div>
+    <div class="ws-arc" style="width:250px;height:250px;top:50%;left:50%;transform:translate(-50%,-50%);border-color:rgba(160,158,148,.08)"></div>
+  </div>
+
+  <!-- 顶部状态条 -->
+  <div style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:32px 26px 0;position:relative;z-index:2;flex-shrink:0">
+      <span style="font-size:13px;letter-spacing:.16em;color:#b0afa8;text-transform:uppercase">Luna Wallet</span>
+      <span id="obSkipBtn" style="font-size:13px;letter-spacing:.12em;color:#a8a79f;text-transform:uppercase;cursor:pointer;padding:4px 0" onclick="obGoTo(3)">跳过</span>
+  </div>
+
+  <!-- 页面容器（4屏水平滑动） -->
+  <div id="obWrap" style="position:relative;flex:1;width:100%;overflow:hidden">
+
+    <!-- 屏幕0：欢迎 -->
+    <div class="ob-screen active" id="obS0">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;padding:16px 28px;width:100%">
+        <!-- Logo同心圆 -->
+        <div style="position:relative;width:130px;height:130px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;flex-shrink:0">
+          <div class="ws-ring ws-ring-2"></div>
+          <div class="ws-ring ws-ring-1"></div>
+          <div class="ws-logo-circle" style="width:110px;height:110px">
+            <svg width="44" height="44" viewBox="0 0 52 52" fill="none">
+              <path d="M26 8 C17.2 8 10 15 10 26 C10 37 17.2 44 26 44 C20 44 15.5 38.5 15.5 32 C15.5 22 20.5 13 26 8Z" fill="#8a8880"/>
+              <path d="M26 14 C22 17 19 22 18.5 28" stroke="#a8a69e" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.6"/>
+              <circle cx="40" cy="20" r="1.4" fill="#9a9890"/>
+              <circle cx="36" cy="36" r="1" fill="#9a9890"/>
+              <circle cx="42" cy="32" r="0.8" fill="#9a9890"/>
+            </svg>
+          </div>
+        </div>
+        <!-- 标签 -->
+        <div style="display:flex;gap:10px;margin-bottom:18px">
+          <div class="ws-tag" style="font-size:12px;padding:7px 20px">安全</div>
+          <div class="ws-tag" style="font-size:12px;padding:7px 20px">私密</div>
+          <div class="ws-tag" style="font-size:12px;padding:7px 20px">即时</div>
+        </div>
+        <!-- 标题 -->
+        <div style="font-size:36px;font-weight:500;color:#1a1a18;letter-spacing:.18em;text-align:center;margin-bottom:8px;font-family:'Playfair Display',serif">LUNA</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:30px;height:.5px;background:#a8a79f"></div>
+          <div style="font-size:10px;letter-spacing:.22em;color:#8a8880">WALLET</div>
+          <div style="width:30px;height:.5px;background:#a8a79f"></div>
+        </div>
+        <div style="font-size:12px;color:#9a9890;text-align:center;line-height:1.7;margin-bottom:28px;max-width:220px">专为你的真实用钱习惯而生的私密、无界钱包。</div>
+        <!-- 统计数据条 -->
+        <div style="width:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.5);border:.5px solid rgba(200,199,192,.5);border-radius:16px;padding:14px 0">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+            <div style="font-size:15px;font-weight:500;color:#2e2e28">128K+</div>
+            <div style="font-size:8px;color:#a8a79f;letter-spacing:.12em;text-transform:uppercase">用户</div>
+          </div>
+          <div style="width:.5px;height:24px;background:#d8d7d0"></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+            <div style="font-size:15px;font-weight:500;color:#2e2e28">99.9%</div>
+            <div style="font-size:8px;color:#a8a79f;letter-spacing:.12em;text-transform:uppercase">在线率</div>
+          </div>
+          <div style="width:.5px;height:24px;background:#d8d7d0"></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+            <div style="font-size:15px;font-weight:500;color:#2e2e28">0 手续费</div>
+            <div style="font-size:8px;color:#a8a79f;letter-spacing:.12em;text-transform:uppercase">转账</div>
+          </div>
+        </div>
+      </div>
+      <div class="ob-dots-row"><div class="ob-dot on"></div><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div></div>
+      <div style="width:100%;padding:0 24px 32px">
+        <button class="ob-btn-main" onclick="obGoTo(1)">立即开始 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+      </div>
+    </div>
+
+    <!-- 屏幕1：功能一 -->
+    <div class="ob-screen" id="obS1">
+      <!-- 背景装饰线 -->
+      <div style="position:absolute;top:40px;left:16px;opacity:.05;pointer-events:none">
+        <svg width="80" height="80" viewBox="0 0 80 80" fill="none"><rect x="10" y="10" width="60" height="60" rx="8" stroke="#5a5a52" stroke-width="1"/><rect x="22" y="22" width="36" height="36" rx="4" stroke="#5a5a52" stroke-width="1"/><rect x="34" y="34" width="12" height="12" rx="2" stroke="#5a5a52" stroke-width="1"/></svg>
+      </div>
+      <div style="position:absolute;bottom:110px;right:18px;opacity:.05;pointer-events:none">
+        <svg width="60" height="60" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="28" stroke="#5a5a52" stroke-width="1"/><line x1="2" y1="30" x2="58" y2="30" stroke="#5a5a52" stroke-width="1"/><path d="M30 2 C15 15 15 45 30 58 C45 45 45 15 30 2Z" stroke="#5a5a52" stroke-width="1" fill="none"/></svg>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;padding:8px 28px;width:100%;position:relative;z-index:1">
+        <!-- 图标圆 -->
+        <div style="position:relative;width:130px;height:130px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;flex-shrink:0">
+          <div style="position:absolute;width:130px;height:130px;border-radius:50%;border:1px solid rgba(160,158,148,.22)"></div>
+          <div style="position:absolute;width:100px;height:100px;border-radius:50%;border:1px solid rgba(160,158,148,.15)"></div>
+          <div class="ws-logo-circle" style="width:80px;height:80px">
+            <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+              <rect x="6" y="14" width="36" height="24" rx="4" stroke="#8a8880" stroke-width="1.2"/>
+              <rect x="6" y="20" width="36" height="6" fill="#d0cfc8"/>
+              <rect x="12" y="30" width="10" height="3" rx="1.5" fill="#a8a79f"/>
+              <circle cx="36" cy="31.5" r="3" stroke="#8a8880" stroke-width="1.2"/>
+            </svg>
+          </div>
+        </div>
+        <div style="font-size:13px;letter-spacing:.12em;color:#8a8880;font-weight:500;margin-bottom:8px;text-align:center">— 功能一 —</div>
+        <div style="font-size:20px;font-weight:500;color:#1a1a18;letter-spacing:-.01em;text-align:center;line-height:1.3;margin-bottom:10px">存储与消费，零摩擦</div>
+        <div style="font-size:12px;color:#9a9890;text-align:center;line-height:1.7;margin-bottom:22px;max-width:220px">一次充值，随处使用。Luna 实时兑换、转账并记录每笔交易——无隐藏收费。</div>
+        <!-- 功能对照卡 -->
+        <div style="width:100%;background:rgba(255,255,255,.5);border:.5px solid rgba(200,199,192,.5);border-radius:16px;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:.5px solid rgba(200,199,192,.4)"><span style="font-size:14px;color:#5a5a52">即时转账</span><span style="font-size:14px;color:#3a8a60;font-weight:500">0 手续费</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:.5px solid rgba(200,199,192,.4)"><span style="font-size:14px;color:#5a5a52">外汇兑换</span><span style="font-size:14px;color:#3a8a60;font-weight:500">实时汇率</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px"><span style="font-size:14px;color:#5a5a52">消费分析</span><span style="font-size:14px;color:#3a8a60;font-weight:500">自动分类</span></div>
+        </div>
+      </div>
+      <div class="ob-dots-row"><div class="ob-dot"></div><div class="ob-dot on"></div><div class="ob-dot"></div><div class="ob-dot"></div></div>
+      <div style="width:100%;padding:0 24px 32px">
+        <button class="ob-btn-main" onclick="obGoTo(2)">继续 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+      </div>
+    </div>
+
+    <!-- 屏幕2：功能二 -->
+    <div class="ob-screen" id="obS2">
+      <div style="position:absolute;bottom:90px;left:14px;opacity:.05;pointer-events:none">
+        <svg width="70" height="70" viewBox="0 0 70 70" fill="none"><path d="M35 5 L65 25 L65 45 L35 65 L5 45 L5 25 Z" stroke="#5a5a52" stroke-width="1" fill="none"/><path d="M35 15 L55 28 L55 42 L35 55 L15 42 L15 28 Z" stroke="#5a5a52" stroke-width="1" fill="none"/></svg>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;padding:8px 28px;width:100%;position:relative;z-index:1">
+        <div style="position:relative;width:130px;height:130px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <div style="position:absolute;width:130px;height:130px;border-radius:50%;border:1px solid rgba(160,158,148,.22)"></div>
+          <div style="position:absolute;width:100px;height:100px;border-radius:50%;border:1px solid rgba(160,158,148,.15)"></div>
+          <div class="ws-logo-circle" style="width:80px;height:80px">
+            <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
+              <path d="M24 6 L26 14 L34 14 L28 19 L30 27 L24 22 L18 27 L20 19 L14 14 L22 14 Z" stroke="#8a8880" stroke-width="1" fill="none"/>
+              <circle cx="24" cy="30" r="10" stroke="#a8a79f" stroke-width="1" stroke-dasharray="3 2"/>
+              <circle cx="24" cy="30" r="5" stroke="#8a8880" stroke-width="1.2"/>
+            </svg>
+          </div>
+        </div>
+        <div style="width:100%;text-align:center">
+          <div style="font-size:13px;letter-spacing:.12em;color:#8a8880;font-weight:500;margin-bottom:16px">— 功能二 —</div>
+          <div style="font-size:24px;font-weight:500;color:#1a1a18;letter-spacing:-.01em;text-align:center;line-height:1.4;margin-bottom:16px">隐私是默认选项，而非升级包</div>
+          <div style="font-size:13px;color:#9a9890;text-align:center;line-height:1.9;max-width:220px;margin:0 auto">你的数据始终属于你。端对端加密，从不出售，从不共享。</div>
+        </div>
+        <div style="width:100%;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.5);border:.5px solid rgba(200,199,192,.5);border-radius:14px;padding:16px 18px">
+            <div style="width:36px;height:36px;border-radius:10px;border:.5px solid #c8c7c0;background:#e8e7e2;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a8880" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div>
+              <div style="font-size:14px;font-weight:500;color:#3a3a34;margin-bottom:3px">端对端加密</div>
+              <div style="font-size:12px;color:#a8a79f">所有数据静态与传输均加密</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.5);border:.5px solid rgba(200,199,192,.5);border-radius:14px;padding:16px 18px">
+            <div style="width:36px;height:36px;border-radius:10px;border:.5px solid #c8c7c0;background:#e8e7e2;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a8880" stroke-width="1.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <div style="font-size:14px;font-weight:500;color:#3a3a34;margin-bottom:3px">零数据出售承诺</div>
+              <div style="font-size:12px;color:#a8a79f">你的信息永不离开 Luna</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ob-dots-row"><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot on"></div><div class="ob-dot"></div></div>
+      <div style="width:100%;padding:0 24px 32px">
+        <button class="ob-btn-main" onclick="obGoTo(3)">继续 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+      </div>
+    </div>
+
+    <!-- 屏幕3：创建账号（同步 LunaIdentityDB 身份选择） -->
+    <div class="ob-screen" id="obS3">
+      <div style="position:absolute;top:30px;left:10px;opacity:.04;pointer-events:none">
+        <svg width="60" height="100" viewBox="0 0 60 100" fill="none"><line x1="0" y1="0" x2="60" y2="0" stroke="#5a5a52" stroke-width=".8"/><line x1="0" y1="25" x2="60" y2="25" stroke="#5a5a52" stroke-width=".8"/><line x1="0" y1="50" x2="60" y2="50" stroke="#5a5a52" stroke-width=".8"/><line x1="0" y1="75" x2="60" y2="75" stroke="#5a5a52" stroke-width=".8"/><line x1="0" y1="100" x2="60" y2="100" stroke="#5a5a52" stroke-width=".8"/><line x1="0" y1="0" x2="0" y2="100" stroke="#5a5a52" stroke-width=".8"/><line x1="30" y1="0" x2="30" y2="100" stroke="#5a5a52" stroke-width=".8"/><line x1="60" y1="0" x2="60" y2="100" stroke="#5a5a52" stroke-width=".8"/></svg>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;width:100%;padding:16px 24px 0;position:relative;z-index:1">
+        <div style="text-align:center;margin-bottom:28px">
+          <div style="font-size:22px;font-weight:500;color:#1a1a18;letter-spacing:-.01em;margin-bottom:6px">创建钱包账号</div>
+          <div style="font-size:12px;color:#9a9890;letter-spacing:.02em;margin-bottom:16px">只需 60 秒</div>
+          <div style="display:flex;justify-content:center;gap:8px">
+            <div style="width:28px;height:2px;border-radius:1px;background:#2e2e28"></div>
+            <div style="width:28px;height:2px;border-radius:1px;background:#d0cfc8"></div>
+            <div style="width:28px;height:2px;border-radius:1px;background:#d0cfc8"></div>
+          </div>
+        </div>
+        <!-- 表单 -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:11px;letter-spacing:.14em;color:#a0a098;text-transform:uppercase;margin-bottom:8px">姓名</div>
+          <input id="obInputName" style="width:100%;height:50px;background:rgba(255,255,255,.7);border:1px solid #d4d3cc;border-radius:14px;padding:0 16px;font-size:15px;color:#2e2e28;outline:none" type="text" placeholder="你的姓名"/>
+        </div>
+        <!-- 分割线 -->
+        <div style="width:100%;height:.5px;background:#d8d7d0;margin:4px 0 16px;position:relative">
+          <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#edecea;padding:0 10px;font-size:9px;color:#b0afa8;letter-spacing:.1em">或绑定已有身份</span>
+        </div>
+        <!-- 身份选择区（从 LunaIdentityDB 读取） -->
+        <div style="margin-bottom:10px">
+          <div style="font-size:9px;letter-spacing:.14em;color:#a0a098;text-transform:uppercase;margin-bottom:8px">选择身份档案（可选）</div>
+          <div id="obIdentityList" style="display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto">
+            <div style="font-size:11px;color:#c0bfb8;text-align:center;padding:12px 0">加载中...</div>
+          </div>
+        </div>
+        <!-- 服务条款 -->
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;margin-top:4px">
+          <div id="obChk" style="width:16px;height:16px;border-radius:4px;border:1px solid #c4c3bc;background:rgba(255,255,255,.6);flex-shrink:0;margin-top:1px;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="obToggleChk()"></div>
+          <div style="font-size:10px;color:#a8a79f;line-height:1.5">我同意<span style="color:#6a6a62">服务条款</span>和<span style="color:#6a6a62">隐私政策</span>——包括零数据出售承诺。</div>
+        </div>
+      </div>
+      <div class="ob-dots-row"><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot on"></div></div>
+      <div style="width:100%;padding:8px 24px 32px">
+        <button class="ob-btn-main" onclick="obSubmit()">创建我的账号 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        <button style="width:100%;height:44px;border-radius:14px;background:transparent;color:#8a8880;font-size:12px;letter-spacing:.04em;border:1px solid #d0cfc8;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center" onclick="obGoTo(0)">← 返回介绍</button>
+      </div>
+    </div>
+
+  </div><!-- /obWrap -->
+</div>
+<!-- /Onboarding -->
+
+<div class="w-splash" id="wSplash">
+
+  <!-- 背景装饰：满屏同心圆，圆心在正中 -->
+  <div class="ws-arcs">
+    <div class="ws-arc ws-arc-1"></div>
+    <div class="ws-arc ws-arc-2"></div>
+    <div class="ws-arc ws-arc-3"></div>
+    <div class="ws-arc ws-arc-4"></div>
+  </div>
+
+  <!-- ① 顶部区：状语 + 版本 -->
+  <div class="ws-top-bar">
+    <span class="ws-top-label">LUNA PROTOCOL</span>
+    <span class="ws-top-ver">v2.4.1</span>
+  </div>
+
+  <!-- ② 中央核心区 -->
+  <div class="ws-center">
+    <!-- Logo -->
+    <div class="ws-logo-wrap">
+      <div class="ws-ring ws-ring-2"></div>
+      <div class="ws-ring ws-ring-1"></div>
+      <div class="ws-logo-circle">
+        <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+          <path d="M26 8 C17.2 8 10 15 10 26 C10 37 17.2 44 26 44 C20 44 15.5 38.5 15.5 32 C15.5 22 20.5 13 26 8Z" fill="#8a8880"/>
+          <path d="M26 14 C22 17 19 22 18.5 28" stroke="#a8a69e" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <circle cx="40" cy="20" r="1.4" fill="#9a9890"/>
+          <circle cx="36" cy="36" r="1" fill="#9a9890"/>
+          <circle cx="42" cy="32" r="0.8" fill="#9a9890"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 主标题 -->
+    <div class="ws-wordmark">
+      <div class="ws-name">LUNA</div>
+      <div class="ws-divider-row">
+        <div class="ws-divider-line"></div>
+        <div class="ws-sub">WALLET</div>
+        <div class="ws-divider-line"></div>
+      </div>
+    </div>
+
+    <!-- 副标题语 -->
+    <div class="ws-tagline">Your money, your rules.</div>
+
+    <!-- 标签行 -->
+    <div class="ws-tags">
+      <div class="ws-tag">Secure</div>
+      <div class="ws-tag">Private</div>
+      <div class="ws-tag">Instant</div>
+    </div>
+  </div>
+
+  <!-- ③ 中部统计展示条（新增填充元素） -->
+  <div class="ws-stats">
+    <div class="ws-stat-item">
+      <div class="ws-stat-num">128K+</div>
+      <div class="ws-stat-label">Users</div>
+    </div>
+    <div class="ws-stat-divider"></div>
+    <div class="ws-stat-item">
+      <div class="ws-stat-num">99.9%</div>
+      <div class="ws-stat-label">Uptime</div>
+    </div>
+    <div class="ws-stat-divider"></div>
+    <div class="ws-stat-item">
+      <div class="ws-stat-num">0 fees</div>
+      <div class="ws-stat-label">Transfer</div>
+    </div>
+  </div>
+
+  <!-- ④ 底部加载区 -->
+  <div class="ws-bottom">
+    <div class="ws-loader">
+      <div class="ws-bar-track">
+        <div class="ws-bar-fill" id="wSplashBar"></div>
+      </div>
+      <div class="ws-loader-row">
+        <span class="ws-loader-status" id="wSplashStatus">Initializing</span>
+        <span class="ws-loader-pct" id="wSplashPct">0%</span>
+      </div>
+    </div>
+    <div class="ws-footer">Secured by Luna Protocol</div>
+  </div>
+
+</div>
   <!-- =====================
        状态栏 — 与 index.html 结构完全一致
   ===================== -->
@@ -277,41 +579,134 @@
     </div>
 
 
-    <!-- ── Tab 5: 我的 Me ── -->
-    <div class="w-page" id="pageMe">
-      <div class="w-page-title">我的</div>
-      <!-- 头像区 -->
-      <div class="w-me-header">
-        <div class="w-me-avatar" id="wMeAvatar">L</div>
-        <div class="w-me-name">Luna User</div>
-        <div class="w-me-id">ID: LN-20240001</div>
-      </div>
-      <!-- 设置列表 -->
-      <div class="w-me-list">
-        <div class="w-me-row" onclick="wAction('account')">
-          <span>账号信息</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
-        <div class="w-me-row" onclick="wAction('security')">
-          <span>安全设置</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
-        <div class="w-me-row" onclick="wAction('kyc')">
-          <span>实名认证</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
-        <div class="w-me-row" onclick="wAction('notify-settings')">
-          <span>通知设置</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
-        <div class="w-me-row" onclick="wAction('about')">
-          <span>关于 / 帮助</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
-      </div>
-      <!-- 退出 -->
-      <div class="w-logout-btn" onclick="wAction('logout')">退出登录</div>
+<!-- ── Tab 5: 我的 Me ── -->
+<div class="w-page" id="pageMe" style="overflow-y:hidden;display:flex;flex-direction:column">
+
+  <!-- ① Hero 区 -->
+  <div style="position:relative;padding:24px 20px 22px;overflow:hidden;background:#eaebed;flex-shrink:0">
+    <div style="position:absolute;width:280px;height:280px;border-radius:50%;border:.5px solid rgba(150,155,165,.12);top:-110px;left:-70px;pointer-events:none"></div>
+    <div style="position:absolute;width:170px;height:170px;border-radius:50%;border:.5px solid rgba(150,155,165,.08);top:-50px;left:-10px;pointer-events:none"></div>
+    <div style="position:absolute;width:140px;height:140px;border-radius:50%;border:.5px solid rgba(150,155,165,.08);bottom:-60px;right:-40px;pointer-events:none"></div>
+    <div style="position:absolute;top:20px;right:20px;display:grid;grid-template-columns:repeat(4,6px);gap:5px;pointer-events:none">
+      <div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.6"></div><div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.6"></div><div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.6"></div><div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.6"></div>
+      <div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.38"></div><div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.38"></div><div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.38"></div><div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.38"></div>
+      <div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.18"></div><div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.18"></div><div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.18"></div><div style="width:2.5px;height:2.5px;border-radius:50%;background:#b8bcc4;opacity:.18"></div>
     </div>
+
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;position:relative;z-index:1">
+      <div>
+        <div style="position:relative;display:inline-block;margin-bottom:18px">
+          <div id="wMeAvatar" style="width:62px;height:62px;border-radius:17px;background:#d0d3d8;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:500;color:#6a6e78;position:relative;z-index:1;box-shadow:0 3px 12px rgba(140,145,158,.2)">L</div>
+          <div style="position:absolute;inset:-5px;border-radius:22px;border:.5px solid rgba(150,155,165,.35)"></div>
+          <div style="position:absolute;inset:-11px;border-radius:28px;border:.5px solid rgba(150,155,165,.15)"></div>
+        </div>
+        <div id="wMeName" style="font-size:26px;font-weight:600;color:#252830;letter-spacing:-.5px;margin-bottom:10px">—</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="wMeUserId" style="font-size:12px;color:#9aa0ac;letter-spacing:.04em">LN · —</span>
+          <span style="font-size:11px;padding:2px 10px;border-radius:20px;background:rgba(150,155,165,.15);color:#6a6e78;border:.5px solid rgba(150,155,165,.28)">虚拟居民</span>
+        </div>
+      </div>
+      <div style="text-align:right;padding-bottom:2px">
+        <div style="font-size:10px;letter-spacing:.1em;color:#aab0bc;text-transform:uppercase;margin-bottom:3px">加入于</div>
+        <div id="wMeJoinDate" style="font-size:14px;font-weight:600;color:#3a3e48;letter-spacing:.02em">—</div>
+      </div>
+    </div>
+
+    <div style="display:flex;background:#dfe1e5;border-radius:13px;overflow:hidden;margin-top:20px;position:relative;z-index:1">
+      <div style="flex:1;padding:14px 0;text-align:center">
+        <div id="wMeAssets" style="font-size:19px;font-weight:600;color:#252830;margin-bottom:4px;letter-spacing:-.3px">¥0</div>
+        <div style="font-size:10px;color:#9aa0ac;letter-spacing:.08em;text-transform:uppercase">总资产</div>
+      </div>
+      <div style="width:.5px;background:rgba(150,155,165,.25)"></div>
+      <div style="flex:1;padding:14px 0;text-align:center">
+        <div id="wMeCards" style="font-size:19px;font-weight:600;color:#252830;margin-bottom:4px">0</div>
+        <div style="font-size:10px;color:#9aa0ac;letter-spacing:.08em;text-transform:uppercase">绑定卡</div>
+      </div>
+      <div style="width:.5px;background:rgba(150,155,165,.25)"></div>
+      <div style="flex:1;padding:14px 0;text-align:center">
+        <div id="wMeTxCount" style="font-size:19px;font-weight:600;color:#252830;margin-bottom:4px">0</div>
+        <div style="font-size:10px;color:#9aa0ac;letter-spacing:.08em;text-transform:uppercase">交易笔</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 支付设置 -->
+  <div style="padding:20px 20px 0;flex-shrink:0">
+    <div style="font-size:11px;letter-spacing:.12em;color:#9aa0ac;text-transform:uppercase;margin-bottom:10px;font-weight:500">支付设置</div>
+    <div style="background:#dfe1e5;border-radius:15px;padding:16px 15px;position:relative;overflow:hidden">
+      <div style="position:absolute;width:180px;height:180px;border-radius:50%;border:.5px solid rgba(150,155,165,.12);top:-70px;right:-40px;pointer-events:none"></div>
+      <div style="position:absolute;width:100px;height:100px;border-radius:50%;border:.5px solid rgba(150,155,165,.08);bottom:-30px;left:-20px;pointer-events:none"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;position:relative;z-index:1">
+        <div>
+          <div style="font-size:11px;letter-spacing:.12em;color:#9aa0ac;text-transform:uppercase;margin-bottom:10px;font-weight:500">支付密码</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="width:9px;height:9px;border-radius:50%;background:#b0b4be"></div>
+            <div style="width:9px;height:9px;border-radius:50%;background:#b0b4be"></div>
+            <div style="width:9px;height:9px;border-radius:50%;background:#b0b4be"></div>
+            <div style="width:9px;height:9px;border-radius:50%;background:#b0b4be"></div>
+            <div style="width:9px;height:9px;border-radius:50%;background:#b0b4be"></div>
+            <div style="width:9px;height:9px;border-radius:50%;background:#b0b4be"></div>
+          </div>
+        </div>
+        <div onclick="wAction('security')" style="width:32px;height:32px;border-radius:10px;background:#eaebed;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a8f9a" stroke-width="1.8" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1">
+        <div style="font-size:11px;color:#aab0bc;letter-spacing:.02em">上次修改 · 30天前</div>
+        <div style="font-size:10px;color:#b8bcc4;letter-spacing:.08em;text-transform:uppercase">安全</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 其他设置 -->
+  <div style="padding:20px 20px 0;flex-shrink:0">
+    <div style="font-size:11px;letter-spacing:.12em;color:#9aa0ac;text-transform:uppercase;margin-bottom:10px;font-weight:500">其他</div>
+    <div style="background:#dfe1e5;border-radius:15px;overflow:hidden">
+      <div onclick="wAction('notify-settings')" style="display:flex;align-items:center;gap:13px;padding:16px 14px;cursor:pointer">
+        <div style="width:35px;height:35px;border-radius:10px;background:#eaebed;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a8f9a" stroke-width="1.6" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:500;color:#252830;margin-bottom:3px">通知设置</div>
+          <div style="font-size:12px;color:#9aa0ac">收支提醒 · 系统消息</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b8bcc4" stroke-width="1.8"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div style="height:.5px;background:rgba(150,155,165,.18);margin:0 14px"></div>
+      <div onclick="wAction('logout')" style="display:flex;align-items:center;gap:13px;padding:16px 14px;cursor:pointer">
+        <div style="width:35px;height:35px;border-radius:10px;background:#eaebed;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a8f9a" stroke-width="1.6" stroke-linecap="round"><path d="M16 3h5v5"/><path d="M21 3l-7 7"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/></svg>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:500;color:#252830;margin-bottom:3px">切换账号</div>
+          <div style="font-size:12px;color:#9aa0ac">登录其他 Luna 账号</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b8bcc4" stroke-width="1.8"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 底部装饰区 — flex:1 精准填满剩余空间 -->
+  <div style="padding:20px 20px 0;flex:1;display:flex;flex-direction:column">
+    <div style="background:#dfe1e5;border-radius:15px;flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+      <div style="position:absolute;width:180px;height:180px;border-radius:50%;border:.5px solid rgba(150,155,165,.12);top:-70px;left:-50px;pointer-events:none"></div>
+      <div style="position:absolute;width:120px;height:120px;border-radius:50%;border:.5px solid rgba(150,155,165,.1);bottom:-40px;right:-30px;pointer-events:none"></div>
+      <svg width="22" height="22" viewBox="0 0 52 52" fill="none" style="opacity:.2;position:relative;z-index:1">
+        <path d="M26 8 C17.2 8 10 15 10 26 C10 37 17.2 44 26 44 C20 44 15.5 38.5 15.5 32 C15.5 22 20.5 13 26 8Z" fill="#6a6e78"/>
+        <circle cx="40" cy="20" r="1.4" fill="#6a6e78"/>
+        <circle cx="36" cy="36" r="1" fill="#6a6e78"/>
+      </svg>
+      <div style="font-size:10px;letter-spacing:.18em;color:#aab0bc;text-transform:uppercase;position:relative;z-index:1">Luna Wallet · v1.0</div>
+      <div style="display:flex;gap:5px;position:relative;z-index:1">
+        <div style="width:16px;height:2px;border-radius:1px;background:rgba(150,155,165,.3)"></div>
+        <div style="width:4px;height:2px;border-radius:1px;background:rgba(150,155,165,.18)"></div>
+        <div style="width:4px;height:2px;border-radius:1px;background:rgba(150,155,165,.1)"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
 
   </div><!-- /w-page-wrap -->
 
@@ -359,6 +754,97 @@
   <div id="wTransMask"></div>
 
 </div><!-- /w-frame -->
+
+<!-- =====================
+     支付设置页（全屏覆盖层）
+===================== -->
+<div id="wSecurityPage" style="display:none;position:absolute;inset:0;z-index:500;background:#eaebed;flex-direction:column;overflow:hidden;">
+
+  <!-- 顶部导航 -->
+  <div style="display:flex;align-items:center;gap:12px;padding:14px 20px 10px;flex-shrink:0">
+    <div onclick="wCloseSecurityPage()" style="width:34px;height:34px;border-radius:10px;background:rgba(150,155,165,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6a6e78" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </div>
+    <span style="font-size:17px;font-weight:600;color:#252830;letter-spacing:-.2px">支付设置</span>
+  </div>
+
+  <!-- 主体可滚动区 -->
+  <div style="flex:1;overflow-y:auto;padding:8px 20px 32px;display:flex;flex-direction:column;gap:16px;">
+
+    <!-- 开关区 -->
+    <div>
+      <div style="font-size:11px;letter-spacing:.12em;color:#9aa0ac;text-transform:uppercase;font-weight:500;margin-bottom:10px;padding:0 2px">支付密码</div>
+      <div style="background:#dfe1e5;border-radius:15px;padding:16px 15px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <div style="font-size:15px;font-weight:500;color:#252830;">启用支付密码</div>
+            <div style="font-size:12px;color:#9aa0ac;">每次支付时需要验证密码</div>
+          </div>
+          <div id="wSecToggle" onclick="wSecTogglePin()" style="width:44px;height:26px;border-radius:13px;background:#c8cad0;position:relative;cursor:pointer;transition:background .25s;flex-shrink:0;">
+            <div style="position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .25s cubic-bezier(.34,1.2,.64,1);box-shadow:0 1px 4px rgba(0,0,0,.18);" id="wSecToggleThumb"></div>
+          </div>
+        </div>
+        <!-- 已设置密码行 -->
+        <div id="wSecPinSetRow" style="display:none;">
+          <div style="height:.5px;background:rgba(150,155,165,.2);margin:12px 0;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:13px;color:#6a6e78;">当前密码</div>
+              <div style="display:flex;gap:6px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#b0b4be;"></div>
+                <div style="width:8px;height:8px;border-radius:50%;background:#b0b4be;"></div>
+                <div style="width:8px;height:8px;border-radius:50%;background:#b0b4be;"></div>
+                <div style="width:8px;height:8px;border-radius:50%;background:#b0b4be;"></div>
+              </div>
+            </div>
+            <div onclick="wSecStartChange()" style="font-size:13px;color:#9aa0ac;cursor:pointer;">修改 ›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 输入区 -->
+    <div id="wSecPinInputArea" style="display:none;">
+      <div style="font-size:11px;letter-spacing:.12em;color:#9aa0ac;text-transform:uppercase;font-weight:500;margin-bottom:10px;padding:0 2px" id="wSecAreaLabel">设置密码</div>
+      <div style="background:#dfe1e5;border-radius:15px;padding:16px 15px;">
+        <div id="wSecHint" style="font-size:11px;color:#aab0bc;text-align:center;letter-spacing:.04em;margin-bottom:12px;">请输入 4 位数字密码</div>
+        <!-- 4格 -->
+        <div style="display:flex;gap:10px;justify-content:center;padding:8px 0 4px;">
+          <div class="w-pin-cell" id="wpc0"></div>
+          <div class="w-pin-cell" id="wpc1"></div>
+          <div class="w-pin-cell" id="wpc2"></div>
+          <div class="w-pin-cell" id="wpc3"></div>
+        </div>
+        <div style="height:16px;"></div>
+        <!-- 键盘 -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+          <div class="w-sec-key" onclick="wSecKey('1')">1</div>
+          <div class="w-sec-key" onclick="wSecKey('2')">2</div>
+          <div class="w-sec-key" onclick="wSecKey('3')">3</div>
+          <div class="w-sec-key" onclick="wSecKey('4')">4</div>
+          <div class="w-sec-key" onclick="wSecKey('5')">5</div>
+          <div class="w-sec-key" onclick="wSecKey('6')">6</div>
+          <div class="w-sec-key" onclick="wSecKey('7')">7</div>
+          <div class="w-sec-key" onclick="wSecKey('8')">8</div>
+          <div class="w-sec-key" onclick="wSecKey('9')">9</div>
+          <div style="background:transparent;"></div>
+          <div class="w-sec-key" onclick="wSecKey('0')">0</div>
+          <div class="w-sec-key" style="background:#d0d3d8;color:#6a6e78;" onclick="wSecDel()">
+            <svg width="18" height="14" viewBox="0 0 22 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-8-7z"/><line x1="12" y1="6" x2="16" y2="10"/><line x1="16" y1="6" x2="12" y2="10"/></svg>
+          </div>
+        </div>
+        <div style="height:16px;"></div>
+        <button id="wSecSaveBtn" onclick="wSecSave()" disabled style="width:100%;height:50px;border-radius:14px;background:#252830;color:#eaebed;font-size:15px;font-weight:600;border:none;cursor:pointer;opacity:.35;transition:opacity .15s,transform .1s;">保存</button>
+      </div>
+    </div>
+
+    <!-- 说明 -->
+    <div style="background:#dfe1e5;border-radius:15px;padding:14px 15px;">
+      <div style="font-size:13px;color:#9aa0ac;line-height:1.7;">支付密码用于转账、绑卡等操作的二次验证。密码加密保存在本地，不会上传到任何服务器。</div>
+    </div>
+
+  </div>
+</div>
 
 <script src="wallet.js"></script>
 </body>
