@@ -8,7 +8,7 @@ function updateTime() {
   const timeStr = new Date().toLocaleTimeString('zh-CN', {
     timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
   });
-  ['statusTime','taStatusTime','anonStatusTime','ncTime'].forEach(id => {
+  ['statusTime','taStatusTime','anonStatusTime','ncTime','futureStatusTime'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = timeStr;
   });
@@ -2711,6 +2711,27 @@ function closeNowPage() {
   if (overlay) { overlay.classList.remove('active'); overlay.style.display = 'none'; }
 }
 
+async function nowClearAndRegenerate() {
+  // 清除缓存，重置状态，重新生成
+  try {
+    const db = await nowOpenDB();
+    const tx = db.transaction(NOW_DB_STORE, 'readwrite');
+    tx.objectStore(NOW_DB_STORE).delete(NOW_CACHE_KEY);
+  } catch(e) {}
+  _nowSegments  = [];
+  _nowCollected = new Set();
+  _nowLocked    = null;
+  clearInterval(_nowNoiseTimer);
+  clearInterval(_nowWaveTimer);
+
+  const loading = document.getElementById('nowLoading');
+  const main    = document.getElementById('nowMain');
+  if (loading) { loading.style.display = 'flex'; loading.innerHTML = `<div style="display:flex;gap:4px;align-items:flex-end;height:28px;"><div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0s"></div><div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.1s"></div><div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.2s"></div><div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.3s"></div><div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.4s"></div></div><div style="font-size:11px;letter-spacing:0.15em;color:#bbb;">正在生成信号频道...</div>`; }
+  if (main)    main.style.display    = 'none';
+
+  await nowGenerate();
+}
+
 function nowMkNoise() {
   const pool = ['·','—',' ','·','—','·',' ','—'];
   const r = [];
@@ -2743,31 +2764,58 @@ function nowRenderSediment() {
   const el = document.getElementById('nowSediment');
   if (!el) return;
   el.innerHTML = '';
+
+  // 用于沉淀区心声切换
+  window.nowSedimentToggleHeart = function(btn, idx) {
+    const box = document.getElementById('nowSedHeart_' + idx);
+    if (!box) return;
+    const isOpen = btn.dataset.open === '1';
+    if (isOpen) {
+      box.style.maxHeight = '0'; box.style.opacity = '0';
+      btn.dataset.open = '0';
+      btn.querySelector('.sed-btn-txt').textContent = '听听 Ta 的心声';
+    } else {
+      box.style.maxHeight = '800px'; box.style.opacity = '1';
+      btn.dataset.open = '1';
+      btn.querySelector('.sed-btn-txt').textContent = '收起心声';
+    }
+  };
+
   for (let i = 0; i < 7; i++) {
     const has = _nowCollected.has(i);
     const seg = _nowSegments[i];
     const div = document.createElement('div');
-    div.style.cssText = 'padding:16px 0;border-bottom:0.5px solid #f3f3f3;display:flex;flex-direction:column;gap:0;';
+    div.style.cssText = 'padding:20px 0;border-bottom:0.5px solid #f0f0f0;';
+
     if (has && seg) {
+      const hasHeart = seg.heart && seg.heart.trim().length > 0;
       div.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <div style="width:5px;height:5px;border-radius:50%;background:#222;flex-shrink:0;"></div>
-          <div style="font-size:9px;color:#bbb;font-family:monospace;letter-spacing:0.1em;">${NOW_HZ_LABELS[i]} MHz</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#333;flex-shrink:0;"></div>
+          <div style="font-size:9px;color:#999;font-family:monospace;letter-spacing:0.1em;">${NOW_HZ_LABELS[i]} MHz</div>
         </div>
-        <div style="padding-left:13px;">
-          <div style="font-size:15px;color:#333;line-height:1.95;letter-spacing:0.03em;">${seg.body.replace(/\n/g,'<br>')}</div>
-          <div style="margin-top:10px;padding:10px 12px;border-left:1.5px solid #e0e0e0;background:#fafafa;">
-            <div style="font-size:9px;letter-spacing:0.14em;color:#ccc;margin-bottom:5px;">心声</div>
-            <div style="font-size:14px;color:#999;line-height:1.85;letter-spacing:0.03em;font-style:italic;">${seg.heart.replace(/\n/g,'<br>')}</div>
+        <div style="font-size:15px;color:#1a1a1a;line-height:2;letter-spacing:0.03em;">${seg.body.replace(/\n/g,'<br>')}</div>
+        ${hasHeart ? `
+        <button data-open="0" onclick="nowSedimentToggleHeart(this,${i})"
+          style="margin-top:14px;display:flex;align-items:center;gap:7px;background:none;border:0.5px solid #ddd;border-radius:20px;padding:7px 14px;cursor:pointer;font-size:11px;color:#999;letter-spacing:0.08em;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+          <span class="sed-btn-txt">听听 Ta 的心声</span>
+        </button>
+        <div id="nowSedHeart_${i}" style="overflow:hidden;max-height:0;opacity:0;transition:max-height 0.4s ease,opacity 0.4s ease;">
+          <div style="margin-top:12px;padding:16px 18px;border-left:2px solid #ccc;background:#f7f7f7;border-radius:0 8px 8px 0;">
+            <div style="font-size:9px;letter-spacing:0.16em;color:#bbb;margin-bottom:8px;">心声</div>
+            <div style="font-size:15px;color:#333;line-height:1.9;letter-spacing:0.03em;font-style:italic;">${seg.heart.replace(/\n/g,'<br>')}</div>
           </div>
-        </div>`;
+        </div>` : ''}`;
     } else {
       div.innerHTML = `
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:5px;height:5px;border-radius:50%;background:#e8e8e8;flex-shrink:0;"></div>
-          <div style="font-size:9px;color:#e0e0e0;font-family:monospace;letter-spacing:0.1em;">— — MHz</div>
+          <div style="font-size:9px;color:#ddd;font-family:monospace;letter-spacing:0.1em;">— — MHz</div>
         </div>
-        <div style="padding-left:13px;margin-top:8px;font-size:13px;color:#e0e0e0;font-style:italic;">· · · 待解锁 · · ·</div>`;
+        <div style="padding-left:13px;margin-top:8px;font-size:13px;color:#ddd;font-style:italic;letter-spacing:0.06em;">· · · 待解锁 · · ·</div>`;
     }
     el.appendChild(div);
   }
@@ -2794,7 +2842,6 @@ function nowUpdate() {
   const noiseTxt= document.getElementById('nowNoiseTxt');
   const clearWrap=document.getElementById('nowClearWrap');
   const clearMain=document.getElementById('nowClearMain');
-  const clearHeart=document.getElementById('nowClearHeart');
   const lockTag = document.getElementById('nowLockTag');
   const wavePath= document.getElementById('nowWavePath');
 
@@ -2809,29 +2856,53 @@ function nowUpdate() {
     if (_nowLocked !== found) {
       _nowLocked = found;
       clearInterval(_nowNoiseTimer);
-      if (noiseTxt)    noiseTxt.style.opacity  = '0';
-      if (clearMain)   clearMain.textContent    = _nowSegments[found].body;
-      if (clearHeart)  clearHeart.textContent   = _nowSegments[found].heart;
-      if (clearWrap)   clearWrap.style.opacity  = '1';
-      if (lockTag)     lockTag.style.color      = '#888';
-      if (badge)       badge.textContent        = 'LOCKED';
-      if (wavePath)  { wavePath.setAttribute('stroke', '#555'); wavePath.setAttribute('stroke-width', '1.1'); wavePath.setAttribute('d', nowWave(v, true)); }
+
+      const seg = _nowSegments[found];
+
+      // 噪音隐藏，内容显示
+      if (noiseTxt)  { noiseTxt.style.opacity = '0'; setTimeout(()=>{ noiseTxt.style.display='none'; }, 250); }
+      if (clearWrap) {
+        clearWrap.style.display = 'block';
+        setTimeout(()=>{ clearWrap.style.opacity='1'; }, 10);
+      }
+      if (clearMain) clearMain.textContent = seg.body;
+
+      // 重置心声为隐藏状态（切换频道时收起）
+      const heartDiv = document.getElementById('nowClearHeart');
+      const heartBtn = document.getElementById('nowHeartBtn');
+      const heartTxt = document.getElementById('nowHeartTxt');
+      if (heartTxt) heartTxt.textContent = seg.heart || '';
+      if (heartDiv) { heartDiv.style.maxHeight = '0'; heartDiv.style.opacity = '0'; }
+      if (heartBtn) {
+        heartBtn.dataset.open = '0';
+        const btnTxt = document.getElementById('nowHeartBtnTxt');
+        if (btnTxt) btnTxt.textContent = '听听 Ta 的心声';
+        heartBtn.style.display = seg.heart ? 'flex' : 'none';
+      }
+
+      if (lockTag)  lockTag.style.color = '#888';
+      if (badge)    badge.textContent   = 'LOCKED';
+      if (wavePath) { wavePath.setAttribute('stroke','#555'); wavePath.setAttribute('stroke-width','1.1'); wavePath.setAttribute('d', nowWave(v, true)); }
+
       if (!_nowCollected.has(found)) {
         setTimeout(() => {
           _nowCollected.add(found);
           nowRenderSediment();
           nowUpdateProgress();
+          nowSaveCache();
         }, 800);
       }
     }
   } else {
     if (_nowLocked !== null) {
       _nowLocked = null;
-      if (clearWrap)  clearWrap.style.opacity  = '0';
-      if (noiseTxt)   noiseTxt.style.opacity   = '1';
-      if (lockTag)    lockTag.style.color      = '#d0d0d0';
-      if (badge)      badge.textContent        = 'SCANNING';
-      if (wavePath) { wavePath.setAttribute('stroke', '#ccc'); wavePath.setAttribute('stroke-width', '0.9'); }
+
+      // 内容隐藏，噪音显示
+      if (clearWrap) { clearWrap.style.opacity='0'; setTimeout(()=>{ clearWrap.style.display='none'; },250); }
+      if (noiseTxt)  { noiseTxt.style.display=''; setTimeout(()=>{ noiseTxt.style.opacity='1'; },10); }
+      if (lockTag)   lockTag.style.color  = '#d0d0d0';
+      if (badge)     badge.textContent    = 'SCANNING';
+      if (wavePath)  { wavePath.setAttribute('stroke','#ccc'); wavePath.setAttribute('stroke-width','0.9'); }
     }
     clearInterval(_nowNoiseTimer);
     _nowNoiseTimer = setInterval(() => {
@@ -2841,8 +2912,80 @@ function nowUpdate() {
   }
 }
 
+/* ---- NOW 页：心声展开/收起 ---- */
+function nowToggleHeart() {
+  const heartDiv = document.getElementById('nowClearHeart');
+  const heartBtn = document.getElementById('nowHeartBtn');
+  if (!heartDiv || !heartBtn) return;
+  const isOpen = heartBtn.dataset.open === '1';
+  if (isOpen) {
+    heartDiv.style.maxHeight = '0';
+    heartDiv.style.opacity   = '0';
+    heartBtn.dataset.open = '0';
+    const btnTxt = document.getElementById('nowHeartBtnTxt');
+    if (btnTxt) btnTxt.textContent = '听听 Ta 的心声';
+  } else {
+    heartDiv.style.maxHeight = '800px';
+    heartDiv.style.opacity   = '1';
+    heartBtn.dataset.open = '1';
+    const btnTxt = document.getElementById('nowHeartBtnTxt');
+    if (btnTxt) btnTxt.textContent = '收起心声';
+  }
+}
+
+/* ---- NOW 页：IndexedDB 缓存 ---- */
+const NOW_DB_NAME    = 'luna_now_db';
+const NOW_DB_STORE   = 'now_segments';
+const NOW_CACHE_KEY  = 'now_cache';
+
+function nowOpenDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(NOW_DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(NOW_DB_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function nowLoadCache() {
+  try {
+    const db  = await nowOpenDB();
+    const tx  = db.transaction(NOW_DB_STORE, 'readonly');
+    const store = tx.objectStore(NOW_DB_STORE);
+    return await new Promise((resolve) => {
+      const req = store.get(NOW_CACHE_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror   = () => resolve(null);
+    });
+  } catch { return null; }
+}
+
+async function nowSaveCache() {
+  try {
+    const db  = await nowOpenDB();
+    const tx  = db.transaction(NOW_DB_STORE, 'readwrite');
+    tx.objectStore(NOW_DB_STORE).put({
+      id:         NOW_CACHE_KEY,
+      segments:   _nowSegments,
+      collected:  [..._nowCollected],
+      savedAt:    Date.now(),
+    });
+  } catch(e) { console.warn('nowSaveCache error:', e); }
+}
+
 async function nowGenerate() {
-  // 读取角色信息（与 startPastGen 逻辑一致）
+  // ---- 先查 IndexedDB 缓存，有数据直接恢复，不调 API ----
+  const cached = await nowLoadCache();
+  if (cached && Array.isArray(cached.segments) && cached.segments.length > 0) {
+    _nowSegments  = cached.segments;
+    _nowCollected = new Set(cached.collected || []);
+    nowInitUI();
+    return;
+  }
+
+  // ---- 无缓存，调 API 生成 ----
   let charName    = 'Ta';
   let charPersona = '';
   let userPersona = '';
@@ -2950,33 +3093,11 @@ async function nowGenerate() {
 
     if (_nowSegments.length === 0) throw new Error('内容为空，请重试');
 
-    // 显示主界面
-    document.getElementById('nowLoading').style.display = 'none';
-    document.getElementById('nowMain').style.display    = 'block';
+    // 存缓存
+    await nowSaveCache();
 
-    nowRenderSediment();
-    nowUpdateProgress();
-
-    // 绑定滑块
-    const slider = document.getElementById('nowSlider');
-    if (slider) slider.addEventListener('input', nowUpdate);
-
-    // 噪音动画
-    _nowNoiseTimer = setInterval(() => {
-      const el = document.getElementById('nowNoiseTxt');
-      if (el) el.textContent = nowMkNoise();
-    }, 80);
-
-    // 波形动画
-    _nowWaveTimer = setInterval(() => {
-      if (_nowLocked === null) {
-        const wp = document.getElementById('nowWavePath');
-        const sv = document.getElementById('nowSlider');
-        if (wp && sv) wp.setAttribute('d', nowWave(parseInt(sv.value), false));
-      }
-    }, 110);
-
-    nowUpdate();
+    // 初始化 UI
+    nowInitUI();
 
   } catch(err) {
     console.error('nowGenerate error:', err);
@@ -2993,5 +3114,594 @@ async function nowGenerate() {
       `baseUrl: ${cur.baseUrl || '❌ 未设置'}<br>
        apiKey: ${cur.apiKey ? '✅ 已设置' : '❌ 未设置'}<br>
        model: ${model || '❌ 未设置'}`;
+  }
+}
+
+/* ---- NOW 页：UI 初始化（生成/缓存恢复后共用） ---- */
+function nowInitUI() {
+  const loading = document.getElementById('nowLoading');
+  const main    = document.getElementById('nowMain');
+  if (loading) loading.style.display = 'none';
+  if (main)    main.style.display    = 'block';
+
+  nowRenderSediment();
+  nowUpdateProgress();
+
+  // 绑定滑块（防止重复绑定）
+  const slider = document.getElementById('nowSlider');
+  if (slider) {
+    slider.removeEventListener('input', nowUpdate);
+    slider.addEventListener('input', nowUpdate);
+  }
+
+  // 停掉旧定时器
+  clearInterval(_nowNoiseTimer);
+  clearInterval(_nowWaveTimer);
+
+  // 噪音动画
+  _nowNoiseTimer = setInterval(() => {
+    const el = document.getElementById('nowNoiseTxt');
+    if (el) el.textContent = nowMkNoise();
+  }, 80);
+
+  // 波形动画
+  _nowWaveTimer = setInterval(() => {
+    if (_nowLocked === null) {
+      const wp = document.getElementById('nowWavePath');
+      const sv = document.getElementById('nowSlider');
+      if (wp && sv) wp.setAttribute('d', nowWave(parseInt(sv.value), false));
+    }
+  }, 110);
+
+  nowUpdate();
+}
+
+/* ================================
+   未来的 Ta · 深空扫描页逻辑
+================================ */
+
+const FUTURE_FREQ_POINTS = [95, 200, 320, 450, 570, 700, 860];
+const FUTURE_DB_NAME  = 'luna_future_db';
+const FUTURE_DB_STORE = 'future_segments';
+const FUTURE_CACHE_KEY = 'future_cache';
+
+let _futureSegments   = [];
+let _futureCollected  = new Set();
+let _futureLocked     = null;
+let _futureNoiseTimer = null;
+let _futureInited     = false;
+let _futureStars      = [];
+let _futurePulsePhase = 0;
+let _futureScanLine   = 0.05;
+let _futureAnimFrame  = null;
+
+/* ---- 打开 / 关闭 ---- */
+function openFuturePage() {
+  const page    = document.getElementById('futurePage');
+  const overlay = document.getElementById('futureOverlay');
+  if (!page) return;
+  page.classList.add('active');
+  if (overlay) { overlay.style.display = ''; overlay.classList.add('active'); }
+
+  // 同步时间
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const timeEl = document.getElementById('futureStatusTime');
+  if (timeEl) timeEl.textContent = new Date().toLocaleTimeString('zh-CN', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+  });
+
+  // 同步电量
+  const mainPct   = document.getElementById('batPct');
+  const mainInner = document.getElementById('batInner');
+  const nPct      = document.getElementById('futureBatPct');
+  const nInner    = document.getElementById('futureBatInner');
+  if (nPct && mainPct)     nPct.textContent       = mainPct.textContent;
+  if (nInner && mainInner) {
+    nInner.style.width      = mainInner.style.width;
+    nInner.style.background = mainInner.style.background;
+  }
+
+  // 同步灵动岛（和 openNowPage 完全一致）
+  const enabled  = localStorage.getItem('luna_island_enabled') === 'true';
+  const style    = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('futureStatusIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">--:--</span></div></div>`,
+        pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[style] || styleMap.minimal;
+    }
+  }
+
+  if (!_futureInited) {
+    _futureInited = true;
+    futureGenerate();
+  }
+}
+
+function closeFuturePage() {
+  const page    = document.getElementById('futurePage');
+  const overlay = document.getElementById('futureOverlay');
+  if (page)    page.classList.remove('active');
+  if (overlay) { overlay.classList.remove('active'); overlay.style.display = 'none'; }
+  if (_futureAnimFrame) { cancelAnimationFrame(_futureAnimFrame); _futureAnimFrame = null; }
+}
+
+async function futureClearAndRegenerate() {
+  try {
+    const db = await futureOpenDB();
+    const tx = db.transaction(FUTURE_DB_STORE, 'readwrite');
+    tx.objectStore(FUTURE_DB_STORE).delete(FUTURE_CACHE_KEY);
+  } catch(e) {}
+  _futureSegments  = [];
+  _futureCollected = new Set();
+  _futureLocked    = null;
+  clearInterval(_futureNoiseTimer);
+
+  const loading = document.getElementById('futureLoading');
+  const main    = document.getElementById('futureMain');
+  if (loading) {
+    loading.style.display = 'flex';
+    loading.innerHTML = `
+      <div style="display:flex;gap:4px;align-items:flex-end;height:28px;">
+        <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0s"></div>
+        <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.1s"></div>
+        <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.2s"></div>
+        <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.3s"></div>
+        <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.4s"></div>
+      </div>
+      <div style="font-size:13px;letter-spacing:0.15em;color:#111;">正在捕捉未来的光...</div>`;
+  }
+  if (main) main.style.display = 'none';
+  await futureGenerate();
+}
+
+/* ---- 噪音 ---- */
+function futureMkNoise() {
+  const pool = ['·','—',' ','·','—','·',' ','—'];
+  const r = [];
+  for (let i = 0; i < 46; i++) r.push(pool[Math.floor(Math.random() * pool.length)]);
+  return r.join(' ');
+}
+
+/* ---- 角度字符串 ---- */
+function futureDegStr(v) {
+  const d = ((v / 1000) * 90 - 45).toFixed(1);
+  return (d >= 0 ? '+' : '') + d + '°';
+}
+
+/* ---- 星图 ---- */
+function futureInitStars(canvas) {
+  _futureStars = [];
+  const w = canvas.width, h = canvas.height;
+  for (let i = 0; i < 90; i++) {
+    _futureStars.push({
+      x: Math.random() * w, y: Math.random() * h,
+      r: Math.random() * 1.2 + 0.2,
+      tw: Math.random() * Math.PI * 2,
+      speed: 0.01 + Math.random() * 0.02
+    });
+  }
+  FUTURE_FREQ_POINTS.forEach((fp, i) => {
+    const px = (fp / 1000) * (w - 20) + 10;
+    const py = 20 + Math.random() * (h - 50);
+    _futureStars.push({ x: px, y: py, r: 1.8, tw: 0, speed: 0.04, bright: true, idx: i });
+  });
+}
+
+function futureDrawMap(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#fafafa';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 0.4;
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath(); ctx.moveTo(0, (i+1)*h/6); ctx.lineTo(w, (i+1)*h/6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo((i+1)*w/6, 0); ctx.lineTo((i+1)*w/6, h); ctx.stroke();
+  }
+  ctx.strokeStyle = '#ececec'; ctx.lineWidth = 0.3; ctx.setLineDash([3,6]);
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath(); ctx.arc(w/2, h/2, (i+1)*45, 0, Math.PI*2); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  _futurePulsePhase += 0.03;
+  _futureStars.forEach(s => {
+    s.tw += s.speed;
+    const alpha = s.bright
+      ? 0.5 + 0.5 * Math.sin(s.tw + _futurePulsePhase * 2)
+      : 0.3 + 0.3 * Math.sin(s.tw);
+    if (s.bright) {
+      const isLocked = _futureLocked === s.idx;
+      const col = isLocked ? '#333' : '#bbb';
+      ctx.beginPath(); ctx.arc(s.x, s.y, isLocked ? 3.5 : 2.2, 0, Math.PI*2);
+      ctx.fillStyle = col; ctx.globalAlpha = isLocked ? 1 : alpha; ctx.fill();
+      if (isLocked) {
+        ctx.beginPath(); ctx.arc(s.x, s.y, 7 + 2*Math.sin(_futurePulsePhase*3), 0, Math.PI*2);
+        ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.6; ctx.globalAlpha = 0.5; ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      const cs = 4;
+      ctx.strokeStyle = isLocked ? '#888' : '#ddd'; ctx.lineWidth = 0.5; ctx.globalAlpha = isLocked ? 0.9 : 0.5;
+      ctx.beginPath(); ctx.moveTo(s.x - cs, s.y); ctx.lineTo(s.x + cs, s.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s.x, s.y - cs); ctx.lineTo(s.x, s.y + cs); ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = '#ccc'; ctx.globalAlpha = alpha; ctx.fill(); ctx.globalAlpha = 1;
+    }
+  });
+
+  const sx = _futureScanLine * (w - 20) + 10;
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 0.8; ctx.globalAlpha = 0.12;
+  ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, h); ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(sx, h - 10, 3, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.arc(sx, h - 10, 8, 0, Math.PI*2); ctx.stroke();
+
+  _futureAnimFrame = requestAnimationFrame(() => futureDrawMap(canvas));
+}
+
+/* ---- 滑块更新 ---- */
+function futureUpdate() {
+  const slider = document.getElementById('futureSlider');
+  if (!slider) return;
+  const v = parseInt(slider.value);
+  _futureScanLine = v / 1000;
+
+  const declVal   = document.getElementById('futureDeclVal');
+  const lockTag   = document.getElementById('futureLockTag');
+  const noiseTxt  = document.getElementById('futureNoiseTxt');
+  const clearWrap = document.getElementById('futureClearWrap');
+  const clearMain = document.getElementById('futureClearMain');
+
+  if (declVal) declVal.textContent = futureDegStr(v);
+
+  let found = null;
+  FUTURE_FREQ_POINTS.forEach((fp, i) => { if (Math.abs(v - fp) <= 18) found = i; });
+
+  if (found !== null && _futureSegments[found]) {
+    if (_futureLocked !== found) {
+      _futureLocked = found;
+      clearInterval(_futureNoiseTimer);
+      const seg = _futureSegments[found];
+
+      if (noiseTxt)  { noiseTxt.style.opacity = '0'; setTimeout(()=>{ noiseTxt.style.display='none'; }, 250); }
+      if (clearWrap) { clearWrap.style.display = 'block'; setTimeout(()=>{ clearWrap.style.opacity='1'; }, 10); }
+      if (clearMain) clearMain.textContent = seg.body;
+      if (lockTag)   lockTag.textContent = 'LOCKED';
+
+      const heartTxt = document.getElementById('futureHeartTxt');
+      const heartDiv = document.getElementById('futureClearHeart');
+      const heartBtn = document.getElementById('futureHeartBtn');
+      if (heartTxt) heartTxt.textContent = seg.heart || '';
+      if (heartDiv) { heartDiv.style.maxHeight = '0'; heartDiv.style.opacity = '0'; }
+      if (heartBtn) {
+        heartBtn.dataset.open = '0';
+        const btnTxt = document.getElementById('futureHeartBtnTxt');
+        if (btnTxt) btnTxt.textContent = '听听 Ta 的心声';
+        heartBtn.style.display = seg.heart ? 'flex' : 'none';
+      }
+
+      const sigBar = document.getElementById('futureSigBar');
+      const sigPct = document.getElementById('futureSigPct');
+      const sigVal = seg.sig || Math.floor(75 + Math.random() * 25);
+      if (sigBar) sigBar.style.width = sigVal + '%';
+      if (sigPct) sigPct.textContent = sigVal + '%';
+
+      if (!_futureCollected.has(found)) {
+        setTimeout(() => {
+          _futureCollected.add(found);
+          futureRenderSediment();
+          futureUpdateProgress();
+          futureSaveCache();
+        }, 800);
+      }
+    }
+  } else {
+    if (_futureLocked !== null) {
+      _futureLocked = null;
+      if (clearWrap) { clearWrap.style.opacity='0'; setTimeout(()=>{ clearWrap.style.display='none'; },250); }
+      if (noiseTxt)  { noiseTxt.style.display=''; setTimeout(()=>{ noiseTxt.style.opacity='1'; },10); }
+      if (lockTag)   lockTag.textContent = 'SCANNING';
+    }
+    clearInterval(_futureNoiseTimer);
+    _futureNoiseTimer = setInterval(() => {
+      const el = document.getElementById('futureNoiseTxt');
+      if (el) el.textContent = futureMkNoise();
+    }, 80);
+  }
+}
+
+/* ---- 心声展开/收起 ---- */
+function futureToggleHeart() {
+  const heartDiv = document.getElementById('futureClearHeart');
+  const heartBtn = document.getElementById('futureHeartBtn');
+  if (!heartDiv || !heartBtn) return;
+  const isOpen = heartBtn.dataset.open === '1';
+  if (isOpen) {
+    heartDiv.style.maxHeight = '0'; heartDiv.style.opacity = '0';
+    heartBtn.dataset.open = '0';
+    document.getElementById('futureHeartBtnTxt').textContent = '听听 Ta 的心声';
+  } else {
+    heartDiv.style.maxHeight = '800px'; heartDiv.style.opacity = '1';
+    heartBtn.dataset.open = '1';
+    document.getElementById('futureHeartBtnTxt').textContent = '收起心声';
+  }
+}
+
+/* ---- 沉淀区渲染 ---- */
+function futureRenderSediment() {
+  const el = document.getElementById('futureSediment');
+  if (!el) return;
+  el.innerHTML = '';
+
+  window.futureSedimentToggleHeart = function(btn, idx) {
+    const box = document.getElementById('futureSedHeart_' + idx);
+    if (!box) return;
+    const isOpen = btn.dataset.open === '1';
+    if (isOpen) {
+      box.style.maxHeight = '0'; box.style.opacity = '0';
+      btn.dataset.open = '0';
+      btn.querySelector('.sed-btn-txt').textContent = '听听 Ta 的心声';
+    } else {
+      box.style.maxHeight = '800px'; box.style.opacity = '1';
+      btn.dataset.open = '1';
+      btn.querySelector('.sed-btn-txt').textContent = '收起心声';
+    }
+  };
+
+  for (let i = 0; i < 7; i++) {
+    const has = _futureCollected.has(i);
+    const seg = _futureSegments[i];
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:20px 0;border-bottom:0.5px solid #f0f0f0;';
+    if (has && seg) {
+      const hasHeart = seg.heart && seg.heart.trim().length > 0;
+      div.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#333;flex-shrink:0;"></div>
+          <div style="font-size:9px;color:#aaa;font-family:monospace;letter-spacing:0.1em;">SIGNAL · ${String(i+1).padStart(2,'0')}</div>
+        </div>
+        <div style="font-size:15px;color:#111;line-height:2;letter-spacing:0.03em;">${seg.body.replace(/\n/g,'<br>')}</div>
+        ${hasHeart ? `
+        <button data-open="0" onclick="futureSedimentToggleHeart(this,${i})"
+          style="margin-top:10px;display:flex;align-items:center;gap:6px;background:none;border:0.5px solid #e8e8e8;border-radius:20px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;letter-spacing:0.06em;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span class="sed-btn-txt">听听 Ta 的心声</span>
+        </button>
+        <div id="futureSedHeart_${i}" style="overflow:hidden;max-height:0;opacity:0;transition:max-height 0.4s ease,opacity 0.4s ease;">
+          <div style="margin-top:10px;padding:14px 16px;border-left:2px solid #ccc;background:#f7f7f7;border-radius:0 8px 8px 0;">
+            <div style="font-size:9px;letter-spacing:0.16em;color:#bbb;margin-bottom:8px;">心声</div>
+            <div style="font-size:15px;color:#333;line-height:1.9;letter-spacing:0.03em;font-style:italic;">${seg.heart.replace(/\n/g,'<br>')}</div>
+          </div>
+        </div>` : ''}`;
+    } else {
+      div.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#e8e8e8;flex-shrink:0;"></div>
+          <div style="font-size:9px;color:#ddd;font-family:monospace;letter-spacing:0.1em;">— — LIGHT YEAR</div>
+        </div>
+        <div style="padding-left:13px;margin-top:8px;font-size:13px;color:#ddd;font-style:italic;letter-spacing:0.06em;">· · · 待捕捉 · · ·</div>`;
+    }
+    el.appendChild(div);
+  }
+}
+
+/* ---- 进度条 ---- */
+function futureUpdateProgress() {
+  const n = _futureCollected.size, t = 7;
+  const fill  = document.getElementById('futureCbFill');
+  const count = document.getElementById('futureCbCount');
+  if (fill)  fill.style.width  = (n / t * 100) + '%';
+  if (count) count.textContent = n + ' / ' + t;
+}
+
+/* ---- IndexedDB ---- */
+function futureOpenDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(FUTURE_DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(FUTURE_DB_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function futureLoadCache() {
+  try {
+    const db = await futureOpenDB();
+    const tx = db.transaction(FUTURE_DB_STORE, 'readonly');
+    return await new Promise(resolve => {
+      const req = tx.objectStore(FUTURE_DB_STORE).get(FUTURE_CACHE_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror   = () => resolve(null);
+    });
+  } catch { return null; }
+}
+
+async function futureSaveCache() {
+  try {
+    const db = await futureOpenDB();
+    const tx = db.transaction(FUTURE_DB_STORE, 'readwrite');
+    tx.objectStore(FUTURE_DB_STORE).put({
+      id:        FUTURE_CACHE_KEY,
+      segments:  _futureSegments,
+      collected: [..._futureCollected],
+      savedAt:   Date.now(),
+    });
+  } catch(e) { console.warn('futureSaveCache error:', e); }
+}
+
+/* ---- UI 初始化 ---- */
+function futureInitUI() {
+  const loading = document.getElementById('futureLoading');
+  const main    = document.getElementById('futureMain');
+  if (loading) loading.style.display = 'none';
+  if (main)    main.style.display    = 'block';
+
+  futureRenderSediment();
+  futureUpdateProgress();
+
+  // 绑定滑块
+  const slider = document.getElementById('futureSlider');
+  if (slider) {
+    slider.removeEventListener('input', futureUpdate);
+    slider.addEventListener('input', futureUpdate);
+  }
+
+  // 启动噪音
+  clearInterval(_futureNoiseTimer);
+  _futureNoiseTimer = setInterval(() => {
+    const el = document.getElementById('futureNoiseTxt');
+    if (el) el.textContent = futureMkNoise();
+  }, 80);
+
+  // 启动星图
+  const canvas = document.getElementById('futureStarCanvas');
+  if (canvas) {
+    futureInitStars(canvas);
+    if (_futureAnimFrame) cancelAnimationFrame(_futureAnimFrame);
+    futureDrawMap(canvas);
+  }
+}
+
+/* ---- 主生成函数 ---- */
+async function futureGenerate() {
+  // 先查缓存
+  const cached = await futureLoadCache();
+  if (cached && Array.isArray(cached.segments) && cached.segments.length > 0) {
+    _futureSegments  = cached.segments;
+    _futureCollected = new Set(cached.collected || []);
+    futureInitUI();
+    return;
+  }
+
+  // 无缓存，调 AI
+  let charName    = 'Ta';
+  let charPersona = '';
+  let userPersona = '';
+
+  try {
+    const currentCharName = (typeof _cpCurrentName !== 'undefined' && _cpCurrentName) ? _cpCurrentName : '';
+    const currentChar = currentCharName ? await getCharDataByName(currentCharName) : null;
+    if (currentChar) {
+      charName = currentChar.name || charName;
+      charPersona = [
+        currentChar.role   ? `定位/身份：${currentChar.role}`   : '',
+        currentChar.gender ? `性别：${currentChar.gender}`       : '',
+        currentChar.age    ? `年龄：${currentChar.age}`          : '',
+        currentChar.desc   ? `人设描述：${currentChar.desc}`     : '',
+        currentChar.traits?.length
+          ? `性格标签：${Array.isArray(currentChar.traits) ? currentChar.traits.join('、') : currentChar.traits}` : '',
+        currentChar.prompt ? `系统提示词：${currentChar.prompt}` : '',
+      ].filter(Boolean).join('\n');
+    }
+    const userPersonas = JSON.parse(localStorage.getItem('luna_user_personas') || '[]');
+    if (currentChar?.id) {
+      const bound = userPersonas.find(p => String(p.charId) === String(currentChar.id));
+      if (bound?.content) userPersona = bound.content;
+    }
+    if (!userPersona) userPersona = localStorage.getItem('luna_user_profile') || '';
+  } catch(e) {}
+
+  const systemPrompt = `你是一个擅长写细腻情感散文的 AI。
+任务：以角色「${charName}」的视角，想象并写出若干年后的未来，Ta 回望现在，眼中看到的 user（"你"）。
+格式要求（严格遵守）：分成恰好 7 组，每组包含正文和心声，用 ---SPLIT--- 分隔：
+
+正文：（150-220字，未来的视角回望，有具体画面和时间感，像一束来自未来的光）
+心声：（40-70字，比正文更私密、更直白，那层在未来才终于敢说的话）
+
+---SPLIT---
+
+（下一组）
+
+整体要求：
+- 以「${charName}」的口吻，带有时光距离感
+- 7组正文总字数不少于1500字
+- 有具体场景和细节，不空泛
+- 心声比正文更脆弱，是那层在未来才终于说出的话
+- 最后一组要有余韵，像星光抵达`;
+
+  const userPrompt = userPersona
+    ? `角色人设：\n${charPersona || '（温柔感性、善于观察）'}\n\n用户档案：\n${userPersona}\n\n请生成7组正文+心声，总字数1500字以上。`
+    : `角色人设：\n${charPersona || '（温柔感性、善于观察）'}\n\n没有用户档案，请自由想象用户形象，生成7组正文+心声，总字数1500字以上。`;
+
+  try {
+    const cur   = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
+    const model = localStorage.getItem('luna_api_model') || '';
+    if (!cur.baseUrl || !cur.apiKey || !model) throw new Error('未配置 API');
+
+    const response = await fetch(`${cur.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cur.apiKey}` },
+      body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }] })
+    });
+
+    const data = await response.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('返回为空');
+
+    _futureSegments = [];
+    let blocks = text.split(/---SPLIT---|—{3,}SPLIT—{3,}|={3,}/);
+    if (blocks.length <= 1) {
+      blocks = text.split(/\n(?=\d+[\.、]|\【\d|第[一二三四五六七])/);
+    }
+
+    blocks.forEach(block => {
+      if (!block.trim()) return;
+      let bodyMatch  = block.match(/正文[：:]([\s\S]*?)(?=心声[：:]|$)/);
+      let heartMatch = block.match(/心声[：:]([\s\S]*?)(?=正文[：:]|---|$)/);
+      let body  = bodyMatch?.[1]?.trim()  || '';
+      let heart = heartMatch?.[1]?.trim() || '';
+      if (!body) {
+        const lines = block.trim().split('\n').filter(l => l.trim());
+        body  = lines.slice(0, Math.ceil(lines.length * 0.75)).join('\n').trim();
+        heart = lines.slice(Math.ceil(lines.length * 0.75)).join('\n').trim();
+      }
+      const cleanText = t => t.replace(/\*\*/g,'').replace(/\*/g,'').replace(/#+\s/g,'').trim();
+      if (body.length > 20) _futureSegments.push({ body: cleanText(body), heart: cleanText(heart), sig: Math.floor(75 + Math.random() * 25) });
+    });
+
+    if (_futureSegments.length === 0 && text.length > 100) {
+      const clean = text.replace(/正文[：:]|心声[：:]|---SPLIT---|[\r]/g, '').trim();
+      const paraSize = Math.ceil(clean.length / 7);
+      for (let i = 0; i < 7; i++) {
+        const body = clean.slice(i * paraSize, (i + 1) * paraSize).trim();
+        if (body.length > 10) _futureSegments.push({ body, heart: '', sig: Math.floor(75 + Math.random() * 25) });
+      }
+    }
+
+    if (_futureSegments.length === 0) throw new Error('内容为空，请重试');
+
+    await futureSaveCache();
+    futureInitUI();
+
+  } catch(err) {
+    console.error('futureGenerate error:', err);
+    const loadingEl = document.getElementById('futureLoading');
+    if (loadingEl) loadingEl.innerHTML =
+      `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;">
+        <div style="font-size:12px;color:#bbb;letter-spacing:0.1em;">信号中断</div>
+        <div style="font-size:11px;color:#f87171;text-align:center;line-height:1.6;max-width:240px;">${err.message}</div>
+        <div style="font-size:10px;color:#ccc;text-align:center;line-height:1.8;max-width:260px;">
+          baseUrl: ${JSON.parse(localStorage.getItem('luna_api_current')||'{}').baseUrl || '❌ 未设置'}<br>
+          apiKey: ${JSON.parse(localStorage.getItem('luna_api_current')||'{}').apiKey ? '✅ 已设置' : '❌ 未设置'}<br>
+          model: ${localStorage.getItem('luna_api_model') || '❌ 未设置'}
+        </div>
+      </div>`;
   }
 }

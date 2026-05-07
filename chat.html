@@ -1460,7 +1460,7 @@
       </div>
 
       <!-- 将来的Ta -->
-      <div class="ta-card ta-card-future">
+      <div class="ta-card ta-card-future" onclick="openFuturePage()" style="cursor:pointer;">
         <div class="ta-card-num">03 / 03</div>
         <svg class="ta-orn ta-orn-arc" width="90" height="90" viewBox="0 0 90 90" fill="none">
           <circle cx="90" cy="0" r="65" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>
@@ -1690,8 +1690,8 @@
         <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       </svg>
     </button>
-    <div class="cp-nav-title" style="font-size:11px;letter-spacing:0.12em;color:#999;">现在 · PRESENT</div>
-    <div style="width:36px"></div>
+    <div class="cp-nav-title" style="font-size:13px;letter-spacing:0.12em;color:#111;">现在 · PRESENT</div>
+    <button onclick="nowClearAndRegenerate()" style="background:none;border:none;cursor:pointer;padding:4px 8px;font-size:12px;color:#111;letter-spacing:0.08em;">重新生成</button>
   </div>
 
   <div class="cp-scroll" id="nowScroll" style="padding:0;">
@@ -1705,18 +1705,51 @@
         <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.3s"></div>
         <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.4s"></div>
       </div>
-      <div style="font-size:11px;letter-spacing:0.15em;color:#bbb;">正在生成信号频道...</div>
+      <div style="font-size:13px;letter-spacing:0.15em;color:#111;">正在生成信号频道...</div>
     </div>
 
     <!-- 主界面（生成后显示） -->
-    <div id="nowMain" style="display:none;padding:24px 20px 0;">
+    <div id="nowMain" style="display:none;padding:24px 20px 0;position:relative;">
+
+      <!-- ★ 装饰：背景网格 -->
+      <div style="position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:0;
+        background-image:linear-gradient(rgba(0,0,0,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.03) 1px,transparent 1px);
+        background-size:24px 24px;"></div>
+
+      <!-- ★ 装饰：右上角信号圆环 -->
+      <div style="position:fixed;top:60px;right:-40px;pointer-events:none;z-index:0;">
+        <div style="width:120px;height:120px;border-radius:50%;border:0.5px solid rgba(0,0,0,0.06);position:absolute;top:0;right:0;animation:nowRingPulse 4s ease-in-out infinite;"></div>
+        <div style="width:80px;height:80px;border-radius:50%;border:0.5px solid rgba(0,0,0,0.08);position:absolute;top:20px;right:20px;animation:nowRingPulse 4s ease-in-out infinite 0.6s;"></div>
+        <div style="width:40px;height:40px;border-radius:50%;border:0.5px solid rgba(0,0,0,0.1);position:absolute;top:40px;right:40px;animation:nowRingPulse 4s ease-in-out infinite 1.2s;"></div>
+      </div>
+
+      <!-- ★ 装饰：左下角斜线纹理 -->
+      <div style="position:fixed;bottom:80px;left:-20px;pointer-events:none;z-index:0;opacity:0.4;">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <line x1="0" y1="20" x2="20" y2="0" stroke="#ccc" stroke-width="0.5"/>
+          <line x1="0" y1="40" x2="40" y2="0" stroke="#ccc" stroke-width="0.5"/>
+          <line x1="0" y1="60" x2="60" y2="0" stroke="#ccc" stroke-width="0.5"/>
+          <line x1="0" y1="80" x2="80" y2="0" stroke="#ccc" stroke-width="0.5"/>
+          <line x1="20" y1="80" x2="80" y2="20" stroke="#ccc" stroke-width="0.5"/>
+          <line x1="40" y1="80" x2="80" y2="40" stroke="#ccc" stroke-width="0.5"/>
+          <line x1="60" y1="80" x2="80" y2="60" stroke="#ccc" stroke-width="0.5"/>
+        </svg>
+      </div>
 
       <!-- 页眉 -->
-      <div style="margin-bottom:20px;">
-        <div style="font-size:10px;letter-spacing:0.18em;color:#bbb;margin-bottom:6px;">SIGNAL RECEPTION · 信号接收</div>
-        <div style="font-size:22px;font-weight:500;color:#111;letter-spacing:-0.3px;">现在 Ta 眼中的我</div>
-        <div style="font-size:12px;color:#bbb;margin-top:4px;letter-spacing:0.04em;">拨动频率，一段一段接收 Ta 的话</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:14px;">
+      <div style="margin-bottom:20px;position:relative;z-index:1;">
+        <div style="font-size:12px;letter-spacing:0.18em;color:#111;margin-bottom:6px;">SIGNAL RECEPTION · 信号接收</div>
+        <div style="font-size:24px;font-weight:500;color:#111;letter-spacing:-0.3px;">现在 Ta 眼中的我</div>
+        <div style="font-size:14px;color:#111;margin-top:4px;letter-spacing:0.04em;">拨动频率，一段一段接收 Ta 的话</div>
+
+        <!-- ★ 装饰：频道标签行 -->
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+          <span style="font-size:9px;letter-spacing:0.12em;color:#aaa;border:0.5px solid #ddd;padding:2px 8px;border-radius:2px;">FM RADIO</span>
+          <span style="font-size:9px;letter-spacing:0.12em;color:#aaa;border:0.5px solid #ddd;padding:2px 8px;border-radius:2px;">STEREO</span>
+          <span style="font-size:9px;letter-spacing:0.12em;color:#aaa;border:0.5px solid #ddd;padding:2px 8px;border-radius:2px;">AUTO SCAN</span>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
           <div style="flex:1;height:0.5px;background:#ebebeb;"></div>
           <div style="width:3px;height:3px;border-radius:50%;background:#ddd;"></div>
           <div style="width:3px;height:3px;border-radius:50%;background:#ddd;"></div>
@@ -1726,31 +1759,31 @@
       </div>
 
       <!-- 频率数字 -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px;position:relative;z-index:1;">
         <div style="display:flex;align-items:baseline;gap:4px;">
           <span id="nowFreqNum" style="font-size:42px;font-weight:400;color:#111;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;">88.3</span>
-          <span style="font-size:13px;color:#bbb;">MHz</span>
+          <span style="font-size:15px;color:#111;">MHz</span>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;padding-bottom:6px;">
-          <div id="nowBadge" style="font-size:9px;letter-spacing:0.16em;color:#aaa;border:0.5px solid #ddd;padding:3px 8px;">SCANNING</div>
-          <div style="font-size:9px;color:#ddd;letter-spacing:0.06em;font-family:monospace;">87.5 — 105.0</div>
+          <div id="nowBadge" style="font-size:11px;letter-spacing:0.16em;color:#111;border:0.5px solid #ddd;padding:3px 8px;">SCANNING</div>
+          <div style="font-size:11px;color:#111;letter-spacing:0.06em;font-family:monospace;">87.5 — 105.0</div>
         </div>
       </div>
 
       <!-- 波形 -->
-      <svg id="nowWaveSvg" viewBox="0 0 335 60" style="width:100%;display:block;margin-bottom:0;">
+      <svg id="nowWaveSvg" viewBox="0 0 335 60" style="width:100%;display:block;margin-bottom:0;position:relative;z-index:1;">
         <path id="nowWavePath" d="" fill="none" stroke="#ccc" stroke-width="0.9"/>
         <line id="nowWaveLine" x1="167" y1="0" x2="167" y2="60" stroke="#111" stroke-width="0.5" opacity="0.15"/>
       </svg>
 
       <!-- 滑块刻度 -->
-      <div style="margin-top:6px;">
+      <div style="margin-top:6px;position:relative;z-index:1;">
         <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-          <span style="font-size:8px;color:#ccc;font-family:monospace;">87.5</span>
-          <span style="font-size:8px;color:#ccc;font-family:monospace;">92.0</span>
-          <span style="font-size:8px;color:#ccc;font-family:monospace;">96.5</span>
-          <span style="font-size:8px;color:#ccc;font-family:monospace;">101.0</span>
-          <span style="font-size:8px;color:#ccc;font-family:monospace;">105.0</span>
+          <span style="font-size:10px;color:#111;font-family:monospace;">87.5</span>
+          <span style="font-size:10px;color:#111;font-family:monospace;">92.0</span>
+          <span style="font-size:10px;color:#111;font-family:monospace;">96.5</span>
+          <span style="font-size:10px;color:#111;font-family:monospace;">101.0</span>
+          <span style="font-size:10px;color:#111;font-family:monospace;">105.0</span>
         </div>
         <div style="position:relative;height:28px;display:flex;align-items:center;">
           <div style="position:absolute;left:0;right:0;height:0.5px;background:#e0e0e0;"></div>
@@ -1763,38 +1796,239 @@
       </div>
 
       <!-- 信号接收区 -->
-      <div style="min-height:90px;margin-top:24px;padding-top:18px;border-top:0.5px solid #ebebeb;position:relative;">
-        <div style="font-size:9px;letter-spacing:0.15em;color:#d0d0d0;margin-bottom:8px;">接收信号</div>
-        <div id="nowNoiseTxt" style="font-size:12px;color:#d8d8d8;font-family:monospace;letter-spacing:0.18em;line-height:1.8;word-break:break-all;">· — · — — · — · — · — — · — · — — · — ·</div>
-        <div id="nowClearWrap" style="position:absolute;top:36px;left:0;right:0;opacity:0;transition:opacity 0.35s;">
-          <div id="nowClearMain" style="font-size:15px;color:#222;line-height:1.95;letter-spacing:0.03em;"></div>
-        <div id="nowClearHeart" style="margin-top:10px;padding:12px 14px;border-left:1.5px solid #e0e0e0;background:#fafafa;font-size:14px;color:#999;line-height:1.85;letter-spacing:0.03em;font-style:italic;"></div>
+      <div style="margin-top:24px;padding-top:18px;border-top:0.5px solid #ebebeb;position:relative;z-index:1;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:11px;letter-spacing:0.15em;color:#111;">接收信号</div>
+          <div id="nowLockTag" style="font-size:11px;letter-spacing:0.14em;color:#111;transition:color 0.3s;">SIGNAL LOCK</div>
         </div>
-        <div id="nowLockTag" style="position:absolute;top:10px;right:0;font-size:9px;letter-spacing:0.14em;color:#d0d0d0;transition:color 0.3s;">SIGNAL LOCK</div>
+
+        <!-- 噪音态：未锁定时显示 -->
+        <div id="nowNoiseTxt" style="font-size:13px;color:#111;font-family:monospace;letter-spacing:0.18em;line-height:1.8;word-break:break-all;transition:opacity 0.25s;">· — · — — · — · — · — — · — · — — · — ·</div>
+
+        <!-- 锁定态：正文 + 心声，默认隐藏 -->
+        <div id="nowClearWrap" style="display:none;">
+
+          <!-- ★ 装饰：正文左侧竖线 + 引号 -->
+          <div style="position:relative;padding-left:16px;border-left:1.5px solid #e0e0e0;">
+            <!-- 大引号装饰 -->
+            <div style="position:absolute;top:-8px;left:16px;font-size:40px;color:rgba(0,0,0,0.06);font-family:Georgia,serif;line-height:1;pointer-events:none;user-select:none;">"</div>
+            <div id="nowClearMain" style="font-size:15px;color:#111;line-height:2;letter-spacing:0.03em;padding-top:8px;"></div>
+          </div>
+
+          <!-- ★ 装饰：信号强度小仪表 -->
+          <div style="display:flex;align-items:center;gap:6px;margin-top:14px;padding:10px 14px;background:#f9f9f9;border-radius:10px;border:0.5px solid #ebebeb;">
+            <div style="font-size:9px;letter-spacing:0.14em;color:#aaa;">SIGNAL STRENGTH</div>
+            <div style="flex:1;height:3px;background:#ebebeb;border-radius:2px;overflow:hidden;">
+              <div id="nowSigBar" style="height:100%;width:85%;background:linear-gradient(90deg,#ccc,#888);border-radius:2px;transition:width 0.5s;"></div>
+            </div>
+            <div style="font-size:9px;color:#aaa;font-family:monospace;">85%</div>
+          </div>
+
+          <!-- 心声触发按钮 -->
+          <button id="nowHeartBtn" onclick="nowToggleHeart()"
+            style="margin-top:12px;display:flex;align-items:center;gap:7px;background:none;border:0.5px solid #ddd;border-radius:20px;padding:7px 14px;cursor:pointer;font-size:13px;color:#111;letter-spacing:0.08em;transition:all 0.2s;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            <span id="nowHeartBtnTxt">听听 Ta 的心声</span>
+          </button>
+
+          <!-- 心声内容：点击按钮后展开 -->
+          <div id="nowClearHeart"
+            style="overflow:hidden;max-height:0;transition:max-height 0.4s ease,opacity 0.4s ease;opacity:0;">
+            <div style="margin-top:12px;padding:16px 18px;border-left:2px solid #ccc;background:#f7f7f7;border-radius:0 8px 8px 0;">
+              <div style="font-size:11px;letter-spacing:0.16em;color:#111;margin-bottom:8px;">心声</div>
+              <div id="nowHeartTxt" style="font-size:15px;color:#333;line-height:1.9;letter-spacing:0.03em;font-style:italic;"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 进度条 -->
-      <div style="display:flex;align-items:center;gap:10px;margin-top:20px;">
-        <div style="font-size:10px;color:#ccc;letter-spacing:0.1em;white-space:nowrap;">已收集</div>
-        <div style="flex:1;height:0.5px;background:#ebebeb;position:relative;">
-          <div id="nowCbFill" style="position:absolute;left:0;top:0;height:0.5px;background:#888;width:0%;transition:width 0.5s;"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:20px;position:relative;z-index:1;">
+        <div style="font-size:12px;color:#111;letter-spacing:0.1em;white-space:nowrap;">已收集</div>
+        <div style="flex:1;height:3px;background:#ebebeb;border-radius:2px;position:relative;overflow:hidden;">
+          <div id="nowCbFill" style="position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#ccc,#888);width:0%;transition:width 0.5s;border-radius:2px;"></div>
         </div>
-        <div id="nowCbCount" style="font-size:10px;color:#bbb;font-family:monospace;">0 / 7</div>
+        <div id="nowCbCount" style="font-size:12px;color:#111;font-family:monospace;">0 / 7</div>
       </div>
 
       <!-- 分割线 -->
-      <div style="display:flex;align-items:center;gap:10px;margin:24px 0 0;">
+      <div style="display:flex;align-items:center;gap:10px;margin:24px 0 0;position:relative;z-index:1;">
         <div style="flex:1;height:0.5px;background:#ebebeb;"></div>
-        <div style="font-size:9px;letter-spacing:0.14em;color:#ccc;">已沉淀的信号</div>
+        <!-- ★ 装饰：分割线中间换成菱形 -->
+        <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="5,0 10,5 5,10 0,5" fill="none" stroke="#ddd" stroke-width="0.8"/></svg>
+        <div style="font-size:11px;letter-spacing:0.14em;color:#111;">已沉淀的信号</div>
+        <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="5,0 10,5 5,10 0,5" fill="none" stroke="#ddd" stroke-width="0.8"/></svg>
         <div style="flex:1;height:0.5px;background:#ebebeb;"></div>
       </div>
 
       <!-- 沉淀区 -->
-      <div id="nowSediment" style="display:flex;flex-direction:column;margin-top:0;padding-bottom:40px;"></div>
+      <div id="nowSediment" style="display:flex;flex-direction:column;margin-top:0;padding-bottom:40px;position:relative;z-index:1;"></div>
 
     </div>
   </div>
 
+</div>
+
+<!-- 未来的 Ta · 深空扫描全屏页 -->
+<div class="cp-overlay" id="futureOverlay" onclick="closeFuturePage()" style="display:none;"></div>
+
+<div class="cp-page" id="futurePage">
+
+  <div class="status-bar">
+    <div class="status-time" id="futureStatusTime">9:41</div>
+    <div class="status-island" id="futureStatusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="futureBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="futureBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cp-nav">
+    <button class="cp-back-btn" onclick="closeFuturePage()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <div class="cp-nav-title" style="font-size:13px;letter-spacing:0.12em;color:#111;">未来 · FUTURE</div>
+    <button onclick="futureClearAndRegenerate()" style="background:none;border:none;cursor:pointer;padding:4px 8px;font-size:12px;color:#111;letter-spacing:0.08em;">重新生成</button>
+  </div>
+
+  <div class="cp-scroll" id="futureScroll" style="padding:0;">
+
+    <!-- 加载态 -->
+    <div id="futureLoading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:18px;">
+      <div style="display:flex;gap:4px;align-items:flex-end;height:28px;">
+        <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0s"></div>
+        <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.1s"></div>
+        <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.2s"></div>
+        <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.3s"></div>
+        <div style="width:2px;background:#ccc;animation:nowBar 1.2s ease-in-out infinite;animation-delay:0.4s"></div>
+      </div>
+      <div style="font-size:13px;letter-spacing:0.15em;color:#111;">正在捕捉未来的光...</div>
+    </div>
+
+    <!-- 主界面（生成后显示） -->
+    <div id="futureMain" style="display:none;padding:24px 20px 0;position:relative;">
+
+      <!-- 背景网格 -->
+      <div style="position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:0;
+        background-image:linear-gradient(rgba(0,0,0,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.03) 1px,transparent 1px);
+        background-size:24px 24px;"></div>
+
+      <!-- 右上角信号圆环 -->
+      <div style="position:fixed;top:60px;right:-40px;pointer-events:none;z-index:0;">
+        <div style="width:120px;height:120px;border-radius:50%;border:0.5px solid rgba(0,0,0,0.06);position:absolute;top:0;right:0;animation:nowRingPulse 4s ease-in-out infinite;"></div>
+        <div style="width:80px;height:80px;border-radius:50%;border:0.5px solid rgba(0,0,0,0.08);position:absolute;top:20px;right:20px;animation:nowRingPulse 4s ease-in-out infinite 0.6s;"></div>
+        <div style="width:40px;height:40px;border-radius:50%;border:0.5px solid rgba(0,0,0,0.1);position:absolute;top:40px;right:40px;animation:nowRingPulse 4s ease-in-out infinite 1.2s;"></div>
+      </div>
+
+      <!-- 页眉 -->
+      <div style="margin-bottom:20px;position:relative;z-index:1;">
+        <div style="font-size:12px;letter-spacing:0.18em;color:#111;margin-bottom:6px;">DEEP SCAN · 深空扫描</div>
+        <div style="font-size:24px;font-weight:500;color:#111;letter-spacing:-0.3px;">未来 Ta 眼中的我</div>
+        <div style="font-size:14px;color:#111;margin-top:4px;letter-spacing:0.04em;">转动望远镜，捕捉来自未来的光</div>
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+          <span style="font-size:9px;letter-spacing:0.12em;color:#aaa;border:0.5px solid #ddd;padding:2px 8px;border-radius:2px;">DEEP SPACE</span>
+          <span style="font-size:9px;letter-spacing:0.12em;color:#aaa;border:0.5px solid #ddd;padding:2px 8px;border-radius:2px;">LIGHT YEAR</span>
+          <span style="font-size:9px;letter-spacing:0.12em;color:#aaa;border:0.5px solid #ddd;padding:2px 8px;border-radius:2px;">AUTO TRACK</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+          <div style="flex:1;height:0.5px;background:#ebebeb;"></div>
+          <div style="width:3px;height:3px;border-radius:50%;background:#ddd;"></div>
+          <div style="width:3px;height:3px;border-radius:50%;background:#ddd;"></div>
+          <div style="width:3px;height:3px;border-radius:50%;background:#ddd;"></div>
+          <div style="flex:1;height:0.5px;background:#ebebeb;"></div>
+        </div>
+      </div>
+
+      <!-- 星图画布 -->
+      <div style="position:relative;margin-bottom:0;background:#fafafa;border:0.5px solid #e8e8e8;border-radius:12px;overflow:hidden;position:relative;z-index:1;">
+        <canvas id="futureStarCanvas" width="335" height="160" style="width:100%;display:block;"></canvas>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:0.5px solid #f0f0f0;">
+          <span style="font-size:9px;letter-spacing:0.14em;color:#aaa;white-space:nowrap;">DECLINATION</span>
+          <input type="range" id="futureSlider" min="0" max="1000" value="50" step="1"
+            style="flex:1;height:2px;-webkit-appearance:none;appearance:none;background:#e0e0e0;border-radius:1px;outline:none;cursor:pointer;">
+          <span id="futureDeclVal" style="font-size:11px;color:#111;font-family:monospace;min-width:40px;text-align:right;">+12.4°</span>
+        </div>
+      </div>
+
+      <!-- 信号接收区 -->
+      <div style="margin-top:20px;padding-top:18px;border-top:0.5px solid #ebebeb;position:relative;z-index:1;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:11px;letter-spacing:0.15em;color:#111;">接收信号</div>
+          <div id="futureLockTag" style="font-size:11px;letter-spacing:0.14em;color:#111;transition:color 0.3s;">SCANNING</div>
+        </div>
+
+        <!-- 噪音态 -->
+        <div id="futureNoiseTxt" style="font-size:13px;color:#111;font-family:monospace;letter-spacing:0.18em;line-height:1.8;word-break:break-all;transition:opacity 0.25s;">· — · — — · — · — · — — · — · — — · — ·</div>
+
+        <!-- 锁定态 -->
+        <div id="futureClearWrap" style="display:none;opacity:0;transition:opacity 0.25s;">
+
+          <div style="position:relative;padding-left:16px;border-left:1.5px solid #e0e0e0;">
+            <div style="position:absolute;top:-8px;left:16px;font-size:40px;color:rgba(0,0,0,0.06);font-family:Georgia,serif;line-height:1;pointer-events:none;user-select:none;">"</div>
+            <div id="futureClearMain" style="font-size:15px;color:#111;line-height:2;letter-spacing:0.03em;padding-top:8px;"></div>
+          </div>
+
+          <!-- 信号强度 -->
+          <div style="display:flex;align-items:center;gap:6px;margin-top:14px;padding:10px 14px;background:#f9f9f9;border-radius:10px;border:0.5px solid #ebebeb;">
+            <div style="font-size:9px;letter-spacing:0.14em;color:#aaa;">SIGNAL STRENGTH</div>
+            <div style="flex:1;height:3px;background:#ebebeb;border-radius:2px;overflow:hidden;">
+              <div id="futureSigBar" style="height:100%;width:0%;background:linear-gradient(90deg,#ccc,#888);border-radius:2px;transition:width 0.5s;"></div>
+            </div>
+            <div id="futureSigPct" style="font-size:9px;color:#aaa;font-family:monospace;">0%</div>
+          </div>
+
+          <!-- 心声按钮 -->
+          <button id="futureHeartBtn" onclick="futureToggleHeart()"
+            style="margin-top:12px;display:flex;align-items:center;gap:7px;background:none;border:0.5px solid #ddd;border-radius:20px;padding:7px 14px;cursor:pointer;font-size:13px;color:#111;letter-spacing:0.08em;transition:all 0.2s;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            <span id="futureHeartBtnTxt">听听 Ta 的心声</span>
+          </button>
+
+          <!-- 心声内容 -->
+          <div id="futureClearHeart" style="overflow:hidden;max-height:0;transition:max-height 0.4s ease,opacity 0.4s ease;opacity:0;">
+            <div style="margin-top:12px;padding:16px 18px;border-left:2px solid #ccc;background:#f7f7f7;border-radius:0 8px 8px 0;">
+              <div style="font-size:11px;letter-spacing:0.16em;color:#111;margin-bottom:8px;">心声</div>
+              <div id="futureHeartTxt" style="font-size:15px;color:#333;line-height:1.9;letter-spacing:0.03em;font-style:italic;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 进度条 -->
+      <div style="display:flex;align-items:center;gap:10px;margin-top:20px;position:relative;z-index:1;">
+        <div style="font-size:12px;color:#111;letter-spacing:0.1em;white-space:nowrap;">已捕捉</div>
+        <div style="flex:1;height:3px;background:#ebebeb;border-radius:2px;position:relative;overflow:hidden;">
+          <div id="futureCbFill" style="position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#ccc,#888);width:0%;transition:width 0.5s;border-radius:2px;"></div>
+        </div>
+        <div id="futureCbCount" style="font-size:12px;color:#111;font-family:monospace;">0 / 7</div>
+      </div>
+
+      <!-- 分割线 -->
+      <div style="display:flex;align-items:center;gap:10px;margin:24px 0 0;position:relative;z-index:1;">
+        <div style="flex:1;height:0.5px;background:#ebebeb;"></div>
+        <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="5,0 10,5 5,10 0,5" fill="none" stroke="#ddd" stroke-width="0.8"/></svg>
+        <div style="font-size:11px;letter-spacing:0.14em;color:#111;">已沉淀的光</div>
+        <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="5,0 10,5 5,10 0,5" fill="none" stroke="#ddd" stroke-width="0.8"/></svg>
+        <div style="flex:1;height:0.5px;background:#ebebeb;"></div>
+      </div>
+
+      <!-- 沉淀区 -->
+      <div id="futureSediment" style="display:flex;flex-direction:column;margin-top:0;padding-bottom:40px;position:relative;z-index:1;"></div>
+
+    </div>
+  </div>
 </div>
 
 <script src="chat.js"></script>
