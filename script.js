@@ -160,6 +160,8 @@ function openApp(name) {
     'music': 'music.html',
     'forum': 'forum.html',
     'beautify': 'beautify.html',
+    'wallet': 'wallet.html',
+    'user': 'user.html',
   }
 
   const url = routes[name];
@@ -797,7 +799,7 @@ let _fontDb = null;
 function openFontDB() {
   return new Promise((res, rej) => {
     if (_fontDb) return res(_fontDb);
-    const req = indexedDB.open('LunaFontDB', 3);
+    const req = indexedDB.open('LunaFontDB', 4);
     req.onupgradeneeded = e => {
       e.target.result.createObjectStore('fonts', { keyPath: 'id' });
     };
@@ -823,7 +825,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 3);
+        const req = indexedDB.open('LunaFontDB',4 );
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });

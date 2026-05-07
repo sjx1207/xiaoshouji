@@ -118,17 +118,21 @@ let _db = null;
 function openCharDB() {
   return new Promise((res, rej) => {
     if (_db) return res(_db);
-    const req = indexedDB.open('LunaCharDB', 2);
+    const req = indexedDB.open('LunaCharDB', 4);
     req.onupgradeneeded = e => {
-      e.target.result.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('chars')) {
+        db.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+      }
     };
     req.onsuccess = e => { _db = e.target.result; res(_db); };
-    req.onerror = () => rej('DB Error');
+    req.onerror = e => rej(e.target.error);
   });
 }
 
 async function getAllChars() {
-  const db = await openCharDB();
+  const db = await openCharDB().catch(err => { console.error('DB打开失败:', err); return null; });
+  if (!db) return [];
   return new Promise(res => {
     const req = db.transaction('chars').objectStore('chars').getAll();
     req.onsuccess = () => res(req.result || []);
@@ -155,6 +159,7 @@ let _activeId = null;
 
 async function renderList() {
   _chars    = await getAllChars();
+  const list = document.getElementById('chList');
   _activeId = parseInt(localStorage.getItem('luna_active_char')) || null;
 
   if (_chars.length === 0) {
@@ -180,8 +185,6 @@ async function renderList() {
       </div>`;
     return;
   }
-
-  const list = document.getElementById('chList');
   list.innerHTML = '';
   _chars.forEach((c, i) => {
     const card = buildCard(c, i + 1);
@@ -427,7 +430,7 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 3);
+        const req = indexedDB.open('LunaFontDB', 4);
         req.onsuccess = e => res(e.target.result);
         req.onerror = () => rej();
       });

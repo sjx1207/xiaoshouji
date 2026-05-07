@@ -1,9 +1,8 @@
 /* ================================
    Chatroom — chatroom.css
-   黑白偏白 · 直角头部 · 状态栏同步 index
+   全屏版 · 无手机框 · 白色背景
 ================================ */
 
-/* ---- Fonts (同步 index.html) ---- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap');
@@ -24,6 +23,10 @@
   0%   { transform: scale(1);    opacity: .6; }
   100% { transform: scale(1.35); opacity: 0; }
 }
+@keyframes chatFadeIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: none; }
+}
 
 /* ---- Reset ---- */
 *, *::before, *::after {
@@ -33,39 +36,35 @@
 }
 
 /* ================================
-   页面背景
+   全屏布局
 ================================ */
 body {
   min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #dedad3;
+  flex-direction: column;
+  background: #ffffff;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
-/* ================================
-   手机外框
-================================ */
 .cr-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 32px 20px 40px;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .cr-frame {
-  width: 370px;
-  background: #f2f0eb;
-  border-radius: 52px;
-  overflow: hidden;
-  border: 1.5px solid rgba(0,0,0,0.12);
+  width: 100vw;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  background: #ffffff;
+  animation: chatFadeIn 0.28s cubic-bezier(0.4,0,0.2,1) both;
 }
 
 /* ================================
-   状态栏 — 完全同步 index.html 结构与样式
-   背景与头部共用 #ffffff
+   状态栏 — 全屏，白色
 ================================ */
 .status-bar {
   height: 52px;
@@ -73,8 +72,10 @@ body {
   align-items: flex-end;
   justify-content: space-between;
   padding: 0 22px 9px;
-  background: #ffffff;        /* 与头部共用白色 */
+  background: #ffffff;
   flex-shrink: 0;
+  z-index: 20;
+  position: relative;
 }
 
 .status-time {
@@ -91,7 +92,6 @@ body {
   gap: 7px;
 }
 
-/* 信号格 — 同 index.html 用 <i> 标签 */
 .signal {
   display: flex;
   align-items: flex-end;
@@ -110,7 +110,6 @@ body {
 .signal i:nth-child(3) { height: 10px; }
 .signal i:nth-child(4) { height: 13px; }
 
-/* 电量 — 同 index.html */
 .battery {
   display: flex;
   align-items: center;
@@ -134,7 +133,7 @@ body {
   width: 76%;
   height: 100%;
   border-radius: 1.5px;
-  background: #1a1a1a;        /* 黑白色调，去掉绿色 */
+  background: #1a1a1a;
 }
 .bat-nub {
   position: absolute;
@@ -146,19 +145,16 @@ body {
 }
 
 /* ================================
-   头部 — 直角、两边不留白、白色
-   与状态栏背景无缝融合
+   头部 — 全宽，白色，直角
 ================================ */
 .cr-header {
   background: #ffffff;
-  /* 不设 margin，不设 border-radius，直角全宽 */
   overflow: hidden;
   position: relative;
   flex-shrink: 0;
   border-bottom: 0.5px solid rgba(0,0,0,0.08);
 }
 
-/* 装饰背景纹路 */
 .cr-header-bg {
   position: absolute;
   top: 0; left: 0;
@@ -166,13 +162,15 @@ body {
   pointer-events: none;
 }
 
-/* 主内容行 */
 .cr-header-main {
   position: relative;
-  padding: 18px 20px 16px;
+  padding: 18px 24px 16px;
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* ---- 头像 = 返回按钮 ---- */
@@ -209,7 +207,6 @@ body {
   transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
   position: relative;
 }
-/* 返回箭头 hover 覆盖 */
 .cr-back-hint {
   position: absolute; inset: 0;
   border-radius: 50%;
@@ -222,7 +219,6 @@ body {
 .cr-back-btn:hover .cr-back-hint,
 .cr-back-btn:active .cr-back-hint { opacity: 1; }
 
-/* 在线绿点 → 改为深灰（黑白调） */
 .cr-online-dot {
   position: absolute;
   bottom: 2px; right: 2px;
@@ -244,9 +240,7 @@ body {
   color: #1a1a1a; letter-spacing: -.3px;
   font-family: 'Playfair Display', serif;
 }
-.cr-moon {
-  opacity: 0.25;
-}
+.cr-moon { opacity: 0.25; }
 .cr-badge {
   background: rgba(0,0,0,0.05);
   border: 0.5px solid rgba(0,0,0,0.12);
@@ -299,11 +293,14 @@ body {
 }
 .cr-action-btn:hover { background: rgba(0,0,0,0.08); }
 
-/* ---- 头部统计行 ---- */
+/* ---- 统计行 ---- */
 .cr-stats {
   display: flex; align-items: center;
   border-top: 0.5px solid rgba(0,0,0,0.07);
-  padding: 10px 20px;
+  padding: 10px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
 }
 .cr-stat { flex: 1; text-align: center; }
 .cr-stat + .cr-stat {
@@ -337,12 +334,31 @@ body {
 ================================ */
 .cr-messages {
   flex: 1;
-  padding: 20px 14px 10px;
+  padding: 20px 24px 10px;
   display: flex; flex-direction: column;
   gap: 6px;
-  background: #f2f0eb;
-  min-height: 420px;
+  background: #ffffff;
   overflow-y: auto;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  align-self: stretch;
+}
+
+/* 全屏时消息区撑满 */
+.cr-frame > .cr-messages {
+  align-self: auto;
+}
+
+/* 包裹消息区使其居中但滚动条正常 */
+.cr-messages-outer {
+  flex: 1;
+  overflow-y: auto;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px 10px;
+  gap: 6px;
 }
 
 /* 日期分割线 */
@@ -362,7 +378,7 @@ body {
   padding: 4px 12px;
   border: 0.5px solid rgba(0,0,0,0.09);
   border-radius: 20px;
-  background: rgba(255,255,255,0.5);
+  background: rgba(0,0,0,0.02);
 }
 .cr-date-pill span {
   font-size: 10px; color: #9a9690;
@@ -373,7 +389,7 @@ body {
 /* Luna 消息 */
 .cr-msg-luna {
   display: flex; align-items: flex-end;
-  gap: 8px; max-width: 80%;
+  gap: 8px; max-width: 560px;
   align-self: flex-start;
 }
 .cr-mini-av {
@@ -384,7 +400,7 @@ body {
   flex-shrink: 0; overflow: hidden;
 }
 .cr-luna-bubble {
-  background: #fff;
+  background: #f7f7f7;
   border: 0.5px solid rgba(0,0,0,0.07);
   border-radius: 22px 22px 22px 6px;
   padding: 13px 16px;
@@ -431,12 +447,12 @@ body {
   flex-wrap: wrap; margin-top: 10px;
 }
 .cr-chip {
-  background: #f2f0eb;
+  background: #ffffff;
   border: 0.5px solid rgba(0,0,0,0.12);
   border-radius: 20px; padding: 4px 10px;
   cursor: pointer; transition: background 0.15s;
 }
-.cr-chip:hover { background: #e8e6e0; }
+.cr-chip:hover { background: #f0f0f0; }
 .cr-chip span {
   font-size: 11px; color: #5a5a5a; font-weight: 500;
   font-family: 'Inter', sans-serif;
@@ -446,7 +462,7 @@ body {
 .cr-msg-mine {
   display: flex; flex-direction: column;
   align-items: flex-end;
-  max-width: 78%; align-self: flex-end;
+  max-width: 560px; align-self: flex-end;
 }
 .cr-mine-bubble {
   background: #1a1a1a;
@@ -454,7 +470,7 @@ body {
   padding: 13px 16px;
 }
 .cr-mine-bubble .cr-msg-p {
-  color: #f2f0eb; padding-left: 0;
+  color: #f7f7f7; padding-left: 0;
 }
 .cr-mine-meta {
   display: flex; align-items: center;
@@ -477,7 +493,7 @@ body {
   gap: 8px; align-self: flex-start; margin-top: 2px;
 }
 .cr-typing-bubble {
-  background: #fff;
+  background: #f7f7f7;
   border: 0.5px solid rgba(0,0,0,0.07);
   border-radius: 22px 22px 22px 6px;
   padding: 15px 20px;
@@ -495,13 +511,19 @@ body {
    输入区
 ================================ */
 .cr-input-area {
-  background: #eae7e0;
+  background: #f5f5f5;
   border-top: 0.5px solid rgba(0,0,0,0.09);
-  padding: 14px 14px 32px;
+  padding: 14px 24px 24px;
   flex-shrink: 0;
 }
 
-/* 星座装饰分割线 */
+.cr-input-area-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 装饰分割线 */
 .cr-const-div {
   display: flex; align-items: center;
   gap: 6px; margin-bottom: 12px;
@@ -519,13 +541,13 @@ body {
 .cr-add-btn {
   width: 42px; height: 42px;
   border-radius: 14px;
-  background: #f2f0eb;
+  background: #ffffff;
   border: 0.5px solid rgba(0,0,0,0.12);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; cursor: pointer; position: relative;
   transition: background 0.15s;
 }
-.cr-add-btn:hover { background: #eae8e2; }
+.cr-add-btn:hover { background: #f0f0f0; }
 .cr-add-dot {
   position: absolute; top: 5px; right: 5px;
   width: 5px; height: 5px;
@@ -535,7 +557,7 @@ body {
 /* 输入框 */
 .cr-input-box {
   flex: 1;
-  background: #f2f0eb;
+  background: #ffffff;
   border: 0.5px solid rgba(0,0,0,0.12);
   border-radius: 22px;
   min-height: 42px;
@@ -558,13 +580,13 @@ body {
 .cr-ai-btn {
   width: 42px; height: 42px;
   border-radius: 14px;
-  background: #f0eeea;
+  background: #f0f0f0;
   border: 0.5px solid rgba(0,0,0,0.12);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; position: relative; overflow: visible;
   transition: background 0.15s;
 }
-.cr-ai-btn:hover { background: #e8e5de; }
+.cr-ai-btn:hover { background: #e8e8e8; }
 .cr-ai-ring {
   position: absolute; top: -5px; left: -5px;
   pointer-events: none;
@@ -580,13 +602,125 @@ body {
 }
 .cr-send-btn:hover { background: #2e2e2e; }
 
-/* Home bar */
-.cr-home-bar {
-  display: flex; justify-content: center;
-  margin-top: 16px;
+/* ================================
+   灵动岛样式（与 index/music/chat 同步）
+================================ */
+.status-island {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
-.cr-home-pill {
-  width: 120px; height: 4px;
-  background: rgba(0,0,0,0.18);
-  border-radius: 4px;
+
+.si-capsule {
+  background: #000;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34,1.2,0.64,1);
+}
+
+.si-minimal  .si-capsule { width: 110px; height: 32px; }
+.si-glow     .si-capsule { width: 110px; height: 32px; box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); animation: siGlow 2s ease-in-out infinite; }
+.si-clock    .si-capsule { width: 130px; height: 32px; gap: 6px; padding: 0 10px; }
+.si-pulse    .si-capsule { width: 72px;  height: 32px; gap: 12px; }
+.si-ripple   .si-capsule { width: 110px; height: 32px; overflow: visible; }
+.si-rainbow  .si-capsule { width: 110px; height: 32px; }
+.si-music    .si-capsule { width: 110px; height: 32px; gap: 3px; padding: 0 12px; align-items: flex-end; padding-bottom: 5px; }
+.si-scan     .si-capsule { width: 110px; height: 32px; overflow: hidden; }
+
+@keyframes siGlow {
+  0%,100% { box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); }
+  50%      { box-shadow: 0 0 4px 1px rgba(255,255,255,0.15); }
+}
+
+.si-clock-text {
+  font-size: 13px; font-weight: 600; color: #fff;
+  letter-spacing: -0.3px; font-family: -apple-system, sans-serif;
+  white-space: nowrap;
+}
+
+.si-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.9;
+}
+.si-dot-l { animation: siPulse 1.4s ease-in-out infinite; }
+.si-dot-r { animation: siPulse 1.4s ease-in-out 0.7s infinite; }
+@keyframes siPulse {
+  0%,100% { transform: scale(1); opacity: 0.9; }
+  50%      { transform: scale(0.4); opacity: 0.2; }
+}
+
+.si-ring {
+  position: absolute; inset: -1px; border-radius: 20px;
+  border: 1.5px solid rgba(255,255,255,0.6);
+  animation: siRipple 1.8s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes siRipple {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.si-rainbow .si-capsule {
+  background: linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6,#a78bfa,#f43f5e);
+  background-size: 300% 100%;
+  animation: siRainbow 2.5s linear infinite;
+}
+@keyframes siRainbow {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 300% 0; }
+}
+
+.si-bar {
+  width: 3px;
+  background: #fff;
+  border-radius: 2px;
+  opacity: 0.9;
+}
+.si-bar:nth-child(1) { animation: siBar 0.9s ease-in-out infinite; }
+.si-bar:nth-child(2) { animation: siBar 0.9s ease-in-out 0.15s infinite; }
+.si-bar:nth-child(3) { animation: siBar 0.9s ease-in-out 0.3s infinite; }
+.si-bar:nth-child(4) { animation: siBar 0.9s ease-in-out 0.45s infinite; }
+.si-bar:nth-child(5) { animation: siBar 0.9s ease-in-out 0.6s infinite; }
+@keyframes siBar {
+  0%,100% { height: 5px; }
+  50%      { height: 20px; }
+}
+
+.si-scanline {
+  position: absolute; left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+  animation: siScan 1.6s linear infinite;
+}
+@keyframes siScan {
+  0%   { top: 0; }
+  100% { top: 100%; }
+}
+
+.cr-avatar-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8e8e8;
+  font-size: 22px;
+  font-weight: 600;
+  color: #888;
+  overflow: hidden;
+}
+
+.cr-avatar-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
