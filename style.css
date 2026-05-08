@@ -1,4 +1,3 @@
-
 /* ================================
    Luna Phone — style.css
    浅色液体玻璃桌面样式
@@ -187,20 +186,31 @@ body {
    App 网格
 ================================ */
 .app-grid {
-  position: absolute;
-  top: 380px;
-  left: 0;
-  right: 0;
-  padding: 10px 14px 0;
+  position: relative;
+  width: 33.333%;                        /* pages-wrap是300%宽，所以33.333%=一屏 */
+  flex-shrink: 0;
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: 90px;
-  gap: 18px 4px;
+  grid-auto-rows: clamp(68px, 9svh, 88px);
+  align-content: start;
+  gap: clamp(6px, 1.2svh, 12px) 4px;
+  padding: 8px 14px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
   z-index: 5;
 }
 
+/* 第一页：7行固定布局，天气+音乐+图标+聊天刚好填满屏幕 */
+.app-grid.page-1 {
+  grid-template-rows: repeat(7, 1fr);
+  overflow: hidden;
+}
+
 .app-grid.page-2 {
-  top: 60px;
+  grid-template-rows: repeat(7, 1fr);
+  overflow: hidden;
 }
 
 /* ================================
@@ -305,7 +315,7 @@ body {
 ================================ */
 .page-dots {
   position: absolute;
-  bottom: 130px;
+  bottom: clamp(100px, 13svh, 135px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -336,8 +346,8 @@ body {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  width: 360px;
-  height: 80px;
+  width: min(360px, calc(100vw - 32px));
+  height: clamp(70px, 9svh, 80px);
 
   /* 液体玻璃 Dock */
   background: rgba(255, 255, 255, 0.42);
@@ -432,12 +442,21 @@ body {
    天气时间组件
 ================================ */
 .widget-zone {
-  position: absolute;
-  top: 58px;
-  left: 14px;
-  right: 14px;
+  grid-column: 1 / -1;   /* 横跨全部4列 */
+  grid-row: span 3;       /* 占3行，与page-1的7行布局配合 */
+  width: 100%;
+  margin-bottom: 0;
   z-index: 6;
-  margin-top: -380px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;          /* 允许子元素在flex中收缩 */
+}
+
+.widget-zone .bp-card,
+.widget-zone .main-card {
+  flex: 1;                /* 填满widget-zone分配的全部3行高度 */
+  min-height: 0;
+  overflow: hidden;
 }
 .main-card {
   border-radius: 26px;
@@ -1533,7 +1552,7 @@ body {
 
 /* ===== 聊天组件 ===== */
 .chat-widget {
-  width: 195px; height: 195px;
+  width: 100%; height: 100%;
   background: rgba(255,255,255,0.92);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -1544,7 +1563,7 @@ body {
   box-shadow: 0 0 0 0.5px rgba(255,255,255,0.95) inset,
               0 6px 28px rgba(0,0,0,0.11), 0 1px 5px rgba(0,0,0,0.07);
   grid-column: 3 / span 2;
-  grid-row: 3 / span 2;
+  grid-row: 6 / span 2;    /* widget-zone占3行后，chat从第6行开始 */
   font-size: 12px !important;
 }
 .chat-widget .cw-top-bar { height: 3px; background: #111; flex-shrink: 0; }
@@ -1577,26 +1596,22 @@ body {
 ================================ */
 .pages-wrap {
   position: absolute;
-  top: 380px;
+  top: 52px;                               /* 状态栏底部 */
   left: 0;
-  width: 200%;
+  bottom: calc(clamp(70px,9svh,80px) + 20px); /* dock顶部 */
+  width: 300%;                             /* 3页 × luna-frame宽度 */
   display: flex;
+  align-items: flex-start;
+  overflow: hidden;
   transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
   z-index: 5;
 }
 
 .pages-wrap .page-2 {
-  position: relative;
-  margin-top: -392px;
-  padding-top: 10px;
+  /* 无需负边距，正常流布局 */
 }
 
-.app-grid {
-  top: 0;
-  position: relative;
-  width: 50%;
-  flex-shrink: 0;
-}
+/* app-grid 已在上方统一定义 */
 
 .page-dots {
   z-index: 10;
@@ -1609,9 +1624,9 @@ body {
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Fraunces:ital,opsz,wght@0,9..144,100;1,9..144,100&family=Libre+Baskerville:ital@1&display=swap');
 
 .countdown-widget-ab1 {
-  grid-column: 1 / -1;       /* 横跨全部4列 */
+  grid-column: 1 / -1;
   grid-row: span 2;           /* 占2行 */
-  height: 198px;
+  height: 100%;               /* 填满分配的2行高度 */
   position: relative;
   overflow: hidden;
   border-radius: 20px;
@@ -1834,8 +1849,8 @@ body {
 /* ── Photo Diary 组件 ── */
 .photo-diary-widget {
   grid-column: 1 / -1;
-  grid-row: span 2;
-  height: 198px;
+  grid-row: span 2;           /* 占第6-7行，2行 */
+  height: 100%;               /* 填满分配高度 */
   border-radius: 20px;
   overflow: hidden;
   background: #ffffff;
@@ -1849,14 +1864,15 @@ body {
 }
 .pdw-img {
   width: 100%;
-  height: 120px;
+  flex: 1;                    /* 弹性占满上部 */
+  min-height: 0;
   background: linear-gradient(160deg, #eae8e2 0%, #d8d4cc 100%);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  flex-shrink: 0;
+  flex-shrink: 1;
 }
 .pdw-img::after {
   content: '';
@@ -1913,8 +1929,8 @@ body {
 
 /* ── Press Avatar Widget ── */
 .press-widget {
-  grid-column: span 2;
-  grid-row: span 2;
+  grid-column: 3 / span 2;   /* 右侧2列 */
+  grid-row: 4 / span 2;      /* 第4-5行（倒数日2行+1行图标后） */
   background: #ffffff;
   border-radius: 22px;
   overflow: hidden;
@@ -2206,16 +2222,24 @@ body {
   text-align: center;
 }
 
-/* 包裹层 — 和 widget-zone 同级定位方式 */
+/* 包裹层 — grid普通子项，横跨4列 */
 .lpc-zone {
-  position: absolute;
-  top: 70px;        /* 状态栏下方，和 page-2 的 top 值一样 */
-  left: 14px;
-  right: 14px;
-  z-index: 10;
+  grid-column: 1 / -1;
+  grid-row: span 3;           /* 7行布局中占3行 */
+  width: 100%;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-/* 卡片本身去掉 margin，由 lpc-zone 控制位置 */
+.lpc-zone .luna-profile-card {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 卡片本身 */
 .luna-profile-card {
   background: #fff;
   border-radius: 16px;
@@ -2224,6 +2248,53 @@ body {
 }
 
 .app-grid.page-3 {
-  margin-top: -392px;
-  padding-top: 398px;
+  grid-template-rows: repeat(7, 1fr);
+  overflow: hidden;
+}
+
+/* ================================
+   手机端高度自适应
+   (widget-zone 已独立定位，app-grid top 用 svh 自适应)
+================================ */
+
+/* 中等小屏 < 750px */
+@media (max-height: 750px) {
+  .bp-header { padding: 8px 14px 7px; }
+  .bp-route { padding: 9px 14px 0; }
+  .bp-code { font-size: 42px !important; }
+  .bp-info-row { margin: 8px 14px 0; }
+  .bp-date-row { padding: 5px 14px 0; }
+  .bp-tear { margin: 7px 0 0; }
+  .bp-stub { padding: 6px 14px 10px; }
+  .luna-dock { height: 70px; bottom: 14px; }
+  .dock-face { width: 52px; height: 52px; }
+  .app-face { width: 62px; height: 62px; }
+  .app-label { font-size: 13px; }
+}
+
+/* 小屏 < 680px（iPhone SE 等） */
+@media (max-height: 680px) {
+  .bp-header { padding: 6px 12px 5px; }
+  .bp-route { padding: 6px 12px 0; }
+  .bp-code { font-size: 34px !important; }
+  .bp-airline { font-size: 17px !important; }
+  .bp-info-row { margin: 6px 12px 0; }
+  .bp-info-value { font-size: 12px !important; }
+  .bp-date-row { padding: 3px 12px 0; }
+  .bp-date-value { font-size: 8.5px !important; }
+  .bp-tear { margin: 5px 0 0; }
+  .bp-stub { padding: 4px 12px 7px; }
+  .bp-stub-times { font-size: 10px !important; }
+  .bp-barcode { height: 18px; }
+  .luna-dock { height: 64px; bottom: 10px; }
+  .dock-face { width: 48px; height: 48px; }
+  .app-face { width: 56px; height: 56px; border-radius: 16px; }
+  .app-label { font-size: 11px; }
+}
+
+@media (min-width: 600px) and (min-height: 700px) {
+  body { background: transparent; }
+  .luna-frame { width:100vw!important; height:100svh!important; border-radius:0!important; box-shadow:none!important; }
+  .pages-wrap { width: 300%!important; }
+  .pages-wrap .app-grid { width: 33.333%!important; }
 }

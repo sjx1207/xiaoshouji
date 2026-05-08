@@ -6,17 +6,23 @@
    页面左右滑动
 ================================ */
 (function() {
-  let startX = 0, startY = 0, curPage = 0;
+  let startX = 0, startY = 0, curPage = 0, dragging = false;
   const totalPages = 3;
   const wrap = document.getElementById('pagesWrap');
   const dots = document.querySelectorAll('.dot');
+  let wheelTimer = null;
+
+  function getFrameW() {
+    return wrap.parentElement ? wrap.parentElement.offsetWidth : window.innerWidth;
+  }
 
   function goTo(page) {
     curPage = Math.max(0, Math.min(totalPages - 1, page));
-    wrap.style.transform = `translateX(${-curPage * 50}%)`;
+    wrap.style.transform = `translateX(${-curPage * getFrameW()}px)`;
     dots.forEach((d, i) => d.classList.toggle('on', i === curPage));
   }
 
+  // ── 触摸滑动 ──
   wrap.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
@@ -30,22 +36,36 @@
     }
   }, { passive: true });
 
-  // 鼠标拖拽（桌面调试用）
-  wrap.addEventListener('mousedown', e => { startX = e.clientX; });
-  wrap.addEventListener('mouseup', e => {
+  // ── 鼠标拖拽（用 document 监听 mouseup，防止拖出边界后松手没响应）──
+  wrap.addEventListener('mousedown', e => {
+    startX = e.clientX;
+    dragging = true;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+  });
+  document.addEventListener('mouseup', e => {
+    if (!dragging) return;
+    dragging = false;
     const dx = e.clientX - startX;
     if (Math.abs(dx) > 40) goTo(dx < 0 ? curPage + 1 : curPage - 1);
   });
 
-  // 支持触控板两指左右滑动
+  // ── 触控板双指滑动（节流：每次滑动只触发一次翻页）──
   wrap.addEventListener('wheel', (e) => {
     e.preventDefault();
-    if (e.deltaX > 30) {
-      goTo(curPage + 1);
-    } else if (e.deltaX < -30) {
-      goTo(curPage - 1);
+    if (wheelTimer) return;           // 节流：忽略连续事件
+    const absX = Math.abs(e.deltaX);
+    const absY = Math.abs(e.deltaY);
+    if (absX > absY && absX > 20) {  // 确保是横向滑动
+      goTo(e.deltaX > 0 ? curPage + 1 : curPage - 1);
+      wheelTimer = setTimeout(() => { wheelTimer = null; }, 600);
     }
   }, { passive: false });
+
+  // 窗口resize时重新计算位置
+  window.addEventListener('resize', () => goTo(curPage));
 
   document.addEventListener('DOMContentLoaded', () => goTo(0));
 })();
