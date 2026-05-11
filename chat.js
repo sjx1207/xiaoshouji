@@ -3705,3 +3705,1903 @@ async function futureGenerate() {
       </div>`;
   }
 }
+
+async function openMiyouPage() {
+  const page    = document.getElementById('miyouPage');
+  const overlay = document.getElementById('miyouOverlay');
+  if (!page) return;
+
+  page.classList.add('active');
+  if (overlay) { overlay.style.display = ''; overlay.classList.add('active'); }
+
+  // 同步时间
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const timeEl = document.getElementById('miyouStatusTime');
+  if (timeEl) timeEl.textContent = new Date().toLocaleTimeString('zh-CN', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+  });
+
+  // 同步电量
+  const mainPct   = document.getElementById('batPct');
+  const mainInner = document.getElementById('batInner');
+  const myPct     = document.getElementById('miyouBatPct');
+  const myInner   = document.getElementById('miyouBatInner');
+  if (myPct && mainPct)     myPct.textContent      = mainPct.textContent;
+  if (myInner && mainInner) {
+    myInner.style.width      = mainInner.style.width;
+    myInner.style.background = mainInner.style.background;
+  }
+
+  // 同步灵动岛
+  const enabled  = localStorage.getItem('luna_island_enabled') === 'true';
+  const style    = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('miyouStatusIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">--:--</span></div></div>`,
+        pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[style] || styleMap.minimal;
+    }
+  }
+
+  // ── 读取当前角色数据并填充密友圈信息条 ──
+  const name = typeof _cpCurrentName !== 'undefined' ? _cpCurrentName : null;
+  if (!name) return;
+
+  const charData = await getCharDataByName(name);
+
+  // 头像
+  const avatarEl = document.getElementById('miyouCharAvatar');
+  if (avatarEl) {
+    if (charData?.avatar) {
+      avatarEl.innerHTML = `<img src="${charData.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;display:block;"/>`;
+      avatarEl.style.fontSize = '0';
+      avatarEl.style.padding  = '0';
+    } else {
+      avatarEl.textContent    = (charData?.name || name || '?')[0];
+      avatarEl.style.fontSize = '';
+      avatarEl.style.padding  = '';
+    }
+  }
+
+  // 角色名
+  const nameEl = document.getElementById('miyouCharName');
+  if (nameEl) nameEl.textContent = charData?.name || name || '—';
+
+  // 身份/职业（role）
+  const titleEl = document.getElementById('miyouCharTitle');
+  if (titleEl) titleEl.textContent = charData?.role || '神秘角色';
+
+  // 性格标签（traits）
+  const tagsEl = document.getElementById('miyouCharTags');
+  if (tagsEl) {
+    const traits = charData?.traits || [];
+    if (traits.length > 0) {
+      tagsEl.innerHTML = traits.map(t => `<div class="miyou-cs-tag">${t}</div>`).join('');
+    } else {
+      tagsEl.innerHTML = '<div class="miyou-cs-tag">暂无标签</div>';
+      const friendsEl  = document.getElementById('miyouStatFriends');
+      const eventsEl   = document.getElementById('miyouStatEvents');
+      const unlockedEl = document.getElementById('miyouStatUnlocked');
+      const lockedEl   = document.getElementById('miyouStatLocked');
+      if (friendsEl)  friendsEl.textContent  = charData?.friendCount   ?? 0;
+      if (eventsEl)   eventsEl.textContent   = charData?.eventCount    ?? 0;
+      if (unlockedEl) unlockedEl.textContent = charData?.unlockedCount ?? 0;
+      if (lockedEl)   lockedEl.textContent   = charData?.lockedCount   ?? 0;
+    }
+  }
+}
+
+function closeMiyouPage() {
+  const page    = document.getElementById('miyouPage');
+  const overlay = document.getElementById('miyouOverlay');
+  if (page)    page.classList.remove('active');
+  if (overlay) { overlay.classList.remove('active'); overlay.style.display = 'none'; }
+}
+
+/* ---- Social Map 全屏页 ---- */
+function openSocialMapPage() {
+  document.getElementById('smOverlay').classList.add('open');
+  document.getElementById('smFullpage').classList.add('open');
+
+  // 同步状态栏时间
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const timeStr = new Date().toLocaleTimeString('zh-CN', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  const smTime = document.getElementById('smStatusTime');
+  if (smTime) smTime.textContent = timeStr;
+
+  // 同步电量
+  const mainPct = document.getElementById('batPct');
+  const smPct = document.getElementById('smBatPct');
+  const smInner = document.getElementById('smBatInner');
+  if (mainPct && smPct) {
+    smPct.textContent = mainPct.textContent;
+    const p = parseInt(mainPct.textContent);
+    if (smInner) {
+      smInner.style.width = p + '%';
+      smInner.style.background = p <= 20
+        ? 'linear-gradient(90deg,#f87171,#ef4444)'
+        : 'linear-gradient(90deg,#6ee7b7,#34d399)';
+    }
+  }
+
+  // 同步灵动岛
+  const smEnabled = localStorage.getItem('luna_island_enabled') === 'true';
+  const smStyle   = localStorage.getItem('luna_island_style') || 'minimal';
+  const smIsland  = document.getElementById('smStatusIsland');
+  if (smIsland) {
+    if (!smEnabled) { smIsland.innerHTML = ''; }
+    else {
+      const smStyleMap = {
+        minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">--:--</span></div></div>`,
+        pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      smIsland.innerHTML = smStyleMap[smStyle] || smStyleMap.minimal;
+    }
+  }
+
+  // filter按钮交互
+  document.querySelectorAll('.sm-filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.sm-filter-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // 动态渲染数据
+  smRenderAll();
+}
+
+function closeSocialMapPage() {
+  document.getElementById('smOverlay').classList.remove('open');
+  document.getElementById('smFullpage').classList.remove('open');
+}
+
+/* ================================
+   Social Map 动态渲染
+================================ */
+
+// 封面装饰SVG循环（5种）
+const SM_COVER_SVGS = [
+  `<svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.3" viewBox="0 0 160 52"><line x1="0" y1="26" x2="160" y2="26" stroke="#555" stroke-width="0.4"/><line x1="80" y1="0" x2="80" y2="52" stroke="#555" stroke-width="0.4"/><circle cx="80" cy="26" r="18" stroke="#555" stroke-width="0.4" fill="none"/></svg>`,
+  `<svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.3" viewBox="0 0 160 52"><rect x="30" y="10" width="100" height="32" rx="3" stroke="#555" stroke-width="0.4" fill="none"/><line x1="30" y1="26" x2="130" y2="26" stroke="#555" stroke-width="0.4"/></svg>`,
+  `<svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.3" viewBox="0 0 160 52"><circle cx="40" cy="26" r="14" stroke="#555" stroke-width="0.4" fill="none"/><circle cx="120" cy="26" r="14" stroke="#555" stroke-width="0.4" fill="none"/><line x1="54" y1="26" x2="106" y2="26" stroke="#555" stroke-width="0.4"/></svg>`,
+  `<svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.3" viewBox="0 0 160 52"><polygon points="80,8 130,44 30,44" stroke="#555" stroke-width="0.4" fill="none"/><line x1="80" y1="8" x2="80" y2="44" stroke="#555" stroke-width="0.3"/></svg>`,
+  `<svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.25" viewBox="0 0 160 52"><line x1="0" y1="0" x2="160" y2="52" stroke="#555" stroke-width="0.5"/><line x1="160" y1="0" x2="0" y2="52" stroke="#555" stroke-width="0.5"/></svg>`,
+];
+
+// 封面背景色（按index循环）
+const SM_COVER_COLORS = ['#e8e6e4','#e4e8ec','#e8e4ec','#ece8e4','#e4e2e0'];
+
+// 格式化时间戳为 MM.DD.YYYY
+function smFormatDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const yy = d.getFullYear();
+  return `${mm}.${dd}.${yy}`;
+}
+
+// 生成角色卡片 HTML
+function smBuildCharCard(char, idx) {
+  const coverSvg   = SM_COVER_SVGS[idx % SM_COVER_SVGS.length];
+  const coverColor = SM_COVER_COLORS[idx % SM_COVER_COLORS.length];
+  const coverBg    = char.cardBg
+    ? `background-image:url(${char.cardBg});background-size:cover;background-position:center;`
+    : `background:${coverColor};`;
+
+  const avatarContent = char.avatar
+    ? `<img src="${char.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;"/>`
+    : (char.name||'?')[0];
+
+  const tagsHtml = (char.traits||[]).slice(0,2).map(t =>
+    `<span class="sm-tag">${t}</span>`
+  ).join('');
+
+  const roleLine = [char.role, char.age ? char.age+'岁' : '', char.gender].filter(Boolean).join(' · ');
+  const since    = smFormatDate(char.createdAt);
+  const onlineDot = char.online
+    ? `<div class="sm-online-dot on"></div>`
+    : '';
+  const relBadge = char.rel
+    ? `<div class="sm-card-rel-badge">${char.rel}</div>`
+    : '';
+
+  return `
+  <div class="sm-card" onclick="smOpenChat('${(char.name||'').replace(/'/g,"\\'")}')">
+    <div class="sm-card-cover" style="${coverBg}">${coverSvg}
+      <div class="sm-card-type-badge">CHARACTER</div>
+    </div>
+    <div class="sm-card-body">
+      <div class="sm-card-avatar-row">
+        <div class="sm-avatar">${avatarContent}</div>
+        ${onlineDot}
+        ${relBadge}
+      </div>
+      <div class="sm-card-name">${char.name||'—'}</div>
+      <div class="sm-card-role">${roleLine||'—'}</div>
+      <div class="sm-card-tags">${tagsHtml}</div>
+    </div>
+    <div class="sm-card-footer">
+      <span class="sm-card-since">${since}</span>
+      <div class="sm-card-actions">
+        <div class="sm-card-action"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+        <div class="sm-card-action"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/><circle cx="5" cy="12" r="1.5" fill="currentColor"/></svg></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// 生成 NPC 卡片 HTML
+function smBuildNpcCard(npc, fromCharName, idx, charId, npcIdx) {
+  // 封面背景：优先用户上传，没有则用默认色
+  const coverBg = npc.cardBg
+    ? `background-image:url(${npc.cardBg});background-size:cover;background-position:center;`
+    : `background:${SM_COVER_COLORS[(idx + 2) % SM_COVER_COLORS.length]};`;
+  const coverSvg = npc.cardBg ? '' : SM_COVER_SVGS[(idx + 2) % SM_COVER_SVGS.length];
+
+  // 头像：优先用户上传，没有则用首字
+  const avatarContent = npc.avatar
+    ? `<img src="${npc.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;"/>`
+    : ((npc.name||'?').length > 1
+        ? `<span style="font-size:11px;">${(npc.name||'?').slice(0,2)}</span>`
+        : (npc.name||'?')[0]);
+
+  const tagsHtml = (npc.traits||[]).slice(0,2).map(t =>
+    `<span class="sm-tag">${t}</span>`
+  ).join('');
+
+  const relBadge = npc.rel
+    ? `<div class="sm-card-rel-badge">${npc.rel}</div>`
+    : `<div class="sm-card-rel-badge">其他</div>`;
+
+  // AI NPC 判断：显式标记 或 缺少手动创建才有的表单字段（兼容旧数据）
+  const _isAiNpc = npc.isAiNpc === true || (npc.hook !== undefined && npc.vibe !== undefined && !npc.fromManual);
+  return `
+  <div class="sm-card" data-charid="${charId}" data-npcidx="${npcIdx}"
+    onclick="smNpcCardClick(event, this, '${_isAiNpc ? 'smAiNpcDetailOpen' : 'smOpenEdit'}', ${charId}, ${npcIdx})"
+    style="cursor:pointer;position:relative;transition:outline 0.15s;">
+    <div class="sm-card-select-check" style="display:none;position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;border:2px solid #111;background:#fff;z-index:10;align-items:center;justify-content:center;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="#111" stroke-width="2.5" stroke-linecap="round"/></svg>
+    </div>
+    <div class="sm-card-cover" style="${coverBg}">${coverSvg}
+      <div class="sm-card-type-badge">NPC</div>
+    </div>
+    <div class="sm-card-body">
+      <div class="sm-card-avatar-row">
+        <div class="sm-avatar" style="background:#dcdad8;">${avatarContent}</div>
+        ${relBadge}
+      </div>
+      <div class="sm-card-name">${npc.name||'—'}</div>
+      <div class="sm-card-role">来自 · ${fromCharName}</div>
+      <div class="sm-card-tags">${tagsHtml}</div>
+    </div>
+    <div class="sm-card-footer">
+      <span class="sm-card-since">NPC · ${fromCharName}</span>
+      <div class="sm-card-actions">
+        <div class="sm-card-action"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// 添加卡片（末尾占位）
+const SM_ADD_CARD = `
+  <div class="sm-card" onclick="openAddContact()" style="border:1px dashed rgba(0,0,0,0.1);background:rgba(255,255,255,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;cursor:pointer;">
+    <div style="width:36px;height:36px;border-radius:9px;border:0.8px dashed rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="rgba(0,0,0,0.3)" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </div>
+    <div style="font-size:10px;color:#c0c0c0;letter-spacing:0.1em;">添加角色</div>
+    <div style="font-size:9px;color:#d5d5d5;letter-spacing:0.06em;margin-top:3px;">ADD CHARACTER</div>
+  </div>`;
+
+// 动态渲染节点图谱SVG
+let _smNodePhysics = null;
+let _smNodePhysicsFull = null;
+
+// 全屏展开/收起
+function smNodeMapExpand() {
+  const fs = document.getElementById('smNodeFullscreen');
+  if (!fs) return;
+  fs.classList.add('open');
+  // 用全屏canvas重新跑一次物理引擎
+  if (_smNodePhysicsFull) { _smNodePhysicsFull.destroy(); _smNodePhysicsFull = null; }
+  const lastChars = window._smLastChars || [];
+  _smNodePhysicsFull = smBuildNodePhysics('smNodeCanvasFull', lastChars, true);
+}
+function smNodeMapCollapse() {
+  const fs = document.getElementById('smNodeFullscreen');
+  if (!fs) return;
+  fs.classList.remove('open');
+  if (_smNodePhysicsFull) { _smNodePhysicsFull.destroy(); _smNodePhysicsFull = null; }
+}
+
+function smRenderNodeMap(chars) {
+  window._smLastChars = chars; // 缓存供全屏用
+  if (_smNodePhysics) { _smNodePhysics.destroy(); _smNodePhysics = null; }
+  _smNodePhysics = smBuildNodePhysics('smNodeCanvas', chars, false);
+}
+
+function smBuildNodePhysics(canvasId, chars, isFullscreen) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+
+  // 等canvas渲染完再取尺寸
+  const dpr = window.devicePixelRatio || 2;
+  const W = Math.max(canvas.offsetWidth || 300, isFullscreen ? window.innerWidth : 280);
+  const H = isFullscreen ? (window.innerHeight - 80) : 260;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // NPC数据包含rel字段
+  const charData = chars.map(ch => ({
+    label: (ch.name || '?')[0].toUpperCase(),
+    name: ch.name || '?',
+    npcs: (ch.charNpcs || []).map(n => ({
+      label: (n.name || '?')[0].toUpperCase(),
+      name: n.name || '?',
+      rel: n.rel || n.relType || '',       // 关系类型（恋人/友人/家人等）
+      role: n.role || '',                   // 职业
+    })),
+  }));
+
+  const badge = document.getElementById('smNodeMapBadge');
+  const totalNpcs = charData.reduce((s, c) => s + c.npcs.length, 0);
+  if (badge) badge.textContent = charData.length > 0 ? `${charData.length} chars · ${totalNpcs} npc` : '暂无数据';
+
+  const nodes = [];
+  const edges = [];
+
+  if (charData.length === 0) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(0,0,0,0.13)';
+    ctx.font = `${isFullscreen ? 14 : 10}px "DM Mono",monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('NO CONNECTIONS', W/2, H/2 - 10);
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.font = `${isFullscreen ? 11 : 8}px "DM Mono",monospace`;
+    ctx.fillText('添加角色与NPC开始', W/2, H/2 + 12);
+    return null;
+  }
+
+  const charCount = charData.length;
+  const cx = W / 2, cy = H / 2;
+  // 全屏时半径更大
+  const charRingR = isFullscreen
+    ? Math.min(W, H) * (charCount === 1 ? 0 : 0.22)
+    : Math.min(W, H) * (charCount === 1 ? 0 : 0.28);
+
+  // 节点尺寸随全屏放大
+  const charNodeR = isFullscreen ? 28 : 20;
+  const npcNodeR  = isFullscreen ? 16 : 11;
+  const fontSize  = isFullscreen ? 12 : 8;
+  const npcFontSize = isFullscreen ? 9 : 6;
+  const labelFontSize = isFullscreen ? 9 : 6.5;
+  const relFontSize = isFullscreen ? 8 : 5.5;
+
+  // 角色节点
+  charData.forEach((ch, i) => {
+    const angle = charCount === 1 ? 0 : (2 * Math.PI * i / charCount) - Math.PI / 2;
+    nodes.push({
+      id: 'char_' + i, type: 'char', charIdx: i,
+      label: ch.label, name: ch.name,
+      x: cx + charRingR * Math.cos(angle) + (Math.random()-0.5)*4,
+      y: cy + charRingR * Math.sin(angle) + (Math.random()-0.5)*4,
+      vx: 0, vy: 0, r: charNodeR, mass: 3,
+      color: '#1a1a1a', textColor: '#fff',
+      _sx: 1, _sy: 1, _sv: 0, _s: 0,
+    });
+  });
+
+  // 角色间排斥弹簧
+  for (let i = 0; i < charCount; i++) {
+    for (let j = i+1; j < charCount; j++) {
+      edges.push({ a: i, b: j, restLen: charRingR * 1.8, k: 0.006, isCharEdge: true });
+    }
+  }
+
+  // NPC节点
+  charData.forEach((ch, ci) => {
+    const charNode = nodes[ci];
+    const npcCount = ch.npcs.length;
+    ch.npcs.forEach((npc, ni) => {
+      const baseAngle = charCount === 1 ? 0 : (2 * Math.PI * ci / charCount) - Math.PI / 2;
+      const spread = npcCount <= 1 ? 0 : (ni / (npcCount-1) - 0.5) * (npcCount <= 2 ? 1.2 : 2.0);
+      const angle = baseAngle + spread;
+      const dist = (charNodeR + npcNodeR + (isFullscreen ? 55 : 38)) + (Math.random()-0.5)*6;
+      const nodeIdx = nodes.length;
+      nodes.push({
+        id: `npc_${ci}_${ni}`, type: 'npc', charIdx: ci,
+        label: npc.label, name: npc.name,
+        rel: npc.rel, role: npc.role,
+        x: charNode.x + dist * Math.cos(angle),
+        y: charNode.y + dist * Math.sin(angle),
+        vx: 0, vy: 0, r: npcNodeR, mass: 1,
+        color: '#f0ede8', textColor: '#777',
+        _sx: 1, _sy: 1, _sv: 0, _s: 0,
+      });
+      edges.push({ a: ci, b: nodeIdx, restLen: dist * 0.9, k: 0.035, rel: npc.rel });
+    });
+  });
+
+  // 拖拽
+  let dragging = null, dragOX = 0, dragOY = 0;
+  let running = true, animId = null;
+
+  function getXY(e) {
+    const r = canvas.getBoundingClientRect();
+    const s = e.touches ? e.touches[0] : e;
+    return {
+      x: (s.clientX - r.left) * (W / r.width),
+      y: (s.clientY - r.top) * (H / r.height),
+    };
+  }
+  function hit(x, y) {
+    for (let i = nodes.length-1; i >= 0; i--) {
+      const n = nodes[i];
+      if ((x-n.x)**2 + (y-n.y)**2 < (n.r+8)**2) return i;
+    }
+    return -1;
+  }
+  function onDown(e) {
+    const p = getXY(e);
+    const idx = hit(p.x, p.y);
+    if (idx >= 0) {
+      dragging = idx; dragOX = nodes[idx].x - p.x; dragOY = nodes[idx].y - p.y;
+      nodes[idx]._sv = 0.35;
+      canvas.style.cursor = 'grabbing';
+      e.preventDefault();
+    }
+  }
+  function onMove(e) {
+    if (dragging === null) return;
+    const p = getXY(e);
+    const n = nodes[dragging];
+    const nx = p.x + dragOX, ny = p.y + dragOY;
+    const spd = Math.hypot(nx - n.x, ny - n.y);
+    n.x = nx; n.y = ny; n.vx = 0; n.vy = 0;
+    n._sv = Math.min(spd * 0.05, 0.45);
+    e.preventDefault();
+  }
+  function onUp() {
+    if (dragging !== null) { nodes[dragging]._sv = 0.28; dragging = null; }
+    canvas.style.cursor = 'grab';
+  }
+
+  canvas.addEventListener('mousedown', onDown);
+  canvas.addEventListener('mousemove', onMove);
+  canvas.addEventListener('mouseup', onUp);
+  canvas.addEventListener('mouseleave', onUp);
+  canvas.addEventListener('touchstart', onDown, {passive:false});
+  canvas.addEventListener('touchmove', onMove, {passive:false});
+  canvas.addEventListener('touchend', onUp);
+
+  // 物理
+  function step() {
+    // 弹簧
+    edges.forEach(e => {
+      const a = nodes[e.a], b = nodes[e.b];
+      const dx = b.x-a.x, dy = b.y-a.y;
+      const d = Math.hypot(dx,dy) || 0.01;
+      const f = (d - e.restLen) * e.k;
+      const fx = dx/d*f, fy = dy/d*f;
+      if (dragging !== e.a) { a.vx += fx/a.mass; a.vy += fy/a.mass; }
+      if (dragging !== e.b) { b.vx -= fx/b.mass; b.vy -= fy/b.mass; }
+    });
+    // 排斥
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i+1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        const dx = b.x-a.x, dy = b.y-a.y;
+        const d2 = dx*dx+dy*dy || 0.01;
+        const minD = a.r + b.r + 10;
+        if (d2 < minD*minD) {
+          const d = Math.sqrt(d2);
+          const f = 700/d2;
+          const fx = dx/d*f, fy = dy/d*f;
+          if (dragging !== i) { a.vx -= fx/a.mass; a.vy -= fy/a.mass; }
+          if (dragging !== j) { b.vx += fx/b.mass; b.vy += fy/b.mass; }
+        }
+      }
+    }
+    // 更新
+    nodes.forEach((n, i) => {
+      if (i === dragging) return;
+      n.vx *= 0.80; n.vy *= 0.80;
+      n.x += n.vx; n.y += n.vy;
+      const pad = n.r + 6;
+      if (n.x < pad) { n.x = pad; n.vx *= -0.35; }
+      if (n.x > W-pad) { n.x = W-pad; n.vx *= -0.35; }
+      if (n.y < pad) { n.y = pad; n.vy *= -0.35; }
+      if (n.y > H-pad) { n.y = H-pad; n.vy *= -0.35; }
+    });
+    // 果冻
+    nodes.forEach(n => {
+      const spd = Math.hypot(n.vx, n.vy);
+      if (spd > 0.4) n._sv += spd * 0.01;
+      n._s += n._sv;
+      n._sv -= n._s * 0.22;
+      n._sv *= 0.76;
+      const sq = Math.sin(n._s) * 0.13;
+      n._sx = 1 + sq; n._sy = 1 - sq * 0.65;
+    });
+  }
+
+  // 绘制关系标签（在连线中点）
+  function drawEdgeLabel(a, b, rel) {
+    if (!rel) return;
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
+    const text = rel.length > 4 ? rel.slice(0,4) : rel;
+    ctx.save();
+    // 小背景胶囊
+    ctx.font = `${relFontSize}px "DM Mono",monospace`;
+    const tw = ctx.measureText(text).width;
+    const pw = tw + 6, ph = relFontSize + 4;
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    ctx.beginPath();
+    ctx.roundRect(mx - pw/2, my - ph/2, pw, ph, ph/2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.38)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, mx, my);
+    ctx.restore();
+  }
+
+  function drawNode(n) {
+    ctx.save();
+    ctx.translate(n.x, n.y);
+    ctx.scale(n._sx, n._sy);
+    // 阴影
+    ctx.shadowColor = n.type==='char' ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.1)';
+    ctx.shadowBlur = n.type==='char' ? 14 : 6;
+    ctx.shadowOffsetY = n.type==='char' ? 3 : 1;
+    // 主圆
+    ctx.beginPath(); ctx.arc(0,0,n.r,0,Math.PI*2);
+    ctx.fillStyle = n.color; ctx.fill();
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    // 高光
+    const g = ctx.createRadialGradient(-n.r*0.3,-n.r*0.4,0,0,0,n.r);
+    g.addColorStop(0,'rgba(255,255,255,0.25)');
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.beginPath(); ctx.arc(0,0,n.r,0,Math.PI*2);
+    ctx.fillStyle = g; ctx.fill();
+    // NPC边框
+    if (n.type==='npc') {
+      ctx.beginPath(); ctx.arc(0,0,n.r,0,Math.PI*2);
+      ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.lineWidth=0.8; ctx.stroke();
+    }
+    // 文字
+    ctx.fillStyle = n.textColor;
+    ctx.font = `${n.type==='char'?600:500} ${n.type==='char'?fontSize:npcFontSize}px "DM Mono",monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(n.label, 0, 0.5);
+    ctx.restore();
+
+    // 角色名（圆下方）
+    if (n.type==='char') {
+      ctx.save();
+      ctx.fillStyle='rgba(0,0,0,0.5)';
+      ctx.font=`500 ${labelFontSize}px "DM Mono",monospace`;
+      ctx.textAlign='center'; ctx.textBaseline='top';
+      const displayName = n.name.length > 5 ? n.name.slice(0,5) : n.name;
+      ctx.fillText(displayName, n.x, n.y + n.r + 5);
+      ctx.restore();
+    }
+
+    // NPC名（圆下方）+ rel标签（圆上方）
+    if (n.type==='npc') {
+      ctx.save();
+      ctx.fillStyle='rgba(0,0,0,0.38)';
+      ctx.font=`${labelFontSize}px "DM Mono",monospace`;
+      ctx.textAlign='center'; ctx.textBaseline='top';
+      const nname = n.name.length > 4 ? n.name.slice(0,4) : n.name;
+      ctx.fillText(nname, n.x, n.y + n.r + 3);
+      ctx.restore();
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // 连线 + 关系标签
+    edges.forEach(e => {
+      const a = nodes[e.a], b = nodes[e.b];
+      if (!a || !b) return;
+      ctx.save();
+      const isCharEdge = e.isCharEdge;
+      ctx.strokeStyle = isCharEdge ? 'rgba(0,0,0,0.05)' : 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = isCharEdge ? 0.6 : 1.2;
+      ctx.setLineDash(isCharEdge ? [3,7] : [5,4]);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.restore();
+      // 在连线中点画关系标签
+      if (!isCharEdge && e.rel) drawEdgeLabel(a, b, e.rel);
+    });
+
+    nodes.forEach(drawNode);
+  }
+
+  function loop() {
+    if (!running) return;
+    step(); draw();
+    animId = requestAnimationFrame(loop);
+  }
+  loop();
+
+  return {
+    destroy() {
+      running = false;
+      if (animId) cancelAnimationFrame(animId);
+      canvas.removeEventListener('mousedown', onDown);
+      canvas.removeEventListener('mousemove', onMove);
+      canvas.removeEventListener('mouseup', onUp);
+      canvas.removeEventListener('mouseleave', onUp);
+      canvas.removeEventListener('touchstart', onDown);
+      canvas.removeEventListener('touchmove', onMove);
+      canvas.removeEventListener('touchend', onUp);
+    }
+  };
+}
+
+// 主渲染函数：读取IndexedDB后刷新整个Social Map
+async function smRenderAll() {
+  // 1. 读取所有角色
+  const chars = await new Promise(res => {
+    const req = indexedDB.open('LunaCharDB', 4);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('chars'))
+        d.createObjectStore('chars', { keyPath:'id', autoIncrement:true });
+    };
+    req.onsuccess = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('chars')) { res([]); return; }
+      const r = db.transaction('chars').objectStore('chars').getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror   = () => res([]);
+    };
+    req.onerror = () => res([]);
+  });
+
+  // 2. 用 convData 补充 createdAt / online / rel 信息到角色
+  const convMap = {};
+  (convData || []).forEach(c => { convMap[c.name] = c; });
+  chars.forEach(ch => {
+    const conv = convMap[ch.name];
+    if (conv) {
+      ch.createdAt = ch.createdAt || conv.createdAt || conv.timeVal;
+      ch.online    = conv.online || false;
+    }
+  });
+
+  // 3. 收集所有NPC
+  const npcs = [];
+  chars.forEach(ch => {
+    (ch.charNpcs || []).forEach((n, npcIdx) => {
+      npcs.push({ npc: n, fromCharName: ch.name, charId: ch.id, npcIdx });
+    });
+  });
+
+  // 4. 更新统计数字
+  const fmt = n => String(n).padStart(2,'0');
+  const statChar  = document.getElementById('smStatChar');
+  const statNpc   = document.getElementById('smStatNpc');
+  const statTotal = document.getElementById('smStatTotal');
+  const smCharCnt = document.getElementById('smCharCount');
+  const smNpcCnt  = document.getElementById('smNpcCount');
+  // 有NPC的角色数量（去重）
+  const charsWithNpc = new Set(npcs.map(item => item.fromCharName)).size;
+  if (statChar)  statChar.textContent  = fmt(charsWithNpc);
+  if (statNpc)   statNpc.textContent   = fmt(npcs.length);
+  if (statTotal) statTotal.textContent = fmt(npcs.length);
+  if (smCharCnt) smCharCnt.textContent = fmt(chars.length);
+  if (smNpcCnt)  smNpcCnt.textContent  = fmt(npcs.length);
+
+  // 5. 渲染节点图谱
+  smRenderNodeMap(chars);
+
+  // 6. 角色区永远不显示（Social Map只展示NPC关系）
+  const charSection = document.getElementById('smCharSection');
+  if (charSection) charSection.style.display = 'none';
+
+  // 7. 渲染NPC区：按来源角色分组显示
+  const npcSection = document.getElementById('smNpcSection');
+  const npcGrid    = document.getElementById('smNpcGrid');
+  if (npcGrid) {
+    if (npcs.length > 0) {
+      npcSection.style.display = '';
+      npcGrid.innerHTML = npcs.map((item, i) => smBuildNpcCard(item.npc, item.fromCharName, i, item.charId, item.npcIdx)).join('') + SM_ADD_CARD;
+    } else {
+      npcSection.style.display = 'none';
+    }
+  }
+
+  // 8. 没有NPC时显示空状态
+  const emptyTip = document.getElementById('smEmptyTip');
+  if (emptyTip) emptyTip.style.display = npcs.length === 0 ? '' : 'none';
+}
+
+// ===== NPC 批量选择删除功能 =====
+let _smSelectMode = false;
+let _smSelectedNpcs = new Set(); // 存 "charId_npcIdx" 字符串
+
+function smToggleSelectMode() {
+  _smSelectMode = !_smSelectMode;
+  _smSelectedNpcs.clear();
+
+  const btn = document.getElementById('smSelectModeBtn');
+  const bar = document.getElementById('smBatchDeleteBar');
+  const checks = document.querySelectorAll('.sm-card-select-check');
+  const cards = document.querySelectorAll('#smNpcGrid .sm-card');
+
+  if (_smSelectMode) {
+    btn.style.background = '#111';
+    btn.querySelector('svg rect, svg path, svg polyline, svg circle') && null;
+    btn.style.borderRadius = '10px';
+    checks.forEach(c => c.style.display = 'flex');
+    bar.style.display = 'block';
+    document.getElementById('smSelectedCount').textContent = '0';
+  } else {
+    btn.style.background = '';
+    btn.style.borderRadius = '';
+    checks.forEach(c => { c.style.display = 'none'; });
+    cards.forEach(c => { c.style.outline = ''; });
+    bar.style.display = 'none';
+    _smSelectedNpcs.clear();
+  }
+}
+
+function smNpcCardClick(event, el, fn, charId, npcIdx) {
+  if (_smSelectMode) {
+    event.stopPropagation();
+    const key = charId + '_' + npcIdx;
+    const check = el.querySelector('.sm-card-select-check');
+    if (_smSelectedNpcs.has(key)) {
+      _smSelectedNpcs.delete(key);
+      el.style.outline = '';
+      check.style.background = '#fff';
+    } else {
+      _smSelectedNpcs.add(key);
+      el.style.outline = '2.5px solid #111';
+      check.style.background = '#111';
+      check.querySelector('svg polyline') && (check.querySelector('svg polyline').style.stroke = '#fff');
+    }
+    document.getElementById('smSelectedCount').textContent = _smSelectedNpcs.size;
+  } else {
+    window[fn](charId, npcIdx);
+  }
+}
+
+async function smConfirmBatchDelete() {
+  if (_smSelectedNpcs.size === 0) return;
+  if (!confirm(`确定删除选中的 ${_smSelectedNpcs.size} 个 NPC？此操作不可恢复。`)) return;
+
+  // 按 charId 分组，收集要删除的 npcIdx
+  const grouped = {};
+  _smSelectedNpcs.forEach(key => {
+    const [charId, npcIdx] = key.split('_').map(Number);
+    if (!grouped[charId]) grouped[charId] = [];
+    grouped[charId].push(npcIdx);
+  });
+
+  // 逐个角色：从 IndexedDB 读出 → splice charNpcs → 写回
+  await new Promise(res => {
+    const req = indexedDB.open('LunaCharDB', 4);
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction('chars', 'readwrite');
+      const store = tx.objectStore('chars');
+      const charIds = Object.keys(grouped).map(Number);
+      let done = 0;
+      charIds.forEach(charId => {
+        const getReq = store.get(charId);
+        getReq.onsuccess = () => {
+          const char = getReq.result;
+          if (char && Array.isArray(char.charNpcs)) {
+            // 倒序删除，避免下标偏移
+            grouped[charId].sort((a, b) => b - a).forEach(idx => {
+              char.charNpcs.splice(idx, 1);
+            });
+            store.put(char);
+          }
+          done++;
+          if (done === charIds.length) res();
+        };
+        getReq.onerror = () => { done++; if (done === charIds.length) res(); };
+      });
+      if (charIds.length === 0) res();
+    };
+    req.onerror = () => res();
+  });
+
+  // 重置状态
+  _smSelectMode = false;
+  _smSelectedNpcs.clear();
+  document.getElementById('smBatchDeleteBar').style.display = 'none';
+  document.getElementById('smSelectModeBtn').style.background = '';
+  document.getElementById('smSelectModeBtn').style.borderRadius = '';
+  smRenderAll();
+}
+// ===== END 批量选择删除 =====
+
+// 点击卡片跳转到对话（复用现有逻辑）
+function smOpenChat(name) {
+  closeSocialMapPage();
+  const conv = (convData || []).find(c => c.name === name);
+  if (conv) {
+    setTimeout(() => openChat(conv), 350);
+  }
+}
+
+function smOpenAddModal() {
+  document.getElementById('smAddModal').classList.add('open');
+  document.getElementById('smAddModalMask').classList.add('open');
+}
+
+function smCloseAddModal() {
+  document.getElementById('smAddModal').classList.remove('open');
+  document.getElementById('smAddModalMask').classList.remove('open');
+}
+
+let _smAiGenSelected = new Set();
+let _smAiGenResults  = [];
+let _smAiGenCharId   = null;
+let _smAiGenCharData = null;
+
+async function smAddByAI() {
+  smCloseAddModal();
+  _smAiGenSelected = new Set();
+  _smAiGenResults  = [];
+  _smAiGenCharId   = null;
+  _smAiGenCharData = null;
+
+  // 加载角色列表
+  const chars = await ncGetAllChars();
+  const sel   = document.getElementById('smAiGenCharSel');
+  if (sel) {
+    sel.innerHTML = '<option value="">-- 选择绑定角色 --</option>' +
+      chars.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+
+  // 重置状态
+  document.getElementById('smAiGenSub').textContent     = '选择角色，生成与 Ta 相关的人物';
+  document.getElementById('smAiGenSelectRow').style.display = '';
+  document.getElementById('smAiGenLoading').style.display   = 'none';
+  document.getElementById('smAiGenResult').style.display    = 'none';
+  document.getElementById('smAiGenGrid').innerHTML          = '';
+
+  document.getElementById('smAiGenMask').classList.add('open');
+  document.getElementById('smAiGenModal').classList.add('open');
+}
+
+function smAiGenClose() {
+  document.getElementById('smAiGenModal').classList.remove('open');
+  document.getElementById('smAiGenMask').classList.remove('open');
+}
+
+async function smAiGenStart() {
+  const sel      = document.getElementById('smAiGenCharSel');
+  const charId   = sel?.value;
+  if (!charId) { sel?.focus(); return; }
+
+  const cur   = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
+  const model = localStorage.getItem('luna_api_model') || '';
+  if (!cur.baseUrl || !cur.apiKey || !model) {
+    alert('请先在设置页配置 API'); return;
+  }
+
+  // 读取角色数据
+  const chars    = await ncGetAllChars();
+  const charData = chars.find(c => String(c.id) === String(charId));
+  if (!charData) return;
+  _smAiGenCharId   = charId;
+  _smAiGenCharData = charData;
+
+  // 读取 user 人设
+  let userPersona = '';
+  const userPersonas = JSON.parse(localStorage.getItem('luna_user_personas') || '[]');
+  const bound = userPersonas.find(p => String(p.charId) === String(charData.id));
+  if (bound?.content) userPersona = bound.content;
+  if (!userPersona) userPersona = localStorage.getItem('luna_user_profile') || '';
+
+  // 显示加载
+  document.getElementById('smAiGenSelectRow').style.display = 'none';
+  document.getElementById('smAiGenResult').style.display    = 'none';
+  document.getElementById('smAiGenLoading').style.display   = 'flex';
+  _smAiGenSelected = new Set();
+
+  const loadingTxts = ['正在构建关系网络…','分析人物脉络中…','梳理世界线联结…','提取隐藏关系链…'];
+  let   li = 0;
+  const ltimer = setInterval(() => {
+    document.getElementById('smAiGenLoadingTxt').textContent = loadingTxts[li++ % loadingTxts.length];
+  }, 1200);
+
+  // 构建 prompt
+  const charInfo = [
+    `角色名：${charData.name}`,
+    charData.role   ? `身份：${charData.role}`   : '',
+    charData.gender ? `性别：${charData.gender}` : '',
+    charData.age    ? `年龄：${charData.age}`    : '',
+    charData.desc   ? `背景：${charData.desc}`   : '',
+    (charData.traits||[]).length ? `性格：${charData.traits.join('、')}` : '',
+  ].filter(Boolean).join('\n');
+
+  const userInfo = userPersona ? `\nUser档案：\n${userPersona}` : '';
+
+  const systemPrompt = `你是一位深谙人性与情感的言情小说编辑，擅长构建有张力、有温度、有故事感的人物关系网。
+
+根据给定的角色信息，生成6个与该角色有深度关联的人物。每个人物都要像真实存在于这段故事里——有来路，有心结，有与主角之间说不清道不明的牵扯。
+
+**生成要求：**
+- **名字**：有文学气息，像民国、现代都市或古风言情里的名字，避免过于大众或网络感
+- **rel**：用一个词点明关系身份，但要带一点模糊暧昧（如"旧识"比"朋友"更有味道，"前任"比"恋人"更有故事）
+- **relType**：从以下选择：恋人、友人、家人、宿敌、其他
+- **hook**：一句话写出这个人物和主角之间最核心的"情感钩子"——是什么让他们纠缠，是什么让人想继续看下去。要有画面感、情绪感，像小说里第一次介绍这个角色时的那句话。控制在30字以内，不要用"他/她是"开头
+- **vibe**：用2-3个词描述这个人物的气质标签，带一点文艺腔（如：沉默温柔、野心勃勃却孤独、笑里藏刀的体面人）
+
+要有层次感：6个人物里，关系类型要有混搭，情感浓度要有轻有重，避免都是"温暖善良"这种扁平设定。
+
+只返回JSON数组，不要任何多余文字：
+[{"name":"","rel":"","relType":"恋人|友人|家人|宿敌|其他","hook":"","vibe":"","desc":""}]
+
+其中desc = hook（用于兼容后续保存）`;
+
+  const userPrompt = `角色信息：\n${charInfo}${userInfo}\n\n请生成6个人物，注意情感层次和关系张力的多样性。`;
+
+  try {
+    const resp = await fetch(`${cur.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cur.apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt   }
+        ],
+        max_tokens: 800,
+        stream: false
+      })
+    });
+
+    clearInterval(ltimer);
+    const data  = await resp.json();
+    const text  = data?.choices?.[0]?.message?.content?.trim() || '';
+    // 更强的清洗：去掉代码块、截取第一个完整JSON数组
+    let clean = text.replace(/```json|```/g, '').trim();
+    // 只取 [ ... ] 之间的内容，防止前后有多余文字
+    const arrStart = clean.indexOf('[');
+    const arrEnd   = clean.lastIndexOf(']');
+    if (arrStart !== -1 && arrEnd !== -1) {
+      clean = clean.slice(arrStart, arrEnd + 1);
+    }
+    // 修复常见JSON问题：中文引号、单引号key、末尾多余逗号
+    clean = clean
+      .replace(/[\u201c\u201d]/g, '"')   // 中文双引号 → 英文
+      .replace(/[\u2018\u2019]/g, "'")   // 中文单引号
+      .replace(/,\s*([\]}])/g, '$1')     // 末尾多余逗号
+      .replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":')  // 单引号key → 双引号
+      .replace(/:\s*'([^']*)'/g, ': "$1"');            // 安全解析：先修复JSON，失败则正则逐块提取
+    function extractNpcField(block, key) {
+      const re = new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"');
+      const m = block.match(re);
+      return m ? m[1].replace(/\\n/g,' ').replace(/\\"/g,'"').trim() : '';
+    }
+    function safeParseNpcList(raw) {
+      let s = raw
+        .replace(/```json|```/g, '')
+        .replace(/[\u201c\u201d\u300c\u300d]/g, '"')
+        .replace(/[\u2018\u2019]/g, "'")
+        .trim();
+      const a = s.indexOf('['), b = s.lastIndexOf(']');
+      if (a !== -1 && b !== -1) s = s.slice(a, b + 1);
+      // 先试直接parse
+      try {
+        const fixed = s.replace(/,\s*([\]}])/g, '$1');
+        const arr = JSON.parse(fixed);
+        if (Array.isArray(arr) && arr.length > 0) return arr;
+      } catch(_) {}
+      // parse失败，按大括号块逐个提取
+      const results = [];
+      const blockRe = /\{[\s\S]*?\}/g;
+      let bm;
+      while ((bm = blockRe.exec(s)) !== null) {
+        const blk = bm[0];
+        const name = extractNpcField(blk, 'name');
+        if (!name) continue;
+        results.push({
+          name,
+          rel:     extractNpcField(blk, 'rel')     || extractNpcField(blk, 'relType') || '\u5176\u4ed6',
+          relType: extractNpcField(blk, 'relType') || extractNpcField(blk, 'rel')     || '\u5176\u4ed6',
+          hook:    extractNpcField(blk, 'hook')    || extractNpcField(blk, 'desc')    || '',
+          vibe:    extractNpcField(blk, 'vibe')    || '',
+          desc:    extractNpcField(blk, 'hook')    || extractNpcField(blk, 'desc')    || '',
+        });
+      }
+      return results;
+    }
+    _smAiGenResults = safeParseNpcList(text);
+    if (!Array.isArray(_smAiGenResults) || _smAiGenResults.length === 0) throw new Error('\u683c\u5f0f\u9519\u8bef');
+    smAiGenRender();
+  } catch(e) {
+    clearInterval(ltimer);
+    document.getElementById('smAiGenLoading').style.display = 'none';
+    document.getElementById('smAiGenSelectRow').style.display = '';
+    document.getElementById('smAiGenSub').textContent = '生成失败，请重试';
+    console.error(e);
+  }
+}
+
+function smAiGenRender() {
+  document.getElementById('smAiGenLoading').style.display = 'none';
+  document.getElementById('smAiGenResult').style.display  = '';
+  document.getElementById('smAiGenSelectRow').style.display = 'none';
+
+  const grid = document.getElementById('smAiGenGrid');
+  grid.innerHTML = _smAiGenResults.map((item, i) => `
+    <div class="sm-ai-npc-item" id="smAiItem_${i}" onclick="smAiToggleItem(${i})">
+      <div class="sm-ai-npc-avatar">${(item.name||'?')[0]}</div>
+      <div class="sm-ai-npc-info">
+        <div class="sm-ai-npc-name-row">
+          <span class="sm-ai-npc-name">${item.name||'—'}</span>
+          <span class="sm-ai-npc-rel-badge">${item.rel || item.relType || '—'}</span>
+        </div>
+        ${item.vibe ? `<div class="sm-ai-npc-vibe">${item.vibe}</div>` : ''}
+        <div class="sm-ai-npc-hook">${item.hook || item.desc||''}</div>
+      </div>
+    </div>
+  `).join('');
+
+  smAiUpdateAddBtn();
+}
+
+function smAiToggleItem(i) {
+  if (_smAiGenSelected.has(i)) {
+    _smAiGenSelected.delete(i);
+    document.getElementById(`smAiItem_${i}`)?.classList.remove('selected');
+  } else {
+    _smAiGenSelected.add(i);
+    document.getElementById(`smAiItem_${i}`)?.classList.add('selected');
+  }
+  smAiUpdateAddBtn();
+}
+
+function smAiUpdateAddBtn() {
+  const btn = document.getElementById('smAiGenAddBtn');
+  if (!btn) return;
+  const n = _smAiGenSelected.size;
+  btn.textContent = n > 0 ? `添加选中 (${n})` : '添加选中';
+  btn.disabled    = n === 0;
+}
+
+async function smAiGenAdd() {
+  if (_smAiGenSelected.size === 0 || !_smAiGenCharId) return;
+
+  const toAdd = [..._smAiGenSelected].map(i => _smAiGenResults[i]).filter(Boolean);
+
+  await new Promise(res => {
+    const req = indexedDB.open('LunaCharDB', 4);
+    req.onsuccess = e => {
+      const db    = e.target.result;
+      const tx    = db.transaction('chars', 'readwrite');
+      const store = tx.objectStore('chars');
+      const getReq = store.get(parseInt(_smAiGenCharId));
+      getReq.onsuccess = () => {
+        const char = getReq.result;
+        if (!char) { res(); return; }
+        if (!Array.isArray(char.charNpcs)) char.charNpcs = [];
+        toAdd.forEach(item => {
+          char.charNpcs.push({
+            name:    item.name   || '未命名',
+            rel:     item.rel    || item.relType || '其他',
+            relType: item.relType|| item.rel     || '其他',
+            desc:    item.desc   || item.hook    || '',
+            hook:    item.hook   || '',
+            vibe:    item.vibe   || '',
+            isAiNpc: true,
+            traits:  [],
+            role:    '',
+            gender:  '未知',
+            age:     '',
+            relDesc: item.desc   || item.hook    || '',
+            color:   'warm',
+            avatar:  null,
+            cardBg:  null,
+          });
+        });
+        store.put(char);
+        tx.oncomplete = () => res();
+      };
+    };
+    req.onerror = () => res();
+  });
+
+  smAiGenClose();
+  smRenderAll();
+}
+
+/* ================================
+   NPC 手动创建页
+================================ */
+let _smNpcGender  = '女';
+let _smNpcRel     = '其他';
+let _smNpcColor   = 'warm';
+let _smNpcAvatar  = null;
+let _smNpcBg      = null;
+
+function smAddByManual() {
+  smCloseAddModal();
+
+  // 同步状态栏时间
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const smNpcTime = document.getElementById('smNpcStatusTime');
+  if (smNpcTime) smNpcTime.textContent = new Date().toLocaleTimeString('zh-CN', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+  });
+
+  // 同步电量
+  const mainPct   = document.getElementById('batPct');
+  const mainInner = document.getElementById('batInner');
+  const nPct      = document.getElementById('smNpcBatPct');
+  const nInner    = document.getElementById('smNpcBatInner');
+  if (nPct && mainPct) {
+    nPct.textContent = mainPct.textContent;
+    const p = parseInt(mainPct.textContent);
+    if (nInner) {
+      nInner.style.width      = p + '%';
+      nInner.style.background = p <= 20
+        ? 'linear-gradient(90deg,#f87171,#ef4444)'
+        : 'linear-gradient(90deg,#6ee7b7,#34d399)';
+    }
+  }
+
+  // 同步灵动岛
+  const enabled  = localStorage.getItem('luna_island_enabled') === 'true';
+  const style    = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('smNpcStatusIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">--:--</span></div></div>`,
+        pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[style] || styleMap.minimal;
+    }
+  }
+
+  // 重置表单
+  _smNpcGender = '女'; _smNpcRel = '其他'; _smNpcColor = 'warm';
+  _smNpcAvatar = null; _smNpcBg = null;
+  ['smNpcFName','smNpcFRole','smNpcFAge','smNpcFRelDesc','smNpcFTraits','smNpcFRelCustom'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('smNpcPvName').textContent = 'NPC 名称';
+  document.getElementById('smNpcPvMeta').textContent = '关系 · 性别';
+  document.getElementById('smNpcPvBg').style.backgroundImage = '';
+  const av = document.getElementById('smNpcPvAvatar');
+  if (av) av.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(247,246,243,0.5)" stroke-width="1.4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(247,246,243,0.5)" stroke-width="1.4" stroke-linecap="round"/></svg><div class="nc-pv-av-hint">头像</div>`;
+
+  // 重置性别/关系/颜色按钮选中状态
+  document.querySelectorAll('#smNpcPage .nc-gender-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('#smNpcPage [data-g="女"]')?.classList.add('active');
+  document.querySelector('#smNpcPage [data-r="其他"]')?.classList.add('active');
+  const customInput = document.getElementById('smNpcFRelCustom');
+  if (customInput) customInput.style.display = 'none';
+  document.querySelectorAll('#smNpcPage .nc-co').forEach(b => b.classList.remove('selected'));
+  document.querySelector('#smNpcPage [data-color="warm"]')?.classList.add('selected');
+
+  // 加载角色列表到下拉框
+  smNpcLoadChars();
+
+  // 打开页面
+  document.getElementById('smNpcPage').classList.add('show');
+  document.getElementById('smNpcOverlay').classList.add('show');
+}
+
+function smCloseManual() {
+  document.getElementById('smNpcPage').classList.remove('show');
+  document.getElementById('smNpcOverlay').classList.remove('show');
+}
+
+function smNpcUpdateMeta() {
+  const rel    = _smNpcRel    || '关系';
+  const gender = _smNpcGender || '性别';
+  const age    = document.getElementById('smNpcFAge')?.value || '';
+  document.getElementById('smNpcPvMeta').textContent =
+    `${rel} · ${gender}${age ? ' · ' + age : ''}`;
+}
+
+function smNpcPickGender(btn) {
+  document.querySelectorAll('#smNpcPage [data-g]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _smNpcGender = btn.dataset.g;
+  smNpcUpdateMeta();
+}
+
+function smNpcPickRel(btn) {
+  document.querySelectorAll('#smNpcPage [data-r]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _smNpcRel = btn.dataset.r;
+  // 其他：显示自定义输入框
+  const customInput = document.getElementById('smNpcFRelCustom');
+  if (customInput) customInput.style.display = _smNpcRel === '其他' ? 'block' : 'none';
+  smNpcUpdateMeta();
+}
+
+function smNpcPickColor(el) {
+  document.querySelectorAll('#smNpcPage .nc-co').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  _smNpcColor = el.dataset.color;
+}
+
+function smNpcHandleAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _smNpcAvatar = e.target.result;
+    const av = document.getElementById('smNpcPvAvatar');
+    if (av) av.innerHTML = `<img src="${_smNpcAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function smNpcHandleBg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _smNpcBg = e.target.result;
+    document.getElementById('smNpcPvBg').style.backgroundImage = `url(${_smNpcBg})`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function smNpcLoadChars() {
+  const sel = document.getElementById('smNpcFBindChar');
+  if (!sel) return;
+  const chars = await ncGetAllChars();
+  sel.innerHTML = '<option value="">-- 选择角色 --</option>' +
+    chars.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+async function smNpcSave() {
+  const name = document.getElementById('smNpcFName').value.trim();
+  if (!name) { document.getElementById('smNpcFName').focus(); return; }
+
+  const bindCharId = document.getElementById('smNpcFBindChar').value;
+  if (!bindCharId) { alert('请选择绑定的角色'); return; }
+
+  const npcData = {
+    name,
+    role:    document.getElementById('smNpcFRole').value.trim(),
+    gender:  _smNpcGender,
+    age:     document.getElementById('smNpcFAge').value.trim(),
+    rel: _smNpcRel === '其他'
+      ? (document.getElementById('smNpcFRelCustom')?.value.trim() || '其他')
+      : _smNpcRel,
+    relDesc: document.getElementById('smNpcFRelDesc').value.trim(),
+    traits:  document.getElementById('smNpcFTraits').value.split(',').map(s => s.trim()).filter(Boolean),
+    color:   _smNpcColor,
+    avatar:  _smNpcAvatar,
+    cardBg:  _smNpcBg,
+    isAiNpc:    false,
+    fromManual: true,
+  };
+
+  // 写入对应角色的 charNpcs 数组
+  await new Promise(res => {
+    const req = indexedDB.open('LunaCharDB', 4);
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction('chars', 'readwrite');
+      const store = tx.objectStore('chars');
+      const getReq = store.get(parseInt(bindCharId));
+      getReq.onsuccess = () => {
+        const char = getReq.result;
+        if (!char) { res(); return; }
+        if (!Array.isArray(char.charNpcs)) char.charNpcs = [];
+        char.charNpcs.push(npcData);
+        store.put(char);
+        tx.oncomplete = () => res();
+      };
+      getReq.onerror = () => res();
+    };
+    req.onerror = () => res();
+  });
+
+  smCloseManual();
+  // 刷新 Social Map
+  smRenderAll();
+}
+
+/* ================================
+   NPC 编辑页
+================================ */
+let _smNpcEditGender  = '女';
+let _smNpcEditRel     = '其他';
+let _smNpcEditColor   = 'warm';
+let _smNpcEditAvatar  = null;
+let _smNpcEditBg      = null;
+let _smNpcEditCharId  = null;  // 所属角色 id
+let _smNpcEditNpcIdx  = null;  // 在 charNpcs 数组里的下标
+
+function smOpenEdit(charId, npcIdx) {
+  _smNpcEditCharId = charId;
+  _smNpcEditNpcIdx = npcIdx;
+
+  // 先读数据，成功后再打开页面
+  const req = indexedDB.open('LunaCharDB', 4);
+  req.onupgradeneeded = e => {
+    const d = e.target.result;
+    if (!d.objectStoreNames.contains('chars'))
+      d.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+  };
+  req.onsuccess = e => {
+    const db = e.target.result;
+    const r  = db.transaction('chars').objectStore('chars').get(parseInt(charId));
+    r.onsuccess = () => {
+      const char = r.result;
+      if (!char) { console.error('[smOpenEdit] 找不到 char，charId=', charId); return; }
+      const npc = (char.charNpcs || [])[npcIdx];
+      if (!npc)  { console.error('[smOpenEdit] 找不到 npc，npcIdx=', npcIdx); return; }
+      smNpcEditFill(npc);
+      // 数据确认后再打开页面
+      document.getElementById('smNpcEditPage').classList.add('show');
+      document.getElementById('smNpcEditOverlay').classList.add('show');
+    };
+    r.onerror = () => console.error('[smOpenEdit] IndexedDB get 出错');
+  };
+  req.onerror = () => console.error('[smOpenEdit] 打开数据库失败');
+
+  // 同步状态栏
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const el = document.getElementById('smNpcEditStatusTime');
+  if (el) el.textContent = new Date().toLocaleTimeString('zh-CN', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  const mainPct   = document.getElementById('batPct');
+  const mainInner = document.getElementById('batInner');
+  const ePct      = document.getElementById('smNpcEditBatPct');
+  const eInner    = document.getElementById('smNpcEditBatInner');
+  if (ePct && mainPct) {
+    ePct.textContent = mainPct.textContent;
+    const p = parseInt(mainPct.textContent);
+    if (eInner) {
+      eInner.style.width      = p + '%';
+      eInner.style.background = p <= 20
+        ? 'linear-gradient(90deg,#f87171,#ef4444)'
+        : 'linear-gradient(90deg,#6ee7b7,#34d399)';
+    }
+  }
+  const enabled  = localStorage.getItem('luna_island_enabled') === 'true';
+  const style    = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('smNpcEditStatusIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal:`<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:   `<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:  `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">--:--</span></div></div>`,
+        pulse:  `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple: `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow:`<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:  `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:   `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[style] || styleMap.minimal;
+    }
+  }
+
+}
+
+function smNpcEditFill(npc) {
+  _smNpcEditAvatar = npc.avatar || null;
+  _smNpcEditBg     = npc.cardBg || null;
+  _smNpcEditColor  = npc.color  || 'warm';
+
+  // 预览
+  document.getElementById('smNpcEditPvName').textContent = npc.name || 'NPC 名称';
+  const bg = document.getElementById('smNpcEditPvBg');
+  if (bg) bg.style.backgroundImage = _smNpcEditBg ? `url(${_smNpcEditBg})` : '';
+  const av = document.getElementById('smNpcEditPvAvatar');
+  if (av) {
+    av.innerHTML = _smNpcEditAvatar
+      ? `<img src="${_smNpcEditAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"/>`
+      : `<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(247,246,243,0.5)" stroke-width="1.4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(247,246,243,0.5)" stroke-width="1.4" stroke-linecap="round"/></svg><div class="nc-pv-av-hint">头像</div>`;
+  }
+
+  // 表单填值
+  document.getElementById('smNpcEditFName').value    = npc.name    || '';
+  document.getElementById('smNpcEditFRole').value    = npc.role    || '';
+  document.getElementById('smNpcEditFAge').value     = npc.age     || '';
+  document.getElementById('smNpcEditFRelDesc').value = npc.relDesc || '';
+  document.getElementById('smNpcEditFTraits').value  = (npc.traits || []).join(', ');
+
+  // 性别按钮
+  _smNpcEditGender = npc.gender || '女';
+  document.querySelectorAll('#smNpcEditPage [data-eg]').forEach(b => {
+    b.classList.toggle('active', b.dataset.eg === _smNpcEditGender);
+  });
+
+  // 关系按钮
+  const fixedRels = ['恋人','友人','家人','宿敌'];
+  const isFixed   = fixedRels.includes(npc.rel);
+  _smNpcEditRel   = isFixed ? npc.rel : '其他';
+  document.querySelectorAll('#smNpcEditPage [data-er]').forEach(b => {
+    b.classList.toggle('active', b.dataset.er === _smNpcEditRel);
+  });
+  const customInput = document.getElementById('smNpcEditFRelCustom');
+  if (customInput) {
+    if (!isFixed) {
+      customInput.style.display = 'block';
+      customInput.value = npc.rel || '';
+    } else {
+      customInput.style.display = 'none';
+      customInput.value = '';
+    }
+  }
+
+  // 颜色
+  document.querySelectorAll('#smNpcEditPage .nc-co').forEach(o => {
+    o.classList.toggle('selected', o.dataset.ecolor === _smNpcEditColor);
+  });
+
+  smNpcEditUpdateMeta();
+}
+
+function smCloseEdit() {
+  document.getElementById('smNpcEditPage').classList.remove('show');
+  document.getElementById('smNpcEditOverlay').classList.remove('show');
+}
+
+function smNpcEditUpdateMeta() {
+  const rel    = _smNpcEditRel    || '关系';
+  const gender = _smNpcEditGender || '性别';
+  const age    = document.getElementById('smNpcEditFAge')?.value || '';
+  document.getElementById('smNpcEditPvMeta').textContent =
+    `${rel} · ${gender}${age ? ' · ' + age : ''}`;
+}
+
+function smNpcEditPickGender(btn) {
+  document.querySelectorAll('#smNpcEditPage [data-eg]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _smNpcEditGender = btn.dataset.eg;
+  smNpcEditUpdateMeta();
+}
+
+function smNpcEditPickRel(btn) {
+  document.querySelectorAll('#smNpcEditPage [data-er]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _smNpcEditRel = btn.dataset.er;
+  const customInput = document.getElementById('smNpcEditFRelCustom');
+  if (customInput) customInput.style.display = _smNpcEditRel === '其他' ? 'block' : 'none';
+  smNpcEditUpdateMeta();
+}
+
+function smNpcEditPickColor(el) {
+  document.querySelectorAll('#smNpcEditPage .nc-co').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  _smNpcEditColor = el.dataset.ecolor;
+}
+
+function smNpcEditHandleAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _smNpcEditAvatar = e.target.result;
+    const av = document.getElementById('smNpcEditPvAvatar');
+    if (av) av.innerHTML = `<img src="${_smNpcEditAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function smNpcEditHandleBg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _smNpcEditBg = e.target.result;
+    document.getElementById('smNpcEditPvBg').style.backgroundImage = `url(${_smNpcEditBg})`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function smNpcEditSave() {
+  const name = document.getElementById('smNpcEditFName').value.trim();
+  if (!name) { document.getElementById('smNpcEditFName').focus(); return; }
+
+  const updatedNpc = {
+    name,
+    role:    document.getElementById('smNpcEditFRole').value.trim(),
+    gender:  _smNpcEditGender,
+    age:     document.getElementById('smNpcEditFAge').value.trim(),
+    rel:     _smNpcEditRel === '其他'
+               ? (document.getElementById('smNpcEditFRelCustom')?.value.trim() || '其他')
+               : _smNpcEditRel,
+    relDesc: document.getElementById('smNpcEditFRelDesc').value.trim(),
+    traits:  document.getElementById('smNpcEditFTraits').value.split(',').map(s => s.trim()).filter(Boolean),
+    color:   _smNpcEditColor,
+    avatar:  _smNpcEditAvatar,
+    cardBg:  _smNpcEditBg,
+  };
+
+  await new Promise(res => {
+    const req = indexedDB.open('LunaCharDB', 4);
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction('chars', 'readwrite');
+      const store = tx.objectStore('chars');
+      const getReq = store.get(parseInt(_smNpcEditCharId));
+      getReq.onsuccess = () => {
+        const char = getReq.result;
+        if (!char) { res(); return; }
+        if (!Array.isArray(char.charNpcs)) char.charNpcs = [];
+        char.charNpcs[_smNpcEditNpcIdx] = updatedNpc;
+        store.put(char);
+        tx.oncomplete = () => res();
+      };
+    };
+    req.onerror = () => res();
+  });
+
+  smCloseEdit();
+  smRenderAll();
+}
+
+async function smNpcEditDelete() {
+  if (!confirm('确定删除这个 NPC 吗？此操作不可恢复。')) return;
+
+  await new Promise(res => {
+    const req = indexedDB.open('LunaCharDB', 4);
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction('chars', 'readwrite');
+      const store = tx.objectStore('chars');
+      const getReq = store.get(parseInt(_smNpcEditCharId));
+      getReq.onsuccess = () => {
+        const char = getReq.result;
+        if (!char) { res(); return; }
+        if (Array.isArray(char.charNpcs)) {
+          char.charNpcs.splice(_smNpcEditNpcIdx, 1);
+        }
+        store.put(char);
+        tx.oncomplete = () => res();
+      };
+    };
+    req.onerror = () => res();
+  });
+
+  smCloseEdit();
+  smRenderAll();
+}
+
+/* ================================
+   AI NPC 详情页
+================================ */
+let _smAiNpcDetail_charId  = null;
+let _smAiNpcDetail_npcIdx  = null;
+let _smAiNpcDetail_npc     = null;  // 当前 npc 数据副本
+let _smAiNpcDetail_color   = 'warm';
+let _smAiNpcDetail_avatar  = null;
+let _smAiNpcDetail_bg      = null;
+
+// 打开 AI NPC 详情页
+function smAiNpcDetailOpen(charId, npcIdx) {
+  _smAiNpcDetail_charId = charId;
+  _smAiNpcDetail_npcIdx = npcIdx;
+
+  // 状态栏同步
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const el = document.getElementById('smAiNpcDetailStatusTime');
+  if (el) el.textContent = new Date().toLocaleTimeString('zh-CN', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  const mainPct = document.getElementById('batPct');
+  const ePct    = document.getElementById('smAiNpcDetailBatPct');
+  const eInner  = document.getElementById('smAiNpcDetailBatInner');
+  if (ePct && mainPct) {
+    ePct.textContent = mainPct.textContent;
+    const p = parseInt(mainPct.textContent);
+    if (eInner) {
+      eInner.style.width = p + '%';
+      eInner.style.background = p <= 20
+        ? 'linear-gradient(90deg,#f87171,#ef4444)'
+        : 'linear-gradient(90deg,#6ee7b7,#34d399)';
+    }
+  }
+  const enabled  = localStorage.getItem('luna_island_enabled') === 'true';
+  const isStyle  = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('smAiNpcDetailStatusIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal:`<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:   `<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:  `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">--:--</span></div></div>`,
+        pulse:  `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple: `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow:`<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:  `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:   `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[isStyle] || styleMap.minimal;
+    }
+  }
+
+  // 先读数据，成功后再打开页面
+  const req = indexedDB.open('LunaCharDB', 4);
+  req.onupgradeneeded = e => {
+    const d = e.target.result;
+    if (!d.objectStoreNames.contains('chars'))
+      d.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+  };
+  req.onsuccess = e => {
+    const db = e.target.result;
+    // 用 readwrite 事务，这样可以在同一个事务里读+修复写，不会嵌套
+    const tx    = db.transaction('chars', 'readwrite');
+    const store = tx.objectStore('chars');
+    const r     = store.get(parseInt(charId));
+    r.onsuccess = () => {
+      const char = r.result;
+      if (!char) {
+        console.error('[smAiNpcDetailOpen] 找不到 char，charId=', charId);
+        return;
+      }
+      const npc = (char.charNpcs || [])[npcIdx];
+      if (!npc) {
+        console.error('[smAiNpcDetailOpen] 找不到 npc，charId=', charId,
+          'npcIdx=', npcIdx, 'charNpcs长度=', (char.charNpcs || []).length);
+        return;
+      }
+      // 在同一事务里修复旧数据的 isAiNpc 字段
+      if (!npc.isAiNpc) {
+        char.charNpcs[npcIdx].isAiNpc = true;
+        store.put(char);
+      }
+      // 填充状态，打开页面
+      _smAiNpcDetail_npc    = Object.assign({}, npc, { isAiNpc: true });
+      _smAiNpcDetail_color  = npc.color  || 'warm';
+      _smAiNpcDetail_avatar = npc.avatar || null;
+      _smAiNpcDetail_bg     = npc.cardBg || null;
+      document.getElementById('smAiNpcDetailPage').classList.add('show');
+      document.getElementById('smAiNpcDetailOverlay').classList.add('show');
+      _smAiNpcDetailFill();
+    };
+    r.onerror = () => console.error('[smAiNpcDetailOpen] IndexedDB get 出错');
+  };
+  req.onerror = () => console.error('[smAiNpcDetailOpen] 打开数据库失败');
+}
+
+function _smAiNpcDetailFill() {
+  const npc = _smAiNpcDetail_npc;
+  if (!npc) return;
+
+  // 预览卡
+  document.getElementById('smAiNpcDetailPvName').textContent = npc.name || 'NPC 名称';
+  document.getElementById('smAiNpcDetailPvMeta').textContent =
+    `${npc.rel || '关系'} · ${npc.gender || '性别'}${npc.age ? ' · ' + npc.age : ''}`;
+
+  const bg = document.getElementById('smAiNpcDetailPvBg');
+  if (bg) bg.style.backgroundImage = _smAiNpcDetail_bg ? `url(${_smAiNpcDetail_bg})` : '';
+
+  const av = document.getElementById('smAiNpcDetailPvAvatar');
+  if (av) {
+    av.innerHTML = _smAiNpcDetail_avatar
+      ? `<img src="${_smAiNpcDetail_avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"/>`
+      : `<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(247,246,243,0.5)" stroke-width="1.4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(247,246,243,0.5)" stroke-width="1.4" stroke-linecap="round"/></svg><div class="nc-pv-av-hint">点击上传头像</div>`;
+  }
+
+  // AI 已生成区域
+  document.getElementById('smAiNpcDetailDName').textContent = npc.name  || '—';
+  document.getElementById('smAiNpcDetailDRel').textContent  = npc.rel   || '—';
+  document.getElementById('smAiNpcDetailDVibe').textContent = npc.vibe  || '—';
+  document.getElementById('smAiNpcDetailDHook').textContent = npc.hook  || npc.desc || '—';
+
+  // AI 补全字段（已有则显示，没有则"尚未生成"）
+  _smAiNpcDetailSetField('role',    npc.role);
+  _smAiNpcDetailSetField('gender',  npc.gender);
+  _smAiNpcDetailSetField('age',     npc.age);
+  _smAiNpcDetailSetField('relDesc', npc.relDesc);
+  _smAiNpcDetailSetField('traits',  Array.isArray(npc.traits) ? npc.traits.join('、') : npc.traits);
+
+  // 配色
+  document.querySelectorAll('#smAiNpcDetailPage .nc-co').forEach(o => {
+    o.classList.toggle('selected', o.dataset.adcolor === _smAiNpcDetail_color);
+  });
+}
+
+function _smAiNpcDetailSetField(field, val) {
+  const idMap = {
+    role: 'smAiNpcDetailRole', gender: 'smAiNpcDetailGender',
+    age: 'smAiNpcDetailAge', relDesc: 'smAiNpcDetailRelDesc', traits: 'smAiNpcDetailTraits'
+  };
+  const el = document.getElementById(idMap[field]);
+  if (!el) return;
+  if (val && String(val).trim()) {
+    el.textContent = val;
+    el.classList.add('generated');
+    el.classList.remove('ainpc-loading');
+  } else {
+    el.textContent = '尚未生成';
+    el.classList.remove('generated', 'ainpc-loading');
+  }
+}
+
+function smAiNpcDetailClose() {
+  document.getElementById('smAiNpcDetailPage').classList.remove('show');
+  document.getElementById('smAiNpcDetailOverlay').classList.remove('show');
+}
+
+function smAiNpcDetailPickColor(el) {
+  document.querySelectorAll('#smAiNpcDetailPage .nc-co').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  _smAiNpcDetail_color = el.dataset.adcolor;
+}
+
+function smAiNpcDetailHandleAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _smAiNpcDetail_avatar = e.target.result;
+    const av = document.getElementById('smAiNpcDetailPvAvatar');
+    if (av) av.innerHTML = `<img src="${_smAiNpcDetail_avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function smAiNpcDetailHandleBg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _smAiNpcDetail_bg = e.target.result;
+    document.getElementById('smAiNpcDetailPvBg').style.backgroundImage = `url(${_smAiNpcDetail_bg})`;
+  };
+  reader.readAsDataURL(file);
+}
+
+// AI 单字段补全
+async function smAiNpcFillField(field) {
+  const cur   = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
+  const model = localStorage.getItem('luna_api_model') || '';
+  if (!cur.baseUrl || !cur.apiKey || !model) { alert('请先配置 API'); return; }
+
+  const npc = _smAiNpcDetail_npc;
+  if (!npc) return;
+
+  const idMap = {
+    role: 'smAiNpcDetailRole', gender: 'smAiNpcDetailGender',
+    age: 'smAiNpcDetailAge', relDesc: 'smAiNpcDetailRelDesc', traits: 'smAiNpcDetailTraits'
+  };
+  const fieldNameMap = {
+    role: '身份/职业（2-6字）',
+    gender: '性别（只回答：男 或 女 或 未知）',
+    age: '年龄（只回答数字，如：28）',
+    relDesc: '关系背景描述（200字以内，细腻有层次，描写两人之间的情感与故事背景）',
+    traits: '性格标签（3-4个词，逗号分隔，有文学气息）'
+  };
+
+  const el = document.getElementById(idMap[field]);
+  if (!el) return;
+  const btn = el.previousElementSibling?.querySelector('.ainpc-ai-btn') ||
+    el.closest('.nc-fg')?.querySelector('.ainpc-ai-btn');
+  if (btn) btn.classList.add('loading');
+  el.textContent = '生成中…';
+  el.classList.add('ainpc-loading');
+  el.classList.remove('generated');
+
+  const context = `NPC名称：${npc.name}
+关系：${npc.rel}
+气质：${npc.vibe || ''}
+情感钩子：${npc.hook || npc.desc || ''}`;
+
+  const prompt = `根据以下NPC信息，生成"${fieldNameMap[field]}"字段的内容。
+只返回该字段的值，不要任何解释、标点包裹或多余文字。
+
+${context}`;
+
+  try {
+    const resp = await fetch(`${cur.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cur.apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 200,
+        stream: false
+      })
+    });
+    const data = await resp.json();
+    console.log('[AI生成调试] API返回:', JSON.stringify(data).slice(0, 500));
+    const val  = data?.choices?.[0]?.message?.content?.trim() || '';
+    if (!val) console.warn('[AI生成调试] val为空！data结构:', data);
+    npc[field] = field === 'traits'
+      ? val.split(/[,，、]/).map(s => s.trim()).filter(Boolean)
+      : val;
+    _smAiNpcDetailSetField(field, field === 'traits' ? (npc.traits||[]).join('、') : val);
+  } catch(e) {
+    el.textContent = '生成失败，点按钮重试';
+    el.classList.remove('ainpc-loading');
+  }
+  if (btn) btn.classList.remove('loading');
+}
+
+// 一键补全全部字段
+async function smAiNpcFillAll() {
+  const btn = document.getElementById('smAiNpcGenAllBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'AI 补全中…'; }
+  for (const field of ['role','gender','age','relDesc','traits']) {
+    await smAiNpcFillField(field);
+  }
+  if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" fill="currentColor"/></svg> 一键 AI 补全所有信息`; }
+}
+
+// 保存
+async function smAiNpcDetailSave() {
+  const npc = _smAiNpcDetail_npc;
+  if (!npc) return;
+
+  const updatedNpc = Object.assign({}, npc, {
+    color:  _smAiNpcDetail_color,
+    avatar: _smAiNpcDetail_avatar,
+    cardBg: _smAiNpcDetail_bg,
+    relType: npc.relType || npc.rel,
+  });
+
+  await new Promise(res => {
+    const req = indexedDB.open('LunaCharDB', 4);
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction('chars', 'readwrite');
+      const store = tx.objectStore('chars');
+      const getReq = store.get(parseInt(_smAiNpcDetail_charId));
+      getReq.onsuccess = () => {
+        const char = getReq.result;
+        if (!char) { res(); return; }
+        if (!Array.isArray(char.charNpcs)) char.charNpcs = [];
+        char.charNpcs[_smAiNpcDetail_npcIdx] = updatedNpc;
+        store.put(char);
+        tx.oncomplete = () => res();
+      };
+    };
+    req.onerror = () => res();
+  });
+
+  smAiNpcDetailClose();
+  smRenderAll();
+}

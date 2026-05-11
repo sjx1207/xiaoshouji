@@ -83,7 +83,7 @@ function openCdPanel() {
   document.getElementById('cdPanel').style.transform = 'translateX(0)';
   cdLoadPanel();
 }
-function closeCdPanel() {
+function cdClose() {
   document.getElementById('cdOverlay').style.display = 'none';
   document.getElementById('cdPanel').style.transform = 'translateX(100%)';
 }
@@ -97,7 +97,7 @@ async function cdLoadPanel() {
   if (_cd.dateLabel)  document.getElementById('cdDateLabelInput').value  = _cd.dateLabel;
   if (_cd.opacity !== undefined) {
     document.getElementById('cdOpacitySlider').value = _cd.opacity;
-    document.getElementById('cdOpacityVal').textContent = _cd.opacity;
+    document.getElementById('cdOpacityNum').textContent = _cd.opacity;
   }
   if (_cd.pol1) { const d=document.getElementById('cdPrevPol1'); d.style.background='none'; d.innerHTML=`<img src="${_cd.pol1}" style="width:100%;height:100%;object-fit:cover;"/>`; }
   if (_cd.pol2) { const d=document.getElementById('cdPrevPol2'); d.style.background='none'; d.innerHTML=`<img src="${_cd.pol2}" style="width:100%;height:100%;object-fit:cover;"/>`; }
@@ -140,7 +140,7 @@ function cdPreviewText() {
 }
 
 function cdPreviewOpacity(val) {
-  document.getElementById('cdOpacityVal').textContent = val;
+  document.getElementById('cdOpacityNum').textContent = val;
   _cd.opacity = parseInt(val);
   cdApplyBg();
 }
@@ -220,7 +220,7 @@ async function cdSave() {
   tx.oncomplete = () => {
     localStorage.setItem('luna_countdown_update', Date.now().toString());
     showToast('已保存');
-    setTimeout(() => closeCdPanel(), 800);
+    setTimeout(() => cdClose(), 800);
   };
   tx.onerror = () => showToast('保存失败');
 }
@@ -587,13 +587,8 @@ async function wwOpen() {
     }
   } catch(e) {}
 
-  // 同步到预览卡片
-  wmPreviewSong(_wm.song || 'Super Shy');
-  wmPreviewArtist(_wm.artist || 'NewJeans');
-  if (_wm.coverImage) wmPreviewCover(_wm.coverImage);
-  wmApplyBg();
-// 同步灵动岛
-const island = document.getElementById('wmStatusIsland');
+  // 同步灵动岛
+  const island = document.getElementById('wwStatusIsland');
 if (island) {
   const enabled = localStorage.getItem('luna_island_enabled') === 'true';
   const style   = localStorage.getItem('luna_island_style') || 'minimal';
@@ -745,10 +740,9 @@ function wwSave() {
 /* ============================================
    音乐组件设置面板 — wm
 ============================================ */
-let _wm = { coverImage: null, bgImage: null, opacity: 42, song: '', artist: '' };
+let _wm = { discLeftImage: null, discRightImage: null, bgImage: null, opacity: 100, song: '', artist: '' };
 
 async function wmOpen() {
-  // 从 LunaMusicDB 读取已保存数据
   try {
     const db = await new Promise((res, rej) => {
       const req = indexedDB.open('LunaMusicDB', 2);
@@ -764,22 +758,24 @@ async function wmOpen() {
       r.onsuccess = () => res(r.result || {});
       r.onerror = () => res({});
     });
-    if (saved.song)        _wm.song        = saved.song;
-    if (saved.artist)      _wm.artist      = saved.artist;
-    if (saved.coverImage)  _wm.coverImage  = saved.coverImage;
-    if (saved.bgImage)     _wm.bgImage     = saved.bgImage;
-    if (saved.opacity !== undefined) _wm.opacity = saved.opacity;
+    if (saved.song)            _wm.song            = saved.song;
+    if (saved.artist)          _wm.artist          = saved.artist;
+    if (saved.discLeftImage)   _wm.discLeftImage   = saved.discLeftImage;
+    if (saved.discRightImage)  _wm.discRightImage  = saved.discRightImage;
+    if (saved.bgImage)         _wm.bgImage         = saved.bgImage;
+    if (saved.opacity !== undefined) _wm.opacity   = saved.opacity;
   } catch(e) {}
 
-  // 填入面板
   document.getElementById('wmSongInput').value   = _wm.song   || '';
   document.getElementById('wmArtistInput').value = _wm.artist || '';
   document.getElementById('wmOpacitySlider').value    = _wm.opacity;
   document.getElementById('wmOpacityNum').textContent = _wm.opacity;
 
-  if (_wm.coverImage) {
-    document.getElementById('wmCoverPreview').innerHTML =
-      `<img src="${_wm.coverImage}" style="width:72px;height:72px;object-fit:cover;border-radius:14px;display:block;"/>`;
+  if (_wm.discLeftImage) {
+    wmApplyDiscPreview('left', _wm.discLeftImage);
+  }
+  if (_wm.discRightImage) {
+    wmApplyDiscPreview('right', _wm.discRightImage);
   }
   if (_wm.bgImage) {
     document.getElementById('wmBgPreview').style.display = 'block';
@@ -799,17 +795,40 @@ function wmClose() {
   document.getElementById('wmPanel').style.transform = 'translateX(100%)';
 }
 
-function wmHandleCover(input) {
+function wmHandleDiscLeft(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    _wm.coverImage = e.target.result;
-    wmPreviewCover(e.target.result);
-    document.getElementById('wmCoverPreview').innerHTML =
-      `<img src="${e.target.result}" style="width:72px;height:72px;object-fit:cover;border-radius:14px;display:block;"/>`;
+    _wm.discLeftImage = e.target.result;
+    wmApplyDiscPreview('left', e.target.result);
   };
   reader.readAsDataURL(file);
+}
+
+function wmHandleDiscRight(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _wm.discRightImage = e.target.result;
+    wmApplyDiscPreview('right', e.target.result);
+  };
+  reader.readAsDataURL(file);
+}
+
+function wmApplyDiscPreview(side, url) {
+  if (side === 'left') {
+    const el = document.getElementById('wmPrevDiscLeft');
+    if (el) { el.style.backgroundImage = `url(${url})`; el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center'; }
+    const thumb = document.getElementById('wmDiscLeftPreview');
+    if (thumb) { thumb.style.backgroundImage = `url(${url})`; thumb.style.backgroundSize = 'cover'; thumb.style.backgroundPosition = 'center'; thumb.innerHTML = ''; }
+  } else {
+    const el = document.getElementById('wmPrevDiscRight');
+    if (el) { el.style.backgroundImage = `url(${url})`; el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center'; }
+    const thumb = document.getElementById('wmDiscRightPreview');
+    if (thumb) { thumb.style.backgroundImage = `url(${url})`; thumb.style.backgroundSize = 'cover'; thumb.style.backgroundPosition = 'center'; thumb.innerHTML = ''; }
+  }
 }
 
 function wmHandleBg(input) {
@@ -841,22 +860,29 @@ function wmHandleOpacity(val) {
 function wmApplyBg() {
   const bg   = document.getElementById('wmPreviewBg');
   const mask = document.getElementById('wmPreviewMask');
-  const band = document.getElementById('wmPreviewBand');
+  if (!bg) return;
   const alpha = _wm.opacity / 100;
-  if (!bg || !mask || !band) return;
 
   if (_wm.bgImage) {
     bg.style.backgroundImage    = `url(${_wm.bgImage})`;
     bg.style.backgroundSize     = 'cover';
     bg.style.backgroundPosition = 'center';
     bg.style.backgroundColor    = 'transparent';
-    mask.style.background       = 'rgba(255,255,255,0)';
-    band.style.background       = `rgba(26,25,22,${alpha})`;  // ← 跟滑条联动
+    if (mask) mask.style.background = `rgba(255,255,255,${1 - alpha})`;
+    const card = document.getElementById('wmPreviewCard');
+    if (card) {
+      card.style.background = `rgba(255,255,255,${1 - alpha})`;
+      card.style.backdropFilter = alpha > 0.1 ? `blur(${Math.round(alpha * 20)}px)` : 'none';
+    }
   } else {
     bg.style.backgroundImage = 'none';
     bg.style.backgroundColor = 'transparent';
-    mask.style.background    = `rgba(255,255,255,${alpha})`;
-    band.style.background    = '#1a1916';                      // ← 无背景图时保持不透明
+    if (mask) mask.style.background = `rgba(255,255,255,${alpha})`;
+    const card = document.getElementById('wmPreviewCard');
+    if (card) {
+      card.style.background = `rgba(255,255,255,${alpha})`;
+      card.style.backdropFilter = alpha < 0.9 ? `blur(${Math.round((1 - alpha) * 30)}px)` : 'none';
+    }
   }
 }
 
@@ -874,11 +900,12 @@ async function wmSave() {
     const tx = db.transaction('music', 'readwrite');
     tx.objectStore('music').put({
       id: 'widget',
-      song:        _wm.song,
-      artist:      _wm.artist,
-      coverImage:  _wm.coverImage,
-      bgImage:     _wm.bgImage,
-      opacity:     _wm.opacity,
+      song:            _wm.song,
+      artist:          _wm.artist,
+      discLeftImage:   _wm.discLeftImage,
+      discRightImage:  _wm.discRightImage,
+      bgImage:         _wm.bgImage,
+      opacity:         _wm.opacity,
     });
     tx.oncomplete = () => {
       localStorage.setItem('luna_music_widget_update', Date.now().toString());
@@ -892,13 +919,9 @@ async function wmSave() {
 
 function wmPreviewSong(val) {
   const el = document.getElementById('wmPreviewSong');
-  if (el) el.textContent = val || 'Super Shy';
+  if (el) el.textContent = val || '七里香';
 }
 function wmPreviewArtist(val) {
   const el = document.getElementById('wmPreviewArtist');
-  if (el) el.textContent = val || 'NewJeans';
-}
-function wmPreviewCover(url) {
-  const el = document.getElementById('wmPreviewCover');
-  if (el) el.innerHTML = `<img src="${url}" style="width:40px;height:40px;object-fit:cover;border-radius:9px;display:block;"/>`;
+  if (el) el.textContent = val || '周杰伦';
 }

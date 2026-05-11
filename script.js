@@ -182,6 +182,7 @@ function openApp(name) {
     'beautify': 'beautify.html',
     'wallet': 'wallet.html',
     'user': 'user.html',
+    'dialognovel': 'dialognovel.html',
   }
 
   const url = routes[name];
@@ -266,7 +267,7 @@ let _db = null;
 function openDB() {
   return new Promise((res, rej) => {
     if (_db) return res(_db);
-    const req = indexedDB.open('LunaWeatherDB', 2);
+    const req = indexedDB.open('LunaWeatherDB', 4);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('settings')) {
@@ -485,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- DB ---
 function openMusicDB() {
   return new Promise((res, rej) => {
-    const req = indexedDB.open('LunaMusicDB', 2);
+    const req = indexedDB.open('LunaMusicDB', 4);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('music')) {
@@ -601,28 +602,31 @@ function previewMpOpacity(val) {
 }
 
 function applyMusicIndexBand() {
-  const bg    = document.getElementById('mwCardBg');
-  const alpha = (_mpCache.opacity !== undefined ? _mpCache.opacity : 65) / 100;
+  const widget = document.getElementById('musicWidget');
+  if (!widget) return;
+  const alpha = (_mpCache.opacity !== undefined ? _mpCache.opacity : 100) / 100;
   const hasBg = !!(_mpCache.bgImage);
 
-  if (!bg) return;
+  // 移除旧背景图层（如果有）
+  let bgLayer = document.getElementById('mwCardBg');
+  if (!bgLayer) {
+    bgLayer = document.createElement('div');
+    bgLayer.id = 'mwCardBg';
+    bgLayer.style.cssText = 'position:absolute;inset:0;z-index:0;border-radius:22px;background-size:cover;background-position:center;';
+    widget.insertBefore(bgLayer, widget.firstChild);
+  }
 
   if (hasBg) {
-    // 有背景图：图片完整显示，白色透明度为0
-    bg.style.backgroundImage    = `url(${_mpCache.bgImage})`;
-    bg.style.backgroundSize     = 'cover';
-    bg.style.backgroundPosition = 'center';
-    bg.style.backgroundColor    = 'transparent';
-    bg.style.opacity            = '1';
-    const band = document.querySelector('.mw-band');
-    if (band) band.style.background = `rgba(26,25,22,${alpha})`;
+    bgLayer.style.backgroundImage = `url(${_mpCache.bgImage})`;
+    bgLayer.style.backgroundColor = 'transparent';
+    // 白色透明遮罩由组件本身背景控制
+    widget.style.background = `rgba(255,255,255,${1 - alpha})`;
+    widget.style.backdropFilter = alpha < 1 ? `blur(${Math.round(alpha * 20)}px)` : 'none';
   } else {
-    // 无背景图：纯白色，透明度由 alpha 控制
-    bg.style.backgroundImage = 'none';
-    bg.style.backgroundColor = `rgba(255,255,255,${alpha})`;
-    bg.style.opacity         = '1';
-    const band = document.querySelector('.mw-band');
-    if (band) band.style.background = `rgba(26,25,22,${alpha})`;
+    bgLayer.style.backgroundImage = 'none';
+    bgLayer.style.backgroundColor = 'transparent';
+    widget.style.background = `rgba(255,255,255,${alpha})`;
+    widget.style.backdropFilter = alpha < 0.9 ? `blur(${Math.round((1 - alpha) * 30)}px)` : 'none';
   }
 }
 
@@ -677,8 +681,8 @@ async function saveMusicSettings() {
   const song   = document.getElementById('mpSongInput').value.trim();
   const artist = document.getElementById('mpArtistInput').value.trim();
 
-  if (song)   { document.querySelector('.mw-song').textContent = song; _mpCache.song = song; }
-  if (artist) { document.querySelector('.mw-artist').textContent = artist; _mpCache.artist = artist; }
+  if (song)   { const el = document.querySelector('.mw-ios-song'); if(el) el.textContent = song; _mpCache.song = song; }
+  if (artist) { const el = document.querySelector('.mw-ios-artist'); if(el) el.textContent = artist; _mpCache.artist = artist; }
 
   await saveMusicDB(_mpCache);
   closeMusicPanel();
@@ -688,13 +692,33 @@ async function saveMusicSettings() {
 async function initMusicSettings() {
   _mpCache = await loadMusicDB();
   const d = _mpCache;
-  if (d.song)    document.querySelector('.mw-song').textContent = d.song;
-  if (d.artist)  document.querySelector('.mw-artist').textContent = d.artist;
+  if (d.song)    { const el = document.querySelector('.mw-ios-song'); if(el) el.textContent = d.song; }
+  if (d.artist)  { const el = document.querySelector('.mw-ios-artist'); if(el) el.textContent = d.artist; }
   if (d.color)   applyPlayBtnColor(d.color);
-  if (d.coverImage) {
-    const wc = document.getElementById('mwBandCover');
-    if (wc) wc.innerHTML = `<img src="${d.coverImage}" style="width:40px;height:40px;object-fit:cover;border-radius:9px;display:block;"/>`;
+
+  // 两张唱片图分别应用
+  const discLeft  = document.getElementById('mwDiscLeft');
+  const discRight = document.getElementById('mwDiscRight');
+  if (d.discLeftImage && discLeft) {
+    discLeft.style.backgroundImage = `url(${d.discLeftImage})`;
+    discLeft.style.backgroundSize = 'cover';
+    discLeft.style.backgroundPosition = 'center';
+  } else if (d.coverImage && discLeft) {
+    // 向下兼容旧版 coverImage
+    discLeft.style.backgroundImage = `url(${d.coverImage})`;
+    discLeft.style.backgroundSize = 'cover';
+    discLeft.style.backgroundPosition = 'center';
   }
+  if (d.discRightImage && discRight) {
+    discRight.style.backgroundImage = `url(${d.discRightImage})`;
+    discRight.style.backgroundSize = 'cover';
+    discRight.style.backgroundPosition = 'center';
+  } else if (d.coverImage && discRight) {
+    discRight.style.backgroundImage = `url(${d.coverImage})`;
+    discRight.style.backgroundSize = 'cover';
+    discRight.style.backgroundPosition = 'center';
+  }
+
   if (d.bgImage) applyMusicWidgetBg(d.bgImage);
   if (d.opacity !== undefined) _mpCache.opacity = d.opacity;
   applyMusicIndexBand();
@@ -713,7 +737,7 @@ let _wpDb = null;
 function openWpDB() {
   return new Promise((res, rej) => {
     if (_wpDb) return res(_wpDb);
-    const req = indexedDB.open('LunaWallpaperDB', 2);
+    const req = indexedDB.open('LunaWallpaperDB', 4);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('data')) {
@@ -800,12 +824,34 @@ async function initWallpaper() {
     if (e.key === 'luna_music_widget_update') {
       _mpCache = await loadMusicDB();
       const d = _mpCache;
-      if (d.song)   document.querySelector('.mw-song').textContent = d.song;
-      if (d.artist) document.querySelector('.mw-artist').textContent = d.artist;
-      if (d.coverImage) {
-        const wc = document.getElementById('mwBandCover');
-        if (wc) wc.innerHTML = `<img src="${d.coverImage}" style="width:40px;height:40px;object-fit:cover;border-radius:9px;display:block;"/>`;
+
+      // 歌名 + 歌手（新版 iOS 双唱片样式选择器）
+      if (d.song)   { const el = document.querySelector('.mw-ios-song');   if (el) el.textContent = d.song; }
+      if (d.artist) { const el = document.querySelector('.mw-ios-artist'); if (el) el.textContent = d.artist; }
+
+      // 左右两张唱片图片
+      const discLeft  = document.getElementById('mwDiscLeft');
+      const discRight = document.getElementById('mwDiscRight');
+      if (d.discLeftImage && discLeft) {
+        discLeft.style.backgroundImage = `url(${d.discLeftImage})`;
+        discLeft.style.backgroundSize = 'cover';
+        discLeft.style.backgroundPosition = 'center';
+      } else if (d.coverImage && discLeft) {
+        discLeft.style.backgroundImage = `url(${d.coverImage})`;
+        discLeft.style.backgroundSize = 'cover';
+        discLeft.style.backgroundPosition = 'center';
       }
+      if (d.discRightImage && discRight) {
+        discRight.style.backgroundImage = `url(${d.discRightImage})`;
+        discRight.style.backgroundSize = 'cover';
+        discRight.style.backgroundPosition = 'center';
+      } else if (d.coverImage && discRight) {
+        discRight.style.backgroundImage = `url(${d.coverImage})`;
+        discRight.style.backgroundSize = 'cover';
+        discRight.style.backgroundPosition = 'center';
+      }
+
+      // 背景 + 透明度
       if (d.bgImage) applyMusicWidgetBg(d.bgImage);
       else applyMusicWidgetBg(null);
       if (d.opacity !== undefined) _mpCache.opacity = d.opacity;
@@ -873,7 +919,17 @@ async function applyGlobalFont() {
   const colorRule  = style.color ? `color: ${style.color} !important;` : '';
   const sizeRule   = style.size  ? `font-size: ${style.size}px !important;` : '';
   const familyRule = name        ? `font-family: '${name}', sans-serif !important;` : '';
-  tag.textContent  = `*:not(.countdown-widget-ab1):not(.countdown-widget-ab1 *):not(.bp-card):not(.bp-card *):not(.photo-diary-widget):not(.photo-diary-widget *) { ${colorRule} ${sizeRule} ${familyRule} }`;
+  // 排除所有装饰性 widget，防止全局字体覆盖其内部排版
+  const EXCL = [
+    '.bp-card', '.bp-card *',
+    '.photo-diary-widget', '.photo-diary-widget *',
+    '.friends-widget', '.friends-widget *',
+    '.magazine-widget', '.magazine-widget *',
+    '.music-widget', '.music-widget *',
+    '.press-widget', '.press-widget *',
+    '.luna-profile-card', '.luna-profile-card *',
+  ].map(s => `:not(${s})`).join('');
+  tag.textContent = `*${EXCL} { ${colorRule} ${sizeRule} ${familyRule} }`;
 }
 
 /* ================================
@@ -918,7 +974,7 @@ function applyIsland() {
 async function applyCustomIcons() {
   try {
     const db = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaIconBeautyDB', 2);
+      const req = indexedDB.open('LunaIconBeautyDB', 4);
       req.onsuccess = e => res(e.target.result);
       req.onerror = () => rej();
     });
@@ -938,72 +994,4 @@ async function applyCustomIcons() {
 // 监听 iconbeauty 保存事件
 window.addEventListener('storage', e => {
   if (e.key === 'luna_icon_update') applyCustomIcons();
-});
-
-/* ============ 倒数日组件 — 读取DB渲染 ============ */
-async function initCountdownWidget() {
-  let db;
-  try {
-    db = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaCountdownDB', 1);
-      req.onupgradeneeded = e => e.target.result.createObjectStore('cd', { keyPath: 'id' });
-      req.onsuccess = e => res(e.target.result);
-      req.onerror = () => rej();
-    });
-  } catch { return; }
-
-  const d = await new Promise(res => {
-    const req = db.transaction('cd').objectStore('cd').get('widget');
-    req.onsuccess = () => res(req.result || {});
-    req.onerror   = () => res({});
-  });
-
-  if (!d || !Object.keys(d).length) return;
-
-  // 计算天数
-  if (d.date) {
-    const target = new Date(d.date);
-    const today  = new Date(); today.setHours(0,0,0,0);
-    const diff   = Math.round((target - today) / 86400000);
-    const numEl  = document.querySelector('.ab1-number');
-    if (numEl) numEl.textContent = Math.abs(diff);
-    const unitEl = document.querySelector('.ab1-unit');
-    if (unitEl) unitEl.textContent = d.unit || (diff >= 0 ? 'days away' : 'days ago');
-  }
-  if (d.eyebrow)   { const el = document.querySelector('.ab1-eyebrow'); if (el) el.textContent = d.eyebrow; }
-  if (d.event)     { const el = document.querySelector('.ab1-event');   if (el) el.textContent = d.event; }
-  if (d.dateLabel) { const el = document.querySelector('.ab1-date');    if (el) el.textContent = d.dateLabel; }
-
-  // 拍立得图片
-  if (d.pol1) {
-    const el = document.querySelector('.ab1-pol-img.ph1');
-    if (el) { el.style.background = 'none'; el.innerHTML = `<img src="${d.pol1}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"/>`; }
-  }
-  if (d.pol2) {
-    const el = document.querySelector('.ab1-pol-img.ph2');
-    if (el) { el.style.background = 'none'; el.innerHTML = `<img src="${d.pol2}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"/>`; }
-  }
-
-  // 背景
-  const widget = document.querySelector('.countdown-widget-ab1');
-  if (widget) {
-    if (d.bgImage) {
-      widget.style.backgroundImage    = `url(${d.bgImage})`;
-      widget.style.backgroundSize     = 'cover';
-      widget.style.backgroundPosition = 'center';
-      // 有背景图：白色遮罩不介入，透明度不影响其他元素
-    } else {
-      const alpha = (d.opacity !== undefined ? d.opacity : 65) / 100;
-      widget.style.background = `rgba(255,255,255,${alpha})`;
-    }
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  initCountdownWidget();
-});
-
-// 监听美化页保存后的刷新
-window.addEventListener('storage', e => {
-  if (e.key === 'luna_countdown_update') initCountdownWidget();
 });
