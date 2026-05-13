@@ -1614,6 +1614,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(updateTime, 1000);
   applyIsland();
   applyCustomIcons();
+  initWallpaper(); // 加载并应用壁纸
   // 应用锁屏壁纸
   const lockWall = localStorage.getItem('luna_lock_wallpaper');
   const lockWallImg = document.getElementById('lockWallpaperImg');
