@@ -104,7 +104,7 @@ const IB_APPS = [
     </svg>`
   },
   {
-    id: 'itinerary',
+    id: 'trip',
     name: '行程',
     defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
       <rect x="3" y="4" width="18" height="17" rx="2" fill="rgba(56,189,248,0.1)" stroke="rgba(56,189,248,0.75)" stroke-width="1.4" stroke-linejoin="round"/>
@@ -145,7 +145,7 @@ const IB_APPS = [
     </svg>`
   },
   {
-    id: 'mail',
+    id: 'email',
     name: '邮箱',
     defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
       <rect x="2" y="5" width="20" height="14" rx="2" fill="rgba(56,189,248,0.1)" stroke="rgba(56,189,248,0.75)" stroke-width="1.5"/>
@@ -153,7 +153,7 @@ const IB_APPS = [
     </svg>`
   },
   {
-    id: 'dialognovel',
+    id: 'chatnovel',
     name: '对话小说',
     defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
       <path d="M3 6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H8l-3 3V6z" fill="rgba(34,197,94,0.1)" stroke="rgba(34,197,94,0.75)" stroke-width="1.5" stroke-linejoin="round"/>
@@ -172,7 +172,7 @@ const IB_APPS = [
     </svg>`
   },
   {
-    id: 'phonecheck',
+    id: 'findphone',
     name: '查手机',
     defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
       <rect x="7" y="2" width="10" height="18" rx="2.5" fill="rgba(56,189,248,0.1)" stroke="rgba(56,189,248,0.75)" stroke-width="1.5"/>
