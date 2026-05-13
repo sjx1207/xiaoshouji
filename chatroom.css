@@ -724,3 +724,345 @@ body {
   object-fit: cover;
   border-radius: 50%;
 }
+
+/* ================================
+   Feature Panel Overlay
+================================ */
+@keyframes panelUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+#featureOverlay {
+  position: fixed; inset: 0;
+  z-index: 200;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+#featureOverlay.open {
+  pointer-events: all;
+  opacity: 1;
+}
+
+.overlay-backdrop {
+  position: absolute; inset: 0;
+  backdrop-filter: blur(20px) saturate(0.75);
+  -webkit-backdrop-filter: blur(20px) saturate(0.75);
+  background: rgba(245,242,238,0.52);
+}
+
+.feature-panel {
+  position: relative; z-index: 2;
+  width: 100%; max-width: 480px;
+  background: rgba(255,255,255,0.92);
+  border-radius: 28px 28px 0 0;
+  border: 0.5px solid rgba(0,0,0,0.09);
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.09);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+  transform: translateY(30px);
+  transition: transform 0.38s cubic-bezier(0.34,1.1,0.64,1);
+}
+#featureOverlay.open .feature-panel { transform: translateY(0); }
+
+.panel-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: rgba(0,0,0,0.14);
+  margin: 12px auto 0;
+}
+
+.panel-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px 0;
+}
+.panel-hd-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 2.5px;
+  color: #aaa; text-transform: uppercase;
+}
+.panel-close-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 0.5px solid rgba(0,0,0,0.12);
+  background: #f5f5f5;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.panel-close-btn:active { background: #eaeaea; transform: scale(0.92); }
+
+/* ── Fan Stage (1:1 from luna_feature_cards_fan) ── */
+.fan-scene {
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 18px 0 8px;
+}
+
+.fan-stage {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.fp-card {
+  position: absolute;
+  top: 0;
+  width: 160px; height: 220px;
+  border-radius: 16px;
+  border: 0.5px solid rgba(0,0,0,0.13);
+  background: #fff;
+  transform-origin: 50% 50%;
+  transition: transform 0.42s cubic-bezier(0.34,1.1,0.64,1),
+              box-shadow 0.3s ease, opacity 0.3s ease;
+  cursor: pointer;
+  user-select: none;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.fp-card-art {
+  width: 100%; flex: 1;
+  position: relative; overflow: hidden;
+  background: #f5f5f5;
+  display: flex; align-items: center; justify-content: center;
+}
+.fp-card-art svg.card-mono-art {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+
+.fp-card-footer {
+  padding: 10px 12px 12px;
+  border-top: 0.5px solid rgba(0,0,0,0.07);
+  background: #fff; flex-shrink: 0;
+}
+.fp-card-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 7px; letter-spacing: 2px;
+  color: #aaa; text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.fp-card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px; font-weight: 700;
+  color: #1a1a1a; line-height: 1.25;
+}
+.fp-card-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic; font-size: 10px;
+  color: #aaa; margin-top: 2px;
+}
+.fp-card-no {
+  position: absolute; top: 10px; right: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; color: rgba(255,255,255,0.65);
+  letter-spacing: 1px; z-index: 2;
+}
+
+/* Controls */
+.fan-controls {
+  display: flex; align-items: center; gap: 18px;
+  margin-top: 18px;
+}
+.fan-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 0.5px solid rgba(0,0,0,0.18);
+  background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.fan-btn:hover  { background: #f0f0f0; }
+.fan-btn:active { background: #e8e8e8; transform: scale(0.93); }
+
+.fan-dots { display: flex; gap: 5px; align-items: center; }
+.fan-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(0,0,0,0.15);
+  transition: background 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+.fan-dot.active { background: #1a1a1a; transform: scale(1.35); }
+
+/* Detail card */
+.fp-detail {
+  margin-top: 16px;
+  width: 280px;
+  background: #fafafa;
+  border: 0.5px solid rgba(0,0,0,0.09);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex; align-items: flex-start; gap: 10px;
+  transition: opacity 0.22s;
+}
+.fp-detail-icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: #f0f0f0;
+  border: 0.5px solid rgba(0,0,0,0.09);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.fp-detail-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px; font-weight: 700;
+  color: #1a1a1a; margin-bottom: 3px;
+}
+.fp-detail-desc {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; color: #888;
+  letter-spacing: 0.3px; line-height: 1.55;
+}
+
+.fp-swipe-hint {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 1.5px;
+  color: #ccc; margin-top: 10px;
+  text-transform: uppercase;
+  padding-bottom: 4px;
+}
+
+/* ================================
+   消息长按气泡菜单 — Bubble Context Menu
+================================ */
+
+/* 遮罩层 */
+#msgCtxOverlay {
+  position: fixed; inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+#msgCtxOverlay.open {
+  pointer-events: all;
+  opacity: 1;
+}
+
+/* 背景虚化 */
+.msg-ctx-backdrop {
+  position: absolute; inset: 0;
+  backdrop-filter: blur(18px) saturate(0.8);
+  -webkit-backdrop-filter: blur(18px) saturate(0.8);
+  background: rgba(0,0,0,0.28);
+}
+
+/* 被选中气泡的镜像（浮于遮罩上方） */
+.msg-ctx-bubble-mirror {
+  position: absolute;
+  pointer-events: none;
+  transition: transform 0.22s cubic-bezier(0.34,1.2,0.64,1);
+}
+
+/* 菜单主体 */
+.msg-ctx-menu {
+  position: absolute;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.94);
+  border: 0.5px solid rgba(0,0,0,0.10);
+  border-radius: 999px;
+  padding: 8px 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transform-origin: bottom center;
+  animation: ctxMenuPop 0.22s cubic-bezier(0.34,1.4,0.64,1) both;
+}
+
+@keyframes ctxMenuPop {
+  from { opacity:0; transform: scale(0.78) translateY(8px); }
+  to   { opacity:1; transform: scale(1)    translateY(0);   }
+}
+
+/* 每个功能按钮 */
+.msg-ctx-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+  min-width: 40px;
+  border: none;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+.msg-ctx-item:active {
+  background: rgba(0,0,0,0.07);
+  transform: scale(0.90);
+}
+
+/* 危险按钮（删除/撤回）变红 */
+.msg-ctx-item.danger .msg-ctx-icon { color: #e53935; }
+.msg-ctx-item.danger .msg-ctx-label { color: #e53935; }
+
+.msg-ctx-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.05);
+  display: flex; align-items: center; justify-content: center;
+  color: #2a2a2a;
+  font-size: 15px;
+}
+
+.msg-ctx-label {
+  font-size: 9px;
+  color: #666;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+/* 分割线 */
+.msg-ctx-sep {
+  width: 0.5px;
+  height: 36px;
+  background: rgba(0,0,0,0.10);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* 取消按钮 */
+.msg-ctx-cancel {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+  background: rgba(255,255,255,0.94);
+  border: 0.5px solid rgba(0,0,0,0.10);
+  border-radius: 16px;
+  padding: 13px 48px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: ctxMenuPop 0.22s cubic-bezier(0.34,1.4,0.64,1) both;
+  -webkit-tap-highlight-color: transparent;
+}
+.msg-ctx-cancel:active {
+  background: rgba(240,240,240,0.96);
+  transform: translateX(-50%) scale(0.96);
+}
+
+/* 气泡选中时的震动缩放反馈 */
+@keyframes ctxBubblePop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+.cr-mine-bubble.ctx-selecting,
+.cr-luna-bubble.ctx-selecting {
+  animation: ctxBubblePop 0.18s ease both;
+}
