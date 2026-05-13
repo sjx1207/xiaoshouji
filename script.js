@@ -395,7 +395,7 @@ function updateTime() {
     const el = wraps[index];
     if (!el) return;
     el.innerHTML = src
-      ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>`
+      ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" alt=""/>`
       : `<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(100,100,180,0.4)" stroke-width="1.6"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(100,100,180,0.4)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
   }
 
@@ -482,9 +482,9 @@ function updateTime() {
 
         // 恢复头像预览
         const prev1 = document.getElementById('fwPreviewAvatar1');
-        if (tempAv1) prev1.innerHTML = `<img src="${tempAv1}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+        if (tempAv1) prev1.innerHTML = `<img src="${tempAv1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
         const prev2 = document.getElementById('fwPreviewAvatar2');
-        if (tempAv2) prev2.innerHTML = `<img src="${tempAv2}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+        if (tempAv2) prev2.innerHTML = `<img src="${tempAv2}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
 
         // 背景按钮状态
         document.querySelectorAll('[data-fw-mode]').forEach(btn => {
@@ -509,13 +509,13 @@ function updateTime() {
       const file = e.target.files[0];
       if (!file) return;
       tempAv1 = await fileToBase64(file);
-      document.getElementById('fwPreviewAvatar1').innerHTML = `<img src="${tempAv1}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+      document.getElementById('fwPreviewAvatar1').innerHTML = `<img src="${tempAv1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
     });
     document.getElementById('fwAvatar2Input').addEventListener('change', async e => {
       const file = e.target.files[0];
       if (!file) return;
       tempAv2 = await fileToBase64(file);
-      document.getElementById('fwPreviewAvatar2').innerHTML = `<img src="${tempAv2}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+      document.getElementById('fwPreviewAvatar2').innerHTML = `<img src="${tempAv2}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
     });
 
     // 背景模式切换
@@ -805,7 +805,7 @@ function updateTime() {
   function applyWdAv(side, src) {
     const el = document.querySelector(side === 0 ? '.wd-avatar-l' : '.wd-avatar-r');
     if (!el) return;
-    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`;
   }
 
   function applyWdText(n1, n2, b1, b2) {
@@ -889,9 +889,9 @@ function updateTime() {
 
         // 恢复头像预览
         if (tempWdAv1) document.getElementById('wdPreviewAv1').innerHTML =
-          `<img src="${tempWdAv1}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+          `<img src="${tempWdAv1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`;
         if (tempWdAv2) document.getElementById('wdPreviewAv2').innerHTML =
-          `<img src="${tempWdAv2}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+          `<img src="${tempWdAv2}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`;
 
         // 恢复背景按钮状态
         document.querySelectorAll('[data-wd-mode]').forEach(btn => {
@@ -917,13 +917,13 @@ function updateTime() {
       const file = e.target.files[0]; if (!file) return;
       tempWdAv1 = await fileToBase64Wd(file);
       document.getElementById('wdPreviewAv1').innerHTML =
-        `<img src="${tempWdAv1}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        `<img src="${tempWdAv1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`;
     });
     document.getElementById('wdAv2Input').addEventListener('change', async e => {
       const file = e.target.files[0]; if (!file) return;
       tempWdAv2 = await fileToBase64Wd(file);
       document.getElementById('wdPreviewAv2').innerHTML =
-        `<img src="${tempWdAv2}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        `<img src="${tempWdAv2}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`;
     });
 
     // 背景切换
@@ -1155,7 +1155,7 @@ function updateTime() {
   function applyWcUserAv(src) {
     const el = document.querySelector('.wc-uav');
     if (!el) return;
-    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
   }
 
   // 主用户文字
@@ -1170,6 +1170,20 @@ function updateTime() {
   function applyWcPhoto(idx, src) {
     const items = document.querySelectorAll('.wc-photo-item');
     const el = items[idx];
+    if (!el) return;
+    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
+  }
+
+  // 气泡左侧头像
+  function applyWcMsgAv(src) {
+    const el = document.querySelector('.wc-msg-av-inner');
+    if (!el) return;
+    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
+  }
+
+  // 输入框右侧头像
+  function applyWcInputAv(src) {
+    const el = document.querySelector('.wc-input-av-inner');
     if (!el) return;
     el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
   }
@@ -1232,6 +1246,10 @@ function updateTime() {
     if (bubble) applyWcBubble(bubble);
     const chatImg = wcLoad('chatimg');
     if (chatImg) applyWcChatImg(chatImg);
+    const msgav = wcLoad('msgav');
+    if (msgav) applyWcMsgAv(msgav);
+    const inputav = wcLoad('inputav');
+    if (inputav) applyWcInputAv(inputav);
     applyWcBg(wcLoad('bgMode') || 'blur', wcLoad('bgCustom'));
   }
 
@@ -1269,13 +1287,17 @@ function updateTime() {
           if (v) setPreview(`wcPreviewF${i}`, v, '50%');
         }
         const uav = wcLoad('userav');
-        if (uav) setPreview('wcPreviewUser', uav, '50%');
+        if (uav) setPreview('wcPreviewUser', uav, '10px');
         for (let i = 1; i <= 3; i++) {
           const v = wcLoad(`photo${i}`);
           if (v) setPreview(`wcPreviewP${i}`, v, '8px');
         }
         const ci = wcLoad('chatimg');
         if (ci) setPreview('wcPreviewChatImg', ci, '10px');
+        const msgav = wcLoad('msgav');
+        if (msgav) setPreview('wcPreviewMsgAv', msgav, '8px');
+        const inputav = wcLoad('inputav');
+        if (inputav) setPreview('wcPreviewInputAv', inputav, '8px');
 
         // 背景按钮
         tempWcBgMode = wcLoad('bgMode') || 'blur';
@@ -1314,7 +1336,7 @@ function updateTime() {
       const file = e.target.files[0]; if (!file) return;
       const src = await fileToBase64Wc(file);
       wcSave('userav', src);
-      setPreview('wcPreviewUser', src, '50%');
+      setPreview('wcPreviewUser', src, '10px');
       applyWcUserAv(src);
     });
 
@@ -1354,6 +1376,24 @@ function updateTime() {
       const file = e.target.files[0]; if (!file) return;
       tempWcBgCustom = await fileToBase64Wc(file);
       wcSave('bgCustom', tempWcBgCustom);
+    });
+
+    // 气泡左侧头像
+    document.getElementById('wcMsgAvInput').addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return;
+      const src = await fileToBase64Wc(file);
+      wcSave('msgav', src);
+      setPreview('wcPreviewMsgAv', src, '8px');
+      applyWcMsgAv(src);
+    });
+
+    // 输入框右侧头像
+    document.getElementById('wcInputAvInput').addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return;
+      const src = await fileToBase64Wc(file);
+      wcSave('inputav', src);
+      setPreview('wcPreviewInputAv', src, '8px');
+      applyWcInputAv(src);
     });
 
     // 保存
