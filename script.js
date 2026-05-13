@@ -1638,15 +1638,32 @@ let _wpDb = null;
 
 function openWpDB() {
   return new Promise((res, rej) => {
-    if (_wpDb) return res(_wpDb);
-    const req = indexedDB.open('LunaWallpaperDB', 4);
+    if (_wpDb) {
+      if (_wpDb.objectStoreNames.contains('data')) return res(_wpDb);
+      _wpDb = null;
+    }
+    const req = indexedDB.open('LunaWallpaperDB');
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('data')) {
         db.createObjectStore('data', { keyPath: 'key' });
       }
     };
-    req.onsuccess = e => { _wpDb = e.target.result; res(_wpDb); };
+    req.onsuccess = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('data')) {
+        db.close();
+        const up = indexedDB.open('LunaWallpaperDB', db.version + 1);
+        up.onupgradeneeded = ev => {
+          if (!ev.target.result.objectStoreNames.contains('data'))
+            ev.target.result.createObjectStore('data', { keyPath: 'key' });
+        };
+        up.onsuccess = ev => { _wpDb = ev.target.result; res(_wpDb); };
+        up.onerror = () => rej();
+      } else {
+        _wpDb = db; res(_wpDb);
+      }
+    };
     req.onerror = () => rej();
   });
 }

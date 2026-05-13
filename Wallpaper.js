@@ -20,15 +20,32 @@ let _db = null;
 
 function openDB() {
   return new Promise((res, rej) => {
-    if (_db) return res(_db);
-    const req = indexedDB.open('LunaWallpaperDB', 2);
+    if (_db) {
+      if (_db.objectStoreNames.contains('data')) return res(_db);
+      _db = null;
+    }
+    const req = indexedDB.open('LunaWallpaperDB');
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('data')) {
         db.createObjectStore('data', { keyPath: 'key' });
       }
     };
-    req.onsuccess = e => { _db = e.target.result; res(_db); };
+    req.onsuccess = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('data')) {
+        db.close();
+        const up = indexedDB.open('LunaWallpaperDB', db.version + 1);
+        up.onupgradeneeded = ev => {
+          if (!ev.target.result.objectStoreNames.contains('data'))
+            ev.target.result.createObjectStore('data', { keyPath: 'key' });
+        };
+        up.onsuccess = ev => { _db = ev.target.result; res(_db); };
+        up.onerror = () => rej('DB Error');
+      } else {
+        _db = db; res(_db);
+      }
+    };
     req.onerror = () => rej('DB Error');
   });
 }
