@@ -1131,3 +1131,147 @@ function openMailPage() {
     window.location.href = 'mail_system.html';
   }, 200);
 }
+
+// ═══════════════════════════════════════
+//  锁屏设置页
+// ═══════════════════════════════════════
+
+let lockSetInput = '';
+
+function openLockPage() {
+  const p = document.getElementById('lockPage');
+  if (p) { p.style.transform = 'translateX(0)'; p.style.opacity = '1'; }
+  initLockPage();
+}
+function closeLockPage() {
+  const p = document.getElementById('lockPage');
+  if (p) { p.style.transform = 'translateX(100%)'; p.style.opacity = '0'; }
+}
+
+function initLockPage() {
+  const enabled  = localStorage.getItem('luna_lock_enabled') === 'true';
+  const passOn   = localStorage.getItem('luna_lock_pass_enabled') === 'true';
+  const wallData = localStorage.getItem('luna_lock_wallpaper');
+
+  // 开关状态
+  document.getElementById('lockEnabledToggle').checked = enabled;
+  document.getElementById('lockPassSection').style.display  = enabled ? '' : 'none';
+  document.getElementById('lockWallSection').style.display  = enabled ? '' : 'none';
+
+  // 密码开关
+  document.getElementById('lockPassToggle').checked = passOn;
+  document.getElementById('lockPassInputArea').style.display = passOn ? 'flex' : 'none';
+
+  // 壁纸预览
+  if (wallData) {
+    document.getElementById('lockPreviewWall').style.backgroundImage = `url(${wallData})`;
+    document.getElementById('lockWallDropZone').querySelector('.font-drop-title').textContent = '点击更换壁纸';
+  }
+
+  // 同步灵动岛到预览
+  const islandOn = localStorage.getItem('luna_island_enabled') === 'true';
+  const pvIsland = document.getElementById('lockPvIsland');
+  if (pvIsland) pvIsland.style.display = islandOn ? 'block' : 'none';
+
+  // 同步字体（只同步 family，不同步颜色和大小）
+  const fontName = localStorage.getItem('luna_font_active_name');
+  if (fontName) {
+    const ff = `'${fontName}', sans-serif`;
+    ['lockPvTime','lockPvBigTime','lockPvDate','lockPvBrand'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.fontFamily = ff;
+    });
+  }
+
+  // 预览点/提示
+  updateLockPreviewDots(passOn);
+
+  // 重置密码输入
+  lockSetInput = '';
+  updateSetDots();
+}
+
+function onLockEnabledToggle(checked) {
+  localStorage.setItem('luna_lock_enabled', checked);
+  localStorage.setItem('luna_lock_update', Date.now());
+  document.getElementById('lockPassSection').style.display = checked ? '' : 'none';
+  document.getElementById('lockWallSection').style.display = checked ? '' : 'none';
+}
+
+function onLockPassToggle(checked) {
+  localStorage.setItem('luna_lock_pass_enabled', checked);
+  localStorage.setItem('luna_lock_update', Date.now());
+  const area = document.getElementById('lockPassInputArea');
+  area.style.display = checked ? 'flex' : 'none';
+  updateLockPreviewDots(checked);
+}
+
+function updateLockPreviewDots(passOn) {
+  document.getElementById('lockPvDots').style.display    = passOn ? 'flex' : 'none';
+  document.getElementById('lockPvTapHint').style.display = passOn ? 'none' : 'block';
+}
+
+// ── 小键盘 ──
+function lockSetPress(num) {
+  if (lockSetInput.length >= 6) return;
+  lockSetInput += num;
+  updateSetDots();
+  if (lockSetInput.length === 6) {
+    const btn = document.getElementById('lockSavePassBtn');
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+  }
+}
+function lockSetDel() {
+  if (lockSetInput.length > 0) lockSetInput = lockSetInput.slice(0, -1);
+  updateSetDots();
+  const btn = document.getElementById('lockSavePassBtn');
+  btn.style.opacity = '0.35';
+  btn.style.pointerEvents = 'none';
+}
+function lockSetClear() {
+  lockSetInput = '';
+  updateSetDots();
+  const btn = document.getElementById('lockSavePassBtn');
+  btn.style.opacity = '0.35';
+  btn.style.pointerEvents = 'none';
+}
+function updateSetDots() {
+  for (let i = 0; i < 6; i++) {
+    const d = document.getElementById('setPd' + i);
+    if (!d) continue;
+    d.style.background = i < lockSetInput.length ? 'rgba(60,50,120,0.7)' : 'transparent';
+    d.style.borderColor = i < lockSetInput.length ? 'rgba(60,50,120,0.7)' : 'rgba(60,50,120,0.35)';
+  }
+}
+
+function saveLockPasscode() {
+  if (lockSetInput.length < 6) return;
+  localStorage.setItem('luna_passcode', lockSetInput);
+  localStorage.setItem('luna_lock_pass_enabled', 'true');
+  localStorage.setItem('luna_lock_enabled', 'true');
+  localStorage.setItem('luna_lock_update', Date.now());
+  const tip = document.getElementById('lockPassSavedTip');
+  tip.style.display = 'block';
+  setTimeout(() => { tip.style.display = 'none'; }, 2500);
+  lockSetInput = '';
+  updateSetDots();
+  const btn = document.getElementById('lockSavePassBtn');
+  btn.style.opacity = '0.35';
+  btn.style.pointerEvents = 'none';
+}
+
+// ── 壁纸上传 ──
+function onLockWallUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = e.target.result;
+    localStorage.setItem('luna_lock_wallpaper', data);
+    localStorage.setItem('luna_lock_update', Date.now());
+    document.getElementById('lockPreviewWall').style.backgroundImage = `url(${data})`;
+    document.getElementById('lockWallDropZone').querySelector('.font-drop-title').textContent = '点击更换壁纸';
+  };
+  reader.readAsDataURL(file);
+}

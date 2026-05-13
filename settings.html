@@ -168,6 +168,26 @@
       </div>
     </div>
 
+    <!-- 锁屏设置 -->
+    <div class="st-row" onclick="openLockPage()">
+      <div class="st-icon" style="background:linear-gradient(135deg,#7c6fcd,#a78bfa);">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <rect x="5" y="11" width="14" height="10" rx="2" stroke="#fff" stroke-width="1.6"/>
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="12" cy="16" r="1.5" fill="#fff"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">锁屏</div>
+        <div class="st-row-sub">密码 · 自动锁屏 · 外观</div>
+      </div>
+      <div class="st-row-right">
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -715,6 +735,177 @@
   </div>
 </div>
 
+<!-- 锁屏子页面 -->
+<div class="font-page" id="lockPage">
+  <div class="font-page-header">
+    <button class="font-back" onclick="closeLockPage()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="font-page-title">锁屏</div>
+  </div>
+
+  <div class="font-scroll">
+
+    <!-- Section 1：锁屏开关 -->
+    <div class="font-section">
+      <div class="font-group" style="padding:16px;">
+        <div class="di-toggle-row">
+          <div class="di-toggle-info">
+            <div class="di-toggle-title">开启锁屏</div>
+            <div class="di-toggle-sub">关闭后按 Home 键直接进入主页</div>
+          </div>
+          <label class="di-switch">
+            <input type="checkbox" id="lockEnabledToggle" onchange="onLockEnabledToggle(this.checked)"/>
+            <span class="di-switch-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2：密码设置（锁屏开启后显示） -->
+    <div class="font-section" id="lockPassSection" style="display:none;">
+      <div class="font-section-label">密码</div>
+      <div class="font-group" style="padding:16px;display:flex;flex-direction:column;gap:14px;">
+
+        <!-- 启用密码开关 -->
+        <div class="di-toggle-row">
+          <div class="di-toggle-info">
+            <div class="di-toggle-title">启用密码</div>
+            <div class="di-toggle-sub">关闭则点击屏幕直接解锁</div>
+          </div>
+          <label class="di-switch">
+            <input type="checkbox" id="lockPassToggle" onchange="onLockPassToggle(this.checked)"/>
+            <span class="di-switch-track"></span>
+          </label>
+        </div>
+
+        <!-- 密码输入区（启用密码后显示） -->
+        <div id="lockPassInputArea" style="display:none;flex-direction:column;gap:10px;">
+          <div style="font-size:12px;color:rgba(60,50,120,0.45);letter-spacing:0.04em;">设置六位数字密码</div>
+
+          <!-- 六个点预览 -->
+          <div style="display:flex;gap:10px;justify-content:center;margin:4px 0;">
+            <div id="setPd0" style="width:11px;height:11px;border-radius:50%;border:1.5px solid rgba(60,50,120,0.35);background:transparent;transition:background 0.15s;"></div>
+            <div id="setPd1" style="width:11px;height:11px;border-radius:50%;border:1.5px solid rgba(60,50,120,0.35);background:transparent;transition:background 0.15s;"></div>
+            <div id="setPd2" style="width:11px;height:11px;border-radius:50%;border:1.5px solid rgba(60,50,120,0.35);background:transparent;transition:background 0.15s;"></div>
+            <div id="setPd3" style="width:11px;height:11px;border-radius:50%;border:1.5px solid rgba(60,50,120,0.35);background:transparent;transition:background 0.15s;"></div>
+            <div id="setPd4" style="width:11px;height:11px;border-radius:50%;border:1.5px solid rgba(60,50,120,0.35);background:transparent;transition:background 0.15s;"></div>
+            <div id="setPd5" style="width:11px;height:11px;border-radius:50%;border:1.5px solid rgba(60,50,120,0.35);background:transparent;transition:background 0.15s;"></div>
+          </div>
+
+          <!-- 小键盘 -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;">
+            <button class="lock-set-key" onclick="lockSetPress('1')">1</button>
+            <button class="lock-set-key" onclick="lockSetPress('2')">2</button>
+            <button class="lock-set-key" onclick="lockSetPress('3')">3</button>
+            <button class="lock-set-key" onclick="lockSetPress('4')">4</button>
+            <button class="lock-set-key" onclick="lockSetPress('5')">5</button>
+            <button class="lock-set-key" onclick="lockSetPress('6')">6</button>
+            <button class="lock-set-key" onclick="lockSetPress('7')">7</button>
+            <button class="lock-set-key" onclick="lockSetPress('8')">8</button>
+            <button class="lock-set-key" onclick="lockSetPress('9')">9</button>
+            <button class="lock-set-key lock-set-clear" onclick="lockSetClear()">清空</button>
+            <button class="lock-set-key" onclick="lockSetPress('0')">0</button>
+            <button class="lock-set-key lock-set-del" onclick="lockSetDel()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <path d="M21 6H8l-7 6 7 6h13a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                <line x1="18" y1="9" x2="12" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <line x1="12" y1="9" x2="18" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 保存按钮 -->
+          <button class="font-save-btn" id="lockSavePassBtn" onclick="saveLockPasscode()" style="opacity:0.35;pointer-events:none;">保存密码</button>
+          <div id="lockPassSavedTip" style="display:none;text-align:center;font-size:12px;color:#6366f1;letter-spacing:0.04em;">✓ 密码已保存并同步</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Section 3：锁屏壁纸（锁屏开启后显示） -->
+    <div class="font-section" id="lockWallSection" style="display:none;">
+      <div class="font-section-label">壁纸</div>
+      <div class="font-group" style="padding:16px;display:flex;flex-direction:column;gap:16px;">
+
+        <!-- 上传按钮 -->
+        <div class="font-drop-zone" onclick="document.getElementById('lockWallInput').click()" id="lockWallDropZone">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="rgba(99,107,255,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+            <polyline points="17 8 12 3 7 8" stroke="rgba(99,107,255,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="12" y1="3" x2="12" y2="15" stroke="rgba(99,107,255,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <div class="font-drop-title">点击上传锁屏壁纸</div>
+          <div class="font-drop-sub">支持 JPG · PNG · WEBP</div>
+          <input type="file" id="lockWallInput" accept="image/*" style="display:none;" onchange="onLockWallUpload(this)"/>
+        </div>
+
+        <!-- 1:1 锁屏预览 -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+          <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(60,50,120,0.35);">预览</div>
+
+          <!-- 手机外框 -->
+          <div id="lockPreviewFrame" style="width:160px;height:320px;border-radius:24px;overflow:hidden;position:relative;background:linear-gradient(160deg,#ede9ff,#dceeff,#f3eeff);box-shadow:0 8px 32px rgba(100,80,200,0.18),inset 0 0 0 1px rgba(255,255,255,0.6);">
+
+            <!-- 壁纸层 -->
+            <div id="lockPreviewWall" style="position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;"></div>
+
+            <!-- 虚化遮罩（模拟锁屏密码层效果） -->
+            <div style="position:absolute;inset:0;background:rgba(180,160,255,0.08);z-index:1;"></div>
+
+            <!-- 状态栏（同步灵动岛和字体） -->
+            <div id="lockPreviewStatusBar" style="position:relative;z-index:10;height:28px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 12px 5px;">
+              <div id="lockPvTime" style="font-size:9px;font-weight:600;color:#2a2a40;">9:41</div>
+              <!-- 灵动岛（如果开启） -->
+              <div id="lockPvIsland" style="position:absolute;top:4px;left:50%;transform:translateX(-50%);width:32px;height:10px;background:#1c1c1e;border-radius:99px;display:none;"></div>
+              <div id="lockPvRight" style="display:flex;align-items:center;gap:3px;">
+                <div style="display:flex;align-items:flex-end;gap:1px;height:7px;">
+                  <span style="display:block;width:1.5px;height:3px;border-radius:1px;background:#3a3a55;opacity:0.8;"></span>
+                  <span style="display:block;width:1.5px;height:5px;border-radius:1px;background:#3a3a55;opacity:0.8;"></span>
+                  <span style="display:block;width:1.5px;height:7px;border-radius:1px;background:#3a3a55;opacity:0.8;"></span>
+                </div>
+                <span style="font-size:7px;font-weight:600;color:#3a3a55;opacity:0.85;">76</span>
+                <div style="width:13px;height:7px;border:1px solid rgba(55,55,80,0.5);border-radius:2px;padding:1px;position:relative;">
+                  <div style="width:76%;height:100%;border-radius:1px;background:linear-gradient(90deg,#6ee7b7,#34d399);"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 时间大字 -->
+            <div id="lockPvBigTime" style="position:relative;z-index:2;text-align:center;margin-top:14px;font-size:38px;font-weight:200;letter-spacing:-3px;color:rgba(28,18,72,0.85);line-height:1;">9:41</div>
+
+            <!-- 日期 -->
+            <div id="lockPvDate" style="position:relative;z-index:2;text-align:center;margin-top:4px;font-size:6px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:rgba(60,45,120,0.5);">WEDNESDAY, MAY 13</div>
+
+            <!-- 六个点 or 提示文字 -->
+            <div id="lockPvDots" style="position:relative;z-index:2;display:flex;justify-content:center;gap:7px;margin-top:20px;">
+              <div style="width:7px;height:7px;border-radius:50%;border:1.2px solid rgba(60,50,120,0.4);background:transparent;"></div>
+              <div style="width:7px;height:7px;border-radius:50%;border:1.2px solid rgba(60,50,120,0.4);background:transparent;"></div>
+              <div style="width:7px;height:7px;border-radius:50%;border:1.2px solid rgba(60,50,120,0.4);background:transparent;"></div>
+              <div style="width:7px;height:7px;border-radius:50%;border:1.2px solid rgba(60,50,120,0.4);background:transparent;"></div>
+              <div style="width:7px;height:7px;border-radius:50%;border:1.2px solid rgba(60,50,120,0.4);background:transparent;"></div>
+              <div style="width:7px;height:7px;border-radius:50%;border:1.2px solid rgba(60,50,120,0.4);background:transparent;"></div>
+            </div>
+            <div id="lockPvTapHint" style="display:none;position:relative;z-index:2;text-align:center;margin-top:20px;font-size:7px;letter-spacing:0.12em;color:rgba(60,50,120,0.45);">TAP TO UNLOCK</div>
+
+            <!-- 底部装饰 -->
+            <div style="position:absolute;bottom:10px;left:0;right:0;z-index:2;display:flex;flex-direction:column;align-items:center;gap:5px;">
+              <div style="width:28px;height:1px;background:linear-gradient(90deg,transparent,rgba(120,100,200,0.3),transparent);"></div>
+              <div id="lockPvBrand" style="font-size:5px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(80,60,160,0.28);">Luna OS · Secured</div>
+              <div style="width:50px;height:2.5px;border-radius:99px;background:rgba(60,50,120,0.15);"></div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="height:32px;"></div>
+  </div>
+</div>
 <script src="settings.js"></script>
 </body>
 </html>
