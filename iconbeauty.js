@@ -42,6 +42,7 @@ const IB_APPS = [
       <circle cx="17" cy="16" r="2.5" fill="rgba(251,146,60,0.7)"/>
     </svg>`
   },
+  /* ── 第二页 ── */
   {
     id: 'phone',
     name: '电话',
@@ -74,7 +75,6 @@ const IB_APPS = [
       <path d="M9 13h6M12 10v6" stroke="rgba(168,85,247,0.75)" stroke-width="1.4" stroke-linecap="round"/>
     </svg>`
   },
-  /* ── 第二页 ── */
   {
     id: 'forum',
     name: '论坛',
@@ -82,15 +82,6 @@ const IB_APPS = [
       <rect x="3" y="4" width="18" height="3" rx="1" fill="rgba(239,68,68,0.15)" stroke="rgba(239,68,68,0.75)" stroke-width="1.4" stroke-linejoin="round"/>
       <rect x="3" y="10" width="18" height="11" rx="2" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.75)" stroke-width="1.4" stroke-linejoin="round"/>
       <path d="M9 15h6M9 18h4" stroke="rgba(239,68,68,0.75)" stroke-width="1.4" stroke-linecap="round"/>
-    </svg>`
-  },
-  {
-    id: 'beautify',
-    name: '美化',
-    defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
-      <circle cx="12" cy="10" r="4" fill="rgba(236,72,153,0.12)" stroke="rgba(236,72,153,0.75)" stroke-width="1.4"/>
-      <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="rgba(236,72,153,0.75)" stroke-width="1.4" stroke-linecap="round"/>
-      <path d="M17 4l1.5 1.5M19.5 2.5l-1.5 1.5" stroke="rgba(236,72,153,0.75)" stroke-width="1.4" stroke-linecap="round"/>
     </svg>`
   },
   {
@@ -123,6 +114,7 @@ const IB_APPS = [
       <circle cx="16" cy="14.5" r="2.5" stroke="rgba(56,189,248,0.75)" stroke-width="1.4"/>
     </svg>`
   },
+  /* ── 第三页 ── */
   {
     id: 'shop',
     name: '购物',
@@ -132,7 +124,6 @@ const IB_APPS = [
       <path d="M16 10a4 4 0 0 1-8 0" stroke="rgba(168,85,247,0.75)" stroke-width="1.4" stroke-linecap="round"/>
     </svg>`
   },
-  /* ── 第三页 ── */
   {
     id: 'novel',
     name: '小说',
@@ -154,33 +145,11 @@ const IB_APPS = [
     </svg>`
   },
   {
-    id: 'game',
-    name: '游戏',
+    id: 'mail',
+    name: '邮箱',
     defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
-      <rect x="2" y="7" width="20" height="12" rx="4" fill="rgba(99,102,241,0.1)" stroke="rgba(99,102,241,0.75)" stroke-width="1.5"/>
-      <path d="M9 11v4M7 13h4" stroke="rgba(99,102,241,0.75)" stroke-width="1.5" stroke-linecap="round"/>
-      <circle cx="15" cy="12" r="1" fill="rgba(99,102,241,0.8)"/>
-      <circle cx="17" cy="14" r="1" fill="rgba(99,102,241,0.8)"/>
-    </svg>`
-  },
-  {
-    id: 'phonecheck',
-    name: '查手机',
-    defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
-      <rect x="7" y="2" width="10" height="18" rx="2.5" fill="rgba(56,189,248,0.1)" stroke="rgba(56,189,248,0.75)" stroke-width="1.5"/>
-      <path d="M10 5h4" stroke="rgba(56,189,248,0.75)" stroke-width="1.5" stroke-linecap="round"/>
-      <circle cx="12" cy="17" r="1" fill="rgba(56,189,248,0.8)"/>
-      <path d="M10 10l1.5 1.5L14 8.5" stroke="rgba(56,189,248,0.75)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`
-  },
-  {
-    id: 'social',
-    name: '社交',
-    defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
-      <circle cx="9" cy="8" r="3" fill="rgba(236,72,153,0.1)" stroke="rgba(236,72,153,0.75)" stroke-width="1.5"/>
-      <circle cx="17" cy="6" r="2.5" stroke="rgba(236,72,153,0.75)" stroke-width="1.5"/>
-      <path d="M3 19c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="rgba(236,72,153,0.75)" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M17 11c1.657 0 3 1.567 3 3.5" stroke="rgba(236,72,153,0.75)" stroke-width="1.5" stroke-linecap="round"/>
+      <rect x="2" y="5" width="20" height="14" rx="2" fill="rgba(56,189,248,0.1)" stroke="rgba(56,189,248,0.75)" stroke-width="1.5"/>
+      <path d="M2 8l10 6 10-6" stroke="rgba(56,189,248,0.75)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`
   },
   {
@@ -189,14 +158,6 @@ const IB_APPS = [
     defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
       <path d="M3 6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H8l-3 3V6z" fill="rgba(34,197,94,0.1)" stroke="rgba(34,197,94,0.75)" stroke-width="1.5" stroke-linejoin="round"/>
       <path d="M15 9h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1l-2 2v-2h-1" stroke="rgba(34,197,94,0.75)" stroke-width="1.5" stroke-linejoin="round"/>
-    </svg>`
-  },
-  {
-    id: 'mail',
-    name: '邮箱',
-    defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
-      <rect x="2" y="5" width="20" height="14" rx="2" fill="rgba(56,189,248,0.1)" stroke="rgba(56,189,248,0.75)" stroke-width="1.5"/>
-      <path d="M2 8l10 6 10-6" stroke="rgba(56,189,248,0.75)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`
   },
   {
@@ -211,33 +172,23 @@ const IB_APPS = [
     </svg>`
   },
   {
-    id: 'parallel',
-    name: '平行时空',
+    id: 'phonecheck',
+    name: '查手机',
     defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
-      <circle cx="12" cy="12" r="9" fill="rgba(99,102,241,0.08)" stroke="rgba(99,102,241,0.7)" stroke-width="1.5"/>
-      <ellipse cx="12" cy="12" rx="4" ry="9" stroke="rgba(99,102,241,0.65)" stroke-width="1.5"/>
-      <line x1="3" y1="12" x2="21" y2="12" stroke="rgba(99,102,241,0.65)" stroke-width="1.5" stroke-linecap="round"/>
-      <circle cx="12" cy="12" r="1.5" fill="rgba(99,102,241,0.85)"/>
+      <rect x="7" y="2" width="10" height="18" rx="2.5" fill="rgba(56,189,248,0.1)" stroke="rgba(56,189,248,0.75)" stroke-width="1.5"/>
+      <path d="M10 5h4" stroke="rgba(56,189,248,0.75)" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="12" cy="17" r="1" fill="rgba(56,189,248,0.8)"/>
+      <path d="M10 10l1.5 1.5L14 8.5" stroke="rgba(56,189,248,0.75)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`
   },
   {
-    id: 'company',
-    name: '公司',
+    id: 'game',
+    name: '游戏',
     defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
-      <path d="M3 21V7a2 2 0 0 1 2-2h6v16" fill="rgba(100,116,139,0.08)" stroke="rgba(100,116,139,0.75)" stroke-width="1.5" stroke-linejoin="round"/>
-      <path d="M13 21V11h6a2 2 0 0 1 2 2v8" stroke="rgba(100,116,139,0.75)" stroke-width="1.5" stroke-linejoin="round"/>
-      <path d="M3 21h18" stroke="rgba(100,116,139,0.75)" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M7 9h2M7 13h2M7 17h2M15 15h2" stroke="rgba(100,116,139,0.7)" stroke-width="1.4" stroke-linecap="round"/>
-    </svg>`
-  },
-  {
-    id: 'user',
-    name: 'Luna User',
-    defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
-      <circle cx="12" cy="8" r="3.5" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.75)" stroke-width="1.5"/>
-      <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="rgba(168,85,247,0.75)" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M16 6.5c.8.6 1.5 1.5 1.5 3" stroke="rgba(168,85,247,0.6)" stroke-width="1.4" stroke-linecap="round"/>
-      <path d="M8 6.5C7.2 7.1 6.5 8 6.5 9.5" stroke="rgba(168,85,247,0.6)" stroke-width="1.4" stroke-linecap="round"/>
+      <rect x="2" y="7" width="20" height="12" rx="4" fill="rgba(99,102,241,0.1)" stroke="rgba(99,102,241,0.75)" stroke-width="1.5"/>
+      <path d="M9 11v4M7 13h4" stroke="rgba(99,102,241,0.75)" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="15" cy="12" r="1" fill="rgba(99,102,241,0.8)"/>
+      <circle cx="17" cy="14" r="1" fill="rgba(99,102,241,0.8)"/>
     </svg>`
   },
   /* ── Dock ── */
@@ -279,9 +230,18 @@ const IB_APPS = [
       <circle cx="12" cy="12" r="1" fill="rgba(56,189,248,0.8)"/>
       <circle cx="16" cy="12" r="1" fill="rgba(56,189,248,0.8)"/>
     </svg>`
+  },
+  /* ── 其他（无主页格子）── */
+  {
+    id: 'beautify',
+    name: '美化',
+    defaultSvg: `<svg viewBox="0 0 24 24" width="27" height="27" fill="none">
+      <circle cx="12" cy="10" r="4" fill="rgba(236,72,153,0.12)" stroke="rgba(236,72,153,0.75)" stroke-width="1.4"/>
+      <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="rgba(236,72,153,0.75)" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M17 4l1.5 1.5M19.5 2.5l-1.5 1.5" stroke="rgba(236,72,153,0.75)" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>`
   }
 ];
-
 /* ================================
    IndexedDB
 ================================ */
@@ -289,12 +249,44 @@ let _ibDb = null;
 
 function openIbDB() {
   return new Promise((res, rej) => {
-    if (_ibDb) return res(_ibDb);
-    const req = indexedDB.open('LunaIconBeautyDB', 4);
+    if (_ibDb) {
+      // 验证 store 是否真实存在，避免缓存了损坏的 DB 实例
+      if (_ibDb.objectStoreNames.contains('icons')) return res(_ibDb);
+      _ibDb = null; // store 丢失，重新打开
+    }
+
+    // 不指定版本号，让浏览器使用已有版本；
+    // onupgradeneeded 仅在全新创建时触发
+    const req = indexedDB.open('LunaIconBeautyDB');
+
     req.onupgradeneeded = e => {
-      e.target.result.createObjectStore('icons', { keyPath: 'appId' });
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('icons')) {
+        db.createObjectStore('icons', { keyPath: 'appId' });
+      }
     };
-    req.onsuccess = e => { _ibDb = e.target.result; res(_ibDb); };
+
+    req.onsuccess = e => {
+      const db = e.target.result;
+      // 如果打开成功但 store 不存在（旧版本遗留结构），需要升级版本重建
+      if (!db.objectStoreNames.contains('icons')) {
+        db.close();
+        const currentVersion = db.version;
+        const upgrade = indexedDB.open('LunaIconBeautyDB', currentVersion + 1);
+        upgrade.onupgradeneeded = ev => {
+          const udb = ev.target.result;
+          if (!udb.objectStoreNames.contains('icons')) {
+            udb.createObjectStore('icons', { keyPath: 'appId' });
+          }
+        };
+        upgrade.onsuccess = ev => { _ibDb = ev.target.result; res(_ibDb); };
+        upgrade.onerror = () => rej('IB DB Upgrade Error');
+      } else {
+        _ibDb = db;
+        res(_ibDb);
+      }
+    };
+
     req.onerror = () => rej('IB DB Error');
   });
 }
