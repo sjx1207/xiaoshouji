@@ -8,6 +8,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="chatroom.css" />
 </head>
 <body>
@@ -140,6 +142,17 @@
 
   <!-- ═══ 输入区 ═══ -->
   <div class="cr-input-area">
+    <!-- 引用条 -->
+    <div class="cr-quote-bar" id="crQuoteBar" style="display:none">
+      <div class="cr-quote-line"></div>
+      <div class="cr-quote-text" id="crQuoteText"></div>
+      <button class="cr-quote-close" id="crQuoteClose">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <path d="M1 1l8 8M9 1L1 9" stroke="#999" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    
     <div class="cr-input-area-inner">
 
       <!-- 装饰分割线 -->
@@ -250,6 +263,186 @@
   <div class="msg-ctx-bubble-mirror" id="msgCtxMirror"></div>
   <div class="msg-ctx-menu" id="msgCtxMenu"></div>
   <button class="msg-ctx-cancel" id="msgCtxCancel">取消</button>
+</div>
+
+<!-- ═══ 心声记录页 ═══ -->
+<div id="wsHistoryPage">
+  <!-- 状态栏复用 -->
+  <div class="status-bar">
+    <div class="status-time" id="wshTime">9:41</div>
+    <div class="status-island"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#1a1a1a" opacity="0.85">
+        <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+        <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+        <circle cx="8" cy="10.5" r="1.8"/>
+      </svg>
+      <div class="battery">
+        <span class="bat-pct" id="wshBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="wshBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 导航栏 -->
+  <div class="wsh-nav">
+    <button class="wsh-back-btn" id="wshBackBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M12 5l-7 7 7 7" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="wsh-nav-info">
+      <div class="wsh-nav-title" id="wshNavTitle">心声记录</div>
+      <div class="wsh-nav-sub">Whisper · History</div>
+    </div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" opacity="0.25">
+      <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#1a1a1a"/>
+    </svg>
+  </div>
+  <!-- 滚动内容 -->
+  <div class="wsh-scroll" id="wshScroll">
+    <div class="wsh-empty" id="wshEmpty">暂无记录</div>
+    <div class="wsh-timeline" id="wshTimeline" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ═══ 心声详情底部弹窗 ═══ -->
+<div id="wsHistoryDetail">
+  <div class="wshd-sheet" id="wshdSheet">
+    <div class="wshd-handle"></div>
+    <div class="wshd-head">
+      <div class="wshd-ts" id="wshdTs"></div>
+      <div class="wshd-title">此刻心声</div>
+    </div>
+    <div class="wshd-body">
+      <div class="wshd-section-label" style="margin-top:0;">心声独白</div>
+      <div class="wshd-thought" id="wshdThought"></div>
+      <div class="wshd-section-label">情绪光谱</div>
+      <div id="wshdEmotions"></div>
+      <div class="wshd-logs" id="wshdLogs">
+        <div class="wshd-section-label">心迹日志</div>
+        <div id="wshdLogItems"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 礼物页 ═══ -->
+<div id="giftPage">
+  <div class="status-bar">
+    <div class="status-time" id="giftTime">9:41</div>
+    <div class="status-island"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#1a1a1a" opacity="0.85">
+        <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+        <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+        <circle cx="8" cy="10.5" r="1.8"/>
+      </svg>
+      <div class="battery">
+        <span class="bat-pct" id="giftBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="giftBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="gift-nav">
+    <button class="gift-nav-back" id="giftBackBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M12 5l-7 7 7 7" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="gift-nav-info">
+      <div class="gift-nav-title">礼物</div>
+      <div class="gift-nav-sub">Gift · Collection</div>
+    </div>
+    <button class="gift-nav-add" id="giftAddBtn" title="添加礼物">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <line x1="8" y1="2" x2="8" y2="14" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="2" y1="8" x2="14" y2="8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+  <div class="gift-tabs" id="giftTabs"></div>
+  <div class="gift-scroll">
+    <div class="gift-grid" id="giftGrid"></div>
+    <div class="gift-empty" id="giftEmpty" style="display:none">暂无礼物</div>
+  </div>
+</div>
+
+<!-- 添加礼物弹窗 -->
+<div id="giftAddOverlay">
+  <div class="gift-add-sheet" id="giftAddSheet">
+    <div class="gift-add-handle"></div>
+    <div class="gift-add-hd">
+      <div class="gift-add-title">添加礼物</div>
+      <button class="gift-add-close" id="giftAddClose">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <path d="M1 1l8 8M9 1L1 9" stroke="#666" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="gift-add-body">
+      <div class="gift-add-label">礼物名称</div>
+      <input class="gift-add-inp" id="giftInpName" placeholder="如：星光项链" />
+      <div class="gift-add-label">描述</div>
+      <input class="gift-add-inp" id="giftInpDesc" placeholder="一句话描述这份礼物" />
+      <div class="gift-add-row">
+        <input class="gift-add-inp" id="giftInpPrice" placeholder="价格（如：299）" style="flex:1"/>
+        <input class="gift-add-inp" id="giftInpCat" placeholder="分类（如：饰品）" style="flex:1"/>
+      </div>
+      <div class="gift-add-label">快速选择分类</div>
+      <div class="gift-cat-chips" id="giftCatChips"></div>
+      <div class="gift-add-label">AI 生成</div>
+      <div class="gift-ai-row">
+        <button class="gift-ai-chip" id="giftAiRandBtn">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
+            <path d="M10 1L11.8 7H18L12.9 10.7L14.7 16.7L10 13L5.3 16.7L7.1 10.7L2 7H8.2L10 1Z" stroke="#7a7a7a" stroke-width="1.3" stroke-linejoin="round"/>
+          </svg>
+          AI 随机生成
+        </button>
+        <button class="gift-ai-chip" id="giftAiIdeaBtn">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8" stroke="#7a7a7a" stroke-width="1.3"/>
+            <path d="M10 6v5l3 2" stroke="#7a7a7a" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          按思路生成
+        </button>
+      </div>
+      <div class="gift-ai-status hidden" id="giftAiStatus">
+        <div class="gift-spinner"></div>
+        <span id="giftAiStatusTxt">AI 生成中…</span>
+      </div>
+      <input class="gift-add-inp" id="giftIdeaInp" placeholder="输入思路，如：适合夏天的小礼物" style="display:none"/>
+    </div>
+    <div class="gift-add-btn-row">
+      <button class="gift-add-submit" id="giftAddSubmit">添加到礼物库</button>
+    </div>
+  </div>
+</div>
+
+<!-- 礼物详情弹窗 -->
+<div id="giftDetailOverlay">
+  <div class="gift-detail-sheet" id="giftDetailSheet">
+    <div class="gift-add-handle"></div>
+    <div class="gift-detail-art" id="giftDetailArt"></div>
+    <div class="gift-detail-info">
+      <div class="gift-detail-cat" id="giftDetailCat"></div>
+      <div class="gift-detail-name" id="giftDetailName"></div>
+      <div class="gift-detail-desc" id="giftDetailDesc"></div>
+      <div class="gift-detail-price" id="giftDetailPrice"></div>
+    </div>
+    <div class="gift-detail-actions">
+      <button class="gift-action-btn" id="giftActWant">我想要</button>
+      <button class="gift-action-btn" id="giftActGive">送给Ta</button>
+      <button class="gift-action-btn primary" id="giftActReceive">Ta送我</button>
+    </div>
+  </div>
 </div>
 
 <script src="chatroom.js"></script>

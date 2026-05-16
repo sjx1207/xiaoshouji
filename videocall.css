@@ -1,0 +1,1054 @@
+/* ================================
+   Video Call — videocall.css
+   Dark · Full Screen · Luna
+================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap');
+
+/* ---- Keyframes ---- */
+@keyframes spin-dash {
+  to { stroke-dashoffset: -80; }
+}
+@keyframes vcBreathe1 {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.90; }
+}
+@keyframes vcBreathe2 {
+  0%, 100% { opacity: 0.15; }
+  50%       { opacity: 0.48; }
+}
+@keyframes vcBreathe3 {
+  0%, 100% { opacity: 0.05; }
+  50%       { opacity: 0.22; }
+}
+@keyframes vcOrbit1 {
+  0%   { transform: rotate(0deg)   translateX(38px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(38px) rotate(-360deg); }
+}
+@keyframes vcOrbit2 {
+  0%   { transform: rotate(200deg)  translateX(48px) rotate(-200deg); }
+  100% { transform: rotate(560deg)  translateX(48px) rotate(-560deg); }
+}
+@keyframes vcBlink {
+  0%, 100% { opacity: 0.18; }
+  50%       { opacity: 1; }
+}
+@keyframes vcWave {
+  0%, 100% { transform: scaleY(0.25); }
+  50%       { transform: scaleY(1); }
+}
+@keyframes vcFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vcHangupBreath1 {
+  0%, 100% { transform: scale(1);    opacity: 0.28; }
+  50%       { transform: scale(1.06); opacity: 0.50; }
+}
+@keyframes vcHangupBreath2 {
+  0%, 100% { transform: scale(1);    opacity: 0.12; }
+  50%       { transform: scale(1.12); opacity: 0.22; }
+}
+
+/* ---- Reset ---- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ================================
+   全屏布局
+================================ */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, #1a1a1a 0%, #2e2e2e 35%, #111111 65%, #0a0a0a 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.vc-wrap {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 背景光晕 */
+.vc-wrap::before {
+  content: '';
+  position: absolute;
+  top: -80px; left: -80px;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,200,200,0.07) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.vc-wrap::after {
+  content: '';
+  position: absolute;
+  top: 40px; right: -60px;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(160,160,160,0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.vc-frame {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg,
+    #1c1c1c 0%,
+    #222222 20%,
+    #181818 50%,
+    #0f0f0f 80%,
+    #080808 100%
+  );
+  position: relative;
+  z-index: 1;
+}
+
+/* ================================
+   状态栏 — 与 chatroom 完全一致，暗色版
+================================ */
+.status-bar {
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 22px 9px;
+  background: transparent;
+  flex-shrink: 0;
+  z-index: 20;
+  position: relative;
+}
+
+.status-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.2px;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 13px;
+}
+.signal i {
+  display: block;
+  width: 2.5px;
+  border-radius: 1px;
+  background: rgba(255,255,255,0.75);
+}
+.signal i:nth-child(1) { height: 4px; }
+.signal i:nth-child(2) { height: 7px; }
+.signal i:nth-child(3) { height: 10px; }
+.signal i:nth-child(4) { height: 13px; }
+
+.battery {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.bat-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+}
+.bat-shell {
+  width: 24px;
+  height: 12px;
+  border: 1.5px solid rgba(255,255,255,0.4);
+  border-radius: 3.5px;
+  padding: 1.5px;
+  position: relative;
+}
+.bat-inner {
+  width: 76%;
+  height: 100%;
+  border-radius: 1.5px;
+  background: rgba(255,255,255,0.75);
+}
+.bat-nub {
+  position: absolute;
+  right: -4px; top: 50%;
+  transform: translateY(-50%);
+  width: 2.5px; height: 5px;
+  background: rgba(255,255,255,0.35);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ================================
+   灵动岛样式 — 与 chatroom 完全一致
+================================ */
+.status-island {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.si-capsule {
+  background: #000;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34,1.2,0.64,1);
+}
+
+.si-minimal  .si-capsule { width: 110px; height: 32px; }
+.si-glow     .si-capsule { width: 110px; height: 32px; box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); animation: siGlow 2s ease-in-out infinite; }
+.si-clock    .si-capsule { width: 130px; height: 32px; gap: 6px; padding: 0 10px; }
+.si-pulse    .si-capsule { width: 72px;  height: 32px; gap: 12px; }
+.si-ripple   .si-capsule { width: 110px; height: 32px; overflow: visible; }
+.si-rainbow  .si-capsule { width: 110px; height: 32px; }
+.si-music    .si-capsule { width: 110px; height: 32px; gap: 3px; padding: 0 12px; align-items: flex-end; padding-bottom: 5px; }
+.si-scan     .si-capsule { width: 110px; height: 32px; overflow: hidden; }
+
+@keyframes siGlow {
+  0%,100% { box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); }
+  50%      { box-shadow: 0 0 4px 1px rgba(255,255,255,0.15); }
+}
+
+.si-clock-text {
+  font-size: 13px; font-weight: 600; color: #fff;
+  letter-spacing: -0.3px; font-family: -apple-system, sans-serif;
+  white-space: nowrap;
+}
+
+.si-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.9;
+}
+.si-dot-l { animation: siPulse 1.4s ease-in-out infinite; }
+.si-dot-r { animation: siPulse 1.4s ease-in-out 0.7s infinite; }
+@keyframes siPulse {
+  0%,100% { transform: scale(1);   opacity: 0.9; }
+  50%      { transform: scale(0.4); opacity: 0.2; }
+}
+
+.si-ring {
+  position: absolute; inset: -1px; border-radius: 20px;
+  border: 1.5px solid rgba(255,255,255,0.6);
+  animation: siRipple 1.8s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes siRipple {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.si-rainbow .si-capsule {
+  background: linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6,#a78bfa,#f43f5e);
+  background-size: 300% 100%;
+  animation: siRainbow 2.5s linear infinite;
+}
+@keyframes siRainbow {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 300% 0; }
+}
+
+.si-bar {
+  width: 3px;
+  background: #fff;
+  border-radius: 2px;
+  opacity: 0.9;
+}
+.si-bar:nth-child(1) { animation: siBar 0.9s ease-in-out infinite; }
+.si-bar:nth-child(2) { animation: siBar 0.9s ease-in-out 0.15s infinite; }
+.si-bar:nth-child(3) { animation: siBar 0.9s ease-in-out 0.3s infinite; }
+.si-bar:nth-child(4) { animation: siBar 0.9s ease-in-out 0.45s infinite; }
+.si-bar:nth-child(5) { animation: siBar 0.9s ease-in-out 0.6s infinite; }
+@keyframes siBar {
+  0%,100% { height: 5px; }
+  50%      { height: 20px; }
+}
+
+.si-scanline {
+  position: absolute; left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+  animation: siScan 1.6s linear infinite;
+}
+@keyframes siScan {
+  0%   { top: 0; }
+  100% { top: 100%; }
+}
+
+/* ================================
+   角色信息区
+================================ */
+.vc-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 32px 24px 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+}
+
+/* ---- 头像 + 呼吸环 ---- */
+.vc-avatar-wrap {
+  position: relative;
+  width: 104px; height: 104px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vc-ring {
+  position: absolute;
+  border-radius: 50%;
+  border-style: solid;
+  border-color: rgba(140,115,220,0.0);
+}
+.vc-ring-1 {
+  inset: 18px;
+  border-width: 1.5px;
+  border-color: rgba(140,115,220,0.48);
+  animation: vcBreathe1 2.8s ease-in-out infinite;
+}
+.vc-ring-2 {
+  inset: 9px;
+  border-width: 1px;
+  border-color: rgba(140,115,220,0.28);
+  animation: vcBreathe2 3.2s ease-in-out infinite;
+}
+.vc-ring-3 {
+  inset: 0;
+  border-width: 1px;
+  border-color: rgba(140,115,220,0.15);
+  animation: vcBreathe3 3.8s ease-in-out infinite;
+}
+
+.vc-glow {
+  position: absolute;
+  inset: 21px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(110,88,195,0.3) 0%, rgba(70,55,150,0.18) 100%);
+  animation: vcBreathe1 2.8s ease-in-out infinite;
+}
+
+.vc-avatar {
+  position: absolute;
+  inset: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1d1540, #121028);
+  border: 1.5px solid rgba(155,135,230,0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* 轨道点 */
+.vc-orbit-dot {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: 50%;
+}
+.vc-orbit-dot::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+}
+.vc-orbit-dot-1 {
+  animation: vcOrbit1 4.5s linear infinite;
+}
+.vc-orbit-dot-1::after {
+  width: 5px; height: 5px;
+  background: rgba(175,155,240,0.78);
+  top: 1px; left: 40px;
+  box-shadow: 0 0 5px rgba(155,135,220,0.7);
+}
+.vc-orbit-dot-2 {
+  animation: vcOrbit2 7s linear infinite;
+}
+.vc-orbit-dot-2::after {
+  width: 3.5px; height: 3.5px;
+  background: rgba(100,180,255,0.5);
+  top: 1px; left: 41px;
+}
+
+.vc-online-dot {
+  position: absolute;
+  bottom: 23px; right: 23px;
+  z-index: 4;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #2ecc71;
+  border: 1.5px solid #09090f;
+}
+
+/* ---- 信息文字 ---- */
+.vc-info {
+  flex: 1;
+  padding-top: 12px;
+}
+
+.vc-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.vc-name {
+  font-size: 26px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.93);
+  letter-spacing: -0.3px;
+  font-family: 'Playfair Display', serif;
+}
+
+.vc-badge {
+  background: rgba(140,115,220,0.14);
+  border: 0.5px solid rgba(140,115,220,0.26);
+  border-radius: 20px;
+  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vc-badge span {
+  font-size: 10px;
+  color: rgba(175,155,240,0.8);
+  letter-spacing: 0.8px;
+  font-weight: 500;
+  font-family: 'Space Mono', monospace;
+}
+
+.vc-sub {
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.26);
+  letter-spacing: 0.3px;
+  margin-bottom: 9px;
+  font-family: 'Inter', sans-serif;
+}
+
+.vc-timer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vc-live-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #2ecc71;
+  animation: vcBlink 1.6s ease-in-out infinite;
+}
+
+.vc-duration {
+  font-size: 11px;
+  color: rgba(255,255,255,0.32);
+  font-family: 'Space Mono', monospace;
+}
+
+.vc-divider {
+  width: 1px; height: 9px;
+  background: rgba(255,255,255,0.08);
+}
+
+.vc-quality {
+  font-size: 11px;
+  color: rgba(255,255,255,0.2);
+  font-family: 'Space Mono', monospace;
+}
+
+/* ---- 自己的小画面 ---- */
+.vc-self-view {
+  width: 76px; height: 100px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: #1a1a1a;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ================================
+   分割线 + 波形
+================================ */
+.vc-divider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 22px 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+}
+
+.vc-div-line {
+  flex: 1;
+  height: 0.5px;
+  background: linear-gradient(to right, transparent, rgba(200,200,200,0.25), transparent);
+}
+.vc-div-line:last-child {
+  background: linear-gradient(to left, transparent, rgba(200,200,200,0.25), transparent);
+}
+
+.vc-waveform {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 9px;
+}
+.vc-waveform span {
+  display: block;
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(140,115,220,0.45);
+  transform-origin: bottom center;
+}
+.vc-waveform span:nth-child(1) { height: 3px; animation: vcWave 0.95s ease-in-out infinite 0s; }
+.vc-waveform span:nth-child(2) { height: 6px; animation: vcWave 0.95s ease-in-out infinite 0.14s; }
+.vc-waveform span:nth-child(3) { height: 9px; animation: vcWave 0.95s ease-in-out infinite 0.28s; }
+.vc-waveform span:nth-child(4) { height: 5px; animation: vcWave 0.95s ease-in-out infinite 0.42s; }
+.vc-waveform span:nth-child(5) { height: 8px; animation: vcWave 0.95s ease-in-out infinite 0.56s; }
+
+.vc-live-label {
+  font-size: 9px;
+  color: rgba(255,255,255,0.18);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-family: 'Space Mono', monospace;
+}
+
+/* ================================
+   消息区 — 透明，撑满中间
+================================ */
+.vc-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 20px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  z-index: 5;
+  -webkit-overflow-scrolling: touch;
+}
+.vc-messages::-webkit-scrollbar { display: none; }
+
+/* 消息行 */
+.vc-msg-luna {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  animation: vcFadeUp 0.26s ease;
+}
+.vc-msg-you {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  animation: vcFadeUp 0.26s ease;
+}
+
+/* 气泡 */
+.vc-bubble-luna {
+  background: rgba(140,118,215,0.13);
+  border: 0.5px solid rgba(140,118,215,0.22);
+  border-radius: 11px 11px 11px 3px;
+  padding: 8px 12px;
+  max-width: 86%;
+}
+.vc-bubble-you {
+  background: rgba(255,255,255,0.07);
+  border: 0.5px solid rgba(255,255,255,0.10);
+  border-radius: 11px 11px 3px 11px;
+  padding: 8px 12px;
+  max-width: 86%;
+}
+.vc-bubble-luna p,
+.vc-bubble-you p {
+  font-size: 13px;
+  line-height: 1.56;
+  margin: 0;
+  color: rgba(255,255,255,0.82);
+  font-family: 'Inter', sans-serif;
+}
+
+/* 时间戳 */
+.vc-ts {
+  font-size: 10px;
+  color: rgba(255,255,255,0.2);
+  font-family: 'Space Mono', monospace;
+}
+
+/* 正在输入 */
+.vc-typing {
+  display: flex;
+  align-items: center;
+}
+.vc-typing-dots {
+  background: rgba(140,115,220,0.10);
+  border: 0.5px solid rgba(140,115,220,0.15);
+  border-radius: 10px;
+  padding: 7px 11px;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.vc-typing-dots span {
+  display: block;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: rgba(140,115,220,0.52);
+}
+.vc-typing-dots span:nth-child(1) { animation: vcBlink 1s ease-in-out infinite 0s; }
+.vc-typing-dots span:nth-child(2) { animation: vcBlink 1s ease-in-out infinite 0.2s; }
+.vc-typing-dots span:nth-child(3) { animation: vcBlink 1s ease-in-out infinite 0.4s; }
+
+/* ================================
+   底部控制栏
+================================ */
+.vc-controls {
+  flex-shrink: 0;
+  padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 36px);
+  position: relative;
+  z-index: 5;
+}
+
+.vc-ctrl-line {
+  height: 0.5px;
+  background: rgba(255,255,255,0.05);
+  margin: 0 24px 22px;
+}
+
+.vc-ctrl-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+}
+
+/* 侧边按钮 */
+.vc-ctrl-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.vc-ctrl-btn span {
+  font-size: 10px;
+  color: rgba(255,255,255,0.24);
+  letter-spacing: 0.04em;
+  font-family: 'Inter', sans-serif;
+}
+.vc-ctrl-icon {
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 0.5px solid rgba(255,255,255,0.09);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s;
+}
+.vc-ctrl-btn:active .vc-ctrl-icon {
+  background: rgba(255,255,255,0.12);
+}
+.vc-ctrl-icon.active {
+  background: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.18);
+}
+
+/* 挂断按钮（中间大按钮） */
+.vc-hangup-btn {
+  position: relative;
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  background: #bf3126;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.vc-hangup-btn:active {
+  transform: scale(0.93);
+  opacity: 0.85;
+}
+.vc-hangup-ring-1 {
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 1px solid rgba(191,49,38,0.28);
+  animation: vcHangupBreath1 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.vc-hangup-ring-2 {
+  position: absolute;
+  inset: -15px;
+  border-radius: 50%;
+  border: 1px solid rgba(191,49,38,0.12);
+  animation: vcHangupBreath2 3s ease-in-out infinite;
+  pointer-events: none;
+}
+.vc-hangup-btn.ended {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.vc-hangup-label {
+  text-align: center;
+  font-size: 10px;
+  color: rgba(191,49,38,0.5);
+  letter-spacing: 0.05em;
+  margin-top: 8px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ================================================================
+   拨号等待屏 — vcDialScreen
+================================================================ */
+
+/* ---- keyframes ---- */
+@keyframes vcdPulseA {
+  0%   { transform: scale(0.92); opacity: 0.55; }
+  50%  { transform: scale(1.08); opacity: 0.90; }
+  100% { transform: scale(0.92); opacity: 0.55; }
+}
+@keyframes vcdPulseB {
+  0%   { transform: scale(1.00); opacity: 0.30; }
+  50%  { transform: scale(1.18); opacity: 0.55; }
+  100% { transform: scale(1.00); opacity: 0.30; }
+}
+@keyframes vcdPulseC {
+  0%   { transform: scale(1.10); opacity: 0.15; }
+  50%  { transform: scale(1.32); opacity: 0.30; }
+  100% { transform: scale(1.10); opacity: 0.15; }
+}
+@keyframes vcdPulseD {
+  0%   { transform: scale(1.24); opacity: 0.06; }
+  50%  { transform: scale(1.52); opacity: 0.14; }
+  100% { transform: scale(1.24); opacity: 0.06; }
+}
+@keyframes vcdGlowPulse {
+  0%,100% { opacity: 0.22; transform: scale(1); }
+  50%      { opacity: 0.48; transform: scale(1.12); }
+}
+@keyframes vcdAvatarBreathe {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+@keyframes vcdBorderSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes vcdDot {
+  0%,80%,100% { transform: scale(0.4); opacity: 0.2; }
+  40%          { transform: scale(1);   opacity: 0.75; }
+}
+@keyframes vcdFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vcdScreenOut {
+  0%   { opacity: 1; transform: scale(1); }
+  60%  { opacity: 0.6; transform: scale(1.03); }
+  100% { opacity: 0; transform: scale(1.06); pointer-events: none; }
+}
+@keyframes vcdHangupPulse1 {
+  0%,100% { transform: scale(1);    opacity: 0.32; }
+  50%      { transform: scale(1.08); opacity: 0.55; }
+}
+@keyframes vcdHangupPulse2 {
+  0%,100% { transform: scale(1);    opacity: 0.14; }
+  50%      { transform: scale(1.14); opacity: 0.26; }
+}
+@keyframes vcdStatusCycle {
+  0%,30%  { opacity: 1; }
+  35%,65% { opacity: 0; }
+  70%,100%{ opacity: 1; }
+}
+
+/* ---- 全屏覆盖层 ---- */
+.vc-dial-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(170deg, #0e0e14 0%, #131320 30%, #0a0a10 65%, #060608 100%);
+  overflow: hidden;
+}
+.vc-dial-screen.vcd-hidden {
+  animation: vcdScreenOut 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+/* ---- 状态栏占位 ---- */
+.vcd-statusbar {
+  width: 100%;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+/* ---- 背景光晕 ---- */
+.vcd-bg-glow {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(110,88,200,0.18) 0%, rgba(80,60,160,0.06) 55%, transparent 75%);
+  animation: vcdGlowPulse 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ---- 脉冲同心圆（以头像为圆心） ---- */
+.vcd-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  border: 1px solid rgba(140,115,220,0.22);
+  pointer-events: none;
+  z-index: 0;
+}
+.vcd-ring-a {
+  width: 136px; height: 136px;
+  border-color: rgba(140,115,220,0.40);
+  animation: vcdPulseA 2.8s ease-in-out infinite 0s;
+}
+.vcd-ring-b {
+  width: 190px; height: 190px;
+  border-color: rgba(140,115,220,0.22);
+  animation: vcdPulseB 2.8s ease-in-out infinite 0.35s;
+}
+.vcd-ring-c {
+  width: 256px; height: 256px;
+  border-color: rgba(140,115,220,0.12);
+  animation: vcdPulseC 2.8s ease-in-out infinite 0.70s;
+}
+.vcd-ring-d {
+  width: 340px; height: 340px;
+  border-color: rgba(140,115,220,0.06);
+  animation: vcdPulseD 2.8s ease-in-out infinite 1.05s;
+}
+
+/* ---- 中央区域 ---- */
+.vcd-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  position: relative;
+  z-index: 5;
+  padding-bottom: 40px;
+  animation: vcdFadeIn 0.5s ease both;
+}
+
+/* ---- 头像 ---- */
+.vcd-avatar-wrap {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 28px;
+  overflow: visible;
+  animation: vcdAvatarBreathe 3.2s ease-in-out infinite;
+}
+.vcd-avatar-glow {
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(120,95,215,0.30) 0%, transparent 70%);
+  animation: vcdGlowPulse 3.2s ease-in-out infinite 0.4s;
+  pointer-events: none;
+  z-index: 1;
+}
+/* 旋转边框：用绝对定位的 SVG，完全避免 conic-gradient 直角问题 */
+.vcd-avatar-border {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+  animation: vcdBorderSpin 4s linear infinite;
+}
+.vcd-avatar-border::before {
+  display: none;
+}
+.vcd-avatar-border::after {
+  display: none;
+}
+.vcd-avatar-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1d1540, #121028);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+/* ---- 名字 ---- */
+.vcd-name {
+  font-size: 30px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.90);
+  letter-spacing: -0.4px;
+  font-family: 'Playfair Display', serif;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* ---- AI 标签 ---- */
+.vcd-badge-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.vcd-ai-badge {
+  background: rgba(140,115,220,0.12);
+  border: 0.5px solid rgba(140,115,220,0.24);
+  border-radius: 20px;
+  padding: 3px 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.vcd-ai-badge span {
+  font-size: 10px;
+  color: rgba(175,155,240,0.75);
+  letter-spacing: 1px;
+  font-weight: 500;
+  font-family: 'Space Mono', monospace;
+}
+
+/* ---- 状态文字 ---- */
+.vcd-status-text {
+  font-size: 13px;
+  color: rgba(255,255,255,0.28);
+  letter-spacing: 0.12em;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+/* ---- 三点加载器 ---- */
+.vcd-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.vcd-dots span {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(140,115,220,0.55);
+}
+.vcd-dots span:nth-child(1) { animation: vcdDot 1.2s ease-in-out infinite 0s; }
+.vcd-dots span:nth-child(2) { animation: vcdDot 1.2s ease-in-out infinite 0.2s; }
+.vcd-dots span:nth-child(3) { animation: vcdDot 1.2s ease-in-out infinite 0.4s; }
+
+/* ---- 底部按钮区 ---- */
+.vcd-bottom {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 48px);
+  position: relative;
+  z-index: 5;
+}
+.vcd-hint {
+  font-size: 10px;
+  color: rgba(255,255,255,0.14);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: 'Space Mono', monospace;
+  margin-bottom: 4px;
+}
+
+/* ---- 挂断按钮（拨号页） ---- */
+.vcd-hangup-btn {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: #bf3126;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.vcd-hangup-btn:active {
+  transform: scale(0.92);
+  opacity: 0.80;
+}
+.vcd-hangup-ring-1 {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(191,49,38,0.30);
+  animation: vcdHangupPulse1 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.vcd-hangup-ring-2 {
+  position: absolute;
+  inset: -17px;
+  border-radius: 50%;
+  border: 1px solid rgba(191,49,38,0.13);
+  animation: vcdHangupPulse2 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.vcd-hangup-label {
+  font-size: 10px;
+  color: rgba(191,49,38,0.45);
+  letter-spacing: 0.05em;
+  font-family: 'Inter', sans-serif;
+}

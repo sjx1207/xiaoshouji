@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Luna · Video Call</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="videocall.css" />
+  <style>
+/* ---- 放大 hero 区 ---- */
+.vc-hero { padding: 32px 24px 0 !important; gap: 18px !important; }
+.vc-avatar-wrap { width: 104px !important; height: 104px !important; }
+.vc-ring-1 { inset: 18px !important; }
+.vc-ring-2 { inset: 9px !important; }
+.vc-ring-3 { inset: 0 !important; }
+.vc-glow   { inset: 21px !important; }
+.vc-avatar { inset: 24px !important; }
+.vc-online-dot { bottom: 23px !important; right: 23px !important; width: 9px !important; height: 9px !important; }
+.vc-info { padding-top: 12px !important; }
+.vc-name { font-size: 26px !important; }
+
+/* ---- 右上角自拍框放大 ---- */
+.vc-self-view {
+  width: 80px !important;
+  height: 106px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+}
+
+/* ---- 黑白灰渐变背景 ---- */
+body { background: linear-gradient(160deg, #1a1a1a 0%, #2e2e2e 35%, #111111 65%, #0a0a0a 100%) !important; }
+.vc-frame { background: linear-gradient(180deg, #1c1c1c 0%, #222222 20%, #181818 50%, #0f0f0f 80%, #080808 100%) !important; }
+
+/* ---- 分割线加粗加亮 ---- */
+.vc-div-line { flex: 1 !important; height: 1px !important; background: linear-gradient(to right, transparent, rgba(255,255,255,0.35), transparent) !important; }
+.vc-div-line:last-child { background: linear-gradient(to left, transparent, rgba(255,255,255,0.35), transparent) !important; }
+  </style>
+</head>
+<body>
+
+<div class="vc-wrap">
+
+<!-- ═══ 拨号等待屏 ═══ -->
+<div class="vc-dial-screen" id="vcDialScreen">
+
+  <!-- 状态栏（同步复刻） -->
+  <div class="status-bar vcd-statusbar">
+    <div class="status-time" id="vcdTime">9:41</div>
+    <div class="status-island" id="vcdIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#f0f0f0" opacity="0.7">
+        <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+        <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+        <circle cx="8" cy="10.5" r="1.8"/>
+      </svg>
+      <div class="battery">
+        <span class="bat-pct" id="vcdBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="vcdBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 背景层：光晕 -->
+  <div class="vcd-bg-glow"></div>
+
+  <!-- 中央内容 -->
+  <div class="vcd-center">
+
+    <!-- 头像呼吸区 -->
+    <div class="vcd-avatar-wrap" id="vcdAvatarWrap">
+      <!-- 脉冲同心圆放在 wrap 内，top/left 50% 精准以头像为圆心 -->
+      <div class="vcd-pulse-ring vcd-ring-a"></div>
+      <div class="vcd-pulse-ring vcd-ring-b"></div>
+      <div class="vcd-pulse-ring vcd-ring-c"></div>
+      <div class="vcd-pulse-ring vcd-ring-d"></div>
+      <div class="vcd-avatar-glow"></div>
+      <div class="vcd-avatar-border">
+        <svg width="104" height="104" viewBox="0 0 104 104" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;position:absolute;inset:0;width:100%;height:100%;">
+          <defs>
+            <linearGradient id="vcdSpinGrad" x1="0" y1="0" x2="104" y2="104" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="rgba(175,155,240,0.90)"/>
+              <stop offset="44%" stop-color="rgba(100,80,180,0.03)"/>
+              <stop offset="100%" stop-color="rgba(175,155,240,0.90)"/>
+            </linearGradient>
+          </defs>
+          <circle cx="52" cy="52" r="50" stroke="url(#vcdSpinGrad)" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="vcd-avatar-inner">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 1 21 12.79Z" fill="rgba(188,168,245,0.88)"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 名字 -->
+    <div class="vcd-name" id="vcdName">Luna</div>
+    <div class="vcd-badge-row">
+      <div class="vcd-ai-badge">
+        <svg width="8" height="8" viewBox="0 0 10 10">
+          <circle cx="5" cy="5" r="4" fill="none" stroke="rgba(175,155,240,0.65)" stroke-width="1"/>
+          <path d="M3 5l1.5 1.5L7 3.5" stroke="rgba(175,155,240,0.65)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span>AI</span>
+      </div>
+    </div>
+
+    <!-- 状态文字 -->
+    <div class="vcd-status-text" id="vcdStatusText">Calling...</div>
+
+    <!-- 波点加载器 -->
+    <div class="vcd-dots">
+      <span></span><span></span><span></span>
+    </div>
+
+  </div><!-- /vcd-center -->
+
+  <!-- 底部：仅挂断按钮 -->
+  <div class="vcd-bottom">
+    <div class="vcd-hint">Tap to cancel</div>
+    <button class="vcd-hangup-btn" id="vcdHangupBtn">
+      <div class="vcd-hangup-ring-1"></div>
+      <div class="vcd-hangup-ring-2"></div>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 18v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 3.07 10.2 19.79 19.79 0 0 1 .07 1.56 2 2 0 0 1 2 0h3a2 2 0 0 1 2 1.72c.127.96.361 1.9.7 2.81a2 2 0 0 1-.45 2.11L6.08 7.91" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="23" y1="1" x2="1" y2="23" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <div class="vcd-hangup-label">End Call</div>
+  </div>
+
+</div><!-- /vcDialScreen -->
+
+<div class="vc-frame">
+
+  <!-- ═══ 状态栏（与 chatroom 完全一致） ═══ -->
+  <div class="status-bar">
+    <div class="status-time" id="vcTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#f0f0f0" opacity="0.7">
+        <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+        <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+        <circle cx="8" cy="10.5" r="1.8"/>
+      </svg>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 角色信息区 ═══ -->
+  <div class="vc-hero">
+
+    <!-- 头像 + 呼吸环 + 轨道点 -->
+    <div class="vc-avatar-wrap">
+      <div class="vc-ring vc-ring-3"></div>
+      <div class="vc-ring vc-ring-2"></div>
+      <div class="vc-ring vc-ring-1"></div>
+      <div class="vc-glow"></div>
+      <div class="vc-avatar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 1 21 12.79Z" fill="rgba(188,168,245,0.92)"/>
+        </svg>
+      </div>
+      <div class="vc-orbit-dot vc-orbit-dot-1"></div>
+      <div class="vc-orbit-dot vc-orbit-dot-2"></div>
+      <div class="vc-online-dot"></div>
+    </div>
+
+    <!-- 名字 & 副标题 & 计时 -->
+    <div class="vc-info">
+      <div class="vc-name-row">
+        <span class="vc-name">Luna</span>
+        <div class="vc-badge">
+          <svg width="8" height="8" viewBox="0 0 10 10">
+            <circle cx="5" cy="5" r="4" fill="none" stroke="rgba(175,155,240,0.7)" stroke-width="1"/>
+            <path d="M3 5l1.5 1.5L7 3.5" stroke="rgba(175,155,240,0.7)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <span>AI</span>
+        </div>
+      </div>
+      <p class="vc-sub">Your companion in the dark</p>
+      <div class="vc-timer-row">
+        <div class="vc-live-dot"></div>
+        <span class="vc-duration" id="vcDuration">00:00</span>
+        <div class="vc-divider"></div>
+        <span class="vc-quality">HD · Video</span>
+      </div>
+    </div>
+
+    <!-- 自己的小画面 -->
+    <div class="vc-self-view">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1.3" stroke-linecap="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+
+  </div><!-- /vc-hero -->
+
+  <!-- ═══ 分割线 + 波形 ═══ -->
+  <div class="vc-divider-row">
+    <div class="vc-div-line"></div>
+    <div class="vc-waveform">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <span class="vc-live-label">Transcript</span>
+    <div class="vc-div-line"></div>
+  </div>
+
+  <!-- ═══ 消息区（透明，撑满中间） ═══ -->
+  <div class="vc-messages" id="vcMessages">
+    <!-- 消息由 JS 渲染 -->
+  </div>
+
+  <!-- ═══ 底部控制栏 ═══ -->
+  <div class="vc-controls">
+    <div class="vc-ctrl-line"></div>
+    <div class="vc-ctrl-row">
+
+      <!-- 键盘 -->
+      <button class="vc-ctrl-btn" id="vcKeyboardBtn" title="键盘">
+        <div class="vc-ctrl-icon">
+          <svg width="20" height="17" viewBox="0 0 22 18" fill="none" stroke="rgba(255,255,255,0.62)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="1" width="20" height="13" rx="2.5"/>
+            <circle cx="5"  cy="5.5" r="0.9" fill="rgba(255,255,255,0.62)" stroke="none"/>
+            <circle cx="9"  cy="5.5" r="0.9" fill="rgba(255,255,255,0.62)" stroke="none"/>
+            <circle cx="13" cy="5.5" r="0.9" fill="rgba(255,255,255,0.62)" stroke="none"/>
+            <circle cx="17" cy="5.5" r="0.9" fill="rgba(255,255,255,0.62)" stroke="none"/>
+            <circle cx="5"  cy="9.5" r="0.9" fill="rgba(255,255,255,0.62)" stroke="none"/>
+            <circle cx="9"  cy="9.5" r="0.9" fill="rgba(255,255,255,0.62)" stroke="none"/>
+            <circle cx="13" cy="9.5" r="0.9" fill="rgba(255,255,255,0.62)" stroke="none"/>
+            <circle cx="17" cy="9.5" r="0.9" fill="rgba(255,255,255,0.62)" stroke="none"/>
+            <line x1="8" y1="17" x2="14" y2="17"/>
+          </svg>
+        </div>
+        <span>Keyboard</span>
+      </button>
+
+      <!-- 挂断（居中大按钮） -->
+      <button class="vc-hangup-btn" id="vcHangupBtn" title="挂断">
+        <div class="vc-hangup-ring-1"></div>
+        <div class="vc-hangup-ring-2"></div>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 18v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 3.07 10.2 19.79 19.79 0 0 1 .07 1.56 2 2 0 0 1 2 0h3a2 2 0 0 1 2 1.72c.127.96.361 1.9.7 2.81a2 2 0 0 1-.45 2.11L6.08 7.91" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="23" y1="1" x2="1" y2="23" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <!-- 设置 -->
+      <button class="vc-ctrl-btn" id="vcSettingsBtn" title="设置">
+        <div class="vc-ctrl-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.62)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <span>Settings</span>
+      </button>
+
+    </div>
+    <div class="vc-hangup-label">End Call</div>
+  </div><!-- /vc-controls -->
+
+</div><!-- /vc-frame -->
+</div><!-- /vc-wrap -->
+
+<script src="videocall.js"></script>
+</body>
+</html>
