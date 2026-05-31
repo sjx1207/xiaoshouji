@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Album</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <!-- 灵动岛动画 CSS（从 style.css 复刻） -->
+  <link rel="stylesheet" href="album.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Mono:wght@300;400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<div class="alb-root">
+
+  <!-- ===== 状态栏（一比一复刻 index.html 结构） ===== -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 内容区 ===== -->
+  <div class="alb-content">
+
+    <!-- PAGE: MINE -->
+    <div class="page active" id="p-mine" style="background:#fff;font-family:'Inter',sans-serif;">
+      <div style="flex-shrink:0;">
+
+      <!-- styles scoped to mine page -->
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Mono:wght@300;400&display=swap');
+
+        /* HEADER */
+        .mine-hdr{background:#fff;padding:16px 20px 0}
+        .mine-hdr-row{display:flex;justify-content:space-between;align-items:flex-start}
+        .mine-hdr-eyebrow{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:#bbb;font-weight:400;margin-bottom:5px}
+        .mine-hdr-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:#111;letter-spacing:-.5px;line-height:1}
+        .mine-hdr-title em{font-style:italic;font-weight:300}
+        .mine-btn-add{display:flex;align-items:center;gap:5px;background:#111;border-radius:20px;padding:6px 12px 6px 9px;border:none;cursor:pointer;margin-top:4px}
+        .mine-btn-add .ti{font-size:13px;color:#f8f8f8}
+        .mine-btn-add span{font-size:10px;letter-spacing:.1em;color:#f8f8f8;text-transform:uppercase;font-weight:500}
+
+        /* STATS */
+        .mine-stats{display:flex;gap:16px;padding:10px 20px 12px;border-bottom:1px solid #f0f0f0}
+        .mine-stat-n{font-size:18px;font-weight:500;color:#111;font-family:'Cormorant Garamond',serif}
+        .mine-stat-l{font-size:7px;letter-spacing:.2em;text-transform:uppercase;color:#bbb;margin-top:1px}
+        .mine-stat-div{width:1px;background:#eee}
+
+        /* TOGGLE */
+        .mine-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0}
+        .mine-toggle-lbl{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#bbb}
+        .mine-toggle{display:flex;background:#f4f4f4;border-radius:20px;padding:3px;gap:2px}
+        .mine-tog{padding:5px 14px;border-radius:16px;font-size:10px;font-weight:500;color:#999;cursor:pointer;border:none;background:none;transition:all .18s;letter-spacing:.04em}
+        .mine-tog.on{background:#111;color:#fff}
+
+        /* ===== REDESIGNED TIMELINE — GRID VIEW ===== */
+
+        /* Year anchor row */
+        .mine-year-anchor{
+          display:flex;align-items:center;gap:10px;
+          padding:14px 20px 4px;
+        }
+        .mine-year-num{
+          font-family:'DM Mono',monospace;font-size:10px;font-weight:400;
+          color:#c0c0c0;letter-spacing:.08em;flex-shrink:0;
+        }
+        .mine-year-line{
+          flex:1;height:1px;
+          background:linear-gradient(to right,#e8e8e8 60%,transparent);
+        }
+
+        /* Month group */
+        .mine-tl-group{margin-bottom:0}
+
+        /* New month header */
+        .mine-tl-month{
+          display:flex;align-items:center;gap:8px;
+          padding:6px 20px 8px;
+          position:sticky;top:0;
+          background:rgba(255,255,255,.97);
+          backdrop-filter:blur(10px);
+          -webkit-backdrop-filter:blur(10px);
+          z-index:2;
+        }
+        .mine-tl-month-pill{
+          background:#f4f4f4;
+          border-radius:4px;
+          padding:3px 8px;
+          display:flex;align-items:baseline;gap:5px;
+          flex-shrink:0;
+        }
+        .mine-tl-month-name{
+          font-size:10px;font-weight:700;color:#333;
+          letter-spacing:.05em;text-transform:uppercase;
+        }
+        .mine-tl-month-yr{
+          font-size:8px;font-weight:400;color:#b0b0b0;
+          font-family:'DM Mono',monospace;
+        }
+        .mine-tl-month-line{flex:1;height:1px;background:#f0f0f0}
+        .mine-tl-month-cnt{
+          font-size:8px;color:#ccc;
+          font-family:'DM Mono',monospace;flex-shrink:0;
+        }
+
+        /* Photo grid */
+        .mine-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:0 20px}
+        .mine-cell{
+          aspect-ratio:1;border-radius:5px;overflow:hidden;
+          position:relative;cursor:pointer;background:#e8e8e8;
+        }
+        .mine-cell img{width:100%;height:100%;object-fit:cover;display:block}
+        .mine-cell-date{
+          position:absolute;bottom:4px;left:5px;
+          background:rgba(0,0,0,.22);border-radius:3px;
+          padding:1.5px 5px;font-size:7px;
+          color:rgba(255,255,255,.82);letter-spacing:.04em;
+          font-family:'DM Mono',monospace;
+        }
+        .mine-tl-spacer{height:8px}
+
+        /* ===== REDESIGNED TIMELINE — FAN VIEW ===== */
+        .mine-fan-group{margin-bottom:0}
+
+        .mine-fan-hdr{
+          display:flex;align-items:flex-end;gap:10px;
+          padding:10px 20px 12px;
+        }
+        .mine-fan-hdr-left{display:flex;flex-direction:column;gap:2px;flex:1}
+        .mine-fan-month-big{
+          font-family:'Cormorant Garamond',serif;
+          font-size:22px;font-weight:300;color:#111;line-height:1;
+        }
+        .mine-fan-month-big em{font-style:italic;color:#aaa}
+        .mine-fan-month-meta{display:flex;align-items:center;gap:8px;margin-top:3px}
+        .mine-fan-month-yr{
+          font-size:8px;font-family:'DM Mono',monospace;
+          color:#c0c0c0;letter-spacing:.08em;
+        }
+        .mine-fan-cnt-badge{
+          font-size:7px;background:#f0f0f0;color:#888;
+          padding:2px 7px;border-radius:10px;
+          letter-spacing:.04em;font-weight:700;
+        }
+
+        .mine-fan-stage{
+          position:relative;height:136px;margin:0 20px;cursor:pointer;
+          transition:height .25s ease;
+        }
+        .mine-fan-card{
+          position:absolute;
+          width:90px;height:116px;
+          border-radius:9px;overflow:hidden;
+          border:2.5px solid #fff;
+          box-shadow:0 2px 10px rgba(0,0,0,.10);
+          transform-origin:bottom center;
+          transition:transform .28s cubic-bezier(.34,1.2,.64,1),left .28s ease;
+        }
+        .mine-fan-card img{width:100%;height:100%;object-fit:cover;display:block}
+        .mine-fan-card-ph{width:100%;height:100%;background:#e0e0e0}
+        .mine-fan-card-date{
+          position:absolute;bottom:5px;left:6px;
+          font-size:7px;font-family:'DM Mono',monospace;
+          color:rgba(255,255,255,.82);
+          background:rgba(0,0,0,.22);border-radius:3px;
+          padding:1px 4px;letter-spacing:.03em;
+        }
+        .mine-fan-more{
+          position:absolute;bottom:8px;right:8px;
+          background:rgba(0,0,0,.22);border-radius:10px;
+          padding:2px 8px;font-size:8px;
+          color:rgba(255,255,255,.88);letter-spacing:.05em;
+          font-family:'DM Mono',monospace;
+        }
+        .mine-fan-rule{margin:2px 20px 0;height:1px;background:#f2f2f2}
+
+        /* EMPTY STATE */
+        .mine-empty{
+          display:flex;flex-direction:column;
+          align-items:center;justify-content:center;
+          padding:60px 32px 40px;gap:16px;
+          animation:mineEmptyIn .4s ease;
+        }
+        @keyframes mineEmptyIn{
+          from{opacity:0;transform:translateY(10px)}
+          to{opacity:1;transform:translateY(0)}
+        }
+        .mine-empty-icon{
+          width:56px;height:56px;border-radius:50%;
+          background:#f6f6f6;border:1px solid #ebebeb;
+          display:flex;align-items:center;justify-content:center;
+        }
+        .mine-empty-icon .ti{font-size:24px;color:#d0d0d0}
+        .mine-empty-title{
+          font-family:'Cormorant Garamond',serif;
+          font-size:22px;font-weight:300;color:#333;
+          text-align:center;line-height:1.2;
+        }
+        .mine-empty-title em{font-style:italic;color:#aaa}
+        .mine-empty-sub{
+          font-size:11px;color:#bbb;text-align:center;
+          line-height:1.6;letter-spacing:.02em;max-width:200px;
+        }
+        .mine-empty-btn{
+          display:flex;align-items:center;gap:6px;
+          background:#111;border-radius:22px;
+          padding:9px 18px 9px 14px;border:none;cursor:pointer;
+          margin-top:4px;
+          transition:transform .14s,background .14s;
+        }
+        .mine-empty-btn:active{transform:scale(.97)}
+        .mine-empty-btn .ti{font-size:14px;color:#f8f8f8}
+        .mine-empty-btn span{
+          font-size:11px;letter-spacing:.1em;
+          color:#f8f8f8;text-transform:uppercase;font-weight:500;
+        }
+
+        /* New photo entry animation */
+        @keyframes minePhotoIn{
+          from{opacity:0;transform:scale(.92)}
+          to{opacity:1;transform:scale(1)}
+        }
+        .mine-cell.new-entry{animation:minePhotoIn .3s cubic-bezier(.34,1.2,.64,1)}
+        .mine-fan-group.new-entry{animation:mineEmptyIn .35s ease}
+
+        /* bottom pad */
+        .mine-bot-pad{height:24px}
+      </style>
+
+      <!-- HEADER -->
+      <div class="mine-hdr">
+        <div class="mine-hdr-eyebrow">Gallery · Personal</div>
+        <div class="mine-hdr-row">
+          <div class="mine-hdr-title">My <em>Album</em></div>
+          <button class="mine-btn-add" aria-label="Add photo" onclick="mineOpenUpload()">
+            <i class="ti ti-plus" aria-hidden="true"></i>
+            <span>Add</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="mine-stats">
+        <div><div id="statPhotos" class="mine-stat-n">—</div><div class="mine-stat-l">Photos</div></div>
+        <div class="mine-stat-div"></div>
+        <div><div id="statAlbums" class="mine-stat-n">—</div><div class="mine-stat-l">Albums</div></div>
+        <div class="mine-stat-div"></div>
+        <div><div id="statLatest" class="mine-stat-n">—</div><div class="mine-stat-l">Latest</div></div>
+      </div>
+
+      <!-- VIEW TOGGLE -->
+      <div class="mine-toggle-row">
+        <span class="mine-toggle-lbl">Timeline</span>
+        <div class="mine-toggle">
+          <button class="mine-tog on" id="mineTogGrid" onclick="mineSwitchView('grid')">Grid</button>
+          <button class="mine-tog" id="mineTogFan" onclick="mineSwitchView('fan')">Fan</button>
+        </div>
+      </div>
+
+      </div><!-- /flex-shrink:0 header area -->
+
+      <div style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;">
+
+      <!-- ===== GRID VIEW ===== -->
+      <div id="mineViewGrid" style="padding-bottom:4px">
+        <!-- dynamically rendered by mineRenderTimeline() -->
+      </div>
+
+      <!-- ===== FAN VIEW ===== -->
+      <div id="mineViewFan" style="display:none;padding-bottom:4px">
+        <!-- dynamically rendered by mineRenderTimeline() -->
+      </div>
+
+      <div class="mine-bot-pad"></div>
+
+      </div><!-- /inner scroll -->
+    </div>
+
+    <!-- PAGE: CHAR -->
+    <div class="page" id="p-char" style="background:#fff;">
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap');
+
+        /* ── CHAR PAGE SCROLL WRAPPER ── */
+        .char-scroll { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; }
+        .char-scroll::-webkit-scrollbar { display:none; }
+
+        /* ── HEADER NAV ── */
+        .char-hdr { padding:18px 20px 0; position:relative; background:#fff; }
+        .char-hdr-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; }
+        .char-back-btn { width:32px; height:32px; border:1px solid #e0e0e0; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#fff; }
+        .char-back-btn .ti { font-size:14px; color:#999; }
+        .char-hdr-label { font-size:9px; letter-spacing:0.3em; color:#bbb; font-weight:600; text-transform:uppercase; }
+        .char-add-btn { width:32px; height:32px; border:1px solid #e0e0e0; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#fff; }
+        .char-add-btn .ti { font-size:14px; color:#999; }
+
+        /* ── HERO TITLE ── */
+        .char-hero-area { padding:14px 20px 0; }
+        .char-hero-rule-top { height:1px; background:linear-gradient(90deg,transparent,#ddd 30%,#ddd 70%,transparent); margin-bottom:14px; }
+        .char-hero-flex { display:flex; align-items:flex-end; justify-content:space-between; }
+        .char-hero-kicker { font-size:8px; letter-spacing:0.35em; color:#ccc; margin-bottom:4px; font-weight:600; text-transform:uppercase; }
+        .char-hero-title { font-family:'Playfair Display',serif; font-size:34px; line-height:1; color:#111; letter-spacing:-0.5px; }
+        .char-hero-title em { font-style:italic; color:#999; }
+        .char-hero-count { font-size:36px; font-weight:700; color:transparent; line-height:1; letter-spacing:-2px;
+          -webkit-text-stroke:1px #ddd; }
+        .char-hero-count-lbl { font-size:7px; letter-spacing:0.3em; color:#ccc; margin-top:2px; text-align:right; font-weight:600; }
+        .char-hero-rule-bot { height:1px; background:#efefef; margin:12px 0 0; }
+
+        /* ── DIVIDER STRIP ── */
+        .char-div-strip { display:flex; align-items:center; gap:8px; padding:8px 20px; }
+        .char-div-line { flex:1; height:1px; background:#efefef; }
+        .char-div-tag { font-size:7px; letter-spacing:0.3em; color:#ccc; font-weight:600; }
+
+        /* ── CARD LIST (single column) ── */
+        .char-card-list { padding:0 14px; display:flex; flex-direction:column; gap:10px; }
+
+        /* ── FOLDER CARD ── */
+        .fc2 { border-radius:14px; overflow:hidden; position:relative; border:1px solid #d8d8d8; background:#e4e4e4; cursor:pointer; }
+        .fc2-tab { height:14px; width:50%; background:#d4d4d4; border-radius:6px 6px 0 0; margin:0 14px;
+          border:1px solid #cacaca; border-bottom:none; }
+        .fc2-body { background:#eaeaea; border-radius:0 10px 10px 10px; border:1px solid #d8d8d8; border-top-color:#d4d4d4;
+          padding:14px 14px 12px; position:relative; overflow:hidden; }
+
+        /* photo placeholder area */
+        .fc2-photos { display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; border-radius:8px; overflow:hidden; margin-bottom:10px; }
+        .fp { aspect-ratio:1; border-radius:2px; }
+        .fp.l1{background:#e8e8e8;} .fp.l2{background:#e2e2e2;} .fp.l3{background:#ececec;}
+        .fp.l4{background:#dedede;} .fp.l5{background:#e6e6e6;} .fp.l6{background:#eaeaea;}
+
+        /* avatar main photo */
+        .fc2-photo-main { grid-column:span 3; height:60px; background:#dedede; border-radius:6px;
+          display:flex; align-items:center; justify-content:center; margin-bottom:3px; }
+        .fc2-init { width:36px; height:36px; border-radius:50%; border:1px solid #cecece; background:#eaeaea;
+          display:flex; align-items:center; justify-content:center;
+          font-family:'Playfair Display',serif; font-size:16px; font-style:italic; color:#bbb; }
+
+        /* WIDE layout for cards that span full width */
+        .fc2-photos-wide { display:flex; gap:3px; border-radius:8px; overflow:hidden; margin-bottom:10px; height:56px; }
+        .fp-w { flex:1; background:#d8d8d8; border-radius:2px; }
+        .fp-w:nth-child(2) { background:#cecece; flex:1.6; }
+        .fp-w:nth-child(3) { background:#d8d8d8; }
+
+        /* info row */
+        .fc2-name { font-family:'Playfair Display',serif; font-size:15px; color:#1a1a1a; margin-bottom:2px; }
+        .fc2-meta { font-size:8px; letter-spacing:0.2em; color:#bbb; font-weight:500; text-transform:uppercase; }
+        .fc2-bottom { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+        .fc2-tags { display:flex; gap:4px; }
+        .fc2-tag { font-size:6.5px; letter-spacing:0.12em; padding:2px 6px; background:#e0e0e0;
+          border:1px solid #d4d4d4; border-radius:2px; color:#999; font-weight:600; text-transform:uppercase; }
+        .fc2-count { font-size:7px; color:#ccc; letter-spacing:0.1em; font-family:'DM Mono',monospace; }
+
+        /* ACTIVE card */
+        .fc2.active-card .fc2-tab { background:#c8c8c8; border-color:#c0c0c0; }
+        .fc2.active-card .fc2-body { background:#e2e2e2; border-color:#d4d4d4; }
+        .fc2.active-card .fc2-name { color:#111; }
+        .fc2-active-dot { position:absolute; top:12px; right:12px; width:5px; height:5px;
+          border-radius:50%; background:#111; box-shadow:0 0 6px rgba(0,0,0,0.15); }
+
+        /* wide card stat */
+        .fc2-wide-body { display:flex; justify-content:space-between; align-items:flex-end; }
+        .fc2-wide-stat { text-align:right; }
+        .fc2-wide-stat-n { font-size:20px; font-weight:700; color:transparent; letter-spacing:-1px;
+          -webkit-text-stroke:0.8px #ddd; }
+        .fc2-wide-stat-l { font-size:6px; letter-spacing:0.25em; color:#ccc; font-weight:600; }
+
+        /* decorative */
+        .fc2-deco-cross { position:absolute; right:14px; bottom:44px; opacity:0.25; }
+        .fc2-deco-cross::before,.fc2-deco-cross::after { content:''; position:absolute; background:#bbb; }
+        .fc2-deco-cross::before { width:1px; height:12px; left:5.5px; top:0; }
+        .fc2-deco-cross::after { width:12px; height:1px; left:0; top:5.5px; }
+        .fc2-deco-corner { position:absolute; right:8px; bottom:8px; width:12px; height:12px;
+          border-right:1px solid #e0e0e0; border-bottom:1px solid #e0e0e0; }
+
+        /* ── SECTION LABEL ── */
+        .char-sec-lbl { padding:12px 20px 8px; display:flex; align-items:center; gap:8px; }
+        .char-sec-line { flex:1; height:1px; background:#f0f0f0; }
+        .char-sec-tag { font-size:7px; letter-spacing:0.3em; color:#ccc; font-weight:600; text-transform:uppercase; }
+
+        /* ── TIMELINE ── */
+        .char-tl-row { padding:0 20px; display:flex; flex-direction:column; gap:0; }
+        .char-tl-item { display:flex; gap:10px; padding:7px 0; border-bottom:1px solid #f5f5f5; }
+        .char-tl-item:last-child { border-bottom:none; }
+        .char-tl-bullet { width:4px; height:4px; border-radius:50%; background:#e0e0e0; margin-top:5px; flex-shrink:0; }
+        .char-tl-yr { font-size:10px; font-family:'DM Mono',monospace; color:#bbb; min-width:28px; }
+        .char-tl-text { font-size:10px; color:#aaa; letter-spacing:0.03em; }
+
+        /* ── FOOTER ── */
+        .char-foot { display:flex; align-items:center; gap:8px; padding:14px 20px 20px; }
+        .char-foot-line { flex:1; height:1px; background:linear-gradient(90deg,#efefef,transparent); }
+        .char-foot-line.r { background:linear-gradient(90deg,transparent,#efefef); }
+        .char-foot-text { font-size:8px; letter-spacing:0.2em; color:#d0d0d0; text-transform:uppercase; }
+      </style>
+
+      <div class="char-scroll">
+
+        <!-- Header nav -->
+        <div class="char-hdr">
+          <div class="char-hdr-top">
+            <div class="char-back-btn"><i class="ti ti-chevron-left" aria-hidden="true"></i></div>
+            <div class="char-hdr-label">Character Studio</div>
+            <div class="char-add-btn"><i class="ti ti-plus" aria-hidden="true"></i></div>
+          </div>
+        </div>
+
+        <!-- Hero title -->
+        <div class="char-hero-area">
+          <div class="char-hero-rule-top"></div>
+          <div class="char-hero-flex">
+            <div>
+              <div class="char-hero-kicker">— Persona Archive</div>
+              <div class="char-hero-title">角色<br><em>档案</em></div>
+            </div>
+            <div>
+              <div class="char-hero-count" id="charHeroCount">00</div>
+              <div class="char-hero-count-lbl">Profiles</div>
+            </div>
+          </div>
+          <div class="char-hero-rule-bot"></div>
+        </div>
+
+        <div class="char-div-strip">
+          <div class="char-div-line"></div>
+          <div class="char-div-tag">Collection · 2025</div>
+          <div class="char-div-line"></div>
+        </div>
+
+        <!-- Card list — dynamically rendered by album.js charPageRender() -->
+        <div class="char-card-list" id="charCardList">
+          <!-- JS 动态渲染 -->
+        </div>
+
+        <!-- Recent activity — dynamically rendered -->
+        <div class="char-sec-lbl">
+          <div class="char-sec-line"></div>
+          <div class="char-sec-tag">Recent Activity</div>
+          <div class="char-sec-line"></div>
+        </div>
+        <div class="char-tl-row" id="charActivityList">
+          <!-- JS 动态渲染 -->
+        </div>
+
+        <!-- Footer -->
+        <div class="char-foot">
+          <div class="char-foot-line"></div>
+          <div class="char-foot-text">End of Profiles</div>
+          <div class="char-foot-line r"></div>
+        </div>
+
+      </div><!-- /char-scroll -->
+    </div>
+
+    <!-- PAGE: SECRET -->
+    <div class="page" id="p-secret" style="overflow:hidden;">
+
+      <!-- SECRET INNER TOP NAV -->
+      <div class="sct-tnav">
+        <div class="sct-tnav-inner">
+          <button class="sct-tab active" onclick="sctSwitch('feed',this)">
+            <span class="sct-word">Archive</span>
+          </button>
+          <button class="sct-tab" onclick="sctSwitch('dm',this)" style="position:relative">
+            <span class="sct-word">Messages</span>
+            <div class="sct-badge" id="sctNavBadge"></div>
+          </button>
+        </div>
+        <div class="sct-tnav-right">
+          <i class="ti ti-search" aria-hidden="true"></i>
+          <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <!-- ═══ FEED ═══ -->
+      <div class="sct-page active" id="sct-pg-feed">
+        <div class="sct-feed-hdr">
+          <div>
+            <div class="sct-eyebrow">Private · Encrypted</div>
+            <div class="sct-feed-title">Secret <em>Garden</em></div>
+          </div>
+          <button class="sct-compose-btn" onclick="sctShowCompose()">
+            <i class="ti ti-plus" aria-hidden="true"></i>
+            <span>Post</span>
+          </button>
+        </div>
+        <div class="sct-orn">
+          <div class="sct-orn-line"></div><div class="sct-orn-diamond"></div><div class="sct-orn-line"></div>
+        </div>
+        <div class="sct-scroll">
+
+          <!-- POST 1 -->
+          <div class="sct-post-card">
+            <div class="sct-post-strip">
+              <div class="sct-post-strip-l">
+                <div class="sct-post-av">L</div>
+                <div>
+                  <div class="sct-post-author">Luna</div>
+                  <div class="sct-post-sub">Archive · Vol. 04 · 3 frames</div>
+                </div>
+              </div>
+              <div class="sct-post-strip-r">
+                <span class="sct-post-index">No. 047</span>
+                <button style="background:none;border:none;cursor:pointer"><i class="ti ti-dots-vertical" style="font-size:17px;color:#bbb" aria-hidden="true"></i></button>
+              </div>
+            </div>
+            <div class="sct-post-visual" onclick="sctExpandPost(this)">
+              <div class="sct-ruler-h"></div><div class="sct-ruler-h2"></div><div class="sct-ruler-v"></div>
+              <span class="sct-vis-lbl" style="font-size:80px;opacity:1">iv</span>
+              <div class="sct-vis-tag">Vol. 04</div>
+              <span class="sct-vis-num">1 — 3</span>
+            </div>
+            <div class="sct-post-bottom">
+              <div class="sct-post-actions">
+                <div class="sct-pa-l">
+                  <button class="sct-pa-btn" id="sctl1" onclick="sctLike('sctl1','scts1')"><i class="ti ti-heart" aria-hidden="true"></i></button>
+                  <button class="sct-pa-btn"><i class="ti ti-message" aria-hidden="true"></i><span>3</span></button>
+                  <button class="sct-pa-btn" onclick="sctSendPost('Luna','No. 047')"><i class="ti ti-corner-up-right" aria-hidden="true"></i></button>
+                </div>
+                <button class="sct-pa-save" id="sctsvl" onclick="sctToggleSave('sctsvl')" style="background:none;border:none;cursor:pointer"><i class="ti ti-bookmark" style="font-size:19px;color:#999" aria-hidden="true"></i></button>
+              </div>
+              <div class="sct-post-saves"><span id="scts1">247</span> saves</div>
+              <div class="sct-post-caption"><strong>Luna</strong> 深夜整理的碎片，不属于任何人的目光。</div>
+              <div class="sct-post-tag">#archive #quiet #vol04</div>
+            </div>
+            <div class="sct-cmt-strip">
+              <div class="sct-cmt-av"></div>
+              <div class="sct-cmt-hint">Add a comment...</div>
+              <i class="ti ti-arrow-up-circle" style="font-size:17px;color:#bbb" aria-hidden="true"></i>
+            </div>
+            <div class="sct-post-ts">2 hours ago</div>
+          </div>
+
+          <!-- POST 2 — text -->
+          <div class="sct-post-card">
+            <div class="sct-post-strip">
+              <div class="sct-post-strip-l">
+                <div class="sct-post-av">A</div>
+                <div>
+                  <div class="sct-post-author">Aria</div>
+                  <div class="sct-post-sub">Research notes · Draft</div>
+                </div>
+              </div>
+              <div class="sct-post-strip-r">
+                <span class="sct-post-index">No. 031</span>
+                <button style="background:none;border:none;cursor:pointer"><i class="ti ti-dots-vertical" style="font-size:17px;color:#bbb" aria-hidden="true"></i></button>
+              </div>
+            </div>
+            <div class="sct-text-card" onclick="sctExpandPost(this)">
+              <div class="sct-ptc-deco"></div>
+              <div class="sct-ptc-deco-bl"></div>
+              <div class="sct-ptc-quote">理性不是冷漠，<br>是选择了<br>另一种温柔。</div>
+              <div class="sct-ptc-foot">
+                <span class="sct-ptc-date">05 · 23 · 2025</span>
+                <span class="sct-ptc-sig">Aria — Draft</span>
+              </div>
+            </div>
+            <div class="sct-post-bottom">
+              <div class="sct-post-actions">
+                <div class="sct-pa-l">
+                  <button class="sct-pa-btn" id="sctl2" onclick="sctLike('sctl2','scts2')"><i class="ti ti-heart" aria-hidden="true"></i></button>
+                  <button class="sct-pa-btn"><i class="ti ti-message" aria-hidden="true"></i><span>1</span></button>
+                  <button class="sct-pa-btn" onclick="sctSendPost('Aria','No.031')"><i class="ti ti-corner-up-right" aria-hidden="true"></i></button>
+                </div>
+                <button class="sct-pa-save" id="sctsv2" onclick="sctToggleSave('sctsv2')" style="background:none;border:none;cursor:pointer"><i class="ti ti-bookmark" style="font-size:19px;color:#999" aria-hidden="true"></i></button>
+              </div>
+              <div class="sct-post-saves"><span id="scts2">89</span> saves</div>
+              <div class="sct-post-caption"><strong>Aria</strong> 写在凌晨三点。</div>
+              <div class="sct-post-tag">#words #late</div>
+            </div>
+            <div class="sct-post-ts">Yesterday · 03:17</div>
+          </div>
+
+          <!-- POST 3 — Marcus -->
+          <div class="sct-post-card">
+            <div class="sct-post-strip">
+              <div class="sct-post-strip-l">
+                <div class="sct-post-av">M</div>
+                <div>
+                  <div class="sct-post-author">Marcus</div>
+                  <div class="sct-post-sub">Strategy board · 4 frames</div>
+                </div>
+              </div>
+              <div class="sct-post-strip-r">
+                <span class="sct-post-index">No. 018</span>
+                <button style="background:none;border:none;cursor:pointer"><i class="ti ti-dots-vertical" style="font-size:17px;color:#bbb" aria-hidden="true"></i></button>
+              </div>
+            </div>
+            <div class="sct-post-visual" style="aspect-ratio:3/2" onclick="sctExpandPost(this)">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;width:100%;height:100%">
+                <div style="background:#e4e4e2;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:40px;font-style:italic;color:rgba(0,0,0,.07)">I</div>
+                <div style="background:#ebebea;display:flex;align-items:flex-end;padding:10px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#bbb">18 Img</div>
+              </div>
+              <div class="sct-vis-tag" style="top:auto;bottom:12px;left:12px">Board · 04</div>
+            </div>
+            <div class="sct-post-bottom">
+              <div class="sct-post-actions">
+                <div class="sct-pa-l">
+                  <button class="sct-pa-btn" id="sctl3" onclick="sctLike('sctl3','scts3')"><i class="ti ti-heart" aria-hidden="true"></i></button>
+                  <button class="sct-pa-btn"><i class="ti ti-message" aria-hidden="true"></i><span>5</span></button>
+                  <button class="sct-pa-btn" onclick="sctSendPost('Marcus','Board 04')"><i class="ti ti-corner-up-right" aria-hidden="true"></i></button>
+                </div>
+                <button class="sct-pa-save" id="sctsv3" onclick="sctToggleSave('sctsv3')" style="background:none;border:none;cursor:pointer"><i class="ti ti-bookmark" style="font-size:19px;color:#999" aria-hidden="true"></i></button>
+              </div>
+              <div class="sct-post-saves"><span id="scts3">312</span> saves</div>
+              <div class="sct-post-caption"><strong>Marcus</strong> 棋局已布。等待的人，才是真正的赢家。</div>
+              <div class="sct-post-tag">#strategic #patience</div>
+            </div>
+            <div class="sct-post-ts">2 days ago</div>
+          </div>
+
+          <!-- POST 4 — Sora -->
+          <div class="sct-post-card">
+            <div class="sct-post-strip">
+              <div class="sct-post-strip-l">
+                <div class="sct-post-av">S</div>
+                <div>
+                  <div class="sct-post-author">Sora</div>
+                  <div class="sct-post-sub">Unnamed · 1 frame</div>
+                </div>
+              </div>
+              <div class="sct-post-strip-r">
+                <span class="sct-post-index">No. 003</span>
+                <button style="background:none;border:none;cursor:pointer"><i class="ti ti-dots-vertical" style="font-size:17px;color:#bbb" aria-hidden="true"></i></button>
+              </div>
+            </div>
+            <div class="sct-post-visual" style="aspect-ratio:1" onclick="sctExpandPost(this)">
+              <div class="sct-ruler-v"></div>
+              <span class="sct-vis-lbl" style="font-size:110px;left:8%;bottom:-5%">iii</span>
+              <div style="position:absolute;bottom:14px;right:14px;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(0,0,0,.18)">Unnamed</div>
+            </div>
+            <div class="sct-post-bottom">
+              <div class="sct-post-actions">
+                <div class="sct-pa-l">
+                  <button class="sct-pa-btn" id="sctl4" onclick="sctLike('sctl4','scts4')"><i class="ti ti-heart" aria-hidden="true"></i></button>
+                  <button class="sct-pa-btn"><i class="ti ti-message" aria-hidden="true"></i><span>0</span></button>
+                  <button class="sct-pa-btn" onclick="sctSendPost('Sora','No.003')"><i class="ti ti-corner-up-right" aria-hidden="true"></i></button>
+                </div>
+                <button class="sct-pa-save" id="sctsv4" onclick="sctToggleSave('sctsv4')" style="background:none;border:none;cursor:pointer"><i class="ti ti-bookmark" style="font-size:19px;color:#999" aria-hidden="true"></i></button>
+              </div>
+              <div class="sct-post-saves"><span id="scts4">11</span> saves</div>
+              <div class="sct-post-caption"><strong>Sora</strong> —</div>
+              <div class="sct-post-tag">#quiet</div>
+            </div>
+            <div class="sct-post-ts">5 days ago</div>
+          </div>
+
+          <div style="height:24px"></div>
+        </div><!-- /sct-scroll feed -->
+      </div><!-- /sct-pg-feed -->
+
+      <!-- ═══ DM LIST ═══ -->
+      <div class="sct-page" id="sct-pg-dm">
+        <div class="sct-dm-hdr">
+          <div class="sct-eyebrow">Private</div>
+          <div class="sct-dm-title">Messages</div>
+        </div>
+        <div class="sct-dm-search">
+          <i class="ti ti-search" aria-hidden="true"></i>
+          <input placeholder="Search..." id="sctDmSearch">
+        </div>
+        <div class="sct-dm-req">
+          <div style="display:flex;align-items:center;gap:9px">
+            <div class="sct-dm-req-ico"><i class="ti ti-inbox" aria-hidden="true"></i></div>
+            <div><div class="sct-dm-req-title">Requests</div><div class="sct-dm-req-sub">2 pending</div></div>
+          </div>
+          <div class="sct-dm-req-badge">2</div>
+        </div>
+        <div class="sct-dm-sec-lbl">Recent conversations</div>
+        <div class="sct-scroll" id="sctDmList">
+          <div class="sct-dm-row" onclick="sctOpenChat('Luna','L',true,'Just sent you the archive.','09:31')">
+            <div class="sct-dm-av">L<div class="sct-online-ring on"></div></div>
+            <div class="sct-dm-body"><div class="sct-dm-name">Luna</div><div class="sct-dm-preview unread">Just sent you the archive.</div></div>
+            <div class="sct-dm-meta"><span class="sct-dm-time">09:31</span><div class="sct-dm-pill">2</div></div>
+          </div>
+          <div class="sct-dm-row" onclick="sctOpenChat('Aria','A',true,'Can we talk later tonight?','Yesterday')">
+            <div class="sct-dm-av">A<div class="sct-online-ring on"></div></div>
+            <div class="sct-dm-body"><div class="sct-dm-name">Aria</div><div class="sct-dm-preview unread">Can we talk later tonight?</div></div>
+            <div class="sct-dm-meta"><span class="sct-dm-time">Yesterday</span><div class="sct-dm-pill">1</div></div>
+          </div>
+          <div class="sct-dm-row" onclick="sctOpenChat('Marcus','M',false,'Seen','Tue')">
+            <div class="sct-dm-av">M</div>
+            <div class="sct-dm-body"><div class="sct-dm-name">Marcus</div><div class="sct-dm-preview">Seen</div></div>
+            <div class="sct-dm-meta"><span class="sct-dm-time">Tue</span></div>
+          </div>
+          <div class="sct-dm-row" onclick="sctOpenChat('Sora','S',false,'[image]','Mon')">
+            <div class="sct-dm-av">S</div>
+            <div class="sct-dm-body"><div class="sct-dm-name">Sora</div><div class="sct-dm-preview">[image]</div></div>
+            <div class="sct-dm-meta"><span class="sct-dm-time">Mon</span></div>
+          </div>
+        </div>
+      </div><!-- /sct-pg-dm -->
+
+      <!-- ═══ CHAT ═══ -->
+      <div class="sct-page" id="sct-pg-chat">
+        <div class="sct-chat-hdr">
+          <button onclick="sctBackToDM()" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center"><i class="ti ti-chevron-left" style="font-size:22px;color:#555" aria-hidden="true"></i></button>
+          <div class="sct-chat-av" id="sctCAv">L</div>
+          <div style="flex:1">
+            <div class="sct-chat-name" id="sctCName">Luna</div>
+            <div class="sct-chat-status" id="sctCStatus">Active now</div>
+          </div>
+          <div style="display:flex;gap:12px">
+            <i class="ti ti-phone" style="font-size:19px;color:#999" aria-hidden="true"></i>
+            <i class="ti ti-info-circle" style="font-size:19px;color:#999" aria-hidden="true"></i>
+          </div>
+        </div>
+        <div class="sct-msg-scroll">
+          <div class="sct-msg-list" id="sctMsgList">
+            <div class="sct-msg-divider">Today</div>
+            <div class="sct-msg-row them">
+              <div class="sct-msg-av-xs" id="sctCAvXs">L</div>
+              <div class="sct-msg-bub them">Hey, check this out.</div>
+            </div>
+            <div class="sct-msg-row them" style="padding-left:28px">
+              <div class="sct-share-card" onclick="sctBackToFeed()">
+                <div class="sct-share-img"><span>No. 047</span></div>
+                <div class="sct-share-foot">
+                  <div class="sct-share-name" id="sctCShareName">Luna</div>
+                  <div class="sct-share-sub">Archive · Vol. 04</div>
+                </div>
+              </div>
+            </div>
+            <div class="sct-msg-row them">
+              <div class="sct-msg-av-xs" style="visibility:hidden"></div>
+              <div class="sct-msg-bub them">Just sent you the archive.</div>
+            </div>
+            <div class="sct-msg-ts" style="text-align:right;padding-right:4px">09:31</div>
+            <div class="sct-msg-row me">
+              <div class="sct-msg-bub me">The composition is stunning.</div>
+            </div>
+            <div class="sct-msg-ts" style="text-align:right;padding-right:4px">09:33 · Seen</div>
+            <div class="sct-msg-row them">
+              <div class="sct-msg-av-xs" id="sctCAvXs2">L</div>
+              <div class="sct-msg-bub them">More coming soon.</div>
+            </div>
+          </div>
+        </div>
+        <div class="sct-chat-input">
+          <button class="sct-ci-btn secondary"><i class="ti ti-circle-plus" aria-hidden="true"></i></button>
+          <div class="sct-ci-wrap">
+            <input placeholder="Write a message..." id="sctChatInput" oninput="sctOnInputChange()">
+            <i class="ti ti-camera" aria-hidden="true"></i>
+          </div>
+          <button class="sct-ci-btn" onclick="sctSendMsg()"><i class="ti ti-send" id="sctCiIcon" aria-hidden="true"></i></button>
+        </div>
+      </div><!-- /sct-pg-chat -->
+
+      <!-- COMPOSE OVERLAY -->
+      <div id="sctComposeOverlay" style="display:none;position:absolute;inset:0;background:#f7f7f7;z-index:200;flex-direction:column">
+        <div style="height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:none;">
+          <button onclick="sctHideCompose()" style="background:none;border:none;cursor:pointer;font-size:13px;color:#bbb;letter-spacing:.06em;font-family:'Inter',sans-serif;">Cancel</button>
+          <span style="font-size:12px;font-weight:700;color:#111;letter-spacing:.08em;text-transform:uppercase;font-family:'Inter',sans-serif;">New post</span>
+          <button onclick="sctSubmitPost()" style="background:#111;border:none;cursor:pointer;font-size:11px;color:#fff;padding:6px 14px;letter-spacing:.08em;text-transform:uppercase;border-radius:16px;font-weight:700;font-family:'Inter',sans-serif;">Share</button>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:16px 18px;background:#fff;border-radius:16px;margin:0 14px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#bbb;flex-shrink:0;font-weight:700;font-family:'Inter',sans-serif;">YOU</div>
+          <textarea id="sctComposeText" placeholder="Write something private..." style="flex:1;border:none;outline:none;background:none;font-size:14px;color:#111;font-family:'Inter',sans-serif;resize:none;min-height:100px;line-height:1.55"></textarea>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;padding:14px 18px">
+          <i class="ti ti-photo" style="font-size:22px;color:#ccc;cursor:pointer;" aria-hidden="true"></i>
+          <i class="ti ti-hash" style="font-size:20px;color:#ccc;cursor:pointer;" aria-hidden="true"></i>
+          <i class="ti ti-lock" style="font-size:20px;color:#ccc;cursor:pointer;" aria-hidden="true"></i>
+          <span style="margin-left:auto;font-size:11px;color:#d0d0d0;font-family:'Inter',sans-serif;" id="sctCharCount">0 / 200</span>
+        </div>
+        <div style="padding:12px 18px;">
+          <div style="font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:#c0c0c0;margin-bottom:8px;font-family:'Inter',sans-serif;">Visibility</div>
+          <div style="display:flex;gap:6px">
+            <div id="sctVo1" onclick="sctSelectVis(0)" style="padding:5px 14px;border:0.5px solid #111;font-size:11px;color:#111;letter-spacing:.06em;cursor:pointer;border-radius:8px;font-family:'Inter',sans-serif;">Only me</div>
+            <div id="sctVo2" onclick="sctSelectVis(1)" style="padding:5px 14px;border:0.5px solid #e8e8e8;font-size:11px;color:#bbb;letter-spacing:.06em;cursor:pointer;border-radius:8px;font-family:'Inter',sans-serif;">Inner circle</div>
+            <div id="sctVo3" onclick="sctSelectVis(2)" style="padding:5px 14px;border:0.5px solid #e8e8e8;font-size:11px;color:#bbb;letter-spacing:.06em;cursor:pointer;border-radius:8px;font-family:'Inter',sans-serif;">Archive</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /p-secret -->
+
+  </div><!-- /alb-content -->
+
+  <!-- ===== 底部导航 ===== -->
+  <nav class="bnav">
+    <button class="bn-tab active" onclick="go('mine',this)" aria-label="Mine">
+      <div class="bn-track"></div>
+      <div class="bn-icon-box"><i class="ti ti-photo bn-icon" aria-hidden="true"></i></div>
+      <span class="bn-word">Mine</span>
+    </button>
+    <button class="bn-tab" onclick="go('char',this)" aria-label="Char">
+      <div class="bn-track"></div>
+      <div class="bn-icon-box"><i class="ti ti-heart bn-icon" aria-hidden="true"></i></div>
+      <span class="bn-word">Char</span>
+    </button>
+    <button class="bn-tab" onclick="go('secret',this)" aria-label="Secret">
+      <div class="bn-track"></div>
+      <div class="bn-icon-box"><i class="ti ti-eye-closed bn-icon" aria-hidden="true"></i></div>
+      <span class="bn-word">Secret</span>
+    </button>
+  </nav>
+
+</div><!-- /alb-root -->
+
+
+<!-- ===== PHOTO DETAIL OVERLAY ===== -->
+<div id="photoDetailOverlay" onclick="photoDetailOnBgClick(event)">
+  <div class="post-card" id="photoDetailCard">
+    <div class="pc-corner tl"></div>
+    <div class="pc-corner tr"></div>
+
+    <div class="pc-header">
+      <div class="pc-avatar-wrap">
+        <div class="pc-avatar">ME</div>
+        <div class="pc-meta">
+          <span class="pc-author">My Album</span>
+          <span class="pc-dateline" id="pdDateline">—</span>
+        </div>
+      </div>
+      <div class="pc-close" onclick="photoDetailClose()" aria-label="Close">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </div>
+    </div>
+
+    <div class="pc-photo" id="pdPhoto">
+      <div class="pc-photo-placeholder" id="pdPhotoPlaceholder">
+        <i class="ti ti-photo" aria-hidden="true"></i>
+      </div>
+      <div class="pc-index" id="pdIndex">No. —</div>
+      <div class="pc-fmt" id="pdFmt">—</div>
+      <div class="pc-date-ribbon">
+        <span class="pc-date-full" id="pdDateFull">—</span>
+      </div>
+    </div>
+
+    <div class="pc-body" id="pdBody" style="display:none">
+      <div class="pc-deco-rule">
+        <div class="pc-deco-line"></div>
+        <span class="pc-deco-dot"></span>
+        <span class="pc-deco-label">note</span>
+        <span class="pc-deco-dot"></span>
+        <div class="pc-deco-line"></div>
+      </div>
+      <div class="pc-tags" id="pdTags"></div>
+      <div class="pc-desc" id="pdDesc"></div>
+      <div class="pc-desc-short" id="pdCaption"></div>
+    </div>
+
+    <div class="pc-no-note" id="pdNoNote" style="display:none">
+      <div class="pc-no-note-line"></div>
+      <span class="pc-no-note-txt">no note added</span>
+      <div class="pc-no-note-line"></div>
+    </div>
+
+    <div class="pc-stats">
+      <div class="pc-stat">
+        <span class="pc-stat-n" id="pdViews">—</span>
+        <span class="pc-stat-l">Views</span>
+      </div>
+      <div class="pc-stat">
+        <span class="pc-stat-n" id="pdSaves">0</span>
+        <span class="pc-stat-l">Saves</span>
+      </div>
+      <div class="pc-stat">
+        <span class="pc-stat-n" id="pdCmtCount">0</span>
+        <span class="pc-stat-l">Comments</span>
+      </div>
+    </div>
+
+    <div class="pc-actions">
+      <div class="pc-act-btn" id="pdSaveBtn" onclick="pdToggleSave()" aria-label="Save">
+        <i class="ti ti-bookmark" aria-hidden="true"></i>
+        <span>Save</span>
+      </div>
+      <div class="pc-act-btn" aria-label="Share">
+        <i class="ti ti-upload" aria-hidden="true"></i>
+        <span>Share</span>
+      </div>
+      <div class="pc-act-btn primary" onclick="pdFocusComment()" aria-label="Comment">
+        <i class="ti ti-message-circle" aria-hidden="true"></i>
+        <span>Comment</span>
+      </div>
+    </div>
+
+    <div class="pc-comments">
+      <div class="pc-comments-hdr">
+        <span class="pc-comments-title">Comments</span>
+        <div class="pc-comments-rule"></div>
+        <span class="pc-comments-cnt" id="pdCmtCountLabel">0 replies</span>
+      </div>
+      <div id="pdCmtList"></div>
+      <div class="pc-cmt-input-row">
+        <input class="pc-cmt-input" id="pdCmtInput" placeholder="Write a reply..." maxlength="200">
+        <button class="pc-send-btn" onclick="pdSendComment()" aria-label="Send">
+          <i class="ti ti-send" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MINE UPLOAD MODAL ===== -->
+<div id="mineUploadOverlay" style="position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;padding:20px">
+  <div class="mup-modal">
+    <div class="mup-corner mup-tl"></div>
+    <div class="mup-corner mup-tr"></div>
+    <div class="mup-corner mup-bl"></div>
+    <div class="mup-corner mup-br"></div>
+
+    <div class="mup-head">
+      <div>
+        <div class="mup-eyebrow">Gallery · Upload</div>
+        <div class="mup-title">New photo</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <div class="mup-index">No. —</div>
+        <button class="mup-close" onclick="mineCloseUpload()" aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+    </div>
+
+    <div class="mup-stats-row">
+      <div class="mup-stat"><div class="mup-stat-n" id="mupSize">—</div><div class="mup-stat-l">Size</div></div>
+      <div class="mup-stat-div"></div>
+      <div class="mup-stat"><div class="mup-stat-n" id="mupFmt">—</div><div class="mup-stat-l">Format</div></div>
+      <div class="mup-stat-div"></div>
+      <div class="mup-stat"><div class="mup-stat-n" id="mupChars">0</div><div class="mup-stat-l">Chars</div></div>
+    </div>
+
+    <div class="mup-sec">
+      <div class="mup-sec-head">
+        <span class="mup-sec-lbl">01 · Photo</span>
+        <span class="mup-sec-tag">Required</span>
+      </div>
+      <div class="mup-zone" id="mupZone" onclick="mupTriggerFile()">
+        <i class="ti ti-photo" style="font-size:24px;color:#bbb" aria-hidden="true"></i>
+        <span class="mup-zone-txt">Select a photo to upload</span>
+        <span class="mup-zone-sub">JPG · PNG · WEBP · Max 20MB</span>
+      </div>
+      <input type="file" id="mupFileInput" accept="image/*" style="display:none" onchange="mupHandleFile(this)">
+    </div>
+
+    <div class="mup-sec">
+      <div class="mup-sec-head">
+        <span class="mup-sec-lbl">02 · Description</span>
+        <span class="mup-sec-tag">Optional</span>
+      </div>
+      <div class="mup-field-wrap">
+        <textarea id="mupDesc" class="mup-ta" placeholder="Describe this photo..." maxlength="200" oninput="mupOnDesc()"></textarea>
+        <span class="mup-char-badge" id="mupCB">0/200</span>
+      </div>
+    </div>
+
+    <div class="mup-sec" style="border-bottom:none">
+      <div class="mup-cap-row">
+        <div style="display:flex;flex-direction:column">
+          <span class="mup-sec-lbl">03 · Caption</span>
+          <span class="mup-cap-hint">Add tags &amp; caption text</span>
+        </div>
+        <div class="mup-tog" id="mupTog" onclick="mupToggleCap()"><div class="mup-tog-k"></div></div>
+      </div>
+      <div class="mup-cap-area" id="mupCapArea">
+        <div class="mup-deco-line"></div>
+        <div class="mup-tags" id="mupTags">
+          <div class="mup-tag" onclick="mupPickTag(this,'#quiet')"># quiet</div>
+          <div class="mup-tag" onclick="mupPickTag(this,'#memory')"># memory</div>
+          <div class="mup-tag" onclick="mupPickTag(this,'#archive')"># archive</div>
+          <div class="mup-tag" onclick="mupPickTag(this,'#daily')"># daily</div>
+          <div class="mup-tag" onclick="mupPickTag(this,'#film')"># film</div>
+        </div>
+        <div class="mup-field-wrap" style="padding-top:0">
+          <textarea id="mupCapTa" class="mup-ta" placeholder="Write a caption..." maxlength="150" style="height:58px"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="mup-footer">
+      <button class="mup-btn-cancel" onclick="mineCloseUpload()">Cancel</button>
+      <button class="mup-btn-submit" id="mupSubmit" onclick="mupSubmitPhoto()" disabled>
+        <i class="ti ti-upload" style="font-size:14px" aria-hidden="true"></i>
+        Upload photo
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PHOTO VIEWER — 大图查看页 ===== -->
+<div id="photoLightbox">
+
+  <!-- 顶部栏 -->
+  <div class="lb-topbar">
+    <button class="lb-back-btn" onclick="lbClose()" aria-label="返回">
+      <i class="ti ti-chevron-left" aria-hidden="true"></i>
+      <span>返回</span>
+    </button>
+    <span class="lb-top-mid" id="lbTopMid">—</span>
+    <button class="lb-top-icon-btn" id="lbMoreBtn" onclick="lbToggleMore()" aria-label="更多">
+      <i class="ti ti-dots" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <!-- 照片区域 -->
+  <div class="lb-photo-area">
+    <div class="lb-photo-box-wrap">
+      <div class="lb-photo-box" id="lbPhotoBox">
+        <img id="lbImg" src="" alt="" draggable="false">
+      </div>
+    </div>
+    <div class="lb-photo-meta" id="lbPhotoMeta">
+      <span class="lb-photo-date" id="lbDate"></span>
+      <span class="lb-photo-caption" id="lbCaption"></span>
+      <div class="lb-photo-tags" id="lbTags"></div>
+    </div>
+  </div>
+
+  <!-- 操作面板 -->
+  <div class="lb-panel">
+    <div class="lb-ctx-item" id="lbLikeItem" onclick="lbToggleLike()">
+      <span class="lb-ctx-label" id="lbLikeLabel">喜欢</span>
+      <i class="ti ti-heart lb-ctx-icon" id="lbLikeIcon" aria-hidden="true"></i>
+    </div>
+    <div class="lb-ctx-item" id="lbSaveItem" onclick="lbToggleSave()">
+      <span class="lb-ctx-label" id="lbSaveLabel">收藏</span>
+      <i class="ti ti-bookmark lb-ctx-icon" id="lbSaveIcon" aria-hidden="true"></i>
+    </div>
+    <div class="lb-ctx-item">
+      <span class="lb-ctx-label">分享</span>
+      <i class="ti ti-share lb-ctx-icon" aria-hidden="true"></i>
+    </div>
+    <div class="lb-ctx-item" id="lbExportItem" onclick="lbExport()">
+      <span class="lb-ctx-label">导出</span>
+      <i class="ti ti-download lb-ctx-icon" aria-hidden="true"></i>
+    </div>
+    <div class="lb-ctx-item" onclick="lbEditNote()">
+      <span class="lb-ctx-label">编辑备注</span>
+      <i class="ti ti-pencil lb-ctx-icon" aria-hidden="true"></i>
+    </div>
+    <div class="lb-ctx-sep"></div>
+    <div class="lb-ctx-item lb-danger" onclick="lbDeletePhoto()">
+      <span class="lb-ctx-label">删除</span>
+      <i class="ti ti-trash lb-ctx-icon" aria-hidden="true"></i>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CHAR ALBUM PAGE ===== -->
+<div id="charAlbumPage">
+
+  <!-- 状态栏：复用 album.css 的 .status-bar 结构 -->
+  <div class="status-bar ca-statusbar" style="background:#f8f8f8;border-bottom:none;">
+    <div class="status-time" id="caStatusTime">9:41</div>
+    <div class="status-island" id="caStatusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="caBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="caBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 滚动内容 -->
+  <div class="ca-scroll">
+
+    <!-- 导航行 -->
+    <div class="ca-nav">
+      <button class="ca-nav-back" onclick="closeCharAlbum()" aria-label="返回">
+        <i class="ti ti-chevron-left" aria-hidden="true"></i>
+      </button>
+      <span class="ca-nav-label">相册 · Album</span>
+      <div class="ca-nav-right">
+        <button class="ca-nav-icon" aria-label="搜索">
+          <i class="ti ti-search" aria-hidden="true"></i>
+        </button>
+        <button class="ca-nav-icon" aria-label="更多">
+          <i class="ti ti-dots" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== HERO CARD ===== -->
+    <div class="ca-hero">
+      <div class="ca-hero-stripe"></div>
+      <div class="ca-hero-inner">
+
+        <!-- 编号 + 激活状态 -->
+        <div class="ca-hero-toprow">
+          <span class="ca-hero-index" id="caHeroIndex">NO. 001 · CHAR ALBUM</span>
+          <div class="ca-active-pill" id="caActivePill">
+            <div class="ca-active-pill-dot"></div>
+            <span class="ca-active-pill-txt" id="caActiveStatus">Active</span>
+          </div>
+        </div>
+
+        <!-- 名字 + 头像 -->
+        <div class="ca-hero-namerow">
+          <div class="ca-hero-nameblock">
+            <div class="ca-hero-eyebrow" id="caHeroRole">Personal Companion</div>
+            <div class="ca-hero-name" id="caHeroName">—</div>
+            <div class="ca-hero-name-sub" id="caHeroSub">AI · Character Profile</div>
+          </div>
+          <div class="ca-hero-avbox">
+            <div class="ca-avatar" id="caAvatar">
+              <span class="ca-avatar-letter" id="caAvatarLetter">?</span>
+              <div class="ca-avatar-ring"></div>
+            </div>
+            <div class="ca-deco-dotline">
+              <div class="ca-deco-dotline-bar"></div>
+              <div class="ca-deco-dotline-dot"></div>
+              <div class="ca-deco-dotline-bar"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 性格标签 -->
+        <div class="ca-traits" id="caTraits"></div>
+
+        <!-- 四格信息 -->
+        <div class="ca-meta-grid">
+          <div class="ca-meta-cell">
+            <div class="ca-meta-val" id="caMAge">—</div>
+            <div class="ca-meta-lbl">Age</div>
+          </div>
+          <div class="ca-meta-cell">
+            <div class="ca-meta-val" id="caMGender">—</div>
+            <div class="ca-meta-lbl">Gender</div>
+          </div>
+          <div class="ca-meta-cell">
+            <div class="ca-meta-val" id="caMBday">—</div>
+            <div class="ca-meta-lbl">Birthday</div>
+          </div>
+          <div class="ca-meta-cell">
+            <div class="ca-meta-val" id="caMPhotos">0</div>
+            <div class="ca-meta-lbl">Photos</div>
+          </div>
+        </div>
+
+      </div><!-- /ca-hero-inner -->
+
+      <!-- 底部统计条 -->
+      <div class="ca-hero-statsbar">
+        <div class="ca-stats-group">
+          <div class="ca-stat">
+            <span class="ca-stat-n" id="caStatMoments">0</span>
+            <span class="ca-stat-l">Moments</span>
+          </div>
+          <div class="ca-stat-div"></div>
+          <div class="ca-stat">
+            <span class="ca-stat-n">03</span>
+            <span class="ca-stat-l">Albums</span>
+          </div>
+          <div class="ca-stat-div"></div>
+          <div class="ca-stat">
+            <span class="ca-stat-n" id="caStatPhotos">0</span>
+            <span class="ca-stat-l">Photos</span>
+          </div>
+        </div>
+        <button class="ca-capture-btn" aria-label="拍摄">
+          <i class="ti ti-camera" aria-hidden="true"></i>
+          <span>Capture</span>
+        </button>
+      </div>
+    </div><!-- /ca-hero -->
+
+    <!-- ===== SPECIAL ALBUMS ===== -->
+    <div class="ca-sec-div">
+      <span class="ca-sec-txt">Special Albums</span>
+      <div class="ca-sec-line"></div>
+      <span class="ca-sec-num">03</span>
+    </div>
+
+    <div class="ca-feat-grid">
+
+      <!-- Daylapse -->
+      <div class="ca-fc-daylapse">
+        <div class="ca-fc-arc3"></div>
+        <div class="ca-fc-hline1"></div>
+        <div class="ca-fc-hline2"></div>
+        <span class="ca-fc-24h">24H</span>
+
+        <div class="ca-fc-icon-wrap">
+          <i class="ti ti-clock-hour-8" aria-hidden="true"></i>
+        </div>
+        <div class="ca-fc-name">Daylapse</div>
+        <div class="ca-fc-name-sub">日迹 · One day</div>
+
+        <!-- 波形刻度 -->
+        <div class="ca-fc-ticks">
+          <div class="ca-fc-tick" style="height:7px"></div>
+          <div class="ca-fc-tick" style="height:11px"></div>
+          <div class="ca-fc-tick" style="height:7px"></div>
+          <div class="ca-fc-tick" style="height:15px"></div>
+          <div class="ca-fc-tick" style="height:8px"></div>
+          <div class="ca-fc-tick" style="height:12px"></div>
+          <div class="ca-fc-tick" style="height:6px"></div>
+          <div class="ca-fc-tick" style="height:9px"></div>
+          <div class="ca-fc-tick" style="height:17px"></div>
+          <div class="ca-fc-tick" style="height:8px"></div>
+          <div class="ca-fc-tick" style="height:12px"></div>
+          <div class="ca-fc-tick" style="height:7px"></div>
+        </div>
+
+        <div class="ca-fc-desc">每日每刻的瞬间<br>自动收录成册</div>
+        <div class="ca-fc-tag" id="caDaylapseTag">0 moments</div>
+      </div>
+
+      <!-- Secret -->
+      <div class="ca-fc-secret">
+        <div class="ca-fc-s-top">
+          <div class="ca-fc-s-icon"><i class="ti ti-eye-closed" aria-hidden="true"></i></div>
+          <div class="ca-fc-s-lock">
+            <i class="ti ti-lock" aria-hidden="true"></i>
+            <span class="ca-fc-s-lock-txt">Private</span>
+          </div>
+        </div>
+        <div class="ca-fc-s-name">Secret</div>
+        <div class="ca-fc-s-sub">秘密相册 · Encrypted</div>
+      </div>
+
+      <!-- Live Snap -->
+      <div class="ca-fc-live">
+        <div class="ca-fc-live-pulse"></div>
+        <div class="ca-fc-l-icon"><i class="ti ti-aperture" aria-hidden="true"></i></div>
+        <div class="ca-fc-l-name">Live Snap</div>
+        <div class="ca-fc-l-sub">实时抓拍 · On demand</div>
+      </div>
+
+    </div><!-- /ca-feat-grid -->
+
+    <!-- ===== GALLERY ===== -->
+    <div class="ca-gal-hdr">
+      <div class="ca-gal-hdr-left">
+        <span class="ca-gal-eyebrow">Photo Gallery</span>
+        <div class="ca-gal-title">
+          照片
+          <span class="ca-gal-cnt" id="caGalCnt">/ 0</span>
+        </div>
+      </div>
+      <button class="ca-view-all" aria-label="全部查看">View All</button>
+    </div>
+
+    <!-- 月份标签 -->
+    <div class="ca-month-row">
+      <div class="ca-month-pill">
+        <span class="ca-month-name" id="caMonthName">—</span>
+        <span class="ca-month-yr" id="caMonthYr">—</span>
+      </div>
+      <div class="ca-month-line"></div>
+      <span class="ca-month-count" id="caMonthCount">0 photos</span>
+    </div>
+
+    <!-- 照片网格 -->
+    <div class="ca-grid" id="caGrid">
+      <!-- JS 动态渲染 -->
+    </div>
+
+    <!-- 空态 -->
+    <div id="caEmptyState" style="display:none;padding:32px 16px;text-align:center;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;font-style:italic;color:#ccc;margin-bottom:6px;">还没有照片</div>
+      <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#ddd;">点击 Capture 上传第一张</div>
+    </div>
+
+    <div class="ca-bottom-sp"></div>
+  </div><!-- /ca-scroll -->
+</div><!-- /charAlbumPage -->
+
+<script src="album.js"></script>
+</body>
+</html>

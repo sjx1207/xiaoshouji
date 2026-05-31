@@ -3987,11 +3987,13 @@ const FP_CARDS = [
     art:'whisper',  bg:'#2c2828' },
   { no:'10', tag:'Offline',  title:'线下',  sub:'真实相遇', desc:'从屏幕走向现实的约定。',
     art:'offline',  bg:'#f0ede8' },
-  { no:'11', tag:'Gift',     title:'礼物',  sub:'惊喜盒子', desc:'每天解锁一份专属的彩蛋。',
+  { no:'11', tag:'Theatre',  title:'小剧场', sub:'角色扮演', desc:'设定情景，与Ta共同演绎专属故事。',
+    art:'theatre',  bg:'#1a1218' },
+  { no:'12', tag:'Gift',     title:'礼物',  sub:'惊喜盒子', desc:'每天解锁一份专属的彩蛋。',
     art:'gift',     bg:'#fafafa' },
-  { no:'12', tag:'Journey',  title:'旅程',  sub:'共同成长', desc:'记录你们走过的每一段路。',
+  { no:'13', tag:'Journey',  title:'旅程',  sub:'共同成长', desc:'记录你们走过的每一段路。',
     art:'journey',  bg:'#1a1a1a' },
-  { no:'13', tag:'Private',  title:'私密',  sub:'专属空间', desc:'只属于你们，加密且唯一。',
+  { no:'14', tag:'Private',  title:'私密',  sub:'专属空间', desc:'只属于你们，加密且唯一。',
     art:'private',  bg:'#111' },
 ];
 
@@ -4092,6 +4094,25 @@ function makeArt(type, bg){
       <line x1="55" y1="130" x2="105" y2="130" stroke="${fg}" stroke-width="0.6" opacity="0.22"/>
       <line x1="65" y1="136" x2="95" y2="136" stroke="${fg}" stroke-width="0.4" opacity="0.15"/>
       <text x="80" y="170" text-anchor="middle" font-family="serif" font-size="9" fill="${fgo}0.25)" letter-spacing="3">OFFLINE</text>
+    </svg>`,
+    theatre:`<svg class="card-mono-art" viewBox="0 0 160 200" fill="none">
+      <path d="M28 55 Q28 48 36 48 L124 48 Q132 48 132 55 L132 65 Q132 70 124 70 L36 70 Q28 70 28 65Z"
+        stroke="${fg}" stroke-width="0.6" opacity="0.35" fill="none"/>
+      <path d="M36 70 Q32 90 34 130" stroke="${fg}" stroke-width="1.2" stroke-linecap="round" opacity="0.4" fill="none"/>
+      <path d="M44 70 Q38 88 40 120" stroke="${fg}" stroke-width="0.5" stroke-linecap="round" opacity="0.2" fill="none"/>
+      <path d="M124 70 Q128 90 126 130" stroke="${fg}" stroke-width="1.2" stroke-linecap="round" opacity="0.4" fill="none"/>
+      <path d="M116 70 Q122 88 120 120" stroke="${fg}" stroke-width="0.5" stroke-linecap="round" opacity="0.2" fill="none"/>
+      <circle cx="68" cy="100" r="14" stroke="${fg}" stroke-width="0.6" opacity="0.45" fill="none"/>
+      <path d="M62 104 Q68 112 74 104" stroke="${fg}" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.5"/>
+      <circle cx="64" cy="96" r="2" fill="${fg}" opacity="0.4"/>
+      <circle cx="72" cy="96" r="2" fill="${fg}" opacity="0.4"/>
+      <circle cx="96" cy="100" r="14" stroke="${fg}" stroke-width="0.6" opacity="0.35" fill="none"/>
+      <path d="M90 108 Q96 100 102 108" stroke="${fg}" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.4"/>
+      <circle cx="92" cy="96" r="2" fill="${fg}" opacity="0.3"/>
+      <circle cx="100" cy="96" r="2" fill="${fg}" opacity="0.3"/>
+      <line x1="28" y1="130" x2="132" y2="130" stroke="${fg}" stroke-width="0.5" opacity="0.2"/>
+      <line x1="34" y1="136" x2="126" y2="136" stroke="${fg}" stroke-width="0.3" opacity="0.12" stroke-dasharray="3 4"/>
+      <text x="80" y="170" text-anchor="middle" font-family="serif" font-size="9" fill="${fgo}0.25)" letter-spacing="3">THEATRE</text>
     </svg>`,
     gift:`<svg class="card-mono-art" viewBox="0 0 160 200" fill="none">
        
@@ -4275,6 +4296,11 @@ function handleCardAction(tag) {
     crOpenWhisperPanel();
   } else if (tag === 'Gift') {
     crOpenGiftPage();
+  } else if (tag === 'Offline') {
+    window.location.href = 'offline_chat.html';
+  } else if (tag === 'Theatre') {
+    const charName = (typeof CR_NAME !== 'undefined' && CR_NAME) ? CR_NAME : 'Luna';
+    window.location.href = 'luna-studio.html?from=theatre&charName=' + encodeURIComponent(charName);
   } else if (tag === 'Journey') {
     window.location.href = 'journey.html';
   }
@@ -4609,6 +4635,7 @@ setInterval(crTick, 10000);
 document.addEventListener('DOMContentLoaded', async function () {
   applyIsland();
   applyGlobalFont();
+  applyWallpaper();
 
   /* 预加载头像缓存，让后续气泡直接用 */
   await crLoadAvatarCache();
@@ -4704,6 +4731,10 @@ function crInitHeader() {
           avWrap.style.backgroundSize = 'cover';
           avWrap.style.borderRadius = '50%';
         }
+      }
+      /* ── 头像/角色信息写完后，重新应用头部美化样式（防止被覆盖）── */
+      if (typeof window.crApplyHeaderStyle === 'function') {
+        window.crApplyHeaderStyle();
       }
     };
   };
@@ -5028,9 +5059,306 @@ function crBuildMineVoiceMsgEl(msg) {
   return el;
 }
 
+/* ================================================================
+   Story Card 编辑风格渲染 — 1:1 复刻 story_card_v5_editorial
+================================================================ */
+
+/* 注入字体 + keyframe（只执行一次） */
+(function _injectStoryCardStyles() {
+  if (document.getElementById('_sc_styles')) return;
+  const link = document.createElement('link');
+  link.rel  = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Jost:wght@200;300;400;500&display=swap';
+  document.head.appendChild(link);
+
+  const s = document.createElement('style');
+  s.id = '_sc_styles';
+  s.textContent = `
+    /* ── story card 专用 CSS ── */
+    .sc-wrap { display:flex; flex-direction:column; gap:0; }
+    .sc-wrap.sc-sent { align-items:flex-end; }
+    .sc-wrap.sc-recv { align-items:flex-start; }
+
+    .sc-card {
+      width:178px; height:237px;
+      border-radius:20px; overflow:hidden;
+      position:relative; background:#fff;
+      box-shadow:0 8px 32px rgba(0,0,0,0.13),0 2px 8px rgba(0,0,0,0.07);
+      display:flex; flex-direction:column;
+    }
+
+    /* 燃烧条 */
+    .sc-burn {
+      position:absolute;top:0;left:0;right:0;height:3px;
+      background:#ececec;z-index:10;overflow:hidden;
+    }
+    .sc-burn-f {
+      height:100%;background:#111;
+      transition:width 60s linear;
+    }
+    .sc-burn-f.sc-urgent { background:#c0392b; }
+    @keyframes sc-burnAnim { from{width:var(--sc-burn-start,85%)} to{width:4%} }
+
+    /* 文字卡 */
+    .sc-t { height:100%;display:flex;flex-direction:column;position:relative; }
+    .sc-t-deco {
+      height:88px;background:#f7f7f7;
+      position:relative;overflow:hidden;flex-shrink:0;
+    }
+    .sc-t-label {
+      position:absolute;left:18px;top:18px;
+      font-family:'Jost',sans-serif;font-size:8.5px;font-weight:400;
+      letter-spacing:2.5px;color:#c0c0c0;text-transform:uppercase;
+    }
+    .sc-t-rule  { position:absolute;left:18px;right:18px;top:32px;height:1px;background:#e8e8e8; }
+    .sc-t-rule2 { position:absolute;left:18px;right:60px;top:54px;height:1px;background:#efefef; }
+    .sc-t-letter {
+      position:absolute;right:-8px;bottom:-18px;
+      font-family:'Playfair Display',serif;
+      font-size:100px;font-weight:500;
+      color:rgba(0,0,0,0.045);line-height:1;
+      user-select:none;pointer-events:none;
+    }
+    .sc-t-body {
+      flex:1;display:flex;flex-direction:column;
+      justify-content:space-between;padding:14px 18px 15px;
+    }
+    .sc-t-quote {
+      font-family:'Playfair Display',serif;font-style:italic;
+      font-size:15px;line-height:1.55;color:#141414;flex:1;
+    }
+    .sc-t-meta {
+      display:flex;align-items:center;justify-content:space-between;
+      padding-top:12px;border-top:1px solid #f0f0f0;margin-top:8px;
+    }
+    .sc-t-who  { font-family:'Jost',sans-serif;font-size:9.5px;font-weight:300;color:#aaa; }
+    .sc-t-time { font-family:'Jost',sans-serif;font-size:9.5px;font-weight:200;color:#ccc; }
+
+    /* 图片卡 */
+    .sc-i { height:100%;display:flex;flex-direction:column;position:relative; }
+    .sc-i-img {
+      flex:0 0 152px;background:linear-gradient(160deg,#d2d2d2,#bebebe);
+      position:relative;overflow:hidden;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .sc-i-stamp {
+      position:absolute;top:12px;left:12px;
+      font-family:'Playfair Display',serif;font-style:italic;
+      font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:.5px;
+    }
+    .sc-i-vline {
+      position:absolute;right:26px;top:0;bottom:0;
+      width:1px;background:rgba(255,255,255,0.1);
+    }
+    .sc-i-body {
+      flex:1;display:flex;flex-direction:column;
+      justify-content:space-between;padding:11px 15px 13px;
+    }
+    .sc-i-title {
+      font-family:'Playfair Display',serif;font-style:italic;
+      font-size:13px;line-height:1.45;color:#141414;
+    }
+    .sc-i-foot { display:flex;align-items:center;justify-content:space-between; }
+    .sc-i-who  { font-family:'Jost',sans-serif;font-size:9.5px;font-weight:300;color:#bbb; }
+    .sc-i-views {
+      font-family:'Jost',sans-serif;font-size:9.5px;font-weight:200;color:#ccc;
+      display:flex;align-items:center;gap:3px;
+    }
+
+    /* 标签区 */
+    .sc-tag-area {
+      display:flex;align-items:center;gap:0;
+      padding:9px 14px 0 14px;
+      position:relative;
+    }
+    .sc-tag-area::before {
+      content:'';position:absolute;top:0;left:28px;
+      width:1px;height:9px;background:#ccc;
+    }
+    .sc-sent .sc-tag-area { flex-direction:row-reverse; }
+    .sc-sent .sc-tag-area::before { left:auto;right:28px; }
+
+    .sc-tag-line { display:flex;align-items:center;gap:6px; }
+    .sc-tag-dot-outer {
+      width:8px;height:8px;border-radius:50%;
+      border:1.5px solid #999;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    }
+    .sc-tag-dot-outer.sc-urgent { border-color:#c0392b; }
+    .sc-tag-dot-inner {
+      width:3px;height:3px;border-radius:50%;background:#111;
+      animation:sc-blink 2s ease-in-out infinite;
+    }
+    .sc-tag-dot-inner.sc-urgent {
+      background:#c0392b;animation:sc-blink .8s ease-in-out infinite;
+    }
+    @keyframes sc-blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+    .sc-tag-rule { flex:1;height:1px;background:#d4d4d4;width:20px; }
+    .sc-tag-rule.sc-urgent { background:#e8c0bb; }
+    .sc-tag-text {
+      font-family:'Jost',sans-serif;font-size:9.5px;font-weight:300;
+      letter-spacing:1.2px;color:#999;text-transform:uppercase;white-space:nowrap;
+    }
+    .sc-tag-text.sc-urgent { color:#c0392b;letter-spacing:1px; }
+    .sc-tag-slash {
+      font-family:'Playfair Display',serif;font-style:italic;
+      font-size:11px;color:#ccc;margin:0 2px;
+    }
+    .sc-tag-slash.sc-urgent { color:#e8c0bb; }
+
+    /* 附言气泡 */
+    .sc-caption-bubble {
+      max-width:178px;background:#f0f0ef;
+      border-radius:10px 10px 10px 3px;
+      padding:7px 12px;margin-top:6px;
+      font-family:'Jost',sans-serif;font-size:12px;
+      color:#555;line-height:1.5;
+    }
+    .sc-sent .sc-caption-bubble {
+      border-radius:10px 10px 3px 10px;
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
+/* 构建 story card DOM 元素 */
+function crBuildStoryCardEl(msg) {
+  // ── 1. 计算剩余时间 ──
+  const publishedAt  = msg.scPublishedAt || Date.now();
+  const totalMin     = msg.scTotalMin    || (msg.scExpireHours || 24) * 60;
+  const elapsedMin   = Math.floor((Date.now() - publishedAt) / 60000);
+  // scMinLeft 存的是发送时的快照；以 publishedAt 重新算更准
+  const minLeft      = Math.max(0, totalMin - elapsedMin);
+  const isUrgent     = minLeft <= 5;
+  const tagMin       = minLeft > 0 ? minLeft + ' min' : '已过期';
+
+  // 燃烧条起始宽度（百分比）
+  const burnPct      = totalMin > 0
+    ? Math.max(4, Math.min(96, Math.round((minLeft / totalMin) * 100)))
+    : 4;
+  const burnClass    = isUrgent ? 'sc-burn-f sc-urgent' : 'sc-burn-f';
+
+  const isMine       = msg.role === 'mine';
+  const scType       = msg.scType || 'text';
+  const scText       = msg.scText || '';
+  const scUser       = msg.scUsername || '我';
+  const scNo         = msg.scNo  || 'No. 001';
+  const scViews      = msg.scViews || 0;
+  const scBgImg      = msg.scBgImage || '';
+  const scCaption    = msg.scCaption || '';
+
+  // 装饰字母（取非中文首字符）
+  const decoLetter   = (scText.replace(/[\u4e00-\u9fff\s]/g,'')[0] || scText[0] || 'D').toUpperCase();
+
+  // 标签文字
+  const tagLabel     = msg.fwdFrom ? '已转发' : '限时动态';
+
+  // ── 2. 卡片内部 ──
+  let cardInner = '';
+  if (scType === 'image') {
+    const imgArea = scBgImg
+      ? `<img src="${escHtml(scBgImg)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />`
+      : `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+    cardInner = `
+      <div class="sc-i">
+        <div class="sc-i-img">
+          ${imgArea}
+          <div class="sc-i-stamp">${escHtml(scNo)}</div>
+          <div class="sc-i-vline"></div>
+        </div>
+        <div class="sc-i-body">
+          <div class="sc-i-title">${escHtml(scText || '一个不需要解释的瞬间。')}</div>
+          <div class="sc-i-foot">
+            <div class="sc-i-who">${escHtml(scUser)}</div>
+            <div class="sc-i-views">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              ${scViews}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    cardInner = `
+      <div class="sc-t">
+        <div class="sc-t-deco">
+          <div class="sc-t-label">Dynamic Story</div>
+          <div class="sc-t-rule"></div>
+          <div class="sc-t-rule2"></div>
+          <div class="sc-t-letter">${decoLetter}</div>
+        </div>
+        <div class="sc-t-body">
+          <div class="sc-t-quote">${escHtml(scText)}</div>
+          <div class="sc-t-meta">
+            <div class="sc-t-who">${escHtml(scUser)}</div>
+            <div class="sc-t-time">${tagMin}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── 3. 组装完整 HTML ──
+  const urgentClass = isUrgent ? ' sc-urgent' : '';
+  const html = `
+    <div class="sc-card">
+      <div class="sc-burn"><div class="${burnClass}" style="width:${burnPct}%;"></div></div>
+      ${cardInner}
+    </div>
+    <div class="sc-tag-area">
+      <div class="sc-tag-line">
+        <div class="sc-tag-dot-outer${urgentClass}">
+          <div class="sc-tag-dot-inner${urgentClass}"></div>
+        </div>
+        <div class="sc-tag-rule${urgentClass}"></div>
+        <div class="sc-tag-text${urgentClass}">${tagLabel}</div>
+        <div class="sc-tag-slash${urgentClass}">/</div>
+        <div class="sc-tag-text${urgentClass}">${tagMin}</div>
+      </div>
+    </div>
+    ${scCaption ? `<div class="sc-caption-bubble">${escHtml(scCaption)}</div>` : ''}
+  `;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'sc-wrap ' + (isMine ? 'sc-sent' : 'sc-recv');
+  wrap.innerHTML = html;
+  return wrap;
+}
+
 /* ── 根据消息对象构建 DOM 元素 ── */
 function crBuildMsgEl(msg) {
   var el = document.createElement('div');
+
+  // ── Story Card ──
+  if (msg.isStoryCard) {
+    const isMine = msg.role === 'mine';
+    el.className = isMine ? 'cr-msg-mine' : 'cr-msg-luna';
+
+    const cardWrap = crBuildStoryCardEl(msg);
+
+    if (isMine) {
+      el.appendChild(cardWrap);
+      const meta = document.createElement('div');
+      meta.className = 'cr-mine-meta';
+      meta.style.marginTop = '4px';
+      meta.innerHTML = `<span class="cr-mine-time">${msg.time}</span>
+        <svg class="cr-mine-check" width="14" height="10" viewBox="0 0 14 10" fill="none">
+          <path d="M1 5l3.5 3.5L13 1" stroke="rgba(100,100,100,0.5)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`;
+      el.appendChild(meta);
+    } else {
+      const avHtml = crMiniAvHtml();
+      const inner  = document.createElement('div');
+      inner.appendChild(cardWrap);
+      const timeP = document.createElement('p');
+      timeP.className = 'cr-msg-time';
+      timeP.textContent = msg.time;
+      inner.appendChild(timeP);
+      el.innerHTML = avHtml;
+      el.appendChild(inner);
+    }
+    return el;
+  }
+
   if (msg.role === 'mine') {
     if (msg.isSysHint) { el.style.display = 'none'; return el; }
     el.className = 'cr-msg-mine';
@@ -5407,11 +5735,68 @@ async function applyGlobalFont() {
   tag.textContent = `* { ${familyRule} }`;
 }
 
+/* ================================================================
+   壁纸同步 — 读取 localStorage 并应用到 .cr-frame
+================================================================ */
+function applyWallpaper() {
+  const frame = document.querySelector('.cr-frame');
+  if (!frame) return;
+  const currentChar = localStorage.getItem('luna_current_chat') || 'default';
+  const charBg   = localStorage.getItem('luna_chat_bg_' + currentChar);
+  const globalBg = localStorage.getItem('luna_chat_bg_global');
+  const bg = charBg || globalBg || null;
+  if (bg) {
+    frame.style.backgroundImage    = 'url(' + bg + ')';
+    frame.style.backgroundSize     = 'cover';
+    frame.style.backgroundPosition = 'center';
+    frame.style.backgroundRepeat   = 'no-repeat';
+    frame.style.backgroundColor    = 'transparent';
+    frame.classList.add('has-wallpaper');
+  } else {
+    frame.style.backgroundImage    = '';
+    frame.style.backgroundSize     = '';
+    frame.style.backgroundPosition = '';
+    frame.style.backgroundRepeat   = '';
+    frame.style.backgroundColor    = '';
+    frame.classList.remove('has-wallpaper');
+  }
+}
+
 window.addEventListener('storage', function(e) {
   if (e.key === 'luna_font_update' || e.key === 'luna_font_style') applyGlobalFont();
   if (e.key === 'luna_island_update' || e.key === 'luna_island_enabled' || e.key === 'luna_island_style') applyIsland();
   if (e.key === 'luna_tz_update') crTick();
+  if (e.key === 'luna_chat_bg_update') applyWallpaper();
+  if (e.key === 'luna_header_style') { if (typeof window.crApplyHeaderStyle === 'function') window.crApplyHeaderStyle(); }
+  /* 角色专属头部样式 key 变化时也同步 */
+  if (e.key && e.key.startsWith('luna_header_style_char_')) { if (typeof window.crApplyHeaderStyle === 'function') window.crApplyHeaderStyle(); }
 });
+
+/* ================================================================
+   跨页面头部样式实时同步 — BroadcastChannel
+   appearance_settings 点击「应用预览」时发送消息，
+   chatroom 在任意标签页都能立即收到并实时渲染，无需刷新页面。
+================================================================ */
+(function () {
+  try {
+    var _crStyleChannel = new BroadcastChannel('luna_header_style_channel');
+    _crStyleChannel.addEventListener('message', function (e) {
+      if (e.data && e.data.key === 'luna_header_style') {
+        /* localStorage 已由 appearance_settings 写好，直接调用读取函数即可 */
+        if (typeof window.crApplyHeaderStyle === 'function') window.crApplyHeaderStyle();
+      }
+    });
+  } catch (err) {
+    /* BroadcastChannel 不支持时静默降级，依赖 visibilitychange 兜底 */
+  }
+
+  /* visibilitychange 兜底：用户切回聊天页时重新读取最新样式 */
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      if (typeof window.crApplyHeaderStyle === 'function') window.crApplyHeaderStyle();
+    }
+  });
+})();
 
 window.addEventListener('pageshow', function(e) {
   if (e.persisted) window.location.reload();
@@ -6612,3 +6997,651 @@ function crAiReceiveHongbao(status) {
     confirmEl.style.opacity = '1'; confirmEl.style.transform = 'translateY(0)';
   }));
 }
+
+/* ================================================================
+   小剧场 — Theatre Panel
+================================================================ */
+(function () {
+
+const THEATRE_SCENES = [
+  { id: 'coffee', emoji: '☕', title: '咖啡馆初遇', desc: '雨天，你们在同一家小咖啡馆偶遇，共享一把伞…', prompt: '我们在一家安静的咖啡馆里相遇。外面下着雨，请你扮演我们第一次相遇的场景，用温柔而略带紧张的语气开始对话。' },
+  { id: 'night',  emoji: '🌙', title: '深夜漫步',   desc: '城市夜晚，街灯下的两个人，说着只有彼此懂的话。', prompt: '现在是深夜，我们一起在安静的街道上漫步。路灯把影子拉得很长，请你用温柔、私密的语气，像老朋友一样和我聊天。' },
+  { id: 'secret', emoji: '🔮', title: '秘密基地',   desc: '只有你们两个人知道的地方，藏着所有秘密。',  prompt: '我们来到了一个只有彼此才知道的秘密角落。这里是我们的专属空间，请你扮演这个场景，带着亲密和神秘感和我说话。' },
+  { id: 'travel', emoji: '🚂', title: '旅途邂逅',   desc: '火车上偶遇，窗外风景飞逝，话题却停不下来。',  prompt: '我们在一列驶向远方的火车上相遇。窗外风景不断变换，请你扮演陌生人变成旅伴的场景，带着轻松和好奇开始对话。' },
+  { id: 'star',   emoji: '✨', title: '星空之下',   desc: '草地上仰望星空，彼此分享最深藏的愿望。',  prompt: '我们躺在草地上一起看星星。夜空璀璨，气氛安静而温柔。请你扮演这个场景，用诗意且温暖的方式和我聊聊心里话。' },
+  { id: 'custom', emoji: '🎭', title: '自定义情景', desc: '描述你想要的故事世界，一起创造专属剧情。',  prompt: null },
+];
+
+/* ── 注入 HTML ── */
+document.body.insertAdjacentHTML('beforeend', `
+<div id="theatreOverlay" style="display:none;position:fixed;inset:0;z-index:14000;
+  align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);">
+  <div id="theatreBackdrop" style="position:absolute;inset:0;cursor:pointer;"></div>
+
+  <div id="theatreSheet" style="
+    position:relative;z-index:1;
+    width:100%;max-width:420px;
+    background:#fff;
+    border-radius:24px 24px 0 0;
+    overflow:hidden;
+    transform:translateY(100%);
+    transition:transform 0.4s cubic-bezier(0.34,1.05,0.64,1);
+    max-height:92vh;display:flex;flex-direction:column;
+    font-family:'Inter',-apple-system,sans-serif;">
+
+    <!-- 把手 -->
+    <div style="flex-shrink:0;padding:14px 0 0;display:flex;justify-content:center;">
+      <div style="width:36px;height:4px;border-radius:2px;background:#e0e0e0;"></div>
+    </div>
+
+    <!-- 头部 -->
+    <div style="flex-shrink:0;background:#1a1218;padding:20px 22px 18px;position:relative;overflow:hidden;">
+      <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.018) 1px,transparent 1px);background-size:16px 16px;pointer-events:none;"></div>
+      <div style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;border:0.5px solid rgba(255,255,255,.06);pointer-events:none;"></div>
+      <div style="position:relative;z-index:1;">
+        <div style="font-family:'Space Mono',monospace;font-size:8px;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:6px;">Theatre · 小剧场</div>
+        <div style="font-size:20px;font-weight:600;color:#fff;letter-spacing:-.3px;margin-bottom:5px;">选择你的剧情</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.6;">选定一个场景，与 <span id="thName" style="color:rgba(255,255,255,.7);">Luna</span> 共同演绎专属故事</div>
+      </div>
+    </div>
+
+    <!-- 场景列表 -->
+    <div id="thSceneList" style="flex:1;overflow-y:auto;padding:14px 16px 8px;scrollbar-width:none;display:flex;flex-direction:column;gap:10px;"></div>
+
+    <!-- 自定义输入区（默认隐藏） -->
+    <div id="thCustomArea" style="display:none;flex-shrink:0;padding:0 16px 10px;">
+      <div style="background:#f7f7f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:14px;padding:12px 14px;">
+        <div style="font-family:'Space Mono',monospace;font-size:8px;letter-spacing:2px;color:#b8b2aa;text-transform:uppercase;margin-bottom:8px;">描述你的情景</div>
+        <div id="thCustomInput" contenteditable="true"
+          style="font-size:13px;color:#1a1a1a;line-height:1.7;min-height:60px;outline:none;"
+          placeholder="例如：我们是两个相遇在图书馆的陌生人…"></div>
+      </div>
+    </div>
+
+    <!-- 底部按钮 -->
+    <div style="flex-shrink:0;padding:10px 16px 28px;display:flex;gap:10px;">
+      <button id="thCancelBtn" style="flex:1;padding:12px;border-radius:14px;border:0.5px solid rgba(0,0,0,0.12);background:#f5f5f5;cursor:pointer;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#888;text-transform:uppercase;">取消</button>
+      <button id="thStartBtn" style="flex:2;padding:12px;border-radius:14px;border:none;background:#1a1218;cursor:pointer;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#fff;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M5 10l4 4 6-8" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        开始演绎
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+#thSceneList::-webkit-scrollbar{display:none;}
+.th-scene-card{
+  border:0.5px solid rgba(0,0,0,0.1);border-radius:14px;padding:13px 14px;
+  cursor:pointer;display:flex;align-items:center;gap:12px;
+  transition:background .16s,border-color .16s,transform .12s;
+  background:#fafafa;
+  -webkit-tap-highlight-color:transparent;
+}
+.th-scene-card:active{transform:scale(0.985);}
+.th-scene-card.th-selected{background:#1a1218;border-color:#1a1218;}
+.th-scene-card.th-selected .th-sc-title{color:#fff;}
+.th-scene-card.th-selected .th-sc-desc{color:rgba(255,255,255,.45);}
+.th-sc-emoji{font-size:24px;flex-shrink:0;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.04);border-radius:10px;}
+.th-scene-card.th-selected .th-sc-emoji{background:rgba(255,255,255,.08);}
+.th-sc-title{font-size:13.5px;font-weight:600;color:#1a1a1a;letter-spacing:-.2px;margin-bottom:3px;}
+.th-sc-desc{font-size:11.5px;color:#aaa;line-height:1.5;}
+.th-sc-check{width:18px;height:18px;border-radius:50%;border:0.5px solid rgba(0,0,0,0.15);background:#fff;flex-shrink:0;margin-left:auto;display:flex;align-items:center;justify-content:center;transition:all .16s;}
+.th-scene-card.th-selected .th-sc-check{background:#fff;border-color:#fff;}
+</style>
+`);
+
+let _thSelected = null;
+
+/* ── 渲染场景卡 ── */
+function thRenderScenes() {
+  const list = document.getElementById('thSceneList');
+  list.innerHTML = '';
+  THEATRE_SCENES.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'th-scene-card' + (_thSelected === s.id ? ' th-selected' : '');
+    card.dataset.id = s.id;
+    card.innerHTML = `
+      <div class="th-sc-emoji">${s.emoji}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="th-sc-title">${s.title}</div>
+        <div class="th-sc-desc">${s.desc}</div>
+      </div>
+      <div class="th-sc-check">
+        ${_thSelected === s.id
+          ? `<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 2.5" stroke="#1a1218" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+          : ''}
+      </div>`;
+    card.addEventListener('click', () => {
+      _thSelected = s.id;
+      thRenderScenes();
+      const customArea = document.getElementById('thCustomArea');
+      customArea.style.display = s.id === 'custom' ? 'block' : 'none';
+    });
+    list.appendChild(card);
+  });
+}
+
+/* ── 开关面板 ── */
+function openTheatre() {
+  const ov = document.getElementById('theatreOverlay');
+  const sheet = document.getElementById('theatreSheet');
+  if (!ov || !sheet) return;
+  // 同步名字
+  const nameEl = document.getElementById('thName');
+  if (nameEl) nameEl.textContent = (typeof CR_NAME !== 'undefined' ? CR_NAME : 'Luna');
+  _thSelected = null;
+  document.getElementById('thCustomArea').style.display = 'none';
+  thRenderScenes();
+  ov.style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    sheet.style.transform = 'translateY(0)';
+  }));
+}
+
+function closeTheatre() {
+  const sheet = document.getElementById('theatreSheet');
+  if (sheet) sheet.style.transform = 'translateY(100%)';
+  setTimeout(() => {
+    const ov = document.getElementById('theatreOverlay');
+    if (ov) ov.style.display = 'none';
+  }, 380);
+}
+
+document.getElementById('theatreBackdrop').addEventListener('click', closeTheatre);
+document.getElementById('thCancelBtn').addEventListener('click', closeTheatre);
+
+/* ── 开始演绎 ── */
+document.getElementById('thStartBtn').addEventListener('click', () => {
+  if (!_thSelected) {
+    // 抖动提示
+    const sheet = document.getElementById('theatreSheet');
+    sheet.style.transition = 'transform 0.08s ease';
+    sheet.style.transform = 'translateY(-6px)';
+    setTimeout(() => { sheet.style.transform = 'translateY(0)'; sheet.style.transition = 'transform 0.4s cubic-bezier(0.34,1.05,0.64,1)'; }, 80);
+    return;
+  }
+  const scene = THEATRE_SCENES.find(s => s.id === _thSelected);
+  if (!scene) return;
+
+  // 自定义情景：先读输入框
+  let customText = '';
+  if (scene.id === 'custom') {
+    const inp = document.getElementById('thCustomInput');
+    customText = inp ? inp.textContent.trim() : '';
+    if (!customText) { inp && inp.focus(); return; }
+  }
+
+  closeTheatre();
+
+  // ── 跳转到 Luna Studio，把场景信息通过 URL 参数传递 ──
+  setTimeout(() => {
+    const charName = (typeof CR_NAME !== 'undefined' && CR_NAME) ? CR_NAME : 'Luna';
+    const params = new URLSearchParams({
+      from:     'theatre',
+      sceneId:  scene.id,
+      title:    scene.title,
+      desc:     scene.desc,
+      emoji:    scene.emoji,
+      custom:   customText,
+      charName: charName,
+    });
+    window.open('luna-studio.html?' + params.toString(), '_blank');
+  }, 300);
+});
+
+window.crOpenTheatrePanel = openTheatre;
+
+})();
+
+/* ================================================================
+   头部三个点按钮 → 跳转 chatsetting.html
+================================================================ */
+(function () {
+  function bindMoreBtn() {
+    const moreBtn = document.querySelector('.cr-actions .cr-action-btn[title="更多"]');
+    if (!moreBtn) return;
+    moreBtn.addEventListener('click', function () {
+      window.location.href = 'chatsetting.html';
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindMoreBtn);
+  } else {
+    bindMoreBtn();
+  }
+})();
+/* ================================================================
+   头部样式同步 — 从 appearance_settings 的「应用预览」写入
+   读取 luna_header_style，实时渲染到 .cr-header 及子元素
+================================================================ */
+(function () {
+
+  /* 注入的自定义 style 标签 */
+  var _crHeaderCustomStyle = null;
+
+  function crApplyHeaderStyle() {
+    try {
+      /* 优先读角色专属 key，没有则回落全局 luna_header_style */
+      var currentChar = localStorage.getItem('luna_current_chat') || '';
+      var charKey = currentChar ? 'luna_header_style_char_' + currentChar : '';
+      var raw = (charKey && localStorage.getItem(charKey))
+        ? localStorage.getItem(charKey)
+        : localStorage.getItem('luna_header_style');
+      if (!raw) return;
+      var s = JSON.parse(raw);
+
+      /* ── 1. 头部背景 ── */
+      var header = document.querySelector('.cr-header');
+      if (header) header.style.background = s.bg || '';
+
+      /* ── 2. 角色名颜色 & 字号 ── */
+      var nameEl = document.querySelector('.cr-name');
+      if (nameEl) {
+        nameEl.style.color    = s.nameColor || '';
+        nameEl.style.fontSize = s.nm ? s.nm + 'px' : '';
+      }
+
+      /* ── 3. 副标题 ── */
+      var subEl = document.querySelector('.cr-sub');
+      if (subEl) {
+        subEl.style.color    = s.sub || '';
+        subEl.style.fontSize = s.sb ? s.sb + 'px' : '';
+      }
+
+      /* ── 4. 头像背景色 & 尺寸 ── */
+      var avatarEl = document.querySelector('.cr-avatar');
+      if (avatarEl) {
+        if (s.av) {
+          avatarEl.style.width  = s.av + 'px';
+          avatarEl.style.height = s.av + 'px';
+        }
+        /* 只在没有真实头像图片时才覆盖背景色，防止盖掉头像 */
+        var hasImg = avatarEl.style.backgroundImage && avatarEl.style.backgroundImage !== 'none' && avatarEl.style.backgroundImage !== '';
+        if (!hasImg && s.avBg) {
+          avatarEl.style.background = s.avBg;
+        }
+      }
+
+      /* ── 5. 在线点 ── */
+      var dotEl = document.querySelector('.cr-online-dot');
+      if (dotEl) dotEl.style.background = s.dot || '';
+      var statusDotEl = document.querySelector('.cr-status-dot');
+      if (statusDotEl) statusDotEl.style.background = s.dot || '';
+
+      /* ── 6. 统计数值颜色 ── */
+      document.querySelectorAll('.cr-stat-val').forEach(function (el) {
+        el.style.color = s.stat || '';
+      });
+      document.querySelectorAll('.cr-stat-luna-row span').forEach(function (el) {
+        el.style.color = s.stat || '';
+      });
+
+      /* ── 7. 主内容行内边距 ── */
+      var mainEl = document.querySelector('.cr-header-main');
+      if (mainEl && s.pd) {
+        mainEl.style.paddingTop    = s.pd + 'px';
+        mainEl.style.paddingBottom = (s.pd - 2) + 'px';
+      }
+
+      /* ── 8. 自定义 CSS（选择器 + 代码块）── */
+      if (_crHeaderCustomStyle) {
+        _crHeaderCustomStyle.remove();
+        _crHeaderCustomStyle = null;
+      }
+      /* customSel 为空时用默认选择器 */
+      var rawSel  = (s.customSel  || '').trim() || '.hs-cr-header';
+      var rawCode = (s.customCode || '').trim();
+
+      /* 把 .hs-cr-* 选择器映射到 chatroom 对应类名（无条件执行，不依赖 customCode 是否为空）
+         .hs-cr-header 映射为 .cr-frame .cr-header 以提升优先级，
+         确保覆盖 chatroom.css 中的 .cr-frame:not(.has-wallpaper) .cr-header 规则 */
+      var mappedSel = rawSel
+        .replace(/\.hs-cr-header-main\b/g,  '.cr-header-main')
+        .replace(/\.hs-cr-header\b/g,        '.cr-frame .cr-header')
+        .replace(/\.hs-cr-avatar\b/g,         '.cr-avatar')
+        .replace(/\.hs-cr-name\b/g,           '.cr-name')
+        .replace(/\.hs-cr-sub\b/g,            '.cr-sub')
+        .replace(/\.hs-cr-status-pill\b/g,    '.cr-status-pill')
+        .replace(/\.hs-cr-status-dot\b/g,     '.cr-status-dot')
+        .replace(/\.hs-cr-online-dot\b/g,     '.cr-online-dot')
+        .replace(/\.hs-cr-stats\b/g,          '.cr-stats')
+        .replace(/\.hs-cr-stat-val\b/g,       '.cr-stat-val')
+        .replace(/\.hs-cr-pulse-ring\b/g,     '.cr-pulse-ring')
+        .replace(/\.hs-cr-badge\b/g,          '.cr-badge');
+
+      /* 始终注入基础样式（将第1~7步的内联样式用 !important 写入 style 标签，
+         确保能覆盖 chatroom.css 里更高优先级的规则） */
+      var baseCode =
+        '.cr-frame .cr-header { background: ' + (s.bg || 'unset') + ' !important; }\n' +
+        '.cr-name { color: ' + (s.nameColor || 'unset') + ' !important; font-size: ' + (s.nm ? s.nm + 'px' : 'unset') + ' !important; }\n' +
+        '.cr-sub { color: ' + (s.sub || 'unset') + ' !important; font-size: ' + (s.sb ? s.sb + 'px' : 'unset') + ' !important; }\n' +
+        '.cr-avatar { width: ' + (s.av ? s.av + 'px' : 'unset') + ' !important; height: ' + (s.av ? s.av + 'px' : 'unset') + ' !important; }\n' +
+        '.cr-online-dot { background: ' + (s.dot || 'unset') + ' !important; }\n' +
+        '.cr-status-dot { background: ' + (s.dot || 'unset') + ' !important; }\n' +
+        '.cr-stat-val { color: ' + (s.stat || 'unset') + ' !important; }\n' +
+        '.cr-stat-luna-row span { color: ' + (s.stat || 'unset') + ' !important; }\n' +
+        '.cr-header-main { padding-top: ' + (s.pd ? s.pd + 'px' : 'unset') + ' !important; padding-bottom: ' + (s.pd ? (s.pd - 2) + 'px' : 'unset') + ' !important; }';
+
+      /* 若有自定义 CSS，追加到基础样式后（同样补 !important） */
+      var extraCode = '';
+      if (rawCode) {
+        /* 给每条 CSS 声明自动补 !important，
+           确保用户自定义样式能覆盖 chatroom.css 里任何更高优先级的规则 */
+        var boostedCode = rawCode
+          .replace(/([^:{}\n\/][^:{}]*?:[^;{}]+?)\s*(!important)?\s*;/g, function(m, decl, already) {
+            return already ? m : decl.trimRight() + ' !important;';
+          });
+        /* 处理末尾无分号的最后一条声明 */
+        if (!/;\s*$/.test(boostedCode.trim())) {
+          boostedCode = boostedCode.trimRight();
+          if (!/!important/.test(boostedCode.split('\n').pop())) {
+            boostedCode += ' !important;';
+          }
+        }
+        extraCode = '\n' + mappedSel + ' { ' + boostedCode + ' }';
+      }
+
+      var styleTag = document.createElement('style');
+      styleTag.id  = 'cr-header-custom-inject';
+      styleTag.textContent = baseCode + extraCode;
+      document.head.appendChild(styleTag);
+      _crHeaderCustomStyle = styleTag;
+
+    } catch (err) {
+      console.warn('[crApplyHeaderStyle] 解析失败', err);
+    }
+  }
+
+  /* 暴露全局（供 storage 监听器调用） */
+  window.crApplyHeaderStyle = crApplyHeaderStyle;
+
+  /* 页面加载时立即读取并应用已保存样式 */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', crApplyHeaderStyle);
+  } else {
+    crApplyHeaderStyle();
+  }
+
+})();
+
+/* ================================================================
+   内嵌 Header Studio — 直接操作本页 .cr-header，零跨页面通信
+================================================================ */
+(function () {
+
+  /* ── 打开 / 关闭 ── */
+  window.crHsOpen = function () {
+    crHsLoadSaved();   // 读已存样式回填表单
+    document.getElementById('crHsOverlay').style.display = 'flex';
+    document.getElementById('crHsOverlay').style.alignItems = 'flex-end';
+  };
+  window.crHsClose = function () {
+    document.getElementById('crHsOverlay').style.display = 'none';
+  };
+  // 点遮罩关闭
+  document.getElementById('crHsOverlay').addEventListener('click', function (e) {
+    if (e.target === this) crHsClose();
+  });
+
+  /* ── 实时预览（调色/拖条时立即反映到真实头部）── */
+  window.crHsPreview = function () {
+    var bg     = document.getElementById('crHsCBg').value;
+    var name   = document.getElementById('crHsCName').value;
+    var sub    = document.getElementById('crHsCSub').value;
+    var avBg   = document.getElementById('crHsCAvBg').value;
+    var dot    = document.getElementById('crHsCDot').value;
+    var stat   = document.getElementById('crHsCStat').value;
+    var av     = document.getElementById('crHsRAv').value;
+    var nm     = document.getElementById('crHsRNm').value;
+    var pd     = document.getElementById('crHsRPd').value;
+    var sb     = document.getElementById('crHsRSb').value;
+
+    // 更新数值显示
+    document.getElementById('crHsVAv').textContent  = av + 'px';
+    document.getElementById('crHsVNm').textContent  = nm + 'px';
+    document.getElementById('crHsVPd').textContent  = pd + 'px';
+    document.getElementById('crHsVSb').textContent  = sb + 'px';
+    document.getElementById('crHsHBg').textContent   = bg;
+    document.getElementById('crHsHName').textContent = name;
+    document.getElementById('crHsHSub').textContent  = sub;
+    document.getElementById('crHsHAvBg').textContent = avBg;
+    document.getElementById('crHsHDot').textContent  = dot;
+    document.getElementById('crHsHStat').textContent = stat;
+
+    // 直接操作真实 DOM — 就在同一个页面，零延迟
+    var header = document.querySelector('.cr-header');
+    if (header) header.style.setProperty('background', bg, 'important');
+
+    var nameEl = document.querySelector('.cr-name');
+    if (nameEl) { nameEl.style.setProperty('color', name, 'important'); nameEl.style.setProperty('font-size', nm + 'px', 'important'); }
+
+    var subEl = document.querySelector('.cr-sub');
+    if (subEl) { subEl.style.setProperty('color', sub, 'important'); subEl.style.setProperty('font-size', sb + 'px', 'important'); }
+
+    var avatarEl = document.querySelector('.cr-avatar');
+    if (avatarEl) {
+      avatarEl.style.setProperty('width',  av + 'px', 'important');
+      avatarEl.style.setProperty('height', av + 'px', 'important');
+      var hasImg = avatarEl.style.backgroundImage && avatarEl.style.backgroundImage !== 'none' && avatarEl.style.backgroundImage !== '';
+      if (!hasImg) avatarEl.style.setProperty('background', avBg, 'important');
+    }
+    var backBtn = document.querySelector('.cr-back-btn');
+    if (backBtn) { backBtn.style.setProperty('width', av + 'px', 'important'); backBtn.style.setProperty('height', av + 'px', 'important'); }
+
+    var dotEl = document.querySelector('.cr-online-dot');
+    if (dotEl) dotEl.style.setProperty('background', dot, 'important');
+    var statusDotEl = document.querySelector('.cr-status-dot');
+    if (statusDotEl) statusDotEl.style.setProperty('background', dot, 'important');
+
+    document.querySelectorAll('.cr-stat-val').forEach(function(el) { el.style.setProperty('color', stat, 'important'); });
+    document.querySelectorAll('.cr-stat-luna-row span').forEach(function(el) { el.style.setProperty('color', stat, 'important'); });
+
+    var mainEl = document.querySelector('.cr-header-main');
+    if (mainEl) {
+      mainEl.style.setProperty('padding-top',    pd + 'px', 'important');
+      mainEl.style.setProperty('padding-bottom', (pd - 2) + 'px', 'important');
+    }
+  };
+
+  /* ── 仅应用自定义 CSS（textarea 里的内容）── */
+  window.crHsApplyCssOnly = function () {
+    var sel  = (document.getElementById('crHsCssSel').value || '').trim() || '.cr-header';
+    var code = (document.getElementById('crHsCssCode').value || '').trim();
+    if (!code) return;
+    crHsInjectCustomCss(sel, code);
+  };
+  window.crHsClearCss = function () {
+    var old = document.getElementById('cr-hs-custom-inject');
+    if (old) old.remove();
+  };
+
+  function crHsInjectCustomCss(sel, code) {
+    var old = document.getElementById('cr-hs-custom-inject');
+    if (old) old.remove();
+    // 把 !important 加到每条声明
+    var boosted = code.replace(/([^:{}\n\/][^:{}]*?:[^;{}]+?)\s*(!important)?\s*;/g, function(m, decl, already) {
+
+      return already ? m : decl.trimRight() + ' !important;';
+    });
+    if (!/;\s*$/.test(boosted.trim())) boosted = boosted.trimRight() + ' !important;';
+    var tag = document.createElement('style');
+    tag.id = 'cr-hs-custom-inject';
+    tag.textContent = sel + ' { ' + boosted + ' }';
+    document.head.appendChild(tag);
+  }
+
+  /* ── 应用全部并保存 ── */
+  window.crHsApply = function () {
+    crHsPreview();  // 确保预览同步
+    var code = (document.getElementById('crHsCssCode').value || '').trim();
+    var sel  = (document.getElementById('crHsCssSel').value || '').trim() || '.cr-header';
+    if (code) crHsInjectCustomCss(sel, code);
+
+    // 存入 localStorage（供下次打开回填）
+    var s = {
+      bg:        document.getElementById('crHsCBg').value,
+      nameColor: document.getElementById('crHsCName').value,
+      sub:       document.getElementById('crHsCSub').value,
+      avBg:      document.getElementById('crHsCAvBg').value,
+      dot:       document.getElementById('crHsCDot').value,
+      stat:      document.getElementById('crHsCStat').value,
+      av:        +document.getElementById('crHsRAv').value,
+      nm:        +document.getElementById('crHsRNm').value,
+      pd:        +document.getElementById('crHsRPd').value,
+      sb:        +document.getElementById('crHsRSb').value,
+      customSel:  sel,
+      customCode: code,
+      ts: Date.now()
+    };
+    try { localStorage.setItem('luna_header_style', JSON.stringify(s)); } catch(e){}
+
+    // 按钮反馈
+    var btn = document.getElementById('crHsApplyBtn');
+    btn.textContent = '✓ 已保存';
+    btn.style.background = '#3a7a3a';
+    setTimeout(function() { btn.textContent = '✓ 应用'; btn.style.background = '#1a1a1a'; }, 1800);
+  };
+
+  /* ── 导出 CSS ── */
+  window.crHsExportCSS = function () {
+    var bg  = document.getElementById('crHsCBg').value;
+    var nm  = document.getElementById('crHsCName').value;
+    var sub = document.getElementById('crHsCSub').value;
+    var av  = document.getElementById('crHsRAv').value;
+    var nmSz= document.getElementById('crHsRNm').value;
+    var pd  = document.getElementById('crHsRPd').value;
+    var sb  = document.getElementById('crHsRSb').value;
+    var dot = document.getElementById('crHsCDot').value;
+    var avBg= document.getElementById('crHsCAvBg').value;
+    var stat= document.getElementById('crHsCStat').value;
+    var css =
+      '.cr-header { background: ' + bg + '; }\n' +
+
+      '.cr-name { font-size: ' + nmSz + 'px; color: ' + nm + '; }\n' +
+
+      '.cr-sub { font-size: ' + sb + 'px; color: ' + sub + '; }\n' +
+
+      '.cr-avatar { width: ' + av + 'px; height: ' + av + 'px; background: ' + avBg + '; }\n' +
+
+      '.cr-online-dot { background: ' + dot + '; }\n' +
+
+      '.cr-stat-val { color: ' + stat + '; }\n' +
+
+      '.cr-header-main { padding-top: ' + pd + 'px; padding-bottom: ' + (pd-2) + 'px; }';
+    try {
+      navigator.clipboard.writeText(css).then(function() { alert('CSS 已复制到剪贴板'); });
+    } catch(e) { prompt('复制以下 CSS：', css); }
+  };
+
+  /* ── 重置 ── */
+  window.crHsReset = function () {
+    document.getElementById('crHsCBg').value   = '#ffffff';
+    document.getElementById('crHsCName').value = '#1a1a1a';
+    document.getElementById('crHsCSub').value  = '#aaaaaa';
+    document.getElementById('crHsCAvBg').value = '#efefef';
+    document.getElementById('crHsCDot').value  = '#5a5a5a';
+    document.getElementById('crHsCStat').value = '#1a1a1a';
+    document.getElementById('crHsRAv').value   = 64;
+    document.getElementById('crHsRNm').value   = 22;
+    document.getElementById('crHsRPd').value   = 16;
+    document.getElementById('crHsRSb').value   = 12;
+    crHsPreview();
+    // 清除自定义 CSS
+    crHsClearCss();
+    // 清除所有内联样式
+    var header = document.querySelector('.cr-header');
+    if (header) header.style.removeProperty('background');
+    var nameEl = document.querySelector('.cr-name');
+    if (nameEl) { nameEl.style.removeProperty('color'); nameEl.style.removeProperty('font-size'); }
+    var subEl = document.querySelector('.cr-sub');
+    if (subEl) { subEl.style.removeProperty('color'); subEl.style.removeProperty('font-size'); }
+    try { localStorage.removeItem('luna_header_style'); } catch(e){}
+  };
+
+  /* ── 读已保存样式回填表单 ── */
+  function crHsLoadSaved() {
+    try {
+      var currentChar = localStorage.getItem('luna_current_chat') || '';
+      var charKey = currentChar ? 'luna_header_style_char_' + currentChar : '';
+      var raw = (charKey && localStorage.getItem(charKey)) || localStorage.getItem('luna_header_style');
+      if (!raw) return;
+      var s = JSON.parse(raw);
+      if (s.bg)        document.getElementById('crHsCBg').value   = s.bg;
+      if (s.nameColor) document.getElementById('crHsCName').value = s.nameColor;
+      if (s.sub)       document.getElementById('crHsCSub').value  = s.sub;
+      if (s.avBg)      document.getElementById('crHsCAvBg').value = s.avBg;
+      if (s.dot)       document.getElementById('crHsCDot').value  = s.dot;
+      if (s.stat)      document.getElementById('crHsCStat').value = s.stat;
+      if (s.av)        document.getElementById('crHsRAv').value   = s.av;
+      if (s.nm)        document.getElementById('crHsRNm').value   = s.nm;
+      if (s.pd)        document.getElementById('crHsRPd').value   = s.pd;
+      if (s.sb)        document.getElementById('crHsRSb').value   = s.sb;
+      if (s.customSel)  document.getElementById('crHsCssSel').value  = s.customSel;
+      if (s.customCode) document.getElementById('crHsCssCode').value = s.customCode;
+    } catch(e){}
+  }
+
+  /* ── 页面加载时自动应用上次保存的样式 ── */
+  function crHsAutoApply() {
+    try {
+      var currentChar = localStorage.getItem('luna_current_chat') || '';
+      var charKey = currentChar ? 'luna_header_style_char_' + currentChar : '';
+      var raw = (charKey && localStorage.getItem(charKey)) || localStorage.getItem('luna_header_style');
+      if (!raw) return;
+      var s = JSON.parse(raw);
+
+      var header = document.querySelector('.cr-header');
+      if (header && s.bg) header.style.setProperty('background', s.bg, 'important');
+
+      var nameEl = document.querySelector('.cr-name');
+      if (nameEl) {
+        if (s.nameColor) nameEl.style.setProperty('color', s.nameColor, 'important');
+        if (s.nm)        nameEl.style.setProperty('font-size', s.nm + 'px', 'important');
+      }
+      var subEl = document.querySelector('.cr-sub');
+      if (subEl) {
+        if (s.sub) subEl.style.setProperty('color', s.sub, 'important');
+        if (s.sb)  subEl.style.setProperty('font-size', s.sb + 'px', 'important');
+      }
+      var avatarEl = document.querySelector('.cr-avatar');
+      if (avatarEl && s.av) {
+        avatarEl.style.setProperty('width',  s.av + 'px', 'important');
+        avatarEl.style.setProperty('height', s.av + 'px', 'important');
+        var hasImg = avatarEl.style.backgroundImage && avatarEl.style.backgroundImage !== 'none';
+        if (!hasImg && s.avBg) avatarEl.style.setProperty('background', s.avBg, 'important');
+      }
+      var dotEl = document.querySelector('.cr-online-dot');
+      if (dotEl && s.dot) dotEl.style.setProperty('background', s.dot, 'important');
+      var statusDot = document.querySelector('.cr-status-dot');
+      if (statusDot && s.dot) statusDot.style.setProperty('background', s.dot, 'important');
+      document.querySelectorAll('.cr-stat-val').forEach(function(el) { if (s.stat) el.style.setProperty('color', s.stat, 'important'); });
+      var mainEl = document.querySelector('.cr-header-main');
+      if (mainEl && s.pd) {
+        mainEl.style.setProperty('padding-top',    s.pd + 'px', 'important');
+        mainEl.style.setProperty('padding-bottom', (s.pd - 2) + 'px', 'important');
+      }
+      if (s.customCode) {
+        var sel = (s.customSel || '').trim() || '.cr-header';
+        var boosted = s.customCode.replace(/([^:{}\n\/][^:{}]*?:[^;{}]+?)\s*(!important)?\s*;/g, function(m, decl, already) {
+
+          return already ? m : decl.trimRight() + ' !important;';
+        });
+        if (!/;\s*$/.test(boosted.trim())) boosted = boosted.trimRight() + ' !important;';
+        var tag = document.createElement('style');
+        tag.id = 'cr-hs-custom-inject';
+        tag.textContent = sel + ' { ' + boosted + ' }';
+        document.head.appendChild(tag);
+      }
+    } catch(e){}
+  }
+
+  // DOM 就绪后自动应用
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', crHsAutoApply);
+  } else {
+    crHsAutoApply();
+  }
+
+})();

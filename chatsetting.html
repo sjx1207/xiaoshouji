@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>聊天背景设置</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="chatsetting.css" />
+</head>
+<body>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">聊天背景设置页面</h2>
+
+<div class="pg">
+  <div class="deco-grid"></div>
+
+  <svg class="deco-arc-tr" width="340" height="340" viewBox="0 0 340 340">
+    <circle cx="300" cy="60" r="180" stroke="rgba(0,0,0,0.035)" stroke-width="0.5" fill="none"/>
+    <circle cx="300" cy="60" r="240" stroke="rgba(0,0,0,0.025)" stroke-width="0.5" fill="none"/>
+    <circle cx="300" cy="60" r="120" stroke="rgba(0,0,0,0.05)" stroke-width="0.5" fill="none"/>
+    <line x1="160" y1="0" x2="340" y2="180" stroke="rgba(0,0,0,0.025)" stroke-width="0.5"/>
+    <line x1="220" y1="0" x2="340" y2="120" stroke="rgba(0,0,0,0.02)" stroke-width="0.5"/>
+  </svg>
+  <svg class="deco-arc-bl" width="260" height="260" viewBox="0 0 260 260">
+    <circle cx="40" cy="220" r="160" stroke="rgba(0,0,0,0.03)" stroke-width="0.5" fill="none"/>
+    <circle cx="40" cy="220" r="210" stroke="rgba(0,0,0,0.022)" stroke-width="0.5" fill="none"/>
+    <circle cx="40" cy="220" r="110" stroke="rgba(0,0,0,0.04)" stroke-width="0.5" fill="none"/>
+  </svg>
+
+  <div class="wrap">
+
+    <!-- ═══ 状态栏（与 chatroom 同步）═══ -->
+    <div class="status-bar">
+      <div class="status-time" id="csTime">9:41</div>
+      <div class="status-island" id="csIsland"></div>
+      <div class="status-right">
+        <div class="signal">
+          <i></i><i></i><i></i><i></i>
+        </div>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="#1a1a1a" opacity="0.85">
+          <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+          <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+          <circle cx="8" cy="10.5" r="1.8"/>
+        </svg>
+        <div class="battery">
+          <span class="bat-pct" id="csBatPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="csBatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ NAV 导航栏 ═══ -->
+    <div class="nav">
+      <div class="nav-left">
+        <div class="nav-back" id="csNavBack">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M12 5l-7 7 7 7" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="nav-slash"></div>
+        <div>
+          <div class="nav-wordmark">设置</div>
+          <div class="nav-mono">APPEARANCE · BACKGROUND</div>
+        </div>
+      </div>
+      <button class="nav-save" id="csSaveBtn">保存更改</button>
+    </div>
+
+    <!-- ═══ PERSONA PANEL · 角色与用户 ═══ -->
+    <div class="sec-label">角色配对 · PERSONA</div>
+    <div class="card persona-card" id="personaCard">
+      <!-- 装饰圆 -->
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="persona-deco-ring1"></div>
+      <div class="persona-deco-ring2"></div>
+      <div class="persona-deco-line-v"></div>
+      <div class="persona-deco-line-h"></div>
+      <svg class="persona-deco-cross" width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <line x1="12" y1="0" x2="12" y2="24" stroke="rgba(0,0,0,0.05)" stroke-width="0.5"/>
+        <line x1="0" y1="12" x2="24" y2="12" stroke="rgba(0,0,0,0.05)" stroke-width="0.5"/>
+        <circle cx="12" cy="12" r="3" stroke="rgba(0,0,0,0.06)" stroke-width="0.5" fill="none"/>
+      </svg>
+
+      <!-- 上方标题区 -->
+      <div class="persona-header">
+        <div class="persona-header-left">
+          <div class="persona-eyebrow">PERSONA · 角色配对</div>
+          <div class="persona-title-row">
+            <div class="persona-title">当前<em>配置</em></div>
+          </div>
+          <div class="persona-subtitle">角色与用户身份的绑定状态</div>
+        </div>
+        <div class="persona-header-tag" id="personaStatusTag">
+          <div class="persona-tag-dot" id="personaTagDot"></div>
+          <span id="personaTagText">加载中</span>
+        </div>
+      </div>
+
+      <!-- 核心展示区：角色+用户融合 -->
+      <div class="persona-body" id="personaBody">
+        <!-- JS 渲染 -->
+      </div>
+
+      <!-- 底部操作行 -->
+      <div class="persona-footer" id="personaFooter">
+        <!-- JS 渲染 -->
+      </div>
+    </div>
+
+    <!-- ═══ HERO ═══ -->
+    <div class="hero">
+      <svg style="position:absolute;top:-30px;right:-10px;pointer-events:none;" width="200" height="170" viewBox="0 0 200 170">
+        <circle cx="180" cy="30" r="90" stroke="rgba(0,0,0,0.04)" stroke-width="0.5" fill="none"/>
+        <circle cx="180" cy="30" r="130" stroke="rgba(0,0,0,0.028)" stroke-width="0.5" fill="none"/>
+        <circle cx="180" cy="30" r="58" stroke="rgba(0,0,0,0.055)" stroke-width="0.5" fill="none"/>
+        <line x1="100" y1="0" x2="200" y2="90" stroke="rgba(0,0,0,0.028)" stroke-width="0.5"/>
+      </svg>
+      <div class="hero-eyebrow">CHAT · 背景设置</div>
+      <div class="hero-title">聊天<em>背景</em><br>自定义</div>
+      <div class="hero-sub">上传图片作为聊天页面背景，可选择应用范围：全局通用或仅当前角色</div>
+      <div class="hero-tag">
+        <div class="hero-tag-dot"></div>
+        实时预览 · LIVE PREVIEW
+      </div>
+    </div>
+
+    <!-- ═══ 当前背景 · CURRENT ═══ -->
+    <div class="sec-label">当前背景 · CURRENT</div>
+    <div class="card">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="cur-strip">
+        <div class="cur-left">
+          <div class="cur-thumb" id="curThumb"></div>
+          <div>
+            <div class="cur-name" id="curName">默认背景</div>
+            <div class="cur-hint" id="curHint">DEFAULT · GRID PATTERN</div>
+          </div>
+        </div>
+        <button class="cur-clear" id="csClearBtn">恢复默认</button>
+      </div>
+
+      <div class="card-rule"></div>
+
+      <!-- 实时预览 -->
+      <div class="preview-wrap">
+        <div class="preview-label-row">
+          <div class="preview-label">实时预览 · PREVIEW</div>
+          <div class="preview-ratio">9 : 16</div>
+        </div>
+
+        <div class="phone-stage">
+          <!-- 左侧装饰 -->
+          <div class="phone-side-deco" style="margin-right:14px;">
+            <div class="phone-side-line"></div>
+            <div class="phone-side-cross"></div>
+            <div class="phone-side-dot"></div>
+            <div class="phone-side-line" style="height:40px;"></div>
+          </div>
+
+          <!-- 手机预览 -->
+          <div class="preview-phone" id="previewPhone">
+            <div class="phone-notch"><div class="phone-notch-cam"></div></div>
+            <div class="phone-bg" id="phoneBg"></div>
+            <div class="phone-status">
+              <div class="phone-time">9:41</div>
+              <div class="phone-sigs">
+                <div class="sig-b" style="height:4px;"></div>
+                <div class="sig-b" style="height:6px;"></div>
+                <div class="sig-b" style="height:9px;"></div>
+                <div class="sig-b" style="height:11px;"></div>
+              </div>
+            </div>
+            <div class="phone-header">
+              <div class="phav"></div>
+              <div>
+                <div class="phname">Luna</div>
+                <div class="phstatus">ONLINE · 在线</div>
+              </div>
+            </div>
+            <div class="phone-msgs">
+              <div class="pmsg l"><div class="pbbl l">今天想聊些什么呢？</div><div class="ptime">21:04</div></div>
+              <div class="pmsg r"><div class="pbbl r">我想分享一件开心的事</div><div class="ptime">21:05</div></div>
+              <div class="pmsg l"><div class="pbbl l">快说快说，我在听～</div><div class="ptime">21:05</div></div>
+              <div class="pmsg r"><div class="pbbl r">今天终于鼓起勇气了！</div><div class="ptime">21:06</div></div>
+            </div>
+            <div class="phone-input">
+              <div class="pinp-bar">说点什么...</div>
+              <div class="pinp-send">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12h14M12 5l7 7-7 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧装饰 -->
+          <div class="phone-side-deco" style="margin-left:14px;">
+            <div class="phone-side-line" style="height:40px;"></div>
+            <div class="phone-side-dot"></div>
+            <div class="phone-side-cross"></div>
+            <div class="phone-side-line"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 应用范围 · SCOPE ═══ -->
+    <div class="sec-label">应用范围 · SCOPE</div>
+    <div class="card">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="scope-hd">
+        <div>
+          <div class="scope-title">选择作用范围</div>
+          <div class="scope-sub">设置此背景应用于所有角色<br>还是仅限当前这个聊天页面</div>
+        </div>
+        <div class="scope-badge">SCOPE · 范围</div>
+      </div>
+      <div class="scope-opts">
+        <div class="scope-opt on" data-scope="global" id="scopeGlobal">
+          <div class="soa1"></div>
+          <div class="soa2"></div>
+          <div class="scope-radio"><div class="sr-dot"></div></div>
+          <div class="scope-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="#fff" stroke-width="1.5"/>
+              <path d="M3 12h18M12 3c-2.5 3-4 5.4-4 9s1.5 6 4 9M12 3c2.5 3 4 5.4 4 9s-1.5 6-4 9" stroke="#fff" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="scope-name">全局</div>
+          <div class="scope-desc">所有角色<br>共用此背景</div>
+        </div>
+        <div class="scope-opt" data-scope="char" id="scopeChar">
+          <div class="soa1"></div>
+          <div class="soa2"></div>
+          <div class="scope-radio"></div>
+          <div class="scope-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2a5 5 0 100 10A5 5 0 0012 2z" stroke="#888" stroke-width="1.5"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="scope-name">仅此角色</div>
+          <div class="scope-desc">仅限当前<br>聊天页面使用</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 上传图片 · UPLOAD ═══ -->
+    <div class="sec-label">上传图片 · UPLOAD</div>
+    <div class="card">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="upload-hd">
+        <div class="upload-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="upload-name">上传背景图片</div>
+          <div class="upload-hint">UPLOAD · IMAGE · WALLPAPER</div>
+        </div>
+      </div>
+      <div class="drop" id="dropZone">
+        <div class="drop-tl"></div>
+        <div class="drop-tr"></div>
+        <div class="drop-bl"></div>
+        <div class="drop-br"></div>
+        <div class="drop-ico">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path d="M12 15V3M7 8l5-5 5 5" stroke="#aaa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 16v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="drop-txt">拖拽图片到此处，或点击选择</div>
+        <div class="drop-fmts">
+          <div class="fmt">JPG</div><div class="fmtsep">·</div>
+          <div class="fmt">PNG</div><div class="fmtsep">·</div>
+          <div class="fmt">WEBP</div><div class="fmtsep">·</div>
+          <div class="fmt">HEIC</div>
+        </div>
+      </div>
+      <!-- 隐藏文件输入 -->
+      <input type="file" id="csFileInput" accept="image/*" style="display:none;" />
+      <div class="upload-footer">
+        <div class="upload-tip">建议比例 9:16 · 最大 10MB</div>
+        <button class="upload-btn" id="csPickBtn">从相册选择</button>
+      </div>
+    </div>
+
+    <!-- ═══ BOTTOM 底部按钮 ═══ -->
+    <div class="bottom">
+      <button class="btn-cancel" id="csCancelBtn">取消</button>
+      <button class="btn-apply" id="csApplyBtn">
+        <div class="bap-c1"></div>
+        <div class="bap-c2"></div>
+        应用背景
+      </button>
+    </div>
+
+    <!-- ═══ 世界书设置 · WORLD BOOK ═══ -->
+    <div class="wb-set-hero">
+      <svg style="position:absolute;top:-20px;right:-10px;pointer-events:none;" width="160" height="130" viewBox="0 0 160 130">
+        <circle cx="140" cy="20" r="70" stroke="rgba(0,0,0,0.04)" stroke-width="0.5" fill="none"/>
+        <circle cx="140" cy="20" r="100" stroke="rgba(0,0,0,0.025)" stroke-width="0.5" fill="none"/>
+        <circle cx="140" cy="20" r="45" stroke="rgba(0,0,0,0.055)" stroke-width="0.5" fill="none"/>
+        <line x1="70" y1="0" x2="160" y2="80" stroke="rgba(0,0,0,0.025)" stroke-width="0.5"/>
+      </svg>
+      <div class="wb-set-hero-eyebrow">WORLD · 世界书设置</div>
+      <div class="wb-set-hero-title">世界<em>书</em><br>管理</div>
+      <div class="wb-set-hero-sub">管理世界观条目、触发规则与注入设定，构建完整的叙事世界</div>
+      <div class="wb-set-hero-tag"><div class="wb-set-hero-dot"></div>条目实时同步 · LIVE SYNC</div>
+    </div>
+
+    <!-- 数据概览 -->
+    <div class="sec-label">数据概览 · STATS</div>
+    <div class="card">
+      <div class="card-deco-c1"></div><div class="card-deco-c2"></div><div class="card-deco-c3"></div>
+      <div class="wb-stat-strip">
+        <div class="wb-stat-cell">
+          <div class="wb-stat-num" id="wbSetStatCount">00</div>
+          <div class="wb-stat-lbl">Entries</div>
+        </div>
+        <div class="wb-stat-cell">
+          <div class="wb-stat-num" id="wbSetStatActive"><em>00</em></div>
+          <div class="wb-stat-lbl">Active</div>
+        </div>
+        <div class="wb-stat-cell">
+          <div class="wb-stat-num" id="wbSetStatTypes">00</div>
+          <div class="wb-stat-lbl">Types</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 全局开关 -->
+    <div class="sec-label">全局设置 · GLOBAL</div>
+    <div class="card">
+      <div class="card-deco-c1"></div><div class="card-deco-c2"></div><div class="card-deco-c3"></div>
+
+      <div class="wb-row-item">
+        <div class="wb-row-left">
+          <div class="wb-row-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+          </div>
+          <div>
+            <div class="wb-row-title">启用世界书</div>
+            <div class="wb-row-sub">ENABLE · WORLD BOOK</div>
+          </div>
+        </div>
+        <label class="wb-toggle"><input type="checkbox" id="wbSetEnabled" checked onchange="wbSetSyncToggle(this,'wbSetEnabledIcon')"/><span class="wb-toggle-track"><span class="wb-toggle-thumb"></span></span></label>
+      </div>
+
+      <div class="wb-row-item">
+        <div class="wb-row-left">
+          <div class="wb-row-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-2.5 3-4 5.4-4 9s1.5 6 4 9M12 3c2.5 3 4 5.4 4 9s-1.5 6-4 9"/></svg>
+          </div>
+          <div>
+            <div class="wb-row-title">全局作用范围</div>
+            <div class="wb-row-sub">SCOPE · ALL CHARACTERS</div>
+          </div>
+        </div>
+        <label class="wb-toggle"><input type="checkbox" id="wbSetGlobal" checked onchange="wbSetSyncToggle(this,'')"/><span class="wb-toggle-track"><span class="wb-toggle-thumb"></span></span></label>
+      </div>
+
+      <div class="wb-row-item">
+        <div class="wb-row-left">
+          <div class="wb-row-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
+          </div>
+          <div>
+            <div class="wb-row-title">关键词触发扫描</div>
+            <div class="wb-row-sub">TRIGGER · KEYWORD SCAN</div>
+          </div>
+        </div>
+        <label class="wb-toggle"><input type="checkbox" id="wbSetTrigger" checked onchange="wbSetSyncToggle(this,'')"/><span class="wb-toggle-track"><span class="wb-toggle-thumb"></span></span></label>
+      </div>
+
+      <div class="wb-row-item wb-row-item--last">
+        <div class="wb-row-left">
+          <div class="wb-row-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <div class="wb-row-title">插入位置优先级</div>
+            <div class="wb-row-sub">POSITION · INJECTION ORDER</div>
+          </div>
+        </div>
+        <div class="wb-row-right">
+          <div class="wb-row-val" id="wbSetPosVal">对话前</div>
+          <div class="wb-pos-opts" id="wbPosOpts" style="display:none">
+            <div class="wb-pos-opt wb-pos-on" onclick="wbSetPos(this,'对话前')">对话前</div>
+            <div class="wb-pos-opt" onclick="wbSetPos(this,'对话后')">对话后</div>
+            <div class="wb-pos-opt" onclick="wbSetPos(this,'系统层')">系统层</div>
+          </div>
+          <svg onclick="wbTogglePosOpts()" style="cursor:pointer" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c8c8c8" stroke-width="1.8" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 注入设定 -->
+    <div class="sec-label">注入设定 · INJECTION</div>
+    <div class="card">
+      <div class="card-deco-c1"></div><div class="card-deco-c2"></div><div class="card-deco-c3"></div>
+
+      <div class="wb-row-item">
+        <div class="wb-row-left">
+          <div class="wb-row-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </div>
+          <div>
+            <div class="wb-row-title">最大注入条目数</div>
+            <div class="wb-row-sub">MAX · ACTIVE ENTRIES</div>
+          </div>
+        </div>
+        <div class="wb-row-right">
+          <div class="wb-stepper">
+            <button class="wb-step-btn" onclick="wbStep('wbSetMaxEntries',-1)">−</button>
+            <span class="wb-step-val" id="wbSetMaxEntries">10</span>
+            <button class="wb-step-btn" onclick="wbStep('wbSetMaxEntries',1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="wb-row-item">
+        <div class="wb-row-left">
+          <div class="wb-row-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div>
+            <div class="wb-row-title">Token 预算上限</div>
+            <div class="wb-row-sub">BUDGET · MAX TOKENS</div>
+          </div>
+        </div>
+        <div class="wb-row-right">
+          <div class="wb-stepper">
+            <button class="wb-step-btn" onclick="wbStepToken(-200)">−</button>
+            <span class="wb-step-val" id="wbSetMaxToken">2000</span>
+            <button class="wb-step-btn" onclick="wbStepToken(200)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="wb-row-item wb-row-item--last">
+        <div class="wb-row-left">
+          <div class="wb-row-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          </div>
+          <div>
+            <div class="wb-row-title">重复条目去重</div>
+            <div class="wb-row-sub">DEDUP · PREVENT REPEAT</div>
+          </div>
+        </div>
+        <label class="wb-toggle"><input type="checkbox" id="wbSetDedup" checked onchange="wbSetSyncToggle(this,'')"/><span class="wb-toggle-track"><span class="wb-toggle-thumb"></span></span></label>
+      </div>
+    </div>
+
+    <!-- 条目预览 -->
+    <div class="sec-label">条目预览 · ENTRIES</div>
+    <div class="card">
+      <div class="card-deco-c1"></div><div class="card-deco-c2"></div><div class="card-deco-c3"></div>
+      <div class="wb-filter-row">
+        <button class="wb-filter-btn wb-filter-on" data-cat="all" onclick="wbSetFilter(this)">全部</button>
+        <button class="wb-filter-btn" data-cat="地点" onclick="wbSetFilter(this)">地点</button>
+        <button class="wb-filter-btn" data-cat="势力" onclick="wbSetFilter(this)">势力</button>
+        <button class="wb-filter-btn" data-cat="事件" onclick="wbSetFilter(this)">事件</button>
+        <button class="wb-filter-btn" data-cat="规则" onclick="wbSetFilter(this)">规则</button>
+      </div>
+      <div class="card-rule"></div>
+      <div class="wb-entry-list" id="wbSetEntryList">
+        <div class="wb-entry-empty">暂无条目 · 前往世界书添加</div>
+      </div>
+    </div>
+
+    <!-- 数据管理 -->
+    <div class="sec-label">数据管理 · DATA</div>
+    <div class="card">
+      <div class="card-deco-c1"></div><div class="card-deco-c2"></div><div class="card-deco-c3"></div>
+
+      <div class="wb-row-item">
+        <div class="wb-row-left">
+          <div class="wb-row-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          </div>
+          <div>
+            <div class="wb-row-title">导出世界书</div>
+            <div class="wb-row-sub">EXPORT · JSON FORMAT</div>
+          </div>
+        </div>
+        <div class="wb-row-right">
+          <span class="wb-badge">JSON</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.8" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+
+      <div class="wb-row-item">
+        <div class="wb-row-left">
+          <div class="wb-row-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.6" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          </div>
+          <div>
+            <div class="wb-row-title">导入世界书</div>
+            <div class="wb-row-sub">IMPORT · MERGE OR REPLACE</div>
+          </div>
+        </div>
+        <div class="wb-row-right">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.8" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+
+      <div class="wb-row-item wb-row-item--last wb-row-item--danger">
+        <div class="wb-row-left">
+          <div class="wb-row-icon wb-row-icon--danger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c44" stroke-width="1.6" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </div>
+          <div>
+            <div class="wb-row-title wb-row-title--danger">清空所有条目</div>
+            <div class="wb-row-sub">DANGER · CANNOT UNDO</div>
+          </div>
+        </div>
+        <div class="wb-row-right">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d0d0d0" stroke-width="1.8" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 世界书保存按钮 -->
+    <button class="pct-save-btn" style="margin-top:0;margin-bottom:32px" onclick="wbSetSave()">保存世界书设置</button>
+
+    <!-- ═══ 感知设置 · PERCEPTION ═══ -->
+    <div class="pct-hero">
+      <svg style="position:absolute;top:-20px;right:-10px;pointer-events:none;" width="160" height="130" viewBox="0 0 160 130">
+        <circle cx="140" cy="20" r="70" stroke="rgba(0,0,0,0.04)" stroke-width="0.5" fill="none"/>
+        <circle cx="140" cy="20" r="100" stroke="rgba(0,0,0,0.025)" stroke-width="0.5" fill="none"/>
+      </svg>
+      <div class="pct-hero-eyebrow">CONTEXT · 感知设置</div>
+      <div class="pct-hero-title">AI <em>感知</em><br>自定义</div>
+      <div class="pct-hero-sub">允许 AI 感知你的实时信息，带来更自然、更贴近当下的对话体验</div>
+      <div class="pct-hero-tag"><div class="pct-hero-dot"></div>实时感知 · LIVE CONTEXT</div>
+    </div>
+    <div class="sec-label">感知开关 · SENSORS</div>
+    <div class="card">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+
+      <!-- 现实/虚拟 切换 -->
+      <div class="pct-mode-row">
+        <div class="pct-mode-opt pct-mode-on" id="modeReal" onclick="pcSetMode('real')">
+          <div class="pct-mode-dot"></div>
+          真实地点
+        </div>
+        <div class="pct-mode-opt" id="modeVirtual" onclick="pcSetMode('virtual')">
+          <div class="pct-mode-dot"></div>
+          虚拟地点
+        </div>
+      </div>
+      <div class="pct-mode-hint" id="pcModeHint">现实模式：天气感知同步地点，时间感知同步状态栏</div>
+
+      <div class="card-rule"></div>
+
+      <!-- 天气感知 -->
+      <div class="pct-item" id="pcWeatherRow">
+        <div class="pct-item-left">
+          <div class="pct-icon pct-icon-on" id="pcWeatherIcon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="4" stroke="#fff" stroke-width="1.5"/>
+              <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="pct-name">天气感知</div>
+            <div class="pct-desc" id="pcWeatherDesc">同步地点 · 实时天气温度体感</div>
+          </div>
+        </div>
+        <div class="pct-toggle pct-toggle-on" id="pcWeatherToggle" onclick="pcToggle('weather')">
+          <div class="pct-thumb"></div>
+        </div>
+      </div>
+      <div class="pct-chips" id="pcWeatherChips">
+        <div class="pct-chip pct-chip-on">晴 · 24°C</div>
+        <div class="pct-chip pct-chip-on">体感 22°C</div>
+        <div class="pct-chip">湿度 58%</div>
+      </div>
+
+      <div class="card-rule"></div>
+
+      <!-- 地点感知 -->
+      <div class="pct-item">
+        <div class="pct-item-left">
+          <div class="pct-icon pct-icon-on" id="pcLocIcon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="#fff" stroke-width="1.5"/>
+              <circle cx="12" cy="9" r="2.5" stroke="#fff" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div>
+            <div class="pct-name">地点感知</div>
+            <div class="pct-desc">选择城市 · 精确到区</div>
+          </div>
+        </div>
+        <div class="pct-toggle pct-toggle-on" id="pcLocToggle" onclick="pcToggle('loc')">
+          <div class="pct-thumb"></div>
+        </div>
+      </div>
+      <div class="pct-chips" id="pcLocChips">
+        <div class="pct-chip pct-chip-on" id="pcLocChipCity" onclick="pcOpenCityPicker()" style="cursor:pointer;">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" style="margin-right:3px;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="#1a1a1a" stroke-width="2"/></svg>
+          <span id="pcLocCityLabel">上海 · 浦东</span>
+        </div>
+        <div class="pct-chip" id="pcLocChipSub">精确到区</div>
+      </div>
+
+      <!-- 真实城市选择器 -->
+      <div class="pct-city-picker" id="pcCityPicker" style="display:none;">
+        <div class="pct-city-search">
+          <input class="pct-city-input" id="pcCityInput" type="text" placeholder="搜索城市..." oninput="pcFilterCity(this.value)" />
+        </div>
+        <div class="pct-city-list" id="pcCityList"></div>
+      </div>
+
+      <!-- 虚拟地点输入框 -->
+      <div class="pct-virtual-input" id="pcVirtualInput" style="display:none;">
+        <input class="pct-virtual-field" id="pcVirtualField" type="text" placeholder="输入虚拟地点名称，如：魔法森林" oninput="pcVirtualChange(this.value)" />
+      </div>
+
+      <div class="card-rule"></div>
+
+      <!-- 时间感知 -->
+      <div class="pct-item">
+        <div class="pct-item-left">
+          <div class="pct-icon pct-icon-on" id="pcTimeIcon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="#fff" stroke-width="1.5"/>
+              <path d="M12 7v5l3 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="pct-name">时间感知</div>
+            <div class="pct-desc">同步状态栏 · 时间日期时区</div>
+          </div>
+        </div>
+        <div class="pct-toggle pct-toggle-on" id="pcTimeToggle" onclick="pcToggle('time')">
+          <div class="pct-thumb"></div>
+        </div>
+      </div>
+      <div class="pct-chips" id="pcTimeChips">
+        <div class="pct-chip pct-chip-on" id="pcTimeChipNow">09:41 · 周一</div>
+        <div class="pct-chip pct-chip-on">UTC+8</div>
+        <div class="pct-chip" id="pcTimeChipDate">2025.05</div>
+      </div>
+
+      <!-- 感知保存按钮 -->
+      <div class="pct-save-row">
+        <button class="pct-save-btn" id="pcSaveBtn" onclick="pcSave()">
+          <div class="pct-save-dot"></div>
+          保存感知设置
+        </button>
+      </div>
+
+      <!-- 隐私说明 -->
+      <div class="pct-info">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;margin-top:1px;">
+          <circle cx="12" cy="12" r="9" stroke="#bbb" stroke-width="1.5"/>
+          <path d="M12 8v4M12 16h.01" stroke="#bbb" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span>所有感知数据仅用于当次对话上下文，不上传不存储，可随时关闭</span>
+      </div>
+
+    </div>
+
+    <!-- ================================================================
+     双语模式设置
+    ================================================================ -->
+    <div class="pct-section" id="bilingualSection">
+
+      <!-- Hero 标题区 -->
+      <div class="pct-hero">
+        <div class="pct-hero-eyebrow">BILINGUAL · 双语设置</div>
+        <div class="pct-hero-title">
+          <span>双语模式</span>
+          <span>自定义</span>
+        </div>
+        <div class="pct-hero-desc">允许 AI 为角色对话附带目标语言翻译，带来更沉浸、更贴近当下的对话体验</div>
+        <div class="pct-hero-badge">
+          <div class="pct-hero-badge-dot"></div>
+          双语感知 · BILINGUAL MODE
+        </div>
+      </div>
+
+      <div class="pct-section-label" style="margin-top:16px">模式开关</div>
+
+      <!-- 开启/关闭 -->
+      <div class="pct-mode-row">
+        <div class="pct-mode-btn pct-mode-on" id="blModeOn" onclick="blSetMode('on')">开启</div>
+        <div class="pct-mode-btn" id="blModeOff" onclick="blSetMode('off')">关闭</div>
+      </div>
+      <div class="pct-mode-hint" id="blHint">已开启：角色对话将附带选定语言的翻译，点击气泡展开或收起。</div>
+
+      <div id="blContent">
+
+        <!-- 翻译语言 -->
+        <div class="pct-item pct-icon-on" id="blItemLang">
+          <div class="pct-item-head">
+            <div class="pct-icon-wrap">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+            </div>
+            <div class="pct-item-info">
+              <div class="pct-item-title">翻译语言</div>
+              <div class="pct-item-desc">选择角色对话的翻译目标语言</div>
+            </div>
+            <button class="pct-toggle pct-toggle-on" id="blLangToggle" onclick="blToggleLang()"></button>
+          </div>
+          <!-- 当前选中语言展示 -->
+          <div class="pct-chips" id="blLangChips">
+            <div class="pct-chip pct-chip-on" id="blSelLangChip">粤语</div>
+            <div class="pct-chip pct-chip-on" id="blSelLangSub">Cantonese</div>
+          </div>
+          <!-- 下拉选择器 -->
+          <div class="bl-dropdown-wrap" id="blDropdownWrap">
+            <div class="bl-dropdown-trigger" id="blDropdownTrigger" onclick="blToggleDropdown()">
+              <span id="blDropdownLabel">粤语 · Cantonese</span>
+              <svg id="blDropdownArrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="bl-dropdown-list" id="blDropdownList" style="display:none">
+              <div class="bl-dropdown-item bl-item-on" onclick="blSelLang(this,'粤语','Cantonese')"><span class="bl-item-name">粤语</span><span class="bl-item-sub">Cantonese</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'普通话','Mandarin')"><span class="bl-item-name">普通话</span><span class="bl-item-sub">Mandarin</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'英语','English')"><span class="bl-item-name">英语</span><span class="bl-item-sub">English</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'日语','Japanese')"><span class="bl-item-name">日语</span><span class="bl-item-sub">Japanese</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'韩语','Korean')"><span class="bl-item-name">韩语</span><span class="bl-item-sub">Korean</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'法语','Français')"><span class="bl-item-name">法语</span><span class="bl-item-sub">Français</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'德语','Deutsch')"><span class="bl-item-name">德语</span><span class="bl-item-sub">Deutsch</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'西班牙语','Español')"><span class="bl-item-name">西班牙语</span><span class="bl-item-sub">Español</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'俄语','Русский')"><span class="bl-item-name">俄语</span><span class="bl-item-sub">Русский</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'泰语','ภาษาไทย')"><span class="bl-item-name">泰语</span><span class="bl-item-sub">ภาษาไทย</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'越南语','Tiếng Việt')"><span class="bl-item-name">越南语</span><span class="bl-item-sub">Tiếng Việt</span><div class="bl-item-check"></div></div>
+              <div class="bl-dropdown-item" onclick="blSelLang(this,'阿拉伯语','العربية')"><span class="bl-item-name">阿拉伯语</span><span class="bl-item-sub">العربية</span><div class="bl-item-check"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 气泡样式 -->
+        <div class="pct-item pct-icon-on">
+          <div class="pct-item-head">
+            <div class="pct-icon-wrap">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </div>
+            <div class="pct-item-info">
+              <div class="pct-item-title">气泡样式</div>
+              <div class="pct-item-desc">翻译展示在气泡内部或外部</div>
+            </div>
+          </div>
+          <div class="style-grid">
+            <div class="style-card sc-on" id="blStyleInner" onclick="blSelStyle('inner')">
+              <div class="style-card-dot"></div>
+              <div class="style-card-name">内嵌式</div>
+              <div class="style-card-desc">点击气泡后翻译展开于内部</div>
+              <div class="style-mini">
+                <div class="sm-bubble">こんにちは，元気ですか？<div class="sm-inner">哈喽，你係唔係好呀？<span class="sm-tag">粤</span></div></div>
+                <div class="sm-bubble" style="align-self:flex-end;border-radius:8px 8px 2px 8px;background:#e8e8e6">我也是，下次再一起！<div class="sm-inner">我都係，下次再一齊啦！<span class="sm-tag">粤</span></div></div>
+              </div>
+            </div>
+            <div class="style-card" id="blStyleOuter" onclick="blSelStyle('outer')">
+              <div class="style-card-dot"></div>
+              <div class="style-card-name">外挂式</div>
+              <div class="style-card-desc">翻译以独立气泡附于下方</div>
+              <div class="style-mini">
+                <div class="sm-bubble">오늘 날씨 좋다！</div>
+                <div class="sm-outer">今日天気真係好靓喎<span class="sm-tag">粤</span></div>
+                <div class="sm-bubble" style="align-self:flex-end;border-radius:8px 8px 2px 8px;background:#e8e8e6">Je suis d'accord !</div>
+                <div class="sm-outer" style="align-self:flex-end;border-right:2px solid #ccc;border-left:none;border-radius:8px 0 8px 8px">我都同意！<span class="sm-tag">粤</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 自定义气泡样式 -->
+        <div class="pct-item pct-icon-on" id="blCssCard">
+          <div class="pct-item-head">
+            <div class="pct-icon-wrap">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <div class="pct-item-info">
+              <div class="pct-item-title">自定义气泡样式</div>
+              <div class="pct-item-desc">通过 CSS 修改气泡外观，实时预览效果</div>
+            </div>
+          </div>
+
+          <!-- 参考文档 tabs -->
+          <div class="code-section">
+            <div class="code-tabs">
+              <div class="code-tab ct-on" onclick="blTab(this,'css')">类名参考</div>
+              <div class="code-tab" onclick="blTab(this,'vars')">CSS 变量</div>
+              <div class="code-tab" onclick="blTab(this,'example')">示例</div>
+            </div>
+            <div class="code-block" id="blCodePane"><span class="ck">.bubble</span>              <span class="cc">/* 对方消息气泡 */</span>
+<span class="ck">.bubble.bubble-self</span>    <span class="cc">/* 己方消息气泡 */</span>
+<span class="ck">.bubble.char-bubble</span>    <span class="cc">/* 角色专属气泡 */</span>
+
+<span class="ck">.trans-inner</span>           <span class="cc">/* 内嵌译文（隐藏） */</span>
+<span class="ck">.trans-inner.show</span>      <span class="cc">/* 内嵌译文（展开） */</span>
+<span class="ck">.trans-text</span>            <span class="cc">/* 译文正文 */</span>
+<span class="ck">.trans-lang-tag</span>        <span class="cc">/* 语言标签「粤」*/</span>
+
+<span class="ck">.trans-outer</span>           <span class="cc">/* 外挂译文泡（隐藏） */</span>
+<span class="ck">.trans-outer.show</span>      <span class="cc">/* 外挂译文泡（展开） */</span>
+<span class="ck">.trans-connector</span>       <span class="cc">/* 连接线 */</span></div>
+          </div>
+
+          <!-- CSS 编辑器 -->
+          <div class="css-editor-wrap">
+            <div class="css-editor-header">
+              <span class="css-editor-label">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                CSS 编辑器
+              </span>
+              <div class="css-editor-actions">
+                <button class="css-act-btn" onclick="blCssFormat()">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+                  整理
+                </button>
+                <button class="css-act-btn" onclick="blCssClear()">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                  清空
+                </button>
+              </div>
+            </div>
+            <div class="css-editor-body">
+              <div class="css-line-nums" id="blLineNums">1</div>
+              <textarea id="blCssInput" class="css-textarea" placeholder=".bubble {&#10;  background: #f0f0f0;&#10;  border-radius: 18px;&#10;}" spellcheck="false" oninput="blCssLiveUpdate()"></textarea>
+            </div>
+            <div class="css-editor-footer">
+              <span class="css-char-count" id="blCharCount">0 字符</span>
+              <span class="css-status" id="blCssStatus">· 就绪</span>
+            </div>
+          </div>
+
+          <!-- 实时预览 -->
+          <div class="css-preview-wrap">
+            <div class="css-preview-header">
+              <span class="css-preview-label">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                实时预览
+              </span>
+              <div class="css-preview-tabs">
+                <button class="css-prev-tab css-prev-tab-on" id="prevTabInner" onclick="blPrevTab('inner')">内嵌</button>
+                <button class="css-prev-tab" id="prevTabOuter" onclick="blPrevTab('outer')">外挂</button>
+              </div>
+            </div>
+            <div class="css-preview-stage" id="blPreviewStage">
+              <style id="blCustomStyle"></style>
+              <!-- 内嵌译文预览 -->
+              <div id="prevInner">
+                <div class="prev-row prev-row-other">
+                  <div class="prev-avatar"></div>
+                  <div class="bubble prev-bubble">
+                    <div class="prev-bubble-text">Guten Morgen! Wie geht es dir?</div>
+                    <div class="trans-inner show">
+                      <div class="trans-text">早上好！你怎么样？</div>
+                      <span class="trans-lang-tag">德</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="prev-row prev-row-self">
+                  <div class="bubble bubble-self prev-bubble">
+                    <div class="prev-bubble-text">Mir geht es gut, danke!</div>
+                    <div class="trans-inner show">
+                      <div class="trans-text">我很好，谢谢！</div>
+                      <span class="trans-lang-tag">德</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="prev-row prev-row-other">
+                  <div class="prev-avatar"></div>
+                  <div class="bubble char-bubble prev-bubble">
+                    <div class="prev-bubble-text">Das freut mich sehr!</div>
+                    <div class="trans-inner show">
+                      <div class="trans-text">这让我很高兴！</div>
+                      <span class="trans-lang-tag">德</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- 外挂译文预览 -->
+              <div id="prevOuter" style="display:none">
+                <div class="prev-row prev-row-other">
+                  <div class="prev-avatar"></div>
+                  <div>
+                    <div class="bubble prev-bubble">
+                      <div class="prev-bubble-text">Guten Morgen! Wie geht es dir?</div>
+                    </div>
+                    <div class="trans-outer show">
+                      <div class="trans-text">早上好！你怎么样？<span class="trans-lang-tag">德</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="prev-row prev-row-self">
+                  <div style="display:flex;flex-direction:column;align-items:flex-end">
+                    <div class="bubble bubble-self prev-bubble">
+                      <div class="prev-bubble-text">Mir geht es gut, danke!</div>
+                    </div>
+                    <div class="trans-outer show" style="align-self:flex-end">
+                      <div class="trans-text" style="text-align:right">我很好，谢谢！<span class="trans-lang-tag">德</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="prev-row prev-row-other">
+                  <div class="prev-avatar"></div>
+                  <div>
+                    <div class="bubble char-bubble prev-bubble">
+                      <div class="prev-bubble-text">Das freut mich sehr!</div>
+                    </div>
+                    <div class="trans-outer show">
+                      <div class="trans-text">这让我很高兴！<span class="trans-lang-tag">德</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 预设库 -->
+          <div class="css-preset-wrap">
+            <div class="css-preset-header">
+              <span class="css-preview-label">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                我的预设
+              </span>
+              <button class="css-save-preset-btn" onclick="blShowSavePreset()">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                保存当前
+              </button>
+            </div>
+            <!-- 保存弹层 -->
+            <div class="css-save-panel" id="blSavePanel" style="display:none">
+              <input type="text" class="css-preset-name-input" id="blPresetNameInput" placeholder="给这个预设起个名字，如「深色暗夜」" maxlength="20" />
+              <div class="css-save-panel-btns">
+                <button class="css-panel-cancel" onclick="blHideSavePreset()">取消</button>
+                <button class="css-panel-confirm" onclick="blConfirmSavePreset()">保存</button>
+              </div>
+            </div>
+            <!-- 预设列表 -->
+            <div class="css-preset-list" id="blPresetList">
+              <div class="css-preset-empty" id="blPresetEmpty">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ddd" stroke-width="1.5" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                <div>还没有保存的预设</div>
+                <div style="font-size:10px;color:#ccc;margin-top:3px">输入 CSS 后点击「保存当前」</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 保存按钮 -->
+        <button class="pct-save-btn" style="margin-top:8px" onclick="blSave()">保存双语设置</button>
+
+      </div>
+    </div>
+
+    <!-- ═══ 对话风格 HERO ═══ -->
+    <div class="hero record-hero">
+      <svg style="position:absolute;top:-20px;right:-8px;pointer-events:none;" width="150" height="130" viewBox="0 0 150 130">
+        <circle cx="130" cy="22" r="65" stroke="rgba(0,0,0,0.04)" stroke-width="0.5" fill="none"/>
+        <circle cx="130" cy="22" r="98" stroke="rgba(0,0,0,0.025)" stroke-width="0.5" fill="none"/>
+        <circle cx="130" cy="22" r="43" stroke="rgba(0,0,0,0.05)" stroke-width="0.5" fill="none"/>
+        <line x1="74" y1="0" x2="150" y2="70" stroke="rgba(0,0,0,0.025)" stroke-width="0.5"/>
+      </svg>
+      <div class="hero-eyebrow">PERSONA · 对话设置</div>
+      <div class="hero-title">对话<em>风格</em></div>
+      <div class="hero-sub">回复长度、主动触达、称呼与纪念日的细节设定</div>
+      <div class="hero-tag">
+        <div class="hero-tag-dot"></div>
+        角色行为 · CHAR BEHAVIOR
+      </div>
+    </div>
+
+    <!-- ═══ 对话风格 · STYLE ═══ -->
+    <div class="sec-label">对话风格 · STYLE</div>
+
+    <!-- 回复长度偏好 -->
+    <div class="card" id="replyLenCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="ps-card-inner">
+        <div class="ps-eyebrow">REPLY LENGTH · 回复长度</div>
+        <div class="ps-title">回复长度偏好</div>
+        <div class="ps-sub">她习惯用多长的方式回应你</div>
+        <div class="ps-len-segs" id="psLenSegs">
+          <div class="ps-len-seg ps-len-on" data-i="0" onclick="psSetLen(0,this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span class="ps-seg-lbl">简短</span>
+          </div>
+          <div class="ps-len-seg" data-i="1" onclick="psSetLen(1,this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="14" y2="18"/></svg>
+            <span class="ps-seg-lbl">适中</span>
+          </div>
+          <div class="ps-len-seg" data-i="2" onclick="psSetLen(2,this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            <span class="ps-seg-lbl">碎碎念</span>
+          </div>
+        </div>
+        <div class="ps-len-preview" id="psLenPreview">
+          <div class="ps-bubble">
+            <div class="ps-bline" style="width:55%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 主动触达 ═══ -->
+    <div class="sec-label">主动触达 · PROACTIVE</div>
+
+    <div class="card" id="proactiveCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="ps-card-inner">
+        <div class="ps-eyebrow">PROACTIVE · 主动消息</div>
+        <div class="ps-row-between">
+          <div>
+            <div class="ps-title" style="margin-bottom:2px">允许她主动找你</div>
+            <div class="ps-mono-hint">ENABLE PROACTIVE MESSAGES</div>
+          </div>
+          <label class="ps-tog"><input type="checkbox" checked id="psTog" onchange="psTogglePro()"><span class="ps-tog-track"><span class="ps-tog-thumb"></span></span></label>
+        </div>
+
+        <div class="ps-rule"></div>
+
+        <div id="psProSettings">
+          <div class="ps-freq-row">
+            <span class="ps-freq-label">触达频率</span>
+            <input type="range" class="ps-freq-track" min="1" max="5" value="2" step="1" id="psFreqCtrl" oninput="psUpdateFreq(this.value)">
+            <span class="ps-freq-val" id="psFreqVal">偶尔</span>
+          </div>
+
+          <div class="ps-rule"></div>
+
+          <div class="ps-quiet-label">免打扰时段 · QUIET HOURS</div>
+          <div class="ps-time-blocks" id="psTimeBlocks"></div>
+          <div class="ps-time-hint" id="psTimeHint">已设定 22:00 — 08:00 为免打扰时段</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 称呼管理 ═══ -->
+    <div class="sec-label">称呼管理 · NAMES</div>
+
+    <div class="card" id="namesCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="ps-card-inner">
+        <div class="ps-eyebrow">NICKNAME · 称呼</div>
+        <div class="ps-title">称呼管理</div>
+        <div class="ps-sub">随关系阶段变化的双向称呼设定</div>
+        <div class="ps-stage-row" id="psStageRow">
+          <div class="ps-stage-pill ps-stage-on" onclick="psSetStage(0,this)">初识</div>
+          <div class="ps-stage-pill" onclick="psSetStage(1,this)">熟悉</div>
+          <div class="ps-stage-pill" onclick="psSetStage(2,this)">亲密</div>
+        </div>
+        <div class="ps-name-row">
+          <div class="ps-name-block">
+            <div class="ps-name-lbl">她叫你</div>
+            <input class="ps-name-input" id="psNameYou" type="text" value="你" oninput="psUpdateNamePreview()" maxlength="10">
+          </div>
+          <div class="ps-name-block">
+            <div class="ps-name-lbl">你叫她</div>
+            <input class="ps-name-input" id="psNameHer" type="text" value="艾莉森" oninput="psUpdateNamePreview()" maxlength="10">
+          </div>
+        </div>
+        <div class="ps-name-preview" id="psNamePreview">
+          她会叫你 <em>「你」</em>，你叫她 <em>「艾莉森」</em>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 纪念日 ═══ -->
+    <div class="sec-label">纪念日 · ANNIVERSARY</div>
+
+    <div class="card" id="anniversaryCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="ps-card-inner">
+        <div class="ps-eyebrow">ANNIVERSARY · 纪念日</div>
+        <div class="ps-title">纪念日系统</div>
+        <div class="ps-sub">她会在特殊节点自然提起，不会刻意说出来</div>
+        <div class="ps-anni-list">
+          <div class="ps-anni-item">
+            <div class="ps-anni-dot"></div>
+            <div class="ps-anni-info">
+              <div class="ps-anni-name">第一次相遇</div>
+              <div class="ps-anni-date">2024 · 03 · 12 · 已过 127 天</div>
+            </div>
+            <div class="ps-anni-badge ps-anni-soon">即将</div>
+          </div>
+          <div class="ps-anni-item">
+            <div class="ps-anni-dot ps-anni-dot-dim"></div>
+            <div class="ps-anni-info">
+              <div class="ps-anni-name">第一次说晚安</div>
+              <div class="ps-anni-date">2024 · 04 · 01 · 已过 107 天</div>
+            </div>
+            <div class="ps-anni-badge">记录中</div>
+          </div>
+          <div class="ps-anni-item">
+            <div class="ps-anni-dot ps-anni-dot-dim"></div>
+            <div class="ps-anni-info">
+              <div class="ps-anni-name">自定义节点</div>
+              <div class="ps-anni-date">2024 · 06 · 20 · 还有 6 天</div>
+            </div>
+            <div class="ps-anni-badge ps-anni-soon">即将</div>
+          </div>
+        </div>
+        <div class="ps-anni-add" id="psAnniAdd" onclick="psAnniAddClick()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          添加纪念日
+        </div>
+        <div class="ps-rule" style="margin-top:14px"></div>
+        <div class="ps-row-between">
+          <div>
+            <div class="ps-remind-txt">纪念日前一天提醒</div>
+            <div class="ps-mono-hint">SHE WILL BRING IT UP NATURALLY</div>
+          </div>
+          <label class="ps-tog"><input type="checkbox" checked><span class="ps-tog-track"><span class="ps-tog-thumb"></span></span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 主题美化 HERO ═══ -->
+    <div class="hero record-hero">
+      <svg style="position:absolute;top:-20px;right:-8px;pointer-events:none;" width="150" height="130" viewBox="0 0 150 130">
+        <circle cx="130" cy="22" r="65" stroke="rgba(0,0,0,0.04)" stroke-width="0.5" fill="none"/>
+        <circle cx="130" cy="22" r="98" stroke="rgba(0,0,0,0.025)" stroke-width="0.5" fill="none"/>
+        <circle cx="130" cy="22" r="43" stroke="rgba(0,0,0,0.055)" stroke-width="0.5" fill="none"/>
+        <line x1="74" y1="0" x2="150" y2="70" stroke="rgba(0,0,0,0.025)" stroke-width="0.5"/>
+      </svg>
+      <div class="hero-eyebrow">APPEARANCE · 主题美化</div>
+      <div class="hero-title">界面<em>主题</em><br>美化</div>
+      <div class="hero-sub">自定义聊天界面的配色方案、字体风格与视觉外观</div>
+      <div class="hero-tag">
+        <div class="hero-tag-dot"></div>
+        实时预览 · LIVE PREVIEW
+      </div>
+    </div>
+
+    <!-- ═══ 主题美化 · APPEARANCE ═══ -->
+    <div class="sec-label">主题设置 · THEME</div>
+
+    <div class="card record-card" id="themeAppearanceCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="record-card-inner">
+        <div class="record-card-left">
+          <div class="record-card-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="record-card-eyebrow">APPEARANCE · 主题美化</div>
+            <div class="record-card-title">界面<em style="font-family:'Playfair Display',serif;font-style:italic;font-weight:400;color:#7a7a7a">主题</em>美化</div>
+            <div class="record-card-sub">配色方案、字体风格与界面视觉设置</div>
+          </div>
+        </div>
+        <div class="record-card-arrow">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 记忆设置 HERO ═══ -->
+    <div class="hero record-hero">
+      <svg style="position:absolute;top:-20px;right:-8px;pointer-events:none;" width="150" height="130" viewBox="0 0 150 130">
+        <circle cx="130" cy="22" r="65" stroke="rgba(0,0,0,0.04)" stroke-width="0.5" fill="none"/>
+        <circle cx="130" cy="22" r="98" stroke="rgba(0,0,0,0.025)" stroke-width="0.5" fill="none"/>
+        <circle cx="130" cy="22" r="43" stroke="rgba(0,0,0,0.05)" stroke-width="0.5" fill="none"/>
+        <line x1="74" y1="0" x2="150" y2="70" stroke="rgba(0,0,0,0.025)" stroke-width="0.5"/>
+      </svg>
+      <div class="hero-eyebrow">MEMORY · 记忆系统</div>
+      <div class="hero-title">记忆<em>设置</em><br>管理</div>
+      <div class="hero-sub">管理 AI 的长期记忆存储，控制记忆的范围、保留期限与保护策略</div>
+      <div class="hero-tag">
+        <div class="hero-tag-dot"></div>
+        本地存储 · LOCAL MEMORY
+      </div>
+    </div>
+
+    <!-- ═══ 角色记忆 · MEMORY ═══ -->
+    <div class="sec-label">角色记忆 · CHAR MEMORY</div>
+
+    <div class="card record-card" id="memoryCharCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="record-card-inner">
+        <div class="record-card-left">
+          <div class="record-card-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+              <path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
+              <path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/>
+            </svg>
+          </div>
+          <div>
+            <div class="record-card-eyebrow">MEMORY · 记忆</div>
+            <div class="record-card-title">角色专属记忆</div>
+            <div class="record-card-sub">查看与管理当前角色的专属记忆</div>
+          </div>
+        </div>
+        <div class="record-card-arrow">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 记录 HERO ═══ -->
+    <div class="hero record-hero">
+      <svg style="position:absolute;top:-20px;right:-8px;pointer-events:none;" width="150" height="130" viewBox="0 0 150 130">
+        <circle cx="130" cy="22" r="65" stroke="rgba(0,0,0,0.04)" stroke-width="0.5" fill="none"/>
+        <circle cx="130" cy="22" r="98" stroke="rgba(0,0,0,0.025)" stroke-width="0.5" fill="none"/>
+        <circle cx="130" cy="22" r="43" stroke="rgba(0,0,0,0.05)" stroke-width="0.5" fill="none"/>
+        <line x1="74" y1="0" x2="150" y2="70" stroke="rgba(0,0,0,0.025)" stroke-width="0.5"/>
+      </svg>
+      <div class="hero-eyebrow">HISTORY · 记录设置</div>
+      <div class="hero-title">记录<em>管理</em></div>
+      <div class="hero-sub">聊天与视频记录的管理及数据导入导出</div>
+      <div class="hero-tag">
+        <div class="hero-tag-dot"></div>
+        本地存储 · LOCAL STORAGE
+      </div>
+    </div>
+
+    <!-- ═══ 记录设置 · RECORD ═══ -->
+    <div class="sec-label">记录设置 · RECORD</div>
+
+    <!-- 聊天记录 -->
+    <div class="card record-card" id="recordChatCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="record-card-inner">
+        <div class="record-card-left">
+          <div class="record-card-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <div class="record-card-eyebrow">CHAT LOG · 聊天</div>
+            <div class="record-card-title">聊天记录</div>
+            <div class="record-card-sub">查看与管理所有对话记录</div>
+          </div>
+        </div>
+        <div class="record-card-arrow">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 视频记录 -->
+    <div class="card record-card" id="recordVideoCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="record-card-inner">
+        <div class="record-card-left">
+          <div class="record-card-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          </div>
+          <div>
+            <div class="record-card-eyebrow">VIDEO LOG · 视频</div>
+            <div class="record-card-title">视频记录</div>
+            <div class="record-card-sub">查看与管理所有视频记录</div>
+          </div>
+        </div>
+        <div class="record-card-arrow">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导出 / 导入数据 -->
+    <div class="card record-card" id="recordDataCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="record-card-inner">
+        <div class="record-card-left">
+          <div class="record-card-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div>
+            <div class="record-card-eyebrow">DATA · 数据</div>
+            <div class="record-card-title">导出 / 导入数据</div>
+            <div class="record-card-sub">备份或恢复本地记录数据</div>
+          </div>
+        </div>
+        <div class="record-card-arrow">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 好友管理 HERO ═══ -->
+    <div class="hero record-hero">
+      <svg style="position:absolute;top:-20px;right:-8px;pointer-events:none;" width="150" height="130" viewBox="0 0 150 130">
+        <circle cx="130" cy="22" r="65" stroke="rgba(0,0,0,0.04)" stroke-width="0.5" fill="none"/>
+        <circle cx="130" cy="22" r="98" stroke="rgba(0,0,0,0.025)" stroke-width="0.5" fill="none"/>
+        <circle cx="130" cy="22" r="43" stroke="rgba(0,0,0,0.05)" stroke-width="0.5" fill="none"/>
+        <line x1="74" y1="0" x2="150" y2="70" stroke="rgba(0,0,0,0.025)" stroke-width="0.5"/>
+      </svg>
+      <div class="hero-eyebrow">FRIEND · 好友管理</div>
+      <div class="hero-title">好友<em>操作</em></div>
+      <div class="hero-sub">清空聊天记录、删除好友与拉黑好友的高级操作</div>
+      <div class="hero-tag">
+        <div class="hero-tag-dot"></div>
+        危险操作 · DANGER ZONE
+      </div>
+    </div>
+
+    <!-- ═══ 聊天记录清空 ═══ -->
+    <div class="sec-label">聊天记录 · CHAT LOG</div>
+
+    <div class="card" id="friendClearCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="friend-card-inner">
+        <div class="friend-card-eyebrow">CHAT LOG · 清空</div>
+        <div class="friend-card-title">清空聊天记录</div>
+        <div class="friend-card-sub">此操作不可撤销，记录将从本地永久删除</div>
+
+        <div class="friend-progress-wrap">
+          <div class="friend-progress-label">
+            <span class="friend-progress-txt">本地存储占用</span>
+            <span class="friend-progress-count" id="friendMsgCount">— 条</span>
+          </div>
+          <div class="friend-track"><div class="friend-fill" id="friendMsgFill"></div></div>
+        </div>
+
+        <div class="friend-range-row">
+          <span class="friend-range-label">清除范围</span>
+          <input type="range" class="friend-range" min="1" max="3" value="2" id="friendRangeCtrl" step="1" oninput="friendUpdateRange(this.value)" />
+          <span class="friend-range-val" id="friendRangeVal">近30天</span>
+        </div>
+
+        <div class="friend-action-row">
+          <div class="friend-scratch">
+            <div class="friend-scratch-icon">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div>
+              <div class="friend-scratch-txt" id="friendScopeName">当前角色对话</div>
+              <div class="friend-scratch-mono">WITHIN SCOPE</div>
+            </div>
+          </div>
+          <div class="friend-hold-btn" id="friendHoldBtn" onmousedown="friendStartHold()" onmouseup="friendStopHold()" ontouchstart="friendStartHold()" ontouchend="friendStopHold()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            <span class="friend-hold-label">长按</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 好友管理操作 ═══ -->
+    <div class="sec-label">好友管理 · CONTACT</div>
+
+    <!-- 删除好友 -->
+    <div class="card" id="friendDeleteCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="friend-card-inner">
+        <div class="friend-card-eyebrow">REMOVE · 删除</div>
+        <div class="friend-card-title">删除好友</div>
+        <div class="friend-card-sub">从好友列表中移除，对方将无法与你发起新对话</div>
+
+        <div class="friend-user-row">
+          <div class="friend-avatar" id="friendDelAvatar">艾</div>
+          <div style="flex:1;">
+            <div class="friend-user-name" id="friendDelName">艾莉森 Allison</div>
+            <div class="friend-user-meta">
+              <span class="friend-status-dot"></span><span id="friendDelDays">ADDED 128 DAYS AGO</span>
+            </div>
+          </div>
+          <div class="friend-user-count" id="friendDelCount">87 条记录</div>
+        </div>
+
+        <div class="friend-alt-row">
+          <div class="friend-alt-item">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            备份记录
+          </div>
+          <div class="friend-alt-divider"></div>
+          <div class="friend-alt-item">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M6.53 6.53A10.1 10.1 0 0 0 1 12s4 8 11 8a9.4 9.4 0 0 0 5.27-1.67"/></svg>
+            仅屏蔽
+          </div>
+        </div>
+
+        <div class="friend-pull-trigger" id="friendDelPull" onclick="friendTriggerDel()">
+          <div class="friend-pull-inner">
+            <div class="friend-pull-arrow">
+              <div class="friend-pull-arr-line"></div>
+              <div class="friend-pull-arr-head"></div>
+            </div>
+            <span class="friend-pull-txt">下拉确认删除</span>
+          </div>
+          <div class="friend-pull-confirm">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>已确认删除</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 拉黑好友 -->
+    <div class="card" id="friendBlockCard">
+      <div class="card-deco-c1"></div>
+      <div class="card-deco-c2"></div>
+      <div class="card-deco-c3"></div>
+      <div class="friend-card-inner">
+        <div class="friend-card-eyebrow">BLOCK · 拉黑</div>
+        <div class="friend-card-title">拉黑好友</div>
+        <div class="friend-card-sub">选择拉黑方式，拉黑后对方将看不到你的在线状态</div>
+
+        <div class="friend-user-row">
+          <div class="friend-avatar" id="friendBlkAvatar">艾</div>
+          <div style="flex:1;">
+            <div class="friend-user-name" id="friendBlkName">艾莉森 Allison</div>
+            <div class="friend-user-meta">FRIENDSHIP · <span id="friendBlkDays">128</span> DAYS</div>
+          </div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#d8d8d8;flex-shrink:0;"></div>
+        </div>
+
+        <div class="friend-seg-row">
+          <div class="friend-seg active" id="friendSeg1" onclick="friendSelectSeg(1)">
+            <div class="friend-seg-dot"></div>
+            <span class="friend-seg-label">仅屏蔽消息</span>
+          </div>
+          <div class="friend-seg" id="friendSeg2" onclick="friendSelectSeg(2)">
+            <div class="friend-seg-dot"></div>
+            <span class="friend-seg-label">屏蔽+隐身</span>
+          </div>
+          <div class="friend-seg" id="friendSeg3" onclick="friendSelectSeg(3)">
+            <div class="friend-seg-dot"></div>
+            <span class="friend-seg-label">完全拉黑</span>
+          </div>
+        </div>
+
+        <div class="friend-notice">
+          <div class="friend-notice-line"></div>
+          <div class="friend-notice-txt" id="friendBlkNotice">仅屏蔽消息：对方仍可看到你的主页与状态，但无法向你发送消息</div>
+        </div>
+
+        <button class="friend-blk-btn" id="friendBlkBtn" onclick="friendTriggerBlk()">
+          <div class="friend-blk-dot"></div>
+          <span id="friendBlkBtnTxt">确认拉黑</span>
+          <div class="friend-blk-dot"></div>
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /.wrap -->
+</div><!-- /.pg -->
+
+<script src="chatsetting.js"></script>
+</body>
+</html>
