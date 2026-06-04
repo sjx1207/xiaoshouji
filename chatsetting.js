@@ -384,6 +384,19 @@ document.addEventListener('DOMContentLoaded', async function () {
   document.getElementById('themeAppearanceCard') && (
     document.getElementById('themeAppearanceCard').style.cursor = 'pointer'
   );
+
+  /* ── 角色专属记忆 → memory.html ── */
+  const memoryCharCard = document.getElementById('memoryCharCard');
+  if (memoryCharCard) {
+    memoryCharCard.style.cursor = 'pointer';
+    memoryCharCard.addEventListener('click', () => {
+      const currentChar = localStorage.getItem('luna_current_chat') || '';
+      const param = currentChar && currentChar !== 'default'
+        ? '?char=' + encodeURIComponent(currentChar)
+        : '';
+      window.location.href = 'memory.html' + param;
+    });
+  }
 });
 
 /* ================================================================

@@ -1336,7 +1336,11 @@ function _bindHongbaoBtns(el, userMsgIdx, lunaIdx) {
     bubbleWrap.appendChild(bubble);
     bubbleWrap.appendChild(textCapsule);
     bubbleWrap.appendChild(metaEl);
+    bubbleWrap.className = 'cr-msg-mine-inner';
     el.appendChild(bubbleWrap);
+    if (typeof crMineAvHtml === 'function') el.appendChild(
+      (function(){ var d = document.createElement('div'); d.innerHTML = crMineAvHtml(); return d.firstChild; })()
+    );
 
     /* 点击气泡展开/收起文字胶囊 */
     let _open = false;
@@ -4489,6 +4493,7 @@ function crSendImageMsg(dataUrl, description) {
   const el = document.createElement('div');
   el.className = 'cr-msg-mine';
   el.innerHTML =
+    '<div class="cr-msg-mine-inner">' +
     '<div class="cr-mine-bubble" style="padding:4px;background:transparent;">' +
       '<img src="' + dataUrl + '" style="max-width:200px;max-height:200px;border-radius:12px;display:block;" />' +
       (description
@@ -4497,7 +4502,9 @@ function crSendImageMsg(dataUrl, description) {
     '</div>' +
     '<div class="cr-mine-meta">' +
       '<span class="cr-mine-time">' + t + '</span>' +
-    '</div>';
+    '</div>' +
+    '</div>' +
+    crMineAvHtml();
 
   area.appendChild(el);
   area.scrollTop = area.scrollHeight;
@@ -4639,6 +4646,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   /* 预加载头像缓存，让后续气泡直接用 */
   await crLoadAvatarCache();
+
+  /* 预加载用户(发送方)头像 */
+  crLoadUserAvatar();
 
   crInitStats();
   crInitHeader();
@@ -5055,7 +5065,9 @@ function crBuildMineVoiceMsgEl(msg) {
   bubbleWrap.appendChild(bubble);
   bubbleWrap.appendChild(textCapsule);
   bubbleWrap.appendChild(metaEl);
+  bubbleWrap.className = 'cr-msg-mine-inner';
   el.appendChild(bubbleWrap);
+  el.appendChild(crMineAvHtml ? crMineAvHtml() : '');
   return el;
 }
 
@@ -5437,6 +5449,7 @@ function crBuildMsgEl(msg) {
       if (msg.isMeme) return crBuildMemeMsgEl(msg, 'mine');
       /* 普通图片消息气泡 */
       el.innerHTML =
+        '<div class="cr-msg-mine-inner">' +
         '<div class="cr-mine-bubble" style="padding:4px;background:transparent;">' +
           '<img src="' + msg.imageUrl + '" style="max-width:200px;max-height:200px;border-radius:12px;display:block;" />' +
           (msg.imageDesc
@@ -5445,19 +5458,24 @@ function crBuildMsgEl(msg) {
         '</div>' +
         '<div class="cr-mine-meta">' +
           '<span class="cr-mine-time">' + msg.time + '</span>' +
-        '</div>';
+        '</div>' +
+        '</div>' +
+        crMineAvHtml();
     } else if (msg.isVoice) {
       /* 用户语音消息历史恢复 */
       return crBuildMineVoiceMsgEl(msg);
     } else {
       /* 普通文字气泡 */
       el.innerHTML =
+        '<div class="cr-msg-mine-inner">' +
         '<div class="cr-mine-bubble">' +
           '<p class="cr-msg-p" style="padding-left:0;color:#f2f0eb">' + escHtml(msg.text) + '</p>' +
         '</div>' +
         '<div class="cr-mine-meta">' +
           '<span class="cr-mine-time">' + msg.time + '</span>' +
-        '</div>';
+        '</div>' +
+        '</div>' +
+        crMineAvHtml();
     }
   } else {
     el.className = 'cr-msg-luna';
@@ -5578,6 +5596,89 @@ function crMiniAvSvg() {
     '<ellipse cx="14" cy="10" rx="4.2" ry="4.2" fill="#dcdcdc"/>' +
     '<ellipse cx="14" cy="22" rx="8" ry="6" fill="#d0d0d0"/>' +
   '</svg>';
+}
+
+/* ── 发送方（用户）头像 HTML ── */
+/* ── 缓存用户头像，避免每次都读 DB ── */
+var _crUserAvatarCache = undefined; // undefined=未加载, null=无头像, string=url
+
+function crMineAvHtml() {
+  var size = 28;
+  try {
+    var _bsRaw = localStorage.getItem('luna_bubble_style');
+    var _bsChar = (typeof CR_NAME !== 'undefined' && CR_NAME)
+      ? localStorage.getItem('luna_bubble_style_char_' + CR_NAME) : null;
+    var bs = JSON.parse(_bsChar || _bsRaw || '{}');
+    if (bs.mineAvSize) size = parseInt(bs.mineAvSize) || 28;
+  } catch(e) {}
+
+  var userAvatar = (_crUserAvatarCache !== undefined) ? _crUserAvatarCache : null;
+
+  if (userAvatar) {
+    return '<div class="cr-mine-av" style="flex-shrink:0;width:' + size + 'px;height:' + size + 'px;border-radius:50%;overflow:hidden;background:#c8c8c8;">' +
+      '<img src="' + userAvatar + '" style="width:100%;height:100%;object-fit:cover;display:block;" />' +
+    '</div>';
+  }
+  return '<div class="cr-mine-av" style="flex-shrink:0;width:' + size + 'px;height:' + size + 'px;border-radius:50%;overflow:hidden;background:#c8c8c8;">' +
+    '<svg width="' + size + '" height="' + size + '" viewBox="0 0 28 28">' +
+      '<circle cx="14" cy="14" r="14" fill="#c8c8c8"/>' +
+      '<ellipse cx="14" cy="10" rx="6" ry="5.5" fill="#a8a8a8"/>' +
+      '<ellipse cx="14" cy="22" rx="8" ry="6" fill="#b0b0b0"/>' +
+    '</svg>' +
+  '</div>';
+}
+
+/* ── 从 LunaIdentityDB 读 active 身份的头像，并更新所有已渲染头像 ── */
+function crLoadUserAvatar() {
+  return new Promise(function(resolve) {
+    var req = indexedDB.open('LunaIdentityDB');
+    req.onerror = function() { _crUserAvatarCache = null; resolve(null); };
+    req.onsuccess = function(e) {
+      var db = e.target.result;
+      if (!db.objectStoreNames.contains('identities')) {
+        _crUserAvatarCache = null; resolve(null); return;
+      }
+      var r = db.transaction('identities').objectStore('identities').getAll();
+      r.onsuccess = function() {
+        var all = r.result || [];
+        /* 找当前聊天绑定的角色对应的 identity，或找 active 的第一个 */
+        var currentChar = (typeof CR_NAME !== 'undefined') ? CR_NAME : '';
+        var found = null;
+        if (currentChar) {
+          found = all.find(function(i) {
+            return i.active !== false && i.boundCharId && i.boundCharId === currentChar;
+          });
+        }
+        if (!found) {
+          found = all.find(function(i) { return i.active !== false; });
+        }
+        var avatarUrl = (found && found.avatarImg) ? found.avatarImg : null;
+        _crUserAvatarCache = avatarUrl;
+        resolve(avatarUrl);
+        /* 更新页面上已渲染的发送方头像 */
+        crRefreshMineAvatars();
+      };
+      r.onerror = function() { _crUserAvatarCache = null; resolve(null); };
+    };
+  });
+}
+
+/* ── 刷新页面上所有 .cr-mine-av 元素的头像图片 ── */
+function crRefreshMineAvatars() {
+  var avatarUrl = _crUserAvatarCache;
+  document.querySelectorAll('.cr-mine-av').forEach(function(el) {
+    if (avatarUrl) {
+      el.style.background = '#c8c8c8';
+      el.innerHTML = '<img src="' + avatarUrl + '" style="width:100%;height:100%;object-fit:cover;display:block;" />';
+    } else {
+      var s = el.offsetWidth || 28;
+      el.innerHTML = '<svg width="' + s + '" height="' + s + '" viewBox="0 0 28 28">' +
+        '<circle cx="14" cy="14" r="14" fill="#c8c8c8"/>' +
+        '<ellipse cx="14" cy="10" rx="6" ry="5.5" fill="#a8a8a8"/>' +
+        '<ellipse cx="14" cy="22" rx="8" ry="6" fill="#b0b0b0"/>' +
+        '</svg>';
+    }
+  });
 }
 
 function crBuildTyping() {
@@ -5770,6 +5871,12 @@ window.addEventListener('storage', function(e) {
   if (e.key === 'luna_header_style') { if (typeof window.crApplyHeaderStyle === 'function') window.crApplyHeaderStyle(); }
   /* 角色专属头部样式 key 变化时也同步 */
   if (e.key && e.key.startsWith('luna_header_style_char_')) { if (typeof window.crApplyHeaderStyle === 'function') window.crApplyHeaderStyle(); }
+  /* 输入美化样式同步 */
+  if (e.key === 'luna_input_style') { if (typeof window.crApplyInputStyle === 'function') window.crApplyInputStyle(); }
+  if (e.key && e.key.startsWith('luna_input_style_char_')) { if (typeof window.crApplyInputStyle === 'function') window.crApplyInputStyle(); }
+  /* 气泡美化样式同步 */
+  if (e.key === 'luna_bubble_style') { if (typeof window.crApplyBubbleStyle === 'function') window.crApplyBubbleStyle(); }
+  if (e.key && e.key.startsWith('luna_bubble_style_char_')) { if (typeof window.crApplyBubbleStyle === 'function') window.crApplyBubbleStyle(); }
 });
 
 /* ================================================================
@@ -5790,10 +5897,32 @@ window.addEventListener('storage', function(e) {
     /* BroadcastChannel 不支持时静默降级，依赖 visibilitychange 兜底 */
   }
 
+  /* 输入美化 BroadcastChannel */
+  try {
+    var _crInputStyleChannel = new BroadcastChannel('luna_input_style_channel');
+    _crInputStyleChannel.addEventListener('message', function (e) {
+      if (e.data && e.data.key === 'luna_input_style') {
+        if (typeof window.crApplyInputStyle === 'function') window.crApplyInputStyle();
+      }
+    });
+  } catch (err) {}
+
+  /* 气泡美化 BroadcastChannel */
+  try {
+    var _crBubbleStyleChannel = new BroadcastChannel('luna_bubble_style_channel');
+    _crBubbleStyleChannel.addEventListener('message', function (e) {
+      if (e.data && e.data.key === 'luna_bubble_style') {
+        if (typeof window.crApplyBubbleStyle === 'function') window.crApplyBubbleStyle();
+      }
+    });
+  } catch (err) {}
+
   /* visibilitychange 兜底：用户切回聊天页时重新读取最新样式 */
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') {
       if (typeof window.crApplyHeaderStyle === 'function') window.crApplyHeaderStyle();
+      if (typeof window.crApplyInputStyle === 'function') window.crApplyInputStyle();
+      if (typeof window.crApplyBubbleStyle === 'function') window.crApplyBubbleStyle();
     }
   });
 })();
@@ -7324,12 +7453,38 @@ window.crOpenTheatrePanel = openTheatre;
         '.cr-stat-luna-row span { color: ' + (s.stat || 'unset') + ' !important; }\n' +
         '.cr-header-main { padding-top: ' + (s.pd ? s.pd + 'px' : 'unset') + ' !important; padding-bottom: ' + (s.pd ? (s.pd - 2) + 'px' : 'unset') + ' !important; }';
 
-      /* 若有自定义 CSS，追加到基础样式后（同样补 !important） */
+      /* 若有自定义 CSS，追加到基础样式后 */
       var extraCode = '';
       if (rawCode) {
-        /* 给每条 CSS 声明自动补 !important，
-           确保用户自定义样式能覆盖 chatroom.css 里任何更高优先级的规则 */
-        var boostedCode = rawCode
+        /* 兼容旧方案：如果用户写的还是 .hs-cr-* 旧类名，自动映射到真实 .cr-* 类名
+           新方案用户直接写 .cr-* 不需要映射，映射不影响正确的代码 */
+        var mappedCode = rawCode
+          .replace(/\.hs-cr-header-main\b/g,  '.cr-header-main')
+          .replace(/\.hs-cr-header-bg-svg\b/g, '.cr-header-bg')
+          .replace(/\.hs-cr-header\b/g,        '.cr-frame .cr-header')
+          .replace(/\.hs-cr-back-area\b/g,     '.cr-back-btn')
+          .replace(/\.hs-cr-pulse-ring\b/g,    '.cr-pulse-ring')
+          .replace(/\.hs-cr-orbit-ring\b/g,    '.cr-orbit-ring')
+          .replace(/\.hs-cr-avatar\b/g,        '.cr-avatar')
+          .replace(/\.hs-cr-online-dot\b/g,    '.cr-online-dot')
+          .replace(/\.hs-cr-info\b/g,          '.cr-info')
+          .replace(/\.hs-cr-name-row\b/g,      '.cr-name-row')
+          .replace(/\.hs-cr-name\b/g,          '.cr-name')
+          .replace(/\.hs-cr-badge\b/g,         '.cr-badge')
+          .replace(/\.hs-cr-sub\b/g,           '.cr-sub')
+          .replace(/\.hs-cr-status-pill\b/g,   '.cr-status-pill')
+          .replace(/\.hs-cr-status-dot\b/g,    '.cr-status-dot')
+          .replace(/\.hs-cr-actions\b/g,       '.cr-actions')
+          .replace(/\.hs-cr-action-btn\b/g,    '.cr-action-btn')
+          .replace(/\.hs-cr-stats\b/g,         '.cr-stats')
+          .replace(/\.hs-cr-stat-luna-row\b/g, '.cr-stat-luna-row')
+          .replace(/\.hs-cr-stat-luna\b/g,     '.cr-stat-luna')
+          .replace(/\.hs-cr-stat-val\b/g,      '.cr-stat-val')
+          .replace(/\.hs-cr-stat-lbl\b/g,      '.cr-stat-lbl')
+          .replace(/\.hs-cr-stat\b/g,          '.cr-stat');
+
+        /* 给每条没有 !important 的声明自动补上，确保能覆盖 chatroom.css */
+        var boostedCode = mappedCode
           .replace(/([^:{}\n\/][^:{}]*?:[^;{}]+?)\s*(!important)?\s*;/g, function(m, decl, already) {
             return already ? m : decl.trimRight() + ' !important;';
           });
@@ -7340,7 +7495,7 @@ window.crOpenTheatrePanel = openTheatre;
             boostedCode += ' !important;';
           }
         }
-        extraCode = '\n' + mappedSel + ' { ' + boostedCode + ' }';
+        extraCode = '\n' + boostedCode;
       }
 
       var styleTag = document.createElement('style');
@@ -7371,18 +7526,206 @@ window.crOpenTheatrePanel = openTheatre;
 ================================================================ */
 (function () {
 
+  /* ── 注入面板 HTML ── */
+  document.body.insertAdjacentHTML('beforeend', `
+<div id="crHsOverlay" style="
+  display:none;position:fixed;inset:0;z-index:12000;
+  align-items:flex-end;justify-content:center;
+  background:rgba(0,0,0,0.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
+  <div id="crHsPanel" style="
+    width:100%;max-width:480px;
+    background:#faf9f7;
+    border-radius:24px 24px 0 0;
+    border:0.5px solid rgba(0,0,0,0.08);
+    box-shadow:0 -8px 40px rgba(0,0,0,0.14);
+    padding:0 0 40px;
+    box-sizing:border-box;
+    max-height:88vh;overflow-y:auto;scrollbar-width:none;
+    transform:translateY(100%);
+    transition:transform 0.32s cubic-bezier(0.34,1.1,0.64,1);">
+    <!-- 拖拽条 -->
+    <div style="width:36px;height:4px;border-radius:2px;background:rgba(0,0,0,0.14);margin:12px auto 0;"></div>
+    <!-- 标题行 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 0;">
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2.5px;color:#aaa;text-transform:uppercase;margin-bottom:4px;">Header Studio</div>
+        <div style="font-size:16px;font-weight:600;color:#1a1a1a;">头部样式编辑器</div>
+      </div>
+      <button onclick="crHsClose()" style="width:28px;height:28px;border-radius:50%;border:0.5px solid rgba(0,0,0,0.12);background:#f5f5f5;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1L1 9" stroke="#666" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div style="padding:22px 22px 0;">
+
+      <!-- 颜色区 -->
+      <div style="font-size:11px;color:#aaa;font-family:'Space Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">Colors · 颜色</div>
+
+      <!-- 背景色 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:13px;color:#444;">背景色</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="crHsHBg" style="font-size:11px;color:#aaa;font-family:'Space Mono',monospace;">#ffffff</span>
+          <input id="crHsCBg" type="color" value="#ffffff" onchange="crHsPreview()" oninput="crHsPreview()"
+            style="width:32px;height:32px;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;cursor:pointer;padding:2px;background:#fff;"/>
+        </div>
+      </div>
+      <!-- 昵称色 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:13px;color:#444;">昵称颜色</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="crHsHName" style="font-size:11px;color:#aaa;font-family:'Space Mono',monospace;">#1a1a1a</span>
+          <input id="crHsCName" type="color" value="#1a1a1a" onchange="crHsPreview()" oninput="crHsPreview()"
+            style="width:32px;height:32px;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;cursor:pointer;padding:2px;background:#fff;"/>
+        </div>
+      </div>
+      <!-- 副标题色 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:13px;color:#444;">副标题颜色</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="crHsHSub" style="font-size:11px;color:#aaa;font-family:'Space Mono',monospace;">#aaaaaa</span>
+          <input id="crHsCSub" type="color" value="#aaaaaa" onchange="crHsPreview()" oninput="crHsPreview()"
+            style="width:32px;height:32px;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;cursor:pointer;padding:2px;background:#fff;"/>
+        </div>
+      </div>
+      <!-- 头像背景 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:13px;color:#444;">头像背景色</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="crHsHAvBg" style="font-size:11px;color:#aaa;font-family:'Space Mono',monospace;">#efefef</span>
+          <input id="crHsCAvBg" type="color" value="#efefef" onchange="crHsPreview()" oninput="crHsPreview()"
+            style="width:32px;height:32px;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;cursor:pointer;padding:2px;background:#fff;"/>
+        </div>
+      </div>
+      <!-- 在线点 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:13px;color:#444;">在线指示点</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="crHsHDot" style="font-size:11px;color:#aaa;font-family:'Space Mono',monospace;">#5a5a5a</span>
+          <input id="crHsCDot" type="color" value="#5a5a5a" onchange="crHsPreview()" oninput="crHsPreview()"
+            style="width:32px;height:32px;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;cursor:pointer;padding:2px;background:#fff;"/>
+        </div>
+      </div>
+      <!-- 统计数字色 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <span style="font-size:13px;color:#444;">统计数字颜色</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="crHsHStat" style="font-size:11px;color:#aaa;font-family:'Space Mono',monospace;">#1a1a1a</span>
+          <input id="crHsCStat" type="color" value="#1a1a1a" onchange="crHsPreview()" oninput="crHsPreview()"
+            style="width:32px;height:32px;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;cursor:pointer;padding:2px;background:#fff;"/>
+        </div>
+      </div>
+
+      <div style="height:1px;background:rgba(0,0,0,0.06);margin-bottom:20px;"></div>
+
+      <!-- 尺寸区 -->
+      <div style="font-size:11px;color:#aaa;font-family:'Space Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;">Size · 尺寸</div>
+
+      <!-- 头像大小 -->
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:13px;color:#444;">头像大小</span>
+          <span id="crHsVAv" style="font-size:12px;color:#1a1a1a;font-family:'Space Mono',monospace;font-weight:600;">64px</span>
+        </div>
+        <input id="crHsRAv" type="range" min="32" max="120" value="64" onchange="crHsPreview()" oninput="crHsPreview()"
+          style="width:100%;accent-color:#1a1a1a;"/>
+      </div>
+      <!-- 昵称字号 -->
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:13px;color:#444;">昵称字号</span>
+          <span id="crHsVNm" style="font-size:12px;color:#1a1a1a;font-family:'Space Mono',monospace;font-weight:600;">22px</span>
+        </div>
+        <input id="crHsRNm" type="range" min="10" max="40" value="22" onchange="crHsPreview()" oninput="crHsPreview()"
+          style="width:100%;accent-color:#1a1a1a;"/>
+      </div>
+      <!-- 内边距 -->
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:13px;color:#444;">内边距</span>
+          <span id="crHsVPd" style="font-size:12px;color:#1a1a1a;font-family:'Space Mono',monospace;font-weight:600;">16px</span>
+        </div>
+        <input id="crHsRPd" type="range" min="4" max="40" value="16" onchange="crHsPreview()" oninput="crHsPreview()"
+          style="width:100%;accent-color:#1a1a1a;"/>
+      </div>
+      <!-- 副标题字号 -->
+      <div style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:13px;color:#444;">副标题字号</span>
+          <span id="crHsVSb" style="font-size:12px;color:#1a1a1a;font-family:'Space Mono',monospace;font-weight:600;">12px</span>
+        </div>
+        <input id="crHsRSb" type="range" min="8" max="24" value="12" onchange="crHsPreview()" oninput="crHsPreview()"
+          style="width:100%;accent-color:#1a1a1a;"/>
+      </div>
+
+      <div style="height:1px;background:rgba(0,0,0,0.06);margin-bottom:20px;"></div>
+
+      <!-- 自定义 CSS 区 -->
+      <div style="font-size:11px;color:#aaa;font-family:'Space Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">Custom CSS · 自定义</div>
+      <div style="margin-bottom:10px;">
+        <input id="crHsCssSel" type="text" placeholder=".cr-header"
+          style="width:100%;box-sizing:border-box;border:0.5px solid rgba(0,0,0,0.14);border-radius:10px;
+          background:#fff;font-size:12px;color:#444;font-family:'Space Mono',monospace;
+          outline:none;padding:8px 12px;transition:border-color 0.18s;"/>
+      </div>
+      <div style="margin-bottom:12px;">
+        <textarea id="crHsCssCode" placeholder="color: red; font-weight: bold;" rows="4"
+          style="width:100%;box-sizing:border-box;border:0.5px solid rgba(0,0,0,0.14);border-radius:10px;
+          background:#fff;font-size:12px;color:#444;font-family:'Space Mono',monospace;
+          outline:none;padding:10px 12px;resize:vertical;transition:border-color 0.18s;line-height:1.6;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:20px;">
+        <button onclick="crHsApplyCssOnly()" style="flex:1;padding:9px;border-radius:12px;border:0.5px solid rgba(0,0,0,0.14);background:#fff;color:#444;font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.15s;">应用 CSS</button>
+        <button onclick="crHsClearCss()" style="padding:9px 16px;border-radius:12px;border:0.5px solid rgba(0,0,0,0.14);background:#fff;color:#999;font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.15s;">清除</button>
+      </div>
+
+      <div style="height:1px;background:rgba(0,0,0,0.06);margin-bottom:20px;"></div>
+
+      <!-- 操作按钮 -->
+      <div style="display:flex;gap:8px;">
+        <button id="crHsApplyBtn" onclick="crHsApply()" style="
+          flex:1;padding:13px;border-radius:14px;border:none;
+          background:#1a1a1a;color:#fff;font-size:14px;font-weight:500;
+          cursor:pointer;font-family:inherit;letter-spacing:0.3px;
+          transition:opacity 0.15s;">✓ 应用</button>
+        <button onclick="crHsExportCSS()" style="
+          padding:13px 16px;border-radius:14px;border:0.5px solid rgba(0,0,0,0.14);
+          background:#fff;color:#444;font-size:13px;
+          cursor:pointer;font-family:inherit;
+          transition:all 0.15s;">导出</button>
+        <button onclick="crHsReset()" style="
+          padding:13px 16px;border-radius:14px;border:0.5px solid rgba(0,0,0,0.14);
+          background:#fff;color:#999;font-size:13px;
+          cursor:pointer;font-family:inherit;
+          transition:all 0.15s;">重置</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+`);
+
   /* ── 打开 / 关闭 ── */
+  var _crHsPanel = document.getElementById('crHsPanel');
+  var _crHsOverlay = document.getElementById('crHsOverlay');
+
   window.crHsOpen = function () {
-    crHsLoadSaved();   // 读已存样式回填表单
-    document.getElementById('crHsOverlay').style.display = 'flex';
-    document.getElementById('crHsOverlay').style.alignItems = 'flex-end';
+    crHsLoadSaved();
+    _crHsOverlay.style.display = 'flex';
+    _crHsOverlay.style.alignItems = 'flex-end';
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        _crHsPanel.style.transform = 'translateY(0)';
+      });
+    });
   };
   window.crHsClose = function () {
-    document.getElementById('crHsOverlay').style.display = 'none';
+    _crHsPanel.style.transform = 'translateY(100%)';
+    setTimeout(function () { _crHsOverlay.style.display = 'none'; }, 320);
   };
   // 点遮罩关闭
-  document.getElementById('crHsOverlay').addEventListener('click', function (e) {
-    if (e.target === this) crHsClose();
+  _crHsOverlay.addEventListener('click', function (e) {
+    if (e.target === _crHsOverlay) crHsClose();
   });
 
   /* ── 实时预览（调色/拖条时立即反映到真实头部）── */
@@ -7644,4 +7987,277 @@ window.crOpenTheatrePanel = openTheatre;
     crHsAutoApply();
   }
 
+})();
+/* ================================================================
+   输入美化样式应用 — crApplyInputStyle
+   读取 luna_input_style，实时渲染到 .cr-input-area 及子元素
+================================================================ */
+(function () {
+  function crApplyInputStyle() {
+    try {
+      var currentChar = (function() {
+        try { return new URLSearchParams(window.location.search).get('char') || localStorage.getItem('luna_current_chat') || ''; } catch(e) { return ''; }
+      })();
+      var charKey = currentChar ? 'luna_input_style_char_' + currentChar : '';
+      var raw = (charKey && localStorage.getItem(charKey))
+        ? localStorage.getItem(charKey)
+        : localStorage.getItem('luna_input_style');
+      if (!raw) return;
+      var s;
+      try { s = JSON.parse(raw); } catch(e) { return; }
+      if (!s) return;
+
+      /* ── 输入区底色 ── */
+      var areaEl = document.querySelector('.cr-input-area');
+      if (areaEl) {
+        if (s.areaBg) areaEl.style.background = s.areaBg;
+        if (s.pb) areaEl.style.paddingBottom = s.pb + 'px';
+      }
+
+      /* ── 输入框 ── */
+      var boxEl = document.querySelector('.cr-input-box');
+      if (boxEl) {
+        if (s.inputBg) boxEl.style.background = s.inputBg;
+        if (s.boxH)    boxEl.style.minHeight  = s.boxH + 'px';
+        if (s.boxFs)   boxEl.style.fontSize   = s.boxFs + 'px';
+        if (s.placeholder) {
+          var phTag = document.getElementById('cr-input-placeholder-style');
+          if (!phTag) {
+            phTag = document.createElement('style');
+            phTag.id = 'cr-input-placeholder-style';
+            document.head.appendChild(phTag);
+          }
+          phTag.textContent = '.cr-input-box:empty::before { color: ' + s.placeholder + ' !important; }';
+        }
+        if (s.toggleBlur) boxEl.style.backdropFilter = s.toggleBlur ? 'blur(8px)' : '';
+      }
+
+      /* ── 加号按钮 ── */
+      var addBtn = document.querySelector('.cr-add-btn');
+      if (addBtn) {
+        if (s.addBtn)   addBtn.style.background   = s.addBtn;
+        if (s.btnSize)  { addBtn.style.width = s.btnSize + 'px'; addBtn.style.height = s.btnSize + 'px'; }
+        if (s.radius !== undefined) addBtn.style.borderRadius = s.radius + 'px';
+        if (s.imgAdd) {
+          var existImg = addBtn.querySelector('img.cr-custom-img');
+          if (!existImg) { existImg = document.createElement('img'); existImg.className = 'cr-custom-img'; existImg.style.cssText = 'width:65%;height:65%;object-fit:contain;'; addBtn.appendChild(existImg); }
+          existImg.src = s.imgAdd;
+          addBtn.querySelectorAll('svg').forEach(function(el){ el.style.display = 'none'; });
+        } else {
+          addBtn.querySelectorAll('svg').forEach(function(el){ el.style.display = ''; });
+          var oImg = addBtn.querySelector('img.cr-custom-img');
+          if (oImg) oImg.remove();
+        }
+      }
+
+      /* ── AI 按钮 ── */
+      var aiBtn = document.querySelector('.cr-ai-btn');
+      if (aiBtn) {
+        if (s.aiBg)    aiBtn.style.background   = s.aiBg;
+        if (s.btnSize) { aiBtn.style.width = s.btnSize + 'px'; aiBtn.style.height = s.btnSize + 'px'; }
+        if (s.radius !== undefined) aiBtn.style.borderRadius = s.radius + 'px';
+        if (s.imgAi) {
+          var existImgAi = aiBtn.querySelector('img.cr-custom-img');
+          if (!existImgAi) { existImgAi = document.createElement('img'); existImgAi.className = 'cr-custom-img'; existImgAi.style.cssText = 'width:65%;height:65%;object-fit:contain;'; aiBtn.appendChild(existImgAi); }
+          existImgAi.src = s.imgAi;
+          aiBtn.querySelectorAll('svg').forEach(function(el){ el.style.display = 'none'; });
+        } else {
+          aiBtn.querySelectorAll('svg').forEach(function(el){ el.style.display = ''; });
+          var oImgAi = aiBtn.querySelector('img.cr-custom-img');
+          if (oImgAi) oImgAi.remove();
+        }
+      }
+
+      /* ── 发送按钮 ── */
+      var sendBtn = document.querySelector('.cr-send-btn');
+      if (sendBtn) {
+        if (s.sendBg)  sendBtn.style.background   = s.sendBg;
+        if (s.btnSize) { sendBtn.style.width = s.btnSize + 'px'; sendBtn.style.height = s.btnSize + 'px'; }
+        if (s.radius !== undefined) sendBtn.style.borderRadius = s.radius + 'px';
+        if (s.imgSend) {
+          var existImgSend = sendBtn.querySelector('img.cr-custom-img');
+          if (!existImgSend) { existImgSend = document.createElement('img'); existImgSend.className = 'cr-custom-img'; existImgSend.style.cssText = 'width:65%;height:65%;object-fit:contain;'; sendBtn.appendChild(existImgSend); }
+          existImgSend.src = s.imgSend;
+          sendBtn.querySelectorAll('svg').forEach(function(el){ el.style.display = 'none'; });
+        } else {
+          sendBtn.querySelectorAll('svg').forEach(function(el){ el.style.display = ''; });
+          var oImgSend = sendBtn.querySelector('img.cr-custom-img');
+          if (oImgSend) oImgSend.remove();
+        }
+      }
+
+      /* ── 装饰分割线 ── */
+      var divider = document.querySelector('.cr-const-div');
+      if (divider && s.toggleDivider !== undefined) {
+        divider.style.display = s.toggleDivider ? '' : 'none';
+      }
+
+      /* ── 加号红点 ── */
+      var addDot = document.querySelector('.cr-add-dot');
+      if (addDot && s.toggleAddDot !== undefined) {
+        addDot.style.display = s.toggleAddDot ? '' : 'none';
+      }
+
+      /* ── 自定义 CSS 注入 ── */
+      var oldTag = document.getElementById('cr-input-custom-inject');
+      if (oldTag) oldTag.remove();
+      if (s.customCode) {
+        var tag = document.createElement('style');
+        tag.id = 'cr-input-custom-inject';
+        tag.textContent = s.customCode;
+        document.head.appendChild(tag);
+      }
+    } catch(err) {
+      console.warn('[crApplyInputStyle] 解析失败', err);
+    }
+  }
+
+  window.crApplyInputStyle = crApplyInputStyle;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', crApplyInputStyle);
+  } else {
+    crApplyInputStyle();
+  }
+})();
+/* ================================================================
+   气泡美化样式应用 — crApplyBubbleStyle
+   读取 luna_bubble_style（或角色专属），实时渲染到气泡元素
+================================================================ */
+(function () {
+  function crApplyBubbleStyle() {
+    try {
+      var currentChar = (function() {
+        try { return new URLSearchParams(window.location.search).get('char') || localStorage.getItem('luna_current_chat') || ''; } catch(e) { return ''; }
+      })();
+      var charKey = currentChar ? 'luna_bubble_style_char_' + currentChar : '';
+      var raw = (charKey && localStorage.getItem(charKey))
+        ? localStorage.getItem(charKey)
+        : localStorage.getItem('luna_bubble_style');
+      if (!raw) return;
+      var s;
+      try { s = JSON.parse(raw); } catch(e) { return; }
+      if (!s) return;
+
+      /* ── 注入动态 CSS（气泡颜色 + 尺寸 + 间距）── */
+      var oldTag = document.getElementById('cr-bubble-style-inject');
+      if (oldTag) oldTag.remove();
+
+      var css = '';
+
+      /* 回复方气泡 */
+      if (s.lunaBg || s.lunaTx || s.lunaBd || s.lunaPad || s.lunaFs || s.lunaShape) {
+        css += '.cr-luna-bubble {';
+        if (s.lunaBg)  css += ' background:' + s.lunaBg + ';';
+        if (s.lunaTx)  css += ' color:' + s.lunaTx + ';';
+        if (s.lunaBd)  css += ' border-color:' + s.lunaBd + ';';
+        if (s.lunaPad !== undefined) css += ' padding:' + s.lunaPad + 'px ' + (s.lunaPad + 3) + 'px;';
+        if (s.lunaFs  !== undefined) css += ' font-size:' + s.lunaFs + 'px;';
+        if (s.lunaShape) css += ' border-radius:' + s.lunaShape + ';';
+        css += ' }';
+      }
+
+      /* 发送方气泡 */
+      if (s.mineBg || s.mineTx || s.mineBd || s.minePad || s.mineFs || s.mineShape) {
+        css += '.cr-mine-bubble {';
+        if (s.mineBg)  css += ' background:' + s.mineBg + ';';
+        if (s.mineTx)  css += ' color:' + s.mineTx + ';';
+        if (s.mineBd)  css += ' border-color:' + s.mineBd + ';';
+        if (s.minePad !== undefined) css += ' padding:' + s.minePad + 'px ' + (s.minePad + 3) + 'px;';
+        if (s.mineFs  !== undefined) css += ' font-size:' + s.mineFs + 'px;';
+        if (s.mineShape) css += ' border-radius:' + s.mineShape + ';';
+        css += ' }';
+      }
+
+      /* 最大宽度 */
+      if (s.lunaW !== undefined) {
+        css += '.cr-msg-luna { max-width:' + s.lunaW + '%; }';
+      }
+      if (s.mineW !== undefined) {
+        css += '.cr-msg-mine { max-width:' + s.mineW + '%; }';
+      }
+
+      /* 气泡间距 */
+      if (s.gap !== undefined || s.gapPx !== undefined) {
+        css += '.cr-messages-outer {';
+        if (s.gap   !== undefined) css += ' gap:' + s.gap + 'px;';
+        if (s.gapPx !== undefined) css += ' padding-left:' + s.gapPx + 'px; padding-right:' + s.gapPx + 'px;';
+        css += ' }';
+      }
+
+      /* 时间戳颜色 */
+      if (s.mineTm) {
+        css += '.cr-mine-time, .cr-read-lbl { color:' + s.mineTm + '; }';
+      }
+
+      /* 头像大小 */
+      if (s.lunaAvSize !== undefined) {
+        css += '.cr-mini-av { width:' + s.lunaAvSize + 'px !important; height:' + s.lunaAvSize + 'px !important; min-width:' + s.lunaAvSize + 'px !important; overflow:hidden; border-radius:50%; }';
+        css += '.cr-mini-av img { width:100% !important; height:100% !important; object-fit:cover !important; }';
+      }
+      if (s.mineAvSize !== undefined) {
+        css += '.cr-mine-av { width:' + s.mineAvSize + 'px !important; height:' + s.mineAvSize + 'px !important; min-width:' + s.mineAvSize + 'px !important; overflow:hidden; border-radius:50%; }';
+        css += '.cr-mine-av img { width:100% !important; height:100% !important; object-fit:cover !important; }';
+      }
+
+      /* 侧边强调线 */
+      if (s.lunaAc) {
+        css += '.cr-luna-accent { background:' + s.lunaAc + '; }';
+      }
+
+      /* 侧边强调线显示/隐藏 */
+      if (s.lunaAccent === false) {
+        css += '.cr-luna-accent { display:none !important; }';
+      }
+
+      /* 回复方头像显示/隐藏 */
+      if (s.lunaAvShow === false) {
+        css += '.cr-msg-luna .cr-mini-av { display:none !important; }';
+      }
+
+      /* 发送方头像显示/隐藏 */
+      if (s.mineAvShow === false) {
+        css += '.cr-msg-mine .cr-mine-av { display:none !important; }';
+      } else if (s.mineAvShow === true) {
+        css += '.cr-msg-mine .cr-mine-av { display:block !important; }';
+      }
+
+      /* 已读标记 */
+      if (s.mineRead === false) {
+        css += '.cr-read-lbl { display:none !important; }';
+      }
+
+      /* 时间戳 */
+      if (s.lunaTimeShow === false) {
+        css += '.cr-msg-luna .cr-msg-time { visibility:hidden; }';
+      }
+      if (s.mineTimeShow === false) {
+        css += '.cr-msg-mine .cr-mine-time { visibility:hidden; }';
+      }
+
+      /* 自定义 CSS */
+      if (s.customCode) css += '\n' + s.customCode;
+
+      if (css) {
+        var tag = document.createElement('style');
+        tag.id = 'cr-bubble-style-inject';
+        tag.textContent = css;
+        document.head.appendChild(tag);
+      }
+
+      /* 样式注入后刷新用户头像（确保新尺寸下图片不变形） */
+      if (typeof crRefreshMineAvatars === 'function') crRefreshMineAvatars();
+
+    } catch(err) {
+      console.warn('[crApplyBubbleStyle] 解析失败', err);
+    }
+  }
+
+  window.crApplyBubbleStyle = crApplyBubbleStyle;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', crApplyBubbleStyle);
+  } else {
+    crApplyBubbleStyle();
+  }
 })();
