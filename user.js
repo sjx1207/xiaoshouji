@@ -7,6 +7,13 @@
    返回首页 — 同 characters.js 转场
 ================================================ */
 function goBack() {
+  const returnTo = localStorage.getItem('luna_return_to');
+  localStorage.removeItem('luna_return_to');
+  const dest = returnTo === 'chat_profile'
+    ? 'chat.html#profile'
+    : returnTo === 'wallet_me'
+      ? 'wallet.html#me'
+      : 'index.html';
   const mask = document.createElement('div');
   mask.style.cssText =
     'position:fixed;inset:0;' +
@@ -15,7 +22,7 @@ function goBack() {
     'transition:opacity 0.28s ease;pointer-events:all;';
   document.body.appendChild(mask);
   requestAnimationFrame(() => { mask.style.opacity = '1'; });
-  setTimeout(() => { window.location.href = 'index.html'; }, 260);
+  setTimeout(() => { window.location.href = dest; }, 260);
 }
 
 /* ================================================
@@ -184,21 +191,29 @@ let _identityDB = null;
 function openIdentityDB() {
   return new Promise((res, rej) => {
     if (_identityDB) return res(_identityDB);
-    const req = indexedDB.open('LunaIdentityDB', 1);
-    req.onupgradeneeded = e => {
+    const probe = indexedDB.open('LunaIdentityDB');
+    probe.onsuccess = e => {
       const db = e.target.result;
-      if (!db.objectStoreNames.contains('identities')) {
-        db.createObjectStore('identities', { keyPath: 'id' });
+      if (db.objectStoreNames.contains('identities')) {
+        _identityDB = db; return res(_identityDB);
       }
+      const ver = db.version + 1; db.close();
+      const req2 = indexedDB.open('LunaIdentityDB', ver);
+      req2.onupgradeneeded = ev => {
+        if (!ev.target.result.objectStoreNames.contains('identities'))
+          ev.target.result.createObjectStore('identities', { keyPath: 'id' });
+      };
+      req2.onsuccess = ev => { _identityDB = ev.target.result; res(_identityDB); };
+      req2.onerror   = ev => rej(ev.target.error);
     };
-    req.onsuccess = e => { _identityDB = e.target.result; res(_identityDB); };
-    req.onerror   = e => rej(e.target.error);
+    probe.onerror = e => rej(e.target.error);
   });
 }
 
 async function loadIdentitiesFromDB() {
   const db = await openIdentityDB().catch(() => null);
   if (!db) return [];
+  if (!db.objectStoreNames.contains('identities')) return [];
   return new Promise(res => {
     const r = db.transaction('identities').objectStore('identities').getAll();
     r.onsuccess = () => {
@@ -316,7 +331,7 @@ function buildCard(identity, idx) {
 
   // 头像 HTML
   const avatarInner = identity.avatarImg
-    ? `<img src="${escHtml(identity.avatarImg)}" alt="" style="width:100%;height:100%;object-fit:contain;position:absolute;inset:0;border-radius:50%;"/>`
+    ? `<img src="${escHtml(identity.avatarImg)}" alt="" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:inherit;">`
     : initial;
 
   card.innerHTML = `
@@ -614,6 +629,7 @@ function submitIdentity() {
     active:      document.getElementById('profileToggleActive').checked,
     avatarColor: selectedAvatarColor,
     avatarImg:   avatarImageData || null,
+    bgImg:       bgImageData || null,
     boundCharId: boundCharId || null,
   };
 
@@ -686,7 +702,7 @@ function openDetail(id) {
     const bc = _allChars.find(c => c.id === identity.boundCharId);
     if (bc) {
       const letter = (bc.name || '?')[0].toUpperCase();
-      const avatarInner = bc.avatar ? `<img src="${escHtml(bc.avatar)}" alt="" style="width:100%;height:100%;object-fit:contain;"/>` : letter;
+      const avatarInner = bc.avatar ? `<img src="${escHtml(bc.avatar)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"/>` : letter;
       bindHtml = `
         <div class="detail-section-gap"></div>
         <div class="profile-section-label" style="padding:0 22px 10px">绑定 AI 角色</div>
@@ -726,7 +742,7 @@ function openDetail(id) {
 
   // 头像
   const avatarInner = identity.avatarImg
-    ? `<img src="${escHtml(identity.avatarImg)}" alt="" style="width:100%;height:100%;object-fit:contain;position:absolute;inset:0;border-radius:50%;"/>`
+    ? `<img src="${escHtml(identity.avatarImg)}" alt="" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%;"/>`
     : initial;
 
   document.getElementById('detailPageContent').innerHTML = `
@@ -910,6 +926,13 @@ function openProfilePage(editId) {
       pImg.src = ''; pImg.style.display = 'none'; pLetter.style.display = '';
     }
 
+    // 还原背景图
+    bgImageData = identity.bgImg || null;
+    const bgPreview = document.getElementById('profileHeroBgPreview');
+    const bgHint    = document.getElementById('profileHeroBgHint');
+    if (bgPreview) bgPreview.style.backgroundImage = bgImageData ? `url(${bgImageData})` : '';
+    if (bgHint)    bgHint.style.display = bgImageData ? 'none' : 'flex';
+
     // 颜色
     document.querySelectorAll('.profile-color-chip[data-color]').forEach(c => {
       c.classList.toggle('selected', c.dataset.color === selectedAvatarColor);
@@ -930,7 +953,9 @@ function openProfilePage(editId) {
     pendingTags         = [];
     selectedAvatarColor = '#1a1a22';
     avatarImageData     = null;
+    bgImageData         = null;
     boundCharId         = null;
+    resetBgPreview();
 
     const pAvatar = document.getElementById('profileAvatarPreview');
     const pImg    = document.getElementById('profileAvatarImg');
@@ -1013,6 +1038,39 @@ function handleAvatarUpload(e) {
   };
   reader.readAsDataURL(file);
   e.target.value = '';
+}
+
+/* 背景图上传 */
+let bgImageData = null;
+
+function triggerBgUpload() {
+  document.getElementById('bgFileInput').click();
+}
+
+function handleBgUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    bgImageData = ev.target.result;
+    const preview = document.getElementById('profileHeroBgPreview');
+    const hint    = document.getElementById('profileHeroBgHint');
+    if (preview) preview.style.backgroundImage = `url(${bgImageData})`;
+    if (hint) {
+      hint.querySelector('div').textContent = '';
+      hint.querySelector('div').innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> 更换背景';
+    }
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function resetBgPreview() {
+  bgImageData = null;
+  const preview = document.getElementById('profileHeroBgPreview');
+  const hint    = document.getElementById('profileHeroBgHint');
+  if (preview) preview.style.backgroundImage = '';
+  if (hint)    hint.style.display = 'flex';
 }
 
 /* 标签 */
@@ -1168,6 +1226,11 @@ async function init() {
   setInterval(updateTime, 10000);
   updateBattery();
   applyIsland();
+  // 从 user.html 返回时跳到 me tab
+  if (window.location.hash === '#me') {
+    switchTab('me');
+    history.replaceState(null, '', window.location.pathname);
+  }
   await applyGlobalFont();
 
   // 预加载角色列表（用于卡片显示绑定名称 & 下拉选择）
