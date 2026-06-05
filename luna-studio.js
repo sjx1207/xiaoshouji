@@ -196,9 +196,8 @@ async function lsLoadCharData() {
       const avatarSrc = found.avatar || found.avatarUrl || found.avatarSrc || found.img || '';
       if (avatarSrc) _lsApplyCharAvatar(avatarSrc);
 
-      /* ── 副标题（多字段兼容） ── */
-      const sub = found.tagline || found.bio || found.sign
-               || found.subtitle || found.description || found.desc || '';
+      /* ── 副标题：只用对外展示字段，绝不暴露 bio/description/desc 等人设内容 ── */
+      const sub = found.tagline || found.sign || found.subtitle || '';
       if (sub) {
         const subEl = document.querySelector('.ls-sub');
         if (subEl) subEl.textContent = sub;
