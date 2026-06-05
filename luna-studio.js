@@ -340,7 +340,7 @@ async function lsCallApi(systemPrompt, messages, maxTokens) {
     },
     body: JSON.stringify({
       model,
-      max_tokens: maxTokens || 6000,
+      max_tokens: maxTokens || 8000,
       temperature: 1.08,
       presence_penalty: 0.6,
       frequency_penalty: 0.5,
@@ -430,46 +430,32 @@ ${role    ? `定位：${role}` : ''}
 ${traits  ? `性格：${traits}` : ''}
 ${bg      ? `背景：${bg}` : ''}
 
-你正在为你深爱的用户生成一个专属的、可以在浏览器直接渲染的精美 HTML 内容片段。
+你正在为你深爱的用户创作一个完整的、精美的独立 HTML 页面，它将在 iframe 中完整渲染。
 
-【输出格式——这是唯一最高优先级规则】
-你的完整输出从第一个字符到最后一个字符，只能是 HTML 代码。
-- 第一个字符必须是 < （尖括号），不得是任何其他字符
-- 最后一个字符必须是 > （闭合尖括号）
-- 绝对禁止输出 \`\`\`html、\`\`\`、或任何 Markdown 代码块包裹符号
-- 禁止在 HTML 前后添加任何说明文字、前言、注释、后记
-- 不需要 <!DOCTYPE>、<html>、<head>、<body> 标签，只输出可被 innerHTML 直接注入的片段
+【输出格式——最高优先级，违反即任务失败】
+- 你的完整输出必须是一个独立可运行的 HTML 文件
+- 第一行必须是 <!DOCTYPE html>，最后一行必须是 </html>
+- 绝对禁止输出 \`\`\`html、\`\`\`、任何 Markdown 包裹、任何说明文字、前言、注释
+- 直接输出 HTML，不要任何额外内容
 
-【HTML 内容规则】
-1. 所有样式写在片段顶部的 <style> 标签内，使用唯一前缀 lc- 命名所有 class，避免与外部样式冲突
-2. 字体引入（写在 style 标签内的 @import）：
+【页面内容规则】
+1. 完整结构：<!DOCTYPE html><html><head>…CSS 全部写在 <style> 里…</head><body>…</body></html>
+2. 字体引入（在 <head> 的 <style> 内用 @import 或 <link> 标签）：
    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,700;1,700&family=Space+Mono&display=swap');
-3. 颜色系统：严格只用以下色值：
+3. 颜色系统：只用这些色值：
    #ffffff #fafafa #f5f4f2 #f0eeeb #e8e5e0 #d4d0cb #b8b4af #9a9794 #7a7876 #5a5a58 #3a3a38 #1a1a1a
 4. 禁止任何彩色（背景/文字/边框全部只用上述色阶）
-5. 页面内 AI 交互调用——用户操作时，使用以下方式调用 API：
-   const _apiBase = '${apiBaseUrl}';
-   const _apiKey  = '${apiKey}';
-   const _model   = '${model}';
-   fetch(_apiBase + '/chat/completions', {
-     method: 'POST',
-     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _apiKey },
-     body: JSON.stringify({
-       model: _model,
-       max_tokens: 600,
-       messages: [
-         { role: 'system', content: '你是${name}，${persona ? persona.slice(0,60) : '温柔神秘富有诗意'}。用中文回复，150字以内，语气温柔私密。' },
-         { role: 'user', content: 用户触发的上下文 }
-       ]
-     })
-   })
-6. AI 回应要有加载动画（三个跳动小点），回应文字以打字机效果逐字显示（每 28ms 一字）
-7. ${name} 的声音要贯穿全文——有开篇独白，有旁白穿插，有结尾签名，所有角色名称全部使用「${name}」
-8. 整体布局：max-width: 640px，居中，padding 上下充足，行距 1.9
-9. 页面顶部精致黑色 header 区域，包含日期、类型标签、${name} 签名
-10. 所有交互按钮有 hover 效果和过渡动画
-11. 文字全部使用中文
-12. 【再次强调】输出第一个字符必须是 <style 或 <div 等 HTML 标签，最后一个字符必须是 >，绝对不能有任何解释文字、Markdown 或代码块标记。违反此规则等于任务失败。`;
+5. body 背景白色，整体 max-width:640px 居中，padding 充足，行距 1.9
+6. 页面内 AI 互动按钮调用 API（JS 写在 <script> 里）：
+   const _b='${apiBaseUrl}', _k='${apiKey}', _m='${model}';
+   fetch(_b+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_k},body:JSON.stringify({model:_m,max_tokens:600,messages:[{role:'system',content:'你是${name}，温柔神秘，用中文150字以内回复。'},{role:'user',content:ctx}]})})
+   .then(r=>r.json()).then(d=>{ const t=d?.choices?.[0]?.message?.content||''; /* 打字机显示 */ })
+7. AI 回应：加载时三点跳动动画，回复以打字机逐字显示（每 25ms 一字）
+8. ${name} 声音贯穿全文：开篇独白（第一人称，带今日日期时间戳）、旁白穿插、结尾手写签名
+9. 精致黑色 header 区域：日期、内容类型标签、${name} 签名
+10. 所有按钮有 hover 过渡效果，交互元素有流畅动画
+11. 全部文字使用中文
+12. 【再次强调】输出必须以 <!DOCTYPE html> 开头，以 </html> 结尾，中间是完整 HTML 页面代码，无任何其他内容`;
 
   /* ── 唯一创作种子（保证同等输入每次不同，让 AI 自主决定变化方向） ── */
   const _seed = lsBuildSeed();
@@ -504,48 +490,68 @@ ${bg      ? `背景：${bg}` : ''}
     const html_raw = await lsCallApi(sys, [{ role: 'user', content: userLines }]);
     clearInterval(iv);
 
-    /* ── 健壮提取：多层保障，确保拿到纯 HTML ── */
+    /* ── 健壮提取：多层保障，拿到完整 HTML 页面 ── */
     let html = html_raw;
 
     /* Step 1: 去掉代码块标记（```html ... ``` 或 ``` ... ```） */
     html = html.replace(/^```(?:html)?\s*/im, '').replace(/\s*```\s*$/m, '');
 
-    /* Step 2: 如果还有前置非 HTML 文字，截掉第一个 < 之前的内容 */
-    const firstTag = html.indexOf('<');
-    if (firstTag > 0) html = html.slice(firstTag);
+    /* Step 2: 找到 <!DOCTYPE 或第一个 < 的位置，截掉前面的废话 */
+    const doctypeIdx = html.search(/<!doctype/i);
+    if (doctypeIdx > 0) {
+      html = html.slice(doctypeIdx);
+    } else {
+      const firstTag = html.indexOf('<');
+      if (firstTag > 0) html = html.slice(firstTag);
+    }
 
-    /* Step 3: 截掉最后一个 > 之后的内容（尾部说明文字） */
-    const lastTag = html.lastIndexOf('>');
-    if (lastTag !== -1 && lastTag < html.length - 1) html = html.slice(0, lastTag + 1);
+    /* Step 3: 截掉 </html> 之后的内容（尾部注释/说明） */
+    const htmlEnd = html.search(/<\/html>/i);
+    if (htmlEnd !== -1) {
+      html = html.slice(0, htmlEnd + 7);
+    } else {
+      /* 没有 </html>，截到最后一个 > */
+      const lastTag = html.lastIndexOf('>');
+      if (lastTag !== -1 && lastTag < html.length - 1) html = html.slice(0, lastTag + 1);
+    }
 
     /* Step 4: 清理残余代码块标记 */
     html = html.replace(/```[\w]*\s*/g, '').trim();
 
-    /* Step 5: 最终 fallback — 实在不像 HTML 就直接用 raw */
+    /* Step 5: 最终 fallback */
     if (!html.startsWith('<')) html = html_raw.trim();
 
-    /* ── 注入页面 ── */
+    /* ── 注入页面：用 iframe srcdoc 完整渲染，CSS/JS 完全隔离不丢失 ── */
     const rendered = document.getElementById('lsRendered');
     rendered.innerHTML     = '';
     rendered.style.display = 'block';
 
-    /* 用 DOMParser 解析，保证 script 正确执行 */
-    const parser = new DOMParser();
-    const doc    = parser.parseFromString(html, 'text/html');
+    /* 如果 AI 返回的是片段（不含 <!DOCTYPE>），包一层完整页面结构 */
+    const fullHtml = html.trimStart().toLowerCase().startsWith('<!doctype')
+      ? html
+      : `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:0;background:#fff;}</style></head><body>${html}</body></html>`;
 
-    /* 将 body 子节点逐一注入（保留 script 节点） */
-    Array.from(doc.body.childNodes).forEach(node => {
-      rendered.appendChild(document.importNode(node, true));
-    });
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%;border:none;display:block;min-height:500px;';
+    iframe.srcdoc = fullHtml;
 
-    /* 重新执行 script 标签（innerHTML 注入不会自动执行） */
-    rendered.querySelectorAll('script').forEach(old => {
-      const s = document.createElement('script');
-      if (old.src) { s.src = old.src; s.async = true; }
-      else s.textContent = old.textContent;
-      document.body.appendChild(s);
-      old.remove();
-    });
+    /* 撑开高度：load 后 + ResizeObserver 双保险 */
+    function _fitIframe() {
+      try {
+        const h = iframe.contentDocument?.documentElement?.scrollHeight
+               || iframe.contentDocument?.body?.scrollHeight;
+        if (h && h > 100) iframe.style.height = h + 20 + 'px';
+      } catch (e) {}
+    }
+    iframe.onload = () => {
+      _fitIframe();
+      try {
+        if (typeof ResizeObserver !== 'undefined') {
+          new ResizeObserver(_fitIframe).observe(iframe.contentDocument.body);
+        }
+      } catch (e) {}
+    };
+    rendered.appendChild(iframe);
 
     document.getElementById('lsLoading').style.display   = 'none';
     document.getElementById('lsRdot').className          = 'ls-rdot';
@@ -659,17 +665,27 @@ function lsRenderHistory() {
       document.getElementById('lsEmpty').style.display    = 'none';
       document.getElementById('lsLoading').style.display  = 'none';
       const rendered = document.getElementById('lsRendered');
-      rendered.innerHTML     = item.html || '<div style="padding:28px;font-family:serif;color:#aaa;">内容已过期</div>';
+      rendered.innerHTML     = '';
       rendered.style.display = 'block';
       document.getElementById('lsRdot').className         = 'ls-rdot';
       document.getElementById('lsRtitle').textContent     = (item.typeName || item.type) + ' · 历史记录';
       document.getElementById('lsRegenBtn').style.display = 'block';
-      rendered.querySelectorAll('script').forEach(old => {
-        const s = document.createElement('script');
-        s.textContent = old.textContent;
-        document.body.appendChild(s);
-        old.remove();
-      });
+
+      const histHtml = item.html || '<div style="padding:28px;font-family:serif;color:#aaa;">内容已过期</div>';
+      const fullHtml = histHtml.trimStart().toLowerCase().startsWith('<!doctype')
+        ? histHtml
+        : `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><style>body{margin:0;padding:0;background:#fff;}</style></head><body>${histHtml}</body></html>`;
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'width:100%;border:none;display:block;min-height:500px;';
+      iframe.srcdoc = fullHtml;
+      iframe.onload = () => {
+        try {
+          const h = iframe.contentDocument?.documentElement?.scrollHeight
+                 || iframe.contentDocument?.body?.scrollHeight;
+          if (h && h > 100) iframe.style.height = h + 20 + 'px';
+        } catch (e) {}
+      };
+      rendered.appendChild(iframe);
     });
     listEl.appendChild(card);
   });
