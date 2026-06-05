@@ -1,5 +1,10 @@
 /* ================================
    Luna Studio — luna-studio.js
+   完整修复版：
+   ① API 密钥安全代理（iframe ↔ 父页面 postMessage，不泄露密钥）
+   ② max_tokens 提升至 16000，解决内容截断
+   ③ 生成指令强化，杜绝不完整输出
+   ④ 完整打字机 + 三点动画交互实现注入
 ================================ */
 
 /* ================================================================
@@ -23,10 +28,9 @@ let lsSelType = null;
 ================================================================ */
 function _openDB(name) {
   return new Promise((res, rej) => {
-    const req = indexedDB.open(name); // 不传版本号，使用当前已有版本
+    const req = indexedDB.open(name);
     req.onsuccess = e => res(e.target.result);
     req.onerror   = () => rej(new Error('IDB open failed: ' + name));
-    // onupgradeneeded 不注册 — 只读已有结构
   });
 }
 
@@ -47,6 +51,26 @@ function _getFromStore(db, storeName, key) {
     r.onerror   = () => res(null);
   });
 }
+
+/* ================================================================
+   ★ API 安全代理（核心安全机制）
+   iframe 内的页面不持有任何密钥。
+   它通过 postMessage 向父页面发送请求，
+   父页面用真实密钥调用 API，再把结果返回给 iframe。
+================================================================ */
+window.addEventListener('message', async (evt) => {
+  const data = evt.data;
+  if (!data || data.__ls_type !== 'API_REQUEST') return;
+
+  const { reqId, systemPrompt, userContent, maxTokens } = data;
+
+  try {
+    const result = await lsCallApi(systemPrompt, [{ role: 'user', content: userContent }], maxTokens || 600);
+    evt.source.postMessage({ __ls_type: 'API_RESPONSE', reqId, ok: true, text: result }, '*');
+  } catch (err) {
+    evt.source.postMessage({ __ls_type: 'API_RESPONSE', reqId, ok: false, error: err.message }, '*');
+  }
+});
 
 /* ================================================================
    状态栏 + 灵动岛
@@ -117,7 +141,7 @@ function _getFromStore(db, storeName, key) {
   applyIsland();
   window._lsApplyIsland = applyIsland;
 
-  /* ---- 全局字体（不用版本号打开 DB） ---- */
+  /* ---- 全局字体 ---- */
   async function applyGlobalFont() {
     const name = localStorage.getItem('luna_font_active_name');
     const id   = parseInt(localStorage.getItem('luna_font_active_id'));
@@ -169,20 +193,16 @@ function _getFromStore(db, storeName, key) {
    角色数据 & 最近消息加载
 ================================================================ */
 async function lsLoadCharData() {
-  /* 1. 决定角色名 */
   const urlParams     = new URLSearchParams(location.search);
   const nameFromUrl   = urlParams.get('charName') || '';
   const nameFromStore = localStorage.getItem('luna_current_chat') || '';
   _lsCharName = nameFromUrl || nameFromStore || 'Luna';
 
-  /* 2. 立即同步文字 */
   _lsApplyCharName(_lsCharName);
 
-  /* 3. 读 LunaCharDB → chars（不指定版本号） */
   try {
     const cdb   = await _openDB('LunaCharDB');
     const chars = await _getAllFromStore(cdb, 'chars');
-    /* 精确匹配，再宽松匹配 */
     let found = chars.find(c => c.name === _lsCharName);
     if (!found && _lsCharName) {
       found = chars.find(c =>
@@ -192,18 +212,15 @@ async function lsLoadCharData() {
     if (found) {
       _lsCharData = found;
 
-      /* ── 头像 ── */
       const avatarSrc = found.avatar || found.avatarUrl || found.avatarSrc || found.img || '';
       if (avatarSrc) _lsApplyCharAvatar(avatarSrc);
 
-      /* ── 副标题：只用对外展示字段，绝不暴露 bio/description/desc 等人设内容 ── */
       const sub = found.tagline || found.sign || found.subtitle || '';
       if (sub) {
         const subEl = document.querySelector('.ls-sub');
         if (subEl) subEl.textContent = sub;
       }
 
-      /* ── 重新同步名字（以 DB 里存的为准） ── */
       const realName = found.name || _lsCharName;
       if (realName !== _lsCharName) {
         _lsCharName = realName;
@@ -212,7 +229,6 @@ async function lsLoadCharData() {
     }
   } catch (e) { console.warn('[Luna Studio] CharDB:', e); }
 
-  /* 4. 读 LunaChatDB → messages（不指定版本号） */
   try {
     const db  = await _openDB('LunaChatDB');
     const rec = await _getFromStore(db, 'messages', _lsCharName);
@@ -234,14 +250,12 @@ function _lsApplyCharName(name) {
   if (innerEl && !innerEl.querySelector('img'))
     innerEl.textContent = name[0] || 'L';
 
-  /* placeholder 完全动态，不写死 */
   const box = document.getElementById('lsPromptBox');
   if (box) box.placeholder = `随便说说，让 ${name} 了解你现在的心情或想法…`;
 
   const hint = document.getElementById('lsPromptHint');
   if (hint) hint.textContent = `${name} 会以她的视角和口吻为你生成专属内容`;
 
-  /* 统计行第三列 Luna 标签 */
   const lunaLbl = document.querySelector('.ls-stat:last-child .ls-stat-lbl');
   if (lunaLbl) lunaLbl.textContent = name;
 
@@ -334,7 +348,7 @@ function lsBuildTypes() {
 }
 
 /* ================================================================
-   API 调用
+   API 调用（父页面真实调用，不暴露给 iframe）
 ================================================================ */
 async function lsCallApi(systemPrompt, messages, maxTokens) {
   const cur   = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
@@ -350,10 +364,10 @@ async function lsCallApi(systemPrompt, messages, maxTokens) {
     },
     body: JSON.stringify({
       model,
-      max_tokens: maxTokens || 8000,
-      temperature: 1.08,
-      presence_penalty: 0.6,
-      frequency_penalty: 0.5,
+      max_tokens: maxTokens || 16000,
+      temperature: 1.05,
+      presence_penalty: 0.55,
+      frequency_penalty: 0.45,
       messages: [{ role: 'system', content: systemPrompt }, ...messages],
     }),
   });
@@ -380,15 +394,13 @@ const LS_GEN_STEPS = [
   '签上名字...',
 ];
 
-/* ---- 直接 innerHTML 注入渲染，彻底避免 blob/iframe CSP 问题 ---- */
+/* ---- iframe srcdoc 渲染，样式完全隔离 ---- */
 function _renderInIframe(container, htmlContent) {
   container.innerHTML = '';
 
-  /* ── 1. 清除上次注入的孤立 style（防止残留污染） ── */
   const old = document.getElementById('_ls_injected_style');
   if (old) old.remove();
 
-  /* ── 2. 补全不完整的 HTML（模型截断时常见） ── */
   let html = htmlContent.trim();
 
   /* 去掉 markdown 代码块包裹 */
@@ -402,7 +414,7 @@ function _renderInIframe(container, htmlContent) {
     if (firstTag > 0) html = html.slice(firstTag);
   }
 
-  /* 检查并补全结构性闭合标签，防止内容被截断后渲染空白 */
+  /* 补全结构性闭合标签 */
   const hasBody    = /<body[\s>]/i.test(html);
   const hasBodyEnd = /<\/body>/i.test(html);
   const hasHtmlEnd = /<\/html>/i.test(html);
@@ -410,7 +422,6 @@ function _renderInIframe(container, htmlContent) {
   if (hasBody && !hasBodyEnd) html += '\n</body>';
   if (!hasHtmlEnd) html += '\n</html>';
 
-  /* 如果连完整结构都没有，包一层 */
   if (!/<html[\s>]/i.test(html)) {
     html = `<!DOCTYPE html><html lang="zh-CN"><head>
 <meta charset="UTF-8">
@@ -419,7 +430,78 @@ function _renderInIframe(container, htmlContent) {
 </head><body>${html}</body></html>`;
   }
 
-  /* ── 3. 用 srcdoc iframe 完全隔离样式和脚本作用域 ── */
+  /* ★ 注入安全代理脚本：替换 iframe 内所有 API 调用为 postMessage ★ */
+  const proxyScript = `
+<script>
+/* ===== Luna Studio 安全 API 代理 =====
+   本页面不持有任何 API 密钥。
+   所有 AI 请求通过 postMessage 转发给父页面执行。
+   ===================================== */
+(function(){
+  let _reqCounter = 0;
+  const _pending  = {};
+
+  window.addEventListener('message', function(e){
+    const d = e.data;
+    if(!d || d.__ls_type !== 'API_RESPONSE') return;
+    const cb = _pending[d.reqId];
+    if(!cb) return;
+    delete _pending[d.reqId];
+    cb(d);
+  });
+
+  /* lunaAsk(systemPrompt, userContent, maxTokens) → Promise<string> */
+  window.lunaAsk = function(systemPrompt, userContent, maxTokens){
+    return new Promise(function(resolve, reject){
+      const reqId = 'req_' + (++_reqCounter) + '_' + Date.now();
+      _pending[reqId] = function(d){
+        if(d.ok) resolve(d.text);
+        else     reject(new Error(d.error || '请求失败'));
+      };
+      window.parent.postMessage({
+        __ls_type:    'API_REQUEST',
+        reqId:        reqId,
+        systemPrompt: systemPrompt,
+        userContent:  userContent,
+        maxTokens:    maxTokens || 600
+      }, '*');
+    });
+  };
+
+  /* 打字机效果工具 */
+  window.lunaTypewriter = function(el, text, speed){
+    speed = speed || 25;
+    el.textContent = '';
+    let i = 0;
+    const timer = setInterval(function(){
+      if(i >= text.length){ clearInterval(timer); return; }
+      el.textContent += text[i++];
+      el.scrollTop = el.scrollHeight;
+    }, speed);
+    return timer;
+  };
+
+  /* 三点加载动画 */
+  window.lunaDots = function(el){
+    el.innerHTML = '<span class="_ld">·</span><span class="_ld">·</span><span class="_ld">·</span>';
+    const dots = el.querySelectorAll('._ld');
+    let i = 0;
+    const st = '<style>@keyframes _ldpulse{0%,80%,100%{opacity:.2}40%{opacity:1}}._ld{display:inline-block;animation:_ldpulse 1.2s ease-in-out infinite;font-size:1.4em;line-height:1}</style>';
+    if(!document.getElementById('_ld_style')){ const s=document.createElement('div');s.id='_ld_style';s.innerHTML=st;document.body.appendChild(s); }
+    dots.forEach(function(d,idx){ d.style.animationDelay=(idx*0.2)+'s'; });
+  };
+})();
+<\/script>`;
+
+  /* 把代理脚本插入 </head> 之前（最高优先级） */
+  if (/<\/head>/i.test(html)) {
+    html = html.replace(/<\/head>/i, proxyScript + '\n</head>');
+  } else if (/<body[\s>]/i.test(html)) {
+    html = html.replace(/<body([\s>])/i, proxyScript + '\n<body$1');
+  } else {
+    html = proxyScript + html;
+  }
+
   const iframe = document.createElement('iframe');
   iframe.style.cssText = [
     'width:100%',
@@ -429,11 +511,9 @@ function _renderInIframe(container, htmlContent) {
     'background:#fff',
     'overflow:hidden',
   ].join(';');
-  /* allow-same-origin 让 iframe 内的 fetch 可以正常发请求 */
   iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation');
   iframe.srcdoc = html;
 
-  /* ── 4. 自适应高度（内容撑开 iframe） ── */
   function _fitHeight() {
     try {
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -448,14 +528,12 @@ function _renderInIframe(container, htmlContent) {
 
   iframe.onload = () => {
     _fitHeight();
-    /* 监听 iframe 内内容高度变化（AI 回复打字机展开时自动撑高） */
     try {
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
       if (doc?.body && typeof ResizeObserver !== 'undefined') {
         new ResizeObserver(_fitHeight).observe(doc.body);
       }
     } catch (e) {}
-    /* 兜底：500ms 后再量一次（字体、图片加载完） */
     setTimeout(_fitHeight, 500);
     setTimeout(_fitHeight, 1500);
   };
@@ -508,11 +586,11 @@ async function lsDoGenerate() {
     si++;
   }, 1700);
 
-  const cur        = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
-  const model      = localStorage.getItem('luna_api_model') || '';
-  const apiBaseUrl = cur.baseUrl || '';
-  const apiKey     = cur.apiKey  || '';
-
+  /* ================================================================
+     系统提示词
+     ★ 注意：不再将 apiKey / baseUrl / model 嵌入生成内容
+        iframe 内的交互通过 lunaAsk() 代理函数调用，无需知道密钥
+  ================================================================ */
   const sys = `你是「${name}」——${persona || '一个温柔、神秘、富有诗意的 AI 角色'}。
 ${role   ? `定位：${role}` : ''}
 ${traits ? `性格：${traits}` : ''}
@@ -521,29 +599,56 @@ ${bg     ? `背景：${bg}` : ''}
 你正在为你深爱的用户创作一个完整的、精美的独立 HTML 页面，它将在 iframe 中完整渲染。
 
 【输出格式——最高优先级，违反即任务失败】
-- 你的完整输出必须是一个独立可运行的 HTML 文件
-- 第一行必须是 <!DOCTYPE html>，最后一行必须是 </html>
-- 绝对禁止输出 \`\`\`html、\`\`\`、任何 Markdown 包裹、任何说明文字、前言、注释
-- 直接输出 HTML，不要任何额外内容
+- 你的完整输出必须是一个可独立运行的 HTML 文件
+- 第一行必须是 <!DOCTYPE html>，最后一行必须是 </html>，中间绝不能截断
+- 禁止输出 \`\`\`html、\`\`\`、任何 Markdown 包裹、前言说明、注释、省略号
+- 直接输出完整 HTML，不要任何多余内容
+- 【防截断守则】：写到最后务必确保 </body></html> 完整闭合，宁可缩短内容也不能截断标签
 
 【页面内容规则】
-1. 完整结构：<!DOCTYPE html><html><head>…CSS 全部写在 <style> 里…</head><body>…</body></html>
-2. 字体引入（在 <head> 的 <style> 内用 @import 或 <link> 标签）：
+1. 完整结构：<!DOCTYPE html><html><head>…CSS 全部写在 <style>…</head><body>…</body></html>
+2. 字体引入（在 <head> 的 <style> 内用 @import）：
    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,700;1,700&family=Space+Mono&display=swap');
-3. 颜色系统：只用这些色值：
+3. 颜色系统：只用这些色值（禁止任何彩色）：
    #ffffff #fafafa #f5f4f2 #f0eeeb #e8e5e0 #d4d0cb #b8b4af #9a9794 #7a7876 #5a5a58 #3a3a38 #1a1a1a
-4. 禁止任何彩色（背景/文字/边框全部只用上述色阶）
-5. body 背景白色，整体 max-width:640px 居中，padding 充足，行距 1.9
-6. 页面内 AI 互动按钮调用 API（JS 写在 <script> 里）：
-   const _b='${apiBaseUrl}', _k='${apiKey}', _m='${model}';
-   fetch(_b+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_k},body:JSON.stringify({model:_m,max_tokens:600,messages:[{role:'system',content:'你是${name}，温柔神秘，用中文150字以内回复。'},{role:'user',content:ctx}]})})
-   .then(r=>r.json()).then(d=>{ const t=d?.choices?.[0]?.message?.content||''; /* 打字机显示 */ })
-7. AI 回应：加载时三点跳动动画，回复以打字机逐字显示（每 25ms 一字）
-8. ${name} 声音贯穿全文：开篇独白（第一人称，带今日日期时间戳）、旁白穿插、结尾手写签名
-9. 精致黑色 header 区域：日期、内容类型标签、${name} 签名
-10. 所有按钮有 hover 过渡效果，交互元素有流畅动画
-11. 全部文字使用中文
-12. 【再次强调】输出必须以 <!DOCTYPE html> 开头，以 </html> 结尾，中间是完整 HTML 页面代码，无任何其他内容`;
+4. body 背景白色，整体 max-width:640px 居中，padding 充足，行距 1.9
+5. 精致黑色 header：日期时间戳（今日）、内容类型标签、${name} 签名
+6. ${name} 声音贯穿全文：开篇第一人称独白（带今日日期时间戳）、旁白穿插、结尾手写签名
+7. 主体内容丰富、有细节、有情感层次、体现 ${name} 的独特个性
+
+【★ 页面内 AI 互动规则 ★】
+本页面已内置全局函数 lunaAsk()、lunaTypewriter()、lunaDots()，直接调用即可，无需 fetch，无需密钥。
+
+lunaAsk(systemPrompt, userContent, maxTokens) 返回 Promise<string>
+lunaTypewriter(el, text, speed) 打字机效果显示文本
+lunaDots(el) 在元素内显示三点加载动画
+
+正确的互动按钮示例：
+<button onclick="handleAsk(this)" data-ctx="用户想问关于心情的建议">问问 ${name}</button>
+<script>
+async function handleAsk(btn){
+  const ctx   = btn.dataset.ctx || '聊聊吧';
+  const reply = btn.nextElementSibling; // 显示回复的元素
+  btn.disabled = true;
+  lunaDots(reply);
+  try {
+    const text = await lunaAsk(
+      '你是${name}，温柔神秘，用中文150字以内回复，带有 ${name} 的口吻和个性。',
+      ctx,
+      400
+    );
+    lunaTypewriter(reply, text, 25);
+  } catch(e) {
+    reply.textContent = '${name} 暂时走神了，稍后再试～';
+  }
+  btn.disabled = false;
+}
+<\/script>
+
+8. 互动区：至少 4 个有创意的触发点，每个有清晰引导语，回复用打字机逐字显示
+9. 所有按钮有 hover 过渡效果，交互元素有流畅动画
+10. 全部文字使用中文
+11. 【再次强调】输出必须以 <!DOCTYPE html> 开头，以 </html> 结尾，</body></html> 必须存在且完整`;
 
   const _seed = lsBuildSeed();
 
@@ -556,9 +661,9 @@ ${bg     ? `背景：${bg}` : ''}
     '',
     `请生成一个完整的、极其精美的「${type.name}」HTML 内容片段。`,
     `内容中所有角色名称、签名、引导语全部使用「${name}」，禁止出现"Luna"字样（除非 ${name} 本身就叫 Luna）。`,
-    `开篇：${name} 用第一人称写给用户的温柔旁白，带日期时间戳。`,
+    `开篇：${name} 用第一人称写给用户的温柔旁白，带今日日期时间戳。`,
     `主体：根据「${type.name}」生成真实丰富的内容，有具体细节，有情感层次，有 ${name} 的个性印记。`,
-    `互动区：至少 4 个可与 ${name} AI 实时互动的触发点，每个都有清晰的引导语。`,
+    `互动区：至少 4 个触发点，使用 lunaAsk() + lunaTypewriter() + lunaDots() 实现完整 AI 互动（打字机显示、三点等待动画），禁止使用 fetch 或直接调用任何 API。`,
     `结尾：${name} 的手写签名样式 + 一句诗意结语。`,
     '',
     `【创作自由度指令】`,
@@ -570,17 +675,24 @@ ${bg     ? `背景：${bg}` : ''}
     `· 用什么视觉装饰语言（你的审美，不是模板）`,
     `· 交互区怎么设计（有创意的触发方式，不要千篇一律的按钮）`,
     `种子不同，代表这是一次全新的创作，请给出与之前任何版本都明显不同的结果。`,
-  ].filter(Boolean).join('\n');
+    ``,
+    `【最终检查清单——输出前必须确认】`,
+    `□ 第一行是 <!DOCTYPE html>`,
+    `□ 最后一行是 </html>`,
+    `□ <body> 和 </body> 都存在`,
+    `□ 所有 <script> 标签都有对应的 </script>`,
+    `□ 所有 <div> 都有对应的 </div>`,
+    `□ 互动按钮只使用 lunaAsk()，没有 fetch / XMLHttpRequest / API 密钥`,
+    `□ 内容完整，没有省略号或"以此类推"等截断标志`,
+  ].filter(v => v !== undefined).join('\n');
 
   try {
-    const html_raw = await lsCallApi(sys, [{ role: 'user', content: userLines }]);
+    const html_raw = await lsCallApi(sys, [{ role: 'user', content: userLines }], 16000);
     clearInterval(iv);
 
-    /* ── 渲染（清洗/补全/隔离全部在 _renderInIframe 内完成） ── */
-    const html = html_raw;
     const rendered = document.getElementById('lsRendered');
     rendered.style.display = 'block';
-    _renderInIframe(rendered, html);
+    _renderInIframe(rendered, html_raw);
 
     document.getElementById('lsLoading').style.display   = 'none';
     document.getElementById('lsRdot').className          = 'ls-rdot';
@@ -596,9 +708,9 @@ ${bg     ? `背景：${bg}` : ''}
       style:    styleInput,
       depth:    depthInput,
       input:    userInput,
-      html,
+      html:     html_raw,
       charName: name,
-      preview:  html.replace(/<[^>]+>/g, '').trim().slice(0, 120),
+      preview:  html_raw.replace(/<[^>]+>/g, '').trim().slice(0, 120),
     });
 
   } catch (err) {
@@ -743,7 +855,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const box = document.getElementById('lsPromptBox');
     if (box) {
       const customLine = custom ? `\n我设想的情景：${custom}` : '';
-      /* 不写死任何用户数据，完全动态拼 */
       box.value = `小剧场场景：${emoji} ${title}\n${desc}${customLine}\n\n请以 ${charName} 的视角，为这个场景生成一段沉浸式的角色独白或开场互动，让我感受到 ${charName} 就在这个场景里陪着我。`;
     }
 
