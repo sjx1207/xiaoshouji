@@ -381,59 +381,68 @@ const LS_GEN_STEPS = [
   '签上名字...',
 ];
 
-/* ---- 用 blob URL 渲染 iframe，解决 srcdoc 在部分环境空白问题 ---- */
+/* ---- 直接 innerHTML 注入渲染，彻底避免 blob/iframe CSP 问题 ---- */
 function _renderInIframe(container, htmlContent) {
-  /* 清理旧 blob URL */
-  if (window._lsBlobUrl) {
-    try { URL.revokeObjectURL(window._lsBlobUrl); } catch(e) {}
-    window._lsBlobUrl = null;
-  }
-
   container.innerHTML = '';
 
-  /* 保证是完整 HTML 页面 */
-  const fullHtml = htmlContent.trimStart().toLowerCase().startsWith('<!doctype')
-    ? htmlContent
-    : `<!DOCTYPE html><html lang="zh-CN"><head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1">
-        <style>body{margin:0;padding:0;background:#fff;}</style>
-       </head><body>${htmlContent}</body></html>`;
-
-  /* 优先用 blob URL（跨域更宽松，JS 可正常执行） */
-  let iframe = document.createElement('iframe');
-  iframe.style.cssText = 'width:100%;border:none;display:block;min-height:500px;background:#fff;';
-  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
-
-  try {
-    const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    window._lsBlobUrl = url;
-    iframe.src = url;
-  } catch (e) {
-    /* Blob 失败时降级 srcdoc */
-    iframe.srcdoc = fullHtml;
+  /* 1. 提取 <style> 标签内容（注入到父页面 <head>） */
+  const styleMatches = [...htmlContent.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)];
+  const styleText = styleMatches.map(m => m[1]).join('\n');
+  if (styleText.trim()) {
+    let styleTag = document.getElementById('_ls_injected_style');
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = '_ls_injected_style';
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = styleText;
   }
 
-  function _fit() {
-    try {
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      const h   = doc?.documentElement?.scrollHeight || doc?.body?.scrollHeight;
-      if (h && h > 100) iframe.style.height = h + 40 + 'px';
-    } catch (e) {}
+  /* 2. 提取 <link rel="stylesheet"> / <link rel="preconnect"> 注入到 <head> */
+  const linkMatches = [...htmlContent.matchAll(/<link[^>]+>/gi)];
+  linkMatches.forEach(m => {
+    const tag = m[0];
+    const hrefMatch = tag.match(/href=["']([^"']+)["']/i);
+    if (!hrefMatch) return;
+    const href = hrefMatch[1];
+    if (!document.querySelector(`link[href="${href}"]`)) {
+      const el = document.createElement('link');
+      el.rel = /preconnect/i.test(tag) ? 'preconnect' : 'stylesheet';
+      el.href = href;
+      if (/crossorigin/i.test(tag)) el.crossOrigin = 'anonymous';
+      document.head.appendChild(el);
+    }
+  });
+
+  /* 3. 提取 <body> 内容（有 body 标签则取内部，否则取全文） */
+  let bodyContent = htmlContent;
+  const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (bodyMatch) bodyContent = bodyMatch[1];
+  else {
+    /* 去掉 head 整块 */
+    bodyContent = htmlContent
+      .replace(/<head[\s\S]*?<\/head>/i, '')
+      .replace(/<\/?html[^>]*>/gi, '')
+      .replace(/<!DOCTYPE[^>]*>/gi, '')
+      .trim();
   }
 
-  iframe.onload = () => {
-    _fit();
-    try {
-      if (typeof ResizeObserver !== 'undefined') {
-        const doc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (doc?.body) new ResizeObserver(_fit).observe(doc.body);
-      }
-    } catch (e) {}
-  };
+  /* 4. 注入内容 */
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'width:100%;background:#fff;padding:0;';
+  wrap.innerHTML = bodyContent;
+  container.appendChild(wrap);
 
-  container.appendChild(iframe);
+  /* 5. 执行内联 <script>（innerHTML 注入不会自动运行 script） */
+  wrap.querySelectorAll('script').forEach(oldScript => {
+    const newScript = document.createElement('script');
+    if (oldScript.src) {
+      newScript.src = oldScript.src;
+    } else {
+      newScript.textContent = oldScript.textContent;
+    }
+    oldScript.replaceWith(newScript);
+  });
 }
 
 async function lsDoGenerate() {
