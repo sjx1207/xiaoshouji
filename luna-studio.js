@@ -384,64 +384,83 @@ const LS_GEN_STEPS = [
 function _renderInIframe(container, htmlContent) {
   container.innerHTML = '';
 
-  /* 1. 提取 <style> 标签内容（注入到父页面 <head>） */
-  const styleMatches = [...htmlContent.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)];
-  const styleText = styleMatches.map(m => m[1]).join('\n');
-  if (styleText.trim()) {
-    let styleTag = document.getElementById('_ls_injected_style');
-    if (!styleTag) {
-      styleTag = document.createElement('style');
-      styleTag.id = '_ls_injected_style';
-      document.head.appendChild(styleTag);
-    }
-    styleTag.textContent = styleText;
+  /* ── 1. 清除上次注入的孤立 style（防止残留污染） ── */
+  const old = document.getElementById('_ls_injected_style');
+  if (old) old.remove();
+
+  /* ── 2. 补全不完整的 HTML（模型截断时常见） ── */
+  let html = htmlContent.trim();
+
+  /* 去掉 markdown 代码块包裹 */
+  html = html.replace(/^```(?:html)?\s*/im, '').replace(/\s*```\s*$/m, '').trim();
+
+  /* 找到真正的 HTML 起点 */
+  const dtIdx = html.search(/<!doctype/i);
+  if (dtIdx > 0) html = html.slice(dtIdx);
+  else if (!html.toLowerCase().startsWith('<!doctype') && !html.startsWith('<html')) {
+    const firstTag = html.indexOf('<');
+    if (firstTag > 0) html = html.slice(firstTag);
   }
 
-  /* 2. 提取 <link rel="stylesheet"> / <link rel="preconnect"> 注入到 <head> */
-  const linkMatches = [...htmlContent.matchAll(/<link[^>]+>/gi)];
-  linkMatches.forEach(m => {
-    const tag = m[0];
-    const hrefMatch = tag.match(/href=["']([^"']+)["']/i);
-    if (!hrefMatch) return;
-    const href = hrefMatch[1];
-    if (!document.querySelector(`link[href="${href}"]`)) {
-      const el = document.createElement('link');
-      el.rel = /preconnect/i.test(tag) ? 'preconnect' : 'stylesheet';
-      el.href = href;
-      if (/crossorigin/i.test(tag)) el.crossOrigin = 'anonymous';
-      document.head.appendChild(el);
-    }
-  });
+  /* 检查并补全结构性闭合标签，防止内容被截断后渲染空白 */
+  const hasBody    = /<body[\s>]/i.test(html);
+  const hasBodyEnd = /<\/body>/i.test(html);
+  const hasHtmlEnd = /<\/html>/i.test(html);
 
-  /* 3. 提取 <body> 内容（有 body 标签则取内部，否则取全文） */
-  let bodyContent = htmlContent;
-  const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  if (bodyMatch) bodyContent = bodyMatch[1];
-  else {
-    /* 去掉 head 整块 */
-    bodyContent = htmlContent
-      .replace(/<head[\s\S]*?<\/head>/i, '')
-      .replace(/<\/?html[^>]*>/gi, '')
-      .replace(/<!DOCTYPE[^>]*>/gi, '')
-      .trim();
+  if (hasBody && !hasBodyEnd) html += '\n</body>';
+  if (!hasHtmlEnd) html += '\n</html>';
+
+  /* 如果连完整结构都没有，包一层 */
+  if (!/<html[\s>]/i.test(html)) {
+    html = `<!DOCTYPE html><html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>*{box-sizing:border-box}body{margin:0;padding:0;background:#fff;font-family:'Cormorant Garamond',serif;}</style>
+</head><body>${html}</body></html>`;
   }
 
-  /* 4. 注入内容 */
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'width:100%;background:#fff;padding:0;';
-  wrap.innerHTML = bodyContent;
-  container.appendChild(wrap);
+  /* ── 3. 用 srcdoc iframe 完全隔离样式和脚本作用域 ── */
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = [
+    'width:100%',
+    'border:none',
+    'display:block',
+    'min-height:480px',
+    'background:#fff',
+    'overflow:hidden',
+  ].join(';');
+  /* allow-same-origin 让 iframe 内的 fetch 可以正常发请求 */
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation');
+  iframe.srcdoc = html;
 
-  /* 5. 执行内联 <script>（innerHTML 注入不会自动运行 script） */
-  wrap.querySelectorAll('script').forEach(oldScript => {
-    const newScript = document.createElement('script');
-    if (oldScript.src) {
-      newScript.src = oldScript.src;
-    } else {
-      newScript.textContent = oldScript.textContent;
-    }
-    oldScript.replaceWith(newScript);
-  });
+  /* ── 4. 自适应高度（内容撑开 iframe） ── */
+  function _fitHeight() {
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!doc) return;
+      const h = Math.max(
+        doc.documentElement?.scrollHeight || 0,
+        doc.body?.scrollHeight || 0
+      );
+      if (h > 100) iframe.style.height = (h + 24) + 'px';
+    } catch (e) {}
+  }
+
+  iframe.onload = () => {
+    _fitHeight();
+    /* 监听 iframe 内内容高度变化（AI 回复打字机展开时自动撑高） */
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (doc?.body && typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(_fitHeight).observe(doc.body);
+      }
+    } catch (e) {}
+    /* 兜底：500ms 后再量一次（字体、图片加载完） */
+    setTimeout(_fitHeight, 500);
+    setTimeout(_fitHeight, 1500);
+  };
+
+  container.appendChild(iframe);
 }
 
 async function lsDoGenerate() {
@@ -557,29 +576,8 @@ ${bg     ? `背景：${bg}` : ''}
     const html_raw = await lsCallApi(sys, [{ role: 'user', content: userLines }]);
     clearInterval(iv);
 
-    let html = html_raw;
-    html = html.replace(/^```(?:html)?\s*/im, '').replace(/\s*```\s*$/m, '');
-
-    const doctypeIdx = html.search(/<!doctype/i);
-    if (doctypeIdx > 0) {
-      html = html.slice(doctypeIdx);
-    } else {
-      const firstTag = html.indexOf('<');
-      if (firstTag > 0) html = html.slice(firstTag);
-    }
-
-    const htmlEnd = html.search(/<\/html>/i);
-    if (htmlEnd !== -1) {
-      html = html.slice(0, htmlEnd + 7);
-    } else {
-      const lastTag = html.lastIndexOf('>');
-      if (lastTag !== -1 && lastTag < html.length - 1) html = html.slice(0, lastTag + 1);
-    }
-
-    html = html.replace(/```[\w]*\s*/g, '').trim();
-    if (!html.startsWith('<')) html = html_raw.trim();
-
-    /* ── 用 blob URL 渲染，完全解决空白问题 ── */
+    /* ── 渲染（清洗/补全/隔离全部在 _renderInIframe 内完成） ── */
+    const html = html_raw;
     const rendered = document.getElementById('lsRendered');
     rendered.style.display = 'block';
     _renderInIframe(rendered, html);
