@@ -4667,6 +4667,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
   }
 
+  /* ── 输入框：用 CSS data-placeholder 代替 textContent 占位 ── */
   var placeholder = '向 ' + CR_NAME + ' 发送消息';
   document.querySelectorAll('.cr-chip').forEach(function (chip) {
     chip.addEventListener('click', function () {
@@ -4674,27 +4675,21 @@ document.addEventListener('DOMContentLoaded', async function () {
       if (!box) return;
       var txt = chip.querySelector('span') ? chip.querySelector('span').textContent : '';
       box.textContent = txt;
-      box.style.color = '#1a1a1a';
       box.focus();
+      /* 移到末尾 */
+      var sel = window.getSelection();
+      var range = document.createRange();
+      range.selectNodeContents(box);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
     });
   });
 
   var inputBox = document.getElementById('crInputBox');
   if (inputBox) {
-    inputBox.textContent = placeholder;
-    inputBox.style.color = '#c0bab2';
-    inputBox.addEventListener('focus', function () {
-      if (inputBox.textContent.trim() === placeholder) {
-        inputBox.textContent = '';
-        inputBox.style.color = '#1a1a1a';
-      }
-    });
-    inputBox.addEventListener('blur', function () {
-      if (!inputBox.textContent.trim()) {
-        inputBox.textContent = placeholder;
-        inputBox.style.color = '#c0bab2';
-      }
-    });
+    /* 设置 CSS 占位符文字（不写入 textContent，不会被当做消息发出） */
+    inputBox.setAttribute('data-placeholder', placeholder);
     inputBox.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -4703,14 +4698,22 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
   }
 
-  var sendBtn = document.getElementById('crSendBtn');
-  if (sendBtn) {
-    sendBtn.addEventListener('click', crSend);
-  }
-
-  /* 绑定 AI 按钮 */
-  document.querySelector('.cr-ai-btn')?.addEventListener('click', crAiReply);
+  crBindSendAiButtons();
 });
+
+/* 统一绑定发送 & AI 按钮，支持多次调用（幂等） */
+function crBindSendAiButtons() {
+  var sendBtn = document.getElementById('crSendBtn');
+  if (sendBtn && !sendBtn._crBound) {
+    sendBtn.addEventListener('click', crSend);
+    sendBtn._crBound = true;
+  }
+  var aiBtn = document.querySelector('.cr-ai-btn');
+  if (aiBtn && !aiBtn._crBound) {
+    aiBtn.addEventListener('click', crAiReply);
+    aiBtn._crBound = true;
+  }
+}
 
 /* ── 同步头部角色信息 ── */
 function crInitHeader() {
@@ -5469,7 +5472,7 @@ function crBuildMsgEl(msg) {
       el.innerHTML =
         '<div class="cr-msg-mine-inner">' +
         '<div class="cr-mine-bubble">' +
-          '<p class="cr-msg-p" style="padding-left:0;color:#f2f0eb">' + escHtml(msg.text) + '</p>' +
+          '<p class="cr-msg-p" style="padding-left:0;">' + escHtml(msg.text) + '</p>' +
         '</div>' +
         '<div class="cr-mine-meta">' +
           '<span class="cr-mine-time">' + msg.time + '</span>' +
@@ -5705,13 +5708,13 @@ function escHtml(str) {
 }
 
 function crSend() {
-  var placeholder = '向 ' + CR_NAME + ' 发送消息';
   var box = document.getElementById('crInputBox');
   var area = document.getElementById('crMessages');
   if (!box || !area) return;
 
-  var txt = box.textContent.trim();
-  if (!txt || txt === placeholder) return;
+  /* innerText 正确处理 contenteditable 里浏览器自动插入的 <div>/<br> */
+  var txt = (box.innerText || box.textContent || '').trim();
+  if (!txt) return;
 
   var tw = document.getElementById('crTyping');
   if (tw) tw.remove();
@@ -5756,8 +5759,7 @@ function crSend() {
     };
   }).catch(function() {});
 
-  box.textContent = '';
-  box.style.color = '#1a1a1a';
+  box.innerHTML = '';
   box.blur();
   if (quoteBar) { quoteBar.style.display = 'none'; }
 
@@ -6636,12 +6638,8 @@ function crShowQuoteBar(text) {
   bar.style.display = 'flex';
 
   /* 清空输入框并聚焦 */
-  var placeholder = '向 ' + CR_NAME + ' 发送消息';
   if (box) {
-    if (box.textContent.trim() === placeholder) {
-      box.textContent = '';
-      box.style.color = '#1a1a1a';
-    }
+    box.innerHTML = '';
     box.focus();
   }
 }
@@ -8107,6 +8105,16 @@ window.crOpenTheatrePanel = openTheatre;
         tag.textContent = s.customCode;
         document.head.appendChild(tag);
       }
+
+      /* 输入样式变化后确保发送 & AI 按钮事件仍然绑定 */
+      if (typeof crBindSendAiButtons === 'function') crBindSendAiButtons();
+
+      /* 刷新输入框的 data-placeholder（CR_NAME 可能已更新） */
+      var phBox = document.getElementById('crInputBox');
+      if (phBox) {
+        var phText = '向 ' + (typeof CR_NAME !== 'undefined' ? CR_NAME : 'Luna') + ' 发送消息';
+        phBox.setAttribute('data-placeholder', phText);
+      }
     } catch(err) {
       console.warn('[crApplyInputStyle] 解析失败', err);
     }
@@ -8247,6 +8255,9 @@ window.crOpenTheatrePanel = openTheatre;
 
       /* 样式注入后刷新用户头像（确保新尺寸下图片不变形） */
       if (typeof crRefreshMineAvatars === 'function') crRefreshMineAvatars();
+
+      /* 气泡样式变化后确保发送 & AI 按钮事件仍然绑定 */
+      if (typeof crBindSendAiButtons === 'function') crBindSendAiButtons();
 
     } catch(err) {
       console.warn('[crApplyBubbleStyle] 解析失败', err);

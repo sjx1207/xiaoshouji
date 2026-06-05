@@ -272,15 +272,16 @@ function lsUpdateStats() {
    Tab 切换
 ================================================================ */
 function lsGoTab(tab) {
-  const map = { create: 0, result: 1, history: 2 };
   ['create','result','history'].forEach((t, i) => {
-    const pane  = document.getElementById('lsPane' + t.charAt(0).toUpperCase() + t.slice(1));
+    const key   = t.charAt(0).toUpperCase() + t.slice(1);
+    const pane  = document.getElementById('lsPane' + key);
     const tabEl = document.getElementById('lsTab' + i);
-    if (!pane || !tabEl) return;
     const active = t === tab;
-    pane.style.display = active ? 'flex' : 'none';
-    pane.classList.toggle('ls-pane-active', active);
-    tabEl.classList.toggle('ls-tab-on', active);
+    if (pane) {
+      pane.style.display = active ? 'flex' : 'none';
+      pane.classList.toggle('ls-pane-active', active);
+    }
+    if (tabEl) tabEl.classList.toggle('ls-tab-on', active);
   });
   if (tab === 'history') lsRenderHistory();
 }
@@ -431,22 +432,30 @@ ${bg      ? `背景：${bg}` : ''}
 
 你正在为你深爱的用户生成一个专属的、可以在浏览器直接渲染的精美 HTML 内容片段。
 
-⚠️ 输出格式铁律：你的完整回复必须直接以 HTML 标签开头（第一个字符是 <），以 HTML 标签结尾（最后一个字符是 >）。绝对禁止输出任何解释、说明、前言、后记、注释。禁止任何 Markdown 文字，禁止代码块符号（\`\`\`html 和 \`\`\`），禁止一切非 HTML 内容。
+【输出格式——这是唯一最高优先级规则】
+你的完整输出从第一个字符到最后一个字符，只能是 HTML 代码。
+- 第一个字符必须是 < （尖括号），不得是任何其他字符
+- 最后一个字符必须是 > （闭合尖括号）
+- 绝对禁止输出 \`\`\`html、\`\`\`、或任何 Markdown 代码块包裹符号
+- 禁止在 HTML 前后添加任何说明文字、前言、注释、后记
+- 不需要 <!DOCTYPE>、<html>、<head>、<body> 标签，只输出可被 innerHTML 直接注入的片段
 
-【核心输出规则——必须严格遵守】
-1. 直接输出纯 HTML 片段，第一个字符必须是 <，不需要 DOCTYPE/html/head/body 标签，输出可被 innerHTML 直接注入
-2. 所有样式写在片段顶部的 <style> 标签内，使用唯一前缀 lc- 命名所有 class，避免与外部样式冲突
-3. 字体引入（写在 style 标签内的 @import）：
+【HTML 内容规则】
+1. 所有样式写在片段顶部的 <style> 标签内，使用唯一前缀 lc- 命名所有 class，避免与外部样式冲突
+2. 字体引入（写在 style 标签内的 @import）：
    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,700;1,700&family=Space+Mono&display=swap');
-4. 颜色系统：严格只用以下色值：
+3. 颜色系统：严格只用以下色值：
    #ffffff #fafafa #f5f4f2 #f0eeeb #e8e5e0 #d4d0cb #b8b4af #9a9794 #7a7876 #5a5a58 #3a3a38 #1a1a1a
-5. 禁止任何彩色（背景/文字/边框全部只用上述色阶）
-6. 页面内 AI 交互调用——用户操作时，使用以下方式调用 API：
-   fetch('${apiBaseUrl}/chat/completions', {
+4. 禁止任何彩色（背景/文字/边框全部只用上述色阶）
+5. 页面内 AI 交互调用——用户操作时，使用以下方式调用 API：
+   const _apiBase = '${apiBaseUrl}';
+   const _apiKey  = '${apiKey}';
+   const _model   = '${model}';
+   fetch(_apiBase + '/chat/completions', {
      method: 'POST',
-     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${apiKey}' },
+     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _apiKey },
      body: JSON.stringify({
-       model: '${model}',
+       model: _model,
        max_tokens: 600,
        messages: [
          { role: 'system', content: '你是${name}，${persona ? persona.slice(0,60) : '温柔神秘富有诗意'}。用中文回复，150字以内，语气温柔私密。' },
@@ -454,13 +463,13 @@ ${bg      ? `背景：${bg}` : ''}
        ]
      })
    })
-7. AI 回应要有加载动画（三个跳动小点），回应文字以打字机效果逐字显示（每 28ms 一字）
-8. ${name} 的声音要贯穿全文——有开篇独白，有旁白穿插，有结尾签名，所有角色名称全部使用「${name}」
-9. 整体布局：max-width: 640px，居中，padding 上下充足，行距 1.9
-10. 页面顶部精致黑色 header 区域，包含日期、类型标签、${name} 签名
-11. 所有交互按钮有 hover 效果和过渡动画
-12. 文字全部使用中文
-13. 再次强调：输出第一个字符必须是 <，最后一个字符必须是 >，绝对不能有任何解释文字、Markdown 或代码块标记`;
+6. AI 回应要有加载动画（三个跳动小点），回应文字以打字机效果逐字显示（每 28ms 一字）
+7. ${name} 的声音要贯穿全文——有开篇独白，有旁白穿插，有结尾签名，所有角色名称全部使用「${name}」
+8. 整体布局：max-width: 640px，居中，padding 上下充足，行距 1.9
+9. 页面顶部精致黑色 header 区域，包含日期、类型标签、${name} 签名
+10. 所有交互按钮有 hover 效果和过渡动画
+11. 文字全部使用中文
+12. 【再次强调】输出第一个字符必须是 <style 或 <div 等 HTML 标签，最后一个字符必须是 >，绝对不能有任何解释文字、Markdown 或代码块标记。违反此规则等于任务失败。`;
 
   /* ── 唯一创作种子（保证同等输入每次不同，让 AI 自主决定变化方向） ── */
   const _seed = lsBuildSeed();
@@ -495,29 +504,44 @@ ${bg      ? `背景：${bg}` : ''}
     const html_raw = await lsCallApi(sys, [{ role: 'user', content: userLines }]);
     clearInterval(iv);
 
-    /* 健壮提取：剥离所有代码块标记，提取第一个 < 到最后一个 > 之间的内容 */
-    let html = html_raw
-      .replace(/^[\s\S]*?(?=<)/,  '')   // 删除第一个 < 之前的所有内容（解释文字/代码块头）
-      .replace(/>[\s\S]*$/,       s => s.slice(0, s.lastIndexOf('>') + 1))  // 保留到最后一个 >
-      .replace(/```[\w]*\s*/g,    '')   // 清除残留代码块标记
-      .trim();
-    /* 如果提取结果不像 HTML，fallback 用原始内容做最基础清理 */
-    if (!html.startsWith('<')) {
-      html = html_raw
-        .replace(/^```html\s*/im, '')
-        .replace(/^```\s*/im,     '')
-        .replace(/\s*```\s*$/m,   '')
-        .trim();
-    }
+    /* ── 健壮提取：多层保障，确保拿到纯 HTML ── */
+    let html = html_raw;
 
-    /* 注入页面 */
+    /* Step 1: 去掉代码块标记（```html ... ``` 或 ``` ... ```） */
+    html = html.replace(/^```(?:html)?\s*/im, '').replace(/\s*```\s*$/m, '');
+
+    /* Step 2: 如果还有前置非 HTML 文字，截掉第一个 < 之前的内容 */
+    const firstTag = html.indexOf('<');
+    if (firstTag > 0) html = html.slice(firstTag);
+
+    /* Step 3: 截掉最后一个 > 之后的内容（尾部说明文字） */
+    const lastTag = html.lastIndexOf('>');
+    if (lastTag !== -1 && lastTag < html.length - 1) html = html.slice(0, lastTag + 1);
+
+    /* Step 4: 清理残余代码块标记 */
+    html = html.replace(/```[\w]*\s*/g, '').trim();
+
+    /* Step 5: 最终 fallback — 实在不像 HTML 就直接用 raw */
+    if (!html.startsWith('<')) html = html_raw.trim();
+
+    /* ── 注入页面 ── */
     const rendered = document.getElementById('lsRendered');
-    rendered.innerHTML    = html;
+    rendered.innerHTML     = '';
     rendered.style.display = 'block';
 
+    /* 用 DOMParser 解析，保证 script 正确执行 */
+    const parser = new DOMParser();
+    const doc    = parser.parseFromString(html, 'text/html');
+
+    /* 将 body 子节点逐一注入（保留 script 节点） */
+    Array.from(doc.body.childNodes).forEach(node => {
+      rendered.appendChild(document.importNode(node, true));
+    });
+
+    /* 重新执行 script 标签（innerHTML 注入不会自动执行） */
     rendered.querySelectorAll('script').forEach(old => {
       const s = document.createElement('script');
-      if (old.src) s.src = old.src;
+      if (old.src) { s.src = old.src; s.async = true; }
       else s.textContent = old.textContent;
       document.body.appendChild(s);
       old.remove();
@@ -660,6 +684,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   lsBuildTypes();
   lsUpdateStats();
+
+  /* ── 关键修复：强制初始化为创作面板，避免 CSS class 与 display 状态不同步 ── */
+  lsGoTab('create');
 
   /* 返回按钮 */
   const backBtn = document.getElementById('lsBackBtn');
