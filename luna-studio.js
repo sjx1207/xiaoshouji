@@ -7,24 +7,49 @@
 ================================================================ */
 const LS_STORE = 'luna_studio_history';
 
-/* 当前角色信息（异步加载后填充） */
 let _lsCharName   = 'Luna';
-let _lsCharData   = null;   // 完整 char 对象（含 persona/traits/avatar 等）
-let _lsRecentMsgs = [];     // 最近一次对话消息（用于 context）
+let _lsCharData   = null;
+let _lsRecentMsgs = [];
 
-
-/* 唯一种子 — 只用时间戳+随机数，让 AI 自己决定怎么创作 */
 function lsBuildSeed() {
   const ts = Date.now();
   return (ts.toString(36) + '-' + Math.floor(Math.random() * 99999).toString(16)).toUpperCase();
 }
 
-
-/* 选中的内容类型 */
 let lsSelType = null;
 
 /* ================================================================
-   状态栏 + 灵动岛（完整复刻 chatroom）
+   工具：打开 IndexedDB（不指定版本号，避免版本冲突）
+================================================================ */
+function _openDB(name) {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(name); // 不传版本号，使用当前已有版本
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = () => rej(new Error('IDB open failed: ' + name));
+    // onupgradeneeded 不注册 — 只读已有结构
+  });
+}
+
+function _getAllFromStore(db, storeName) {
+  return new Promise(res => {
+    if (!db.objectStoreNames.contains(storeName)) return res([]);
+    const r = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
+    r.onsuccess = () => res(r.result || []);
+    r.onerror   = () => res([]);
+  });
+}
+
+function _getFromStore(db, storeName, key) {
+  return new Promise(res => {
+    if (!db.objectStoreNames.contains(storeName)) return res(null);
+    const r = db.transaction(storeName, 'readonly').objectStore(storeName).get(key);
+    r.onsuccess = () => res(r.result || null);
+    r.onerror   = () => res(null);
+  });
+}
+
+/* ================================================================
+   状态栏 + 灵动岛
 ================================================================ */
 (function () {
   function updateTime() {
@@ -92,27 +117,15 @@ let lsSelType = null;
   applyIsland();
   window._lsApplyIsland = applyIsland;
 
+  /* ---- 全局字体（不用版本号打开 DB） ---- */
   async function applyGlobalFont() {
     const name = localStorage.getItem('luna_font_active_name');
     const id   = parseInt(localStorage.getItem('luna_font_active_id'));
     if (name && id) {
       try {
-        const db = await new Promise((res, rej) => {
-          const req = indexedDB.open('LunaFontDB', 4);
-          req.onupgradeneeded = e => {
-            const d = e.target.result;
-            if (!d.objectStoreNames.contains('fonts'))
-              d.createObjectStore('fonts', { keyPath: 'id', autoIncrement: true });
-          };
-          req.onsuccess = e => res(e.target.result);
-          req.onerror   = () => rej();
-        });
-        const all = await new Promise(res => {
-          const r = db.transaction('fonts').objectStore('fonts').getAll();
-          r.onsuccess = () => res(r.result || []);
-          r.onerror   = () => res([]);
-        });
-        const f = all.find(x => x.id === id);
+        const db  = await _openDB('LunaFontDB');
+        const all = await _getAllFromStore(db, 'fonts');
+        const f   = all.find(x => x.id === id);
         if (f) {
           const face = new FontFace(name, `url(${f.data})`);
           await face.load();
@@ -162,86 +175,77 @@ async function lsLoadCharData() {
   const nameFromStore = localStorage.getItem('luna_current_chat') || '';
   _lsCharName = nameFromUrl || nameFromStore || 'Luna';
 
-  /* 2. 立即同步文字（头像异步填充） */
+  /* 2. 立即同步文字 */
   _lsApplyCharName(_lsCharName);
 
-  /* 3. 读 LunaCharDB → chars（完整人设 + 头像） */
+  /* 3. 读 LunaCharDB → chars（不指定版本号） */
   try {
-    const cdb = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaCharDB', 4);
-      req.onsuccess = e => res(e.target.result);
-      req.onerror   = () => rej();
-    });
-    if (cdb.objectStoreNames.contains('chars')) {
-      const chars = await new Promise(res => {
-        const r = cdb.transaction('chars').objectStore('chars').getAll();
-        r.onsuccess = () => res(r.result || []);
-        r.onerror   = () => res([]);
-      });
-      const found = chars.find(c => c.name === _lsCharName);
-      if (found) {
-        _lsCharData = found;
-        /* 头像 */
-        if (found.avatar) _lsApplyCharAvatar(found.avatar);
-        /* 副标题 */
-        const sub = found.tagline || found.bio || found.sign || found.subtitle || '';
-        if (sub) {
-          const subEl = document.querySelector('.ls-sub');
-          if (subEl) subEl.textContent = sub;
-        }
+    const cdb   = await _openDB('LunaCharDB');
+    const chars = await _getAllFromStore(cdb, 'chars');
+    /* 精确匹配，再宽松匹配 */
+    let found = chars.find(c => c.name === _lsCharName);
+    if (!found && _lsCharName) {
+      found = chars.find(c =>
+        (c.name || '').toLowerCase() === _lsCharName.toLowerCase()
+      );
+    }
+    if (found) {
+      _lsCharData = found;
+
+      /* ── 头像 ── */
+      const avatarSrc = found.avatar || found.avatarUrl || found.avatarSrc || found.img || '';
+      if (avatarSrc) _lsApplyCharAvatar(avatarSrc);
+
+      /* ── 副标题（多字段兼容） ── */
+      const sub = found.tagline || found.bio || found.sign
+               || found.subtitle || found.description || found.desc || '';
+      if (sub) {
+        const subEl = document.querySelector('.ls-sub');
+        if (subEl) subEl.textContent = sub;
+      }
+
+      /* ── 重新同步名字（以 DB 里存的为准） ── */
+      const realName = found.name || _lsCharName;
+      if (realName !== _lsCharName) {
+        _lsCharName = realName;
+        _lsApplyCharName(_lsCharName);
       }
     }
-  } catch (e) {}
+  } catch (e) { console.warn('[Luna Studio] CharDB:', e); }
 
-  /* 4. 读 LunaChatDB → messages（取最近 20 条作为创作 context） */
+  /* 4. 读 LunaChatDB → messages（不指定版本号） */
   try {
-    const db = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaChatDB');
-      req.onsuccess = e => res(e.target.result);
-      req.onerror   = () => rej();
-    });
-    if (db.objectStoreNames.contains('messages')) {
-      await new Promise(res => {
-        const r = db.transaction('messages').objectStore('messages').get(_lsCharName);
-        r.onsuccess = () => {
-          const msgs = r.result ? (r.result.msgs || []) : [];
-          /* 取最近 20 条，过滤系统消息 */
-          _lsRecentMsgs = msgs
-            .filter(m => !m.isSysHint && (m.role === 'mine' || m.role === 'luna'))
-            .slice(-20);
-          res();
-        };
-        r.onerror = () => res();
-      });
+    const db  = await _openDB('LunaChatDB');
+    const rec = await _getFromStore(db, 'messages', _lsCharName);
+    if (rec) {
+      const msgs = rec.msgs || rec.messages || [];
+      _lsRecentMsgs = msgs
+        .filter(m => !m.isSysHint && (m.role === 'mine' || m.role === 'luna'))
+        .slice(-20);
     }
   } catch (e) {}
 }
 
 /* ---- 同步头部所有角色名文字 ---- */
 function _lsApplyCharName(name) {
-  /* 主标题 */
   const nameEl = document.querySelector('.ls-name');
   if (nameEl) nameEl.textContent = name;
 
-  /* 头像字母（未加载图片时） */
   const innerEl = document.getElementById('lsAvatarInner');
   if (innerEl && !innerEl.querySelector('img'))
     innerEl.textContent = name[0] || 'L';
 
-  /* textarea placeholder */
+  /* placeholder 完全动态，不写死 */
   const box = document.getElementById('lsPromptBox');
   if (box) box.placeholder = `随便说说，让 ${name} 了解你现在的心情或想法…`;
 
-  /* prompt hint */
   const hint = document.getElementById('lsPromptHint');
   if (hint) hint.textContent = `${name} 会以她的视角和口吻为你生成专属内容`;
 
-  /* 状态栏副标题 */
-  const sub = document.querySelector('.ls-sub');
-  if (sub && (sub.textContent === '为你创作，与你同在' || !sub.textContent.trim()))
-    sub.textContent = `为你创作，与你同在`;
+  /* 统计行第三列 Luna 标签 */
+  const lunaLbl = document.querySelector('.ls-stat:last-child .ls-stat-lbl');
+  if (lunaLbl) lunaLbl.textContent = name;
 
-  /* LS_STORE key 也跟角色名走（避免混存） */
   window._lsStoreKey = 'luna_studio_history_' + name;
 }
 
@@ -249,10 +253,17 @@ function _lsApplyCharName(name) {
 function _lsApplyCharAvatar(avatarSrc) {
   const innerEl = document.getElementById('lsAvatarInner');
   if (!innerEl) return;
-  innerEl.innerHTML = `<img src="${avatarSrc}" alt="" onerror="this.parentNode.textContent='${_lsCharName[0]||'L'}'"/>`;
+  const firstLetter = (_lsCharName || 'L')[0];
+  innerEl.innerHTML = '';
+  const img = document.createElement('img');
+  img.src    = avatarSrc;
+  img.alt    = '';
+  img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+  img.onerror = () => { innerEl.innerHTML = ''; innerEl.textContent = firstLetter; };
+  innerEl.appendChild(img);
 }
 
-/* ---- localStorage key（带角色名） ---- */
+/* ---- localStorage key ---- */
 function _lsKey() {
   return window._lsStoreKey || ('luna_studio_history_' + _lsCharName);
 }
@@ -324,7 +335,7 @@ function lsBuildTypes() {
 }
 
 /* ================================================================
-   API 调用（完全复用 chatroom 的 luna_api_current / luna_api_model）
+   API 调用
 ================================================================ */
 async function lsCallApi(systemPrompt, messages, maxTokens) {
   const cur   = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
@@ -370,12 +381,67 @@ const LS_GEN_STEPS = [
   '签上名字...',
 ];
 
+/* ---- 用 blob URL 渲染 iframe，解决 srcdoc 在部分环境空白问题 ---- */
+function _renderInIframe(container, htmlContent) {
+  /* 清理旧 blob URL */
+  if (window._lsBlobUrl) {
+    try { URL.revokeObjectURL(window._lsBlobUrl); } catch(e) {}
+    window._lsBlobUrl = null;
+  }
+
+  container.innerHTML = '';
+
+  /* 保证是完整 HTML 页面 */
+  const fullHtml = htmlContent.trimStart().toLowerCase().startsWith('<!doctype')
+    ? htmlContent
+    : `<!DOCTYPE html><html lang="zh-CN"><head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <style>body{margin:0;padding:0;background:#fff;}</style>
+       </head><body>${htmlContent}</body></html>`;
+
+  /* 优先用 blob URL（跨域更宽松，JS 可正常执行） */
+  let iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:100%;border:none;display:block;min-height:500px;background:#fff;';
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
+
+  try {
+    const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    window._lsBlobUrl = url;
+    iframe.src = url;
+  } catch (e) {
+    /* Blob 失败时降级 srcdoc */
+    iframe.srcdoc = fullHtml;
+  }
+
+  function _fit() {
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      const h   = doc?.documentElement?.scrollHeight || doc?.body?.scrollHeight;
+      if (h && h > 100) iframe.style.height = h + 40 + 'px';
+    } catch (e) {}
+  }
+
+  iframe.onload = () => {
+    _fit();
+    try {
+      if (typeof ResizeObserver !== 'undefined') {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (doc?.body) new ResizeObserver(_fit).observe(doc.body);
+      }
+    } catch (e) {}
+  };
+
+  container.appendChild(iframe);
+}
+
 async function lsDoGenerate() {
   if (!lsSelType) return;
 
-  const userInput = (document.getElementById('lsPromptBox')?.value || '').trim();
-  const styleInput = (document.getElementById('lsStyleBox')?.value || '').trim();
-  const depthInput = (document.getElementById('lsDepthBox')?.value || '').trim();
+  const userInput  = (document.getElementById('lsPromptBox')?.value  || '').trim();
+  const styleInput = (document.getElementById('lsStyleBox')?.value   || '').trim();
+  const depthInput = (document.getElementById('lsDepthBox')?.value   || '').trim();
   const type = LS_TYPES.find(t => t.id === lsSelType);
 
   const name    = _lsCharName;
@@ -385,7 +451,6 @@ async function lsDoGenerate() {
   const role    = char?.role    || '';
   const bg      = char?.background || char?.story || '';
 
-  /* 最近对话摘要 */
   const recentCtx = _lsRecentMsgs.length
     ? _lsRecentMsgs.slice(-10).map(m => {
         const who = m.role === 'mine' ? '用户' : name;
@@ -394,10 +459,8 @@ async function lsDoGenerate() {
       }).filter(Boolean).join('\n')
     : '';
 
-  /* 切换到预览 tab */
   lsGoTab('result');
 
-  /* UI 状态 */
   document.getElementById('lsEmpty').style.display    = 'none';
   document.getElementById('lsRendered').style.display = 'none';
   document.getElementById('lsRendered').innerHTML      = '';
@@ -418,17 +481,15 @@ async function lsDoGenerate() {
     si++;
   }, 1700);
 
-  /* ── API key（供生成的 HTML 内嵌脚本使用） ── */
-  const cur   = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
-  const model = localStorage.getItem('luna_api_model') || '';
+  const cur        = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
+  const model      = localStorage.getItem('luna_api_model') || '';
   const apiBaseUrl = cur.baseUrl || '';
   const apiKey     = cur.apiKey  || '';
 
-  /* ── System Prompt ── */
   const sys = `你是「${name}」——${persona || '一个温柔、神秘、富有诗意的 AI 角色'}。
-${role    ? `定位：${role}` : ''}
-${traits  ? `性格：${traits}` : ''}
-${bg      ? `背景：${bg}` : ''}
+${role   ? `定位：${role}` : ''}
+${traits ? `性格：${traits}` : ''}
+${bg     ? `背景：${bg}` : ''}
 
 你正在为你深爱的用户创作一个完整的、精美的独立 HTML 页面，它将在 iframe 中完整渲染。
 
@@ -457,10 +518,8 @@ ${bg      ? `背景：${bg}` : ''}
 11. 全部文字使用中文
 12. 【再次强调】输出必须以 <!DOCTYPE html> 开头，以 </html> 结尾，中间是完整 HTML 页面代码，无任何其他内容`;
 
-  /* ── 唯一创作种子（保证同等输入每次不同，让 AI 自主决定变化方向） ── */
   const _seed = lsBuildSeed();
 
-  /* ── User Prompt ── */
   const userLines = [
     `内容类型：${type.name}`,
     styleInput ? `风格要求：${styleInput}` : `风格：${name} 自由发挥，展现她的个性`,
@@ -490,13 +549,9 @@ ${bg      ? `背景：${bg}` : ''}
     const html_raw = await lsCallApi(sys, [{ role: 'user', content: userLines }]);
     clearInterval(iv);
 
-    /* ── 健壮提取：多层保障，拿到完整 HTML 页面 ── */
     let html = html_raw;
-
-    /* Step 1: 去掉代码块标记（```html ... ``` 或 ``` ... ```） */
     html = html.replace(/^```(?:html)?\s*/im, '').replace(/\s*```\s*$/m, '');
 
-    /* Step 2: 找到 <!DOCTYPE 或第一个 < 的位置，截掉前面的废话 */
     const doctypeIdx = html.search(/<!doctype/i);
     if (doctypeIdx > 0) {
       html = html.slice(doctypeIdx);
@@ -505,53 +560,21 @@ ${bg      ? `背景：${bg}` : ''}
       if (firstTag > 0) html = html.slice(firstTag);
     }
 
-    /* Step 3: 截掉 </html> 之后的内容（尾部注释/说明） */
     const htmlEnd = html.search(/<\/html>/i);
     if (htmlEnd !== -1) {
       html = html.slice(0, htmlEnd + 7);
     } else {
-      /* 没有 </html>，截到最后一个 > */
       const lastTag = html.lastIndexOf('>');
       if (lastTag !== -1 && lastTag < html.length - 1) html = html.slice(0, lastTag + 1);
     }
 
-    /* Step 4: 清理残余代码块标记 */
     html = html.replace(/```[\w]*\s*/g, '').trim();
-
-    /* Step 5: 最终 fallback */
     if (!html.startsWith('<')) html = html_raw.trim();
 
-    /* ── 注入页面：用 iframe srcdoc 完整渲染，CSS/JS 完全隔离不丢失 ── */
+    /* ── 用 blob URL 渲染，完全解决空白问题 ── */
     const rendered = document.getElementById('lsRendered');
-    rendered.innerHTML     = '';
     rendered.style.display = 'block';
-
-    /* 如果 AI 返回的是片段（不含 <!DOCTYPE>），包一层完整页面结构 */
-    const fullHtml = html.trimStart().toLowerCase().startsWith('<!doctype')
-      ? html
-      : `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:0;background:#fff;}</style></head><body>${html}</body></html>`;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'width:100%;border:none;display:block;min-height:500px;';
-    iframe.srcdoc = fullHtml;
-
-    /* 撑开高度：load 后 + ResizeObserver 双保险 */
-    function _fitIframe() {
-      try {
-        const h = iframe.contentDocument?.documentElement?.scrollHeight
-               || iframe.contentDocument?.body?.scrollHeight;
-        if (h && h > 100) iframe.style.height = h + 20 + 'px';
-      } catch (e) {}
-    }
-    iframe.onload = () => {
-      _fitIframe();
-      try {
-        if (typeof ResizeObserver !== 'undefined') {
-          new ResizeObserver(_fitIframe).observe(iframe.contentDocument.body);
-        }
-      } catch (e) {}
-    };
-    rendered.appendChild(iframe);
+    _renderInIframe(rendered, html);
 
     document.getElementById('lsLoading').style.display   = 'none';
     document.getElementById('lsRdot').className          = 'ls-rdot';
@@ -664,28 +687,14 @@ function lsRenderHistory() {
       lsGoTab('result');
       document.getElementById('lsEmpty').style.display    = 'none';
       document.getElementById('lsLoading').style.display  = 'none';
-      const rendered = document.getElementById('lsRendered');
-      rendered.innerHTML     = '';
-      rendered.style.display = 'block';
       document.getElementById('lsRdot').className         = 'ls-rdot';
       document.getElementById('lsRtitle').textContent     = (item.typeName || item.type) + ' · 历史记录';
       document.getElementById('lsRegenBtn').style.display = 'block';
 
+      const rendered = document.getElementById('lsRendered');
+      rendered.style.display = 'block';
       const histHtml = item.html || '<div style="padding:28px;font-family:serif;color:#aaa;">内容已过期</div>';
-      const fullHtml = histHtml.trimStart().toLowerCase().startsWith('<!doctype')
-        ? histHtml
-        : `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><style>body{margin:0;padding:0;background:#fff;}</style></head><body>${histHtml}</body></html>`;
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'width:100%;border:none;display:block;min-height:500px;';
-      iframe.srcdoc = fullHtml;
-      iframe.onload = () => {
-        try {
-          const h = iframe.contentDocument?.documentElement?.scrollHeight
-                 || iframe.contentDocument?.body?.scrollHeight;
-          if (h && h > 100) iframe.style.height = h + 20 + 'px';
-        } catch (e) {}
-      };
-      rendered.appendChild(iframe);
+      _renderInIframe(rendered, histHtml);
     });
     listEl.appendChild(card);
   });
@@ -695,28 +704,21 @@ function lsRenderHistory() {
    初始化
 ================================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
-  /* 先加载角色数据（await 确保名字先填好再 build types） */
   await lsLoadCharData();
 
   lsBuildTypes();
   lsUpdateStats();
-
-  /* ── 关键修复：强制初始化为创作面板，避免 CSS class 与 display 状态不同步 ── */
   lsGoTab('create');
 
-  /* 返回按钮 */
   const backBtn = document.getElementById('lsBackBtn');
   if (backBtn) backBtn.addEventListener('click', () => {
     if (window.history.length > 1) window.history.back();
   });
 
-  /* 历史按钮 */
   const histBtn = document.getElementById('lsHistoryBtn');
   if (histBtn) histBtn.addEventListener('click', () => lsGoTab('history'));
 
-  /* ================================================================
-     Theatre 跳入自动初始化
-  ================================================================ */
+  /* Theatre 跳入自动初始化 */
   (function lsApplyTheatreParams() {
     const p = new URLSearchParams(location.search);
     if (p.get('from') !== 'theatre') return;
@@ -727,29 +729,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const custom   = p.get('custom')   || '';
     const charName = p.get('charName') || _lsCharName;
 
-    /* 同步角色名（URL 参数是同步可用的） */
     if (charName && charName !== _lsCharName) _lsApplyCharName(charName);
 
-    /* 自动选中 custom 类型 */
     lsSelType = 'custom';
     lsBuildTypes();
 
-    /* 自动填写提示词 */
     const box = document.getElementById('lsPromptBox');
     if (box) {
       const customLine = custom ? `\n我设想的情景：${custom}` : '';
+      /* 不写死任何用户数据，完全动态拼 */
       box.value = `小剧场场景：${emoji} ${title}\n${desc}${customLine}\n\n请以 ${charName} 的视角，为这个场景生成一段沉浸式的角色独白或开场互动，让我感受到 ${charName} 就在这个场景里陪着我。`;
     }
 
-    /* 更新 hint */
     const hint = document.getElementById('lsPromptHint');
     if (hint) hint.textContent = `来自小剧场「${title}」— ${charName} 将以角色视角为你创作专属互动内容`;
 
-    /* 风格默认温柔细腻 */
     const styleBox = document.getElementById('lsStyleBox');
     if (styleBox && !styleBox.value) styleBox.value = '温柔细腻，沉浸感强，像真人在说话';
 
-    /* enable 生成按钮 */
     const genBtn = document.getElementById('lsGenBtn');
     if (genBtn) genBtn.disabled = false;
   })();
