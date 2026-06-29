@@ -156,7 +156,7 @@
           <div class="ct-head-decor"></div>
           <div class="ct-head-decor3"></div>
           <div class="ct-head-decor2"></div>
-          <button class="ct-add-btn" onclick="openAddContact()">
+          <button class="ct-add-btn" onclick="openCreateChoice()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
               <path d="M12 5v14M5 12h14"/>
             </svg>
@@ -279,46 +279,23 @@
           </div>
           <div class="mmt-stories-scroll">
 
-        <!-- My Story -->
-        <div class="mmt-sc-item">
-          <div class="mmt-sc-arc-wrap">
-            <svg viewBox="0 0 58 58" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="29" cy="29" r="26" stroke="#e8e8e8" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
-            </svg>
-            <div class="mmt-sc-av mmt-sc-av-dark">我
-              <div class="mmt-sc-add">
-                <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M6 2v8M2 6h8"/></svg>
+        <!-- My Story（点击进编辑）-->
+        <div class="mmt-sc-item" onclick="storyEditorOpen()">
+          <div class="mmt-sc-arc-wrap ring-dash" id="mmtMyStoryRing">
+            <div class="mmt-sc-av mmt-sc-av-dark" id="mmtMyStoryAv">
+              <div class="mmt-sc-add" id="mmtMyStoryAdd">
+                <svg width="7" height="7" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M6 2v8M2 6h8"/></svg>
               </div>
             </div>
           </div>
-          <span class="mmt-sc-name">My Story</span>
+          <span class="mmt-sc-name mmt-sc-name-bold">My Story</span>
         </div>
 
-        <!-- Ariel 未看 3条 -->
-        <div class="mmt-sc-item">
-          <div class="mmt-sc-arc-wrap">
-            <svg viewBox="0 0 58 58" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="29" cy="29" r="26" stroke="#e8e8e8" stroke-width="1.5" fill="none"/>
-              <circle cx="29" cy="29" r="26" stroke="#0a0a0a" stroke-width="2" fill="none"
-                stroke-dasharray="163.4" stroke-dashoffset="0" stroke-linecap="round"
-                transform="rotate(-90 29 29)"/>
-            </svg>
-            <div class="mmt-sc-av">Ar</div>
-            <div class="mmt-sc-num">3</div>
-          </div>
-          <span class="mmt-sc-name mmt-sc-name-bold">Ariel</span>
-        </div>
+        <!-- User 未发布故事格（JS动态渲染，同步头像昵称）-->
+        <div id="mmtUserStory"></div>
 
-        <!-- Nova 已看 -->
-        <div class="mmt-sc-item">
-          <div class="mmt-sc-arc-wrap">
-            <svg viewBox="0 0 58 58" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="29" cy="29" r="26" stroke="#ececec" stroke-width="1" fill="none"/>
-            </svg>
-            <div class="mmt-sc-av mmt-sc-av-seen">No</div>
-          </div>
-          <span class="mmt-sc-name mmt-sc-name-muted">Nova</span>
-        </div>
+        <!-- 好友故事环动态渲染 -->
+        <div id="mmtFriendStories" style="display:contents;"></div>
 
       </div>
 
@@ -419,7 +396,7 @@
     </div>
 
     <!-- 主资料卡片 -->
-    <div class="pf-card">
+    <div class="pf-card" id="pfCard" onclick="openProfileEditModal(event)">
       <div class="pf-card-cover">
         <div class="pf-cover-lines"></div>
         <div class="pf-cover-serif">L</div>
@@ -437,9 +414,9 @@
             L
             <div class="pf-av-online"></div>
           </div>
-          <div class="pf-follow-btn">
-            <div class="pf-follow-btn-dot"></div>
-            Follow
+          <div class="pf-follow-btn" id="pfFollowBtn" onclick="openIdentityFanModal()">
+            <div class="pf-follow-btn-dot" id="pfFollowBtnDot"></div>
+            <span id="pfFollowBtnText">Follow</span>
           </div>
         </div>
 
@@ -450,52 +427,52 @@
           <span class="pf-badge pf-badge-outline">Creator</span>
         </div>
 
-        <div class="pf-bio">设计师 · 创作者 · 记录日常美好<br>Based in Shanghai · CN</div>
+        <div class="pf-bio" id="profileBio">设计师 · 创作者 · 记录日常美好</div>
 
         <div class="pf-meta-row">
           <div class="pf-meta-item">
             <svg class="pf-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
             </svg>
-            <span class="pf-meta-text">Shanghai, CN</span>
+            <span class="pf-meta-text" id="profileLocation">Shanghai, CN</span>
           </div>
           <div class="pf-meta-item">
             <svg class="pf-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
               <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
               <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
             </svg>
-            <span class="pf-meta-text">luna.design</span>
+            <span class="pf-meta-text" id="profileWebsite">luna.design</span>
           </div>
           <div class="pf-meta-item">
             <svg class="pf-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
-            <span class="pf-meta-text">Joined Jan 2024</span>
+            <span class="pf-meta-text" id="profileJoined">Joined Jan 2024</span>
           </div>
         </div>
 
         <div class="pf-stats">
           <div class="pf-stat">
-            <div class="pf-stat-num">128</div>
+            <div class="pf-stat-num" id="profileFollowing">128</div>
             <div class="pf-stat-label">Following</div>
           </div>
           <div class="pf-stat">
-            <div class="pf-stat-num">364</div>
+            <div class="pf-stat-num" id="profileFollowers">364</div>
             <div class="pf-stat-label">Followers</div>
           </div>
           <div class="pf-stat">
-            <div class="pf-stat-num">42</div>
+            <div class="pf-stat-num" id="profilePosts">42</div>
             <div class="pf-stat-label">Posts</div>
           </div>
           <div class="pf-stat">
-            <div class="pf-stat-num">1.2k</div>
+            <div class="pf-stat-num" id="profileLikes">1.2k</div>
             <div class="pf-stat-label">Likes</div>
           </div>
         </div>
 
         <div class="pf-card-foot">
           <span class="pf-join-date">Member since 2024</span>
-          <span class="pf-id-tag">ID · 00428</span>
+          <span class="pf-id-tag" id="profileIdTag">ID · 00428</span>
         </div>
       </div>
     </div>
@@ -627,6 +604,242 @@
 
   </div>
 </div>
+
+<!-- ========== 创建方式选择弹窗（单聊 / 群聊） ========== -->
+<div class="cc-overlay" id="ccOverlay" onclick="closeCreateChoice()"></div>
+<div class="cc-sheet" id="ccSheet">
+  <div class="cc-handle"></div>
+  <div class="cc-eyebrow">NEW CONVERSATION · LUNA</div>
+  <div class="cc-title">创建<em>新对话</em></div>
+  <div class="cc-rule"></div>
+
+  <div class="cc-options">
+    <button class="cc-opt" onclick="closeCreateChoice(); openAddContact();">
+      <div class="cc-opt-no">01</div>
+      <div class="cc-opt-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="cc-opt-body">
+        <div class="cc-opt-name">单聊</div>
+        <div class="cc-opt-desc">新建角色或从角色书同步好友，开启一对一对话</div>
+      </div>
+      <div class="cc-opt-arrow">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+    </button>
+
+    <button class="cc-opt" onclick="closeCreateChoice(); openCreateGroup();">
+      <div class="cc-opt-no">02</div>
+      <div class="cc-opt-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M13 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="cc-opt-body">
+        <div class="cc-opt-name">群聊</div>
+        <div class="cc-opt-desc">设置群名片、人数与成员，从角色书同步多位角色</div>
+      </div>
+      <div class="cc-opt-arrow">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+    </button>
+  </div>
+
+  <button class="cc-cancel" onclick="closeCreateChoice()">取消</button>
+</div>
+
+<!-- ========== 群聊创建全屏页 ========== -->
+<div class="gc-overlay" id="gcOverlay" onclick="closeCreateGroup()"></div>
+
+<div class="gc-page" id="gcPage">
+
+  <div class="status-bar" id="gcStatusBar">
+    <div class="status-time" id="gcTime">9:41</div>
+    <div class="status-island"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct">76</span>
+        <div class="bat-shell"><div class="bat-inner"></div><div class="bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gc-scroll" id="gcScroll">
+
+  <!-- 导航栏 -->
+  <div class="nc-nav">
+    <button class="nc-back-btn" onclick="closeCreateGroup()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <div class="nc-nav-center">
+      <div class="nc-nav-sub">GROUP CHAT · LUNA</div>
+      <div class="nc-nav-title">创建群聊</div>
+    </div>
+    <div style="width:36px"></div>
+  </div>
+
+  <!-- Hero 信息带 -->
+  <div class="nc-hero">
+    <div class="nc-hero-grid"></div>
+    <div class="nc-hero-eyebrow">ASSEMBLY SYNC · 2026</div>
+    <div class="nc-hero-title">New <em>Group</em></div>
+    <div class="nc-hero-sub">设定群名片，并从角色书同步对应人数的成员</div>
+    <div class="nc-hero-rule"></div>
+    <div class="nc-hero-stats">
+      <div>
+        <div class="nc-hero-stat-num" id="gcHeroNeed">3</div>
+        <div class="nc-hero-stat-lbl">REQUIRED</div>
+      </div>
+      <div>
+        <div class="nc-hero-stat-num" id="gcHeroSynced">0</div>
+        <div class="nc-hero-stat-lbl">SYNCED</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nc-section-rule"><span>GROUP CARD</span></div>
+
+  <!-- 群预览卡 -->
+  <div class="gc-preview-card">
+    <div class="gc-pv-grid"></div>
+    <div class="gc-pv-content">
+      <div class="gc-pv-avatar" id="gcPvAvatar" onclick="gcAvatarTap()">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+          <path d="M17 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M13 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="rgba(247,246,243,0.5)" stroke-width="1.4" stroke-linecap="round"/>
+          <circle cx="9" cy="7" r="4" stroke="rgba(247,246,243,0.5)" stroke-width="1.4"/>
+        </svg>
+        <div class="gc-pv-av-hint">群头像</div>
+      </div>
+      <input type="file" id="gcAvatarInput" accept="image/*" style="display:none" onchange="gcHandleAvatar(this)"/>
+      <div>
+        <div class="gc-pv-name" id="gcPvName">未命名群聊</div>
+        <div class="gc-pv-meta" id="gcPvMeta">群号 · 0000000 · 0 人</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 群头衔模式（图片 / 文字） -->
+  <div class="gc-avatar-mode-row">
+    <button class="gc-amode-btn active" id="gcAModeImg" onclick="gcSwitchAvatarMode('image')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      上传头像
+    </button>
+    <button class="gc-amode-btn" id="gcAModeText" onclick="gcSwitchAvatarMode('text')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+      文字头衔
+    </button>
+  </div>
+  <div class="gc-text-emblem-row" id="gcTextEmblemRow" style="display:none">
+    <input class="nc-finput" id="gcEmblemInput" maxlength="2" placeholder="如：群 / 茶 / LX" oninput="gcUpdateEmblem()"/>
+    <div class="gc-emblem-hint">取群名首字或自定义 1–2 个字符，作为群徽章</div>
+  </div>
+
+  <div class="nc-section-rule"><span>BASIC INFO</span></div>
+
+  <div class="nc-form">
+    <div class="nc-fg">
+      <div class="nc-flabel">群名称</div>
+      <input class="nc-finput" id="gcFName" placeholder="例：保安队闲聊室" oninput="gcUpdateCard()"/>
+    </div>
+
+    <div class="nc-form-row">
+      <div class="nc-fg">
+        <div class="nc-flabel">群号 <span class="nc-flabel-hint">可自定义</span></div>
+        <div class="gc-id-row">
+          <input class="nc-finput" id="gcFGroupId" placeholder="自动生成" oninput="gcUpdateCard()"/>
+          <button class="gc-id-refresh" onclick="gcRegenId()" title="重新生成群号">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="nc-fg">
+        <div class="nc-flabel">群人数 <span class="nc-flabel-hint">含本人，最少 3 人</span></div>
+        <div class="gc-stepper">
+          <button class="gc-step-btn" onclick="gcStepCount(-1)">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
+          </button>
+          <input class="gc-step-input" id="gcFCount" type="number" min="3" value="3" oninput="gcHandleCountInput(this)"/>
+          <button class="gc-step-btn" onclick="gcStepCount(1)">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="nc-fg">
+      <div class="nc-flabel">群简介 <span class="nc-flabel-hint">选填</span></div>
+      <textarea class="nc-ftextarea" id="gcFDesc" style="height:58px" placeholder="这个群聊的氛围、设定或玩法…"></textarea>
+    </div>
+
+    <!-- 颜色方案 -->
+    <div class="nc-fg">
+      <div class="nc-flabel">群卡配色</div>
+      <div class="nc-color-row">
+        <div class="nc-co selected" style="background:#1a1a16" data-color="ink" onclick="gcPickColor(this)"></div>
+        <div class="nc-co" style="background:#5c5c52" data-color="stone" onclick="gcPickColor(this)"></div>
+        <div class="nc-co" style="background:#7a6f5d" data-color="bronze" onclick="gcPickColor(this)"></div>
+        <div class="nc-co" style="background:#46544f" data-color="pine" onclick="gcPickColor(this)"></div>
+        <div class="nc-co" style="background:#5a4a52" data-color="plum" onclick="gcPickColor(this)"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nc-section-rule">
+    <span>SYNC MEMBERS · <span id="gcSyncCountLabel">0 / 3</span></span>
+  </div>
+
+  <!-- 成员同步提示条 -->
+  <div class="gc-sync-bar" id="gcSyncBar">
+    <div class="gc-sync-track">
+      <div class="gc-sync-fill" id="gcSyncFill" style="width:0%"></div>
+    </div>
+    <div class="gc-sync-text" id="gcSyncText">还需选择 2 位角色（不含本人）才能创建</div>
+  </div>
+
+  <!-- 搜索框 -->
+  <div class="nc-search-bar">
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="rgba(26,26,22,0.3)" stroke-width="2" stroke-linecap="round">
+      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <input class="nc-search-input" id="gcSearchInput" placeholder="搜索角色或 NPC 名称…" oninput="gcFilterSelect(this.value)"/>
+  </div>
+
+  <!-- 子 Tab -->
+  <div class="nc-sub-tabs">
+    <button class="nc-stab active" id="gcStabAll"  onclick="gcSwitchSubTab('all')">全部</button>
+    <button class="nc-stab" id="gcStabChar" onclick="gcSwitchSubTab('char')">角色</button>
+    <button class="nc-stab" id="gcStabNpc"  onclick="gcSwitchSubTab('npc')">NPC</button>
+  </div>
+
+  <!-- 列表 -->
+  <div class="nc-sel-list" id="gcSelList"></div>
+
+  <div class="gc-tip-box">
+    <div class="gc-tip-deco">TIP</div>
+    <div class="gc-tip-text">创建完成后，如果想在群聊里加入新角色，可以在群聊设置里随时进行同步。</div>
+  </div>
+
+  </div><!-- /gc-scroll -->
+
+</div>
+
+<!-- 底部按钮放在 gc-page 外面，不受 transform 影响 -->
+<div class="nc-page-footer" id="gcPageFooter">
+  <button class="nc-cancel" onclick="closeCreateGroup()">取消</button>
+  <button class="nc-submit" id="gcFooterSubmit" onclick="gcCreateGroup()">
+    创建群聊
+    <span class="nc-submit-deco" id="gcSubmitDeco">0/3</span>
+  </button>
+</div>
+
+<div class="gc-toast" id="gcToast"></div>
 
 <!-- 新建联系人全屏页 -->
 <div class="nc-overlay" id="ncOverlay" onclick="closeAddContact()"></div>
@@ -3035,6 +3248,417 @@
   </div>
 
 </div><!-- /smAiNpcDetailPage -->
+
+<!-- Story 编辑器 遮罩 -->
+<div class="nc-overlay" id="storyEditorOverlay" onclick="storyEditorClose()"></div>
+
+<!-- Story 编辑器 全屏页 -->
+<div class="nc-page" id="storyEditorPage">
+
+  <!-- 固定头部 -->
+  <div class="se-fixed-head">
+    <div class="status-bar">
+      <div class="status-time" id="storyEditorTime">9:41</div>
+      <div class="status-island" id="storyEditorIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="storyEditorBatPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="storyEditorBatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nc-nav">
+      <button class="nc-back-btn" onclick="storyEditorClose()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="nc-nav-center">
+        <div class="nc-nav-sub">LUNA · MOMENTS</div>
+        <div class="nc-nav-title">发布动态</div>
+      </div>
+      <div style="width:36px"></div>
+    </div>
+  </div>
+
+  <!-- 可滚动内容区 -->
+  <div class="se-scroll-body">
+
+  <!-- 画布预览区 -->
+  <div class="se-canvas-wrap" id="seCanvasWrap">
+    <div class="se-progress-bar"><div class="se-progress-fill" id="seProgressFill"></div></div>
+    <div class="se-canvas-bg" id="seCanvasBg"></div>
+    <div class="se-canvas-grid"></div>
+    <div class="se-img-layer" id="seImgLayer"><div class="se-img-dim"></div></div>
+    <div class="se-arc se-arc1"></div>
+    <div class="se-arc se-arc2"></div>
+    <div class="se-arc se-arc3"></div>
+    <div class="se-corner se-c-tl"></div>
+    <div class="se-corner se-c-tr"></div>
+    <div class="se-corner se-c-bl"></div>
+    <div class="se-corner se-c-br"></div>
+    <div class="se-cross se-x1"></div>
+    <div class="se-cross se-x2"></div>
+    <div class="se-canvas-top">
+      <div class="se-mode-pills">
+        <div class="se-mpill active" onclick="seMode('text',this)">Text</div>
+        <div class="se-mpill" onclick="seMode('photo',this)">Photo</div>
+      </div>
+    </div>
+    <div class="se-preview-layer" id="sePreviewLayer">
+      <div class="se-prev-text" id="sePrevText" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);cursor:grab;user-select:none;touch-action:none;">
+        <span class="se-prev-ph">开始输入你的动态内容...</span>
+      </div>
+    </div>
+    <div class="se-upload-zone" id="seUploadZone">
+      <div class="se-upload-btn" onclick="document.getElementById('seFileInput').click()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1.5" stroke-linecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="3"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+        </svg>
+        点击上传图片
+      </div>
+    </div>
+    <div class="se-toast" id="seToast"></div>
+  </div>
+
+  <!-- 内容输入 -->
+  <div class="se-write-area">
+    <span class="se-write-label">内容</span>
+    <textarea class="se-textarea" id="seTextarea" placeholder="写下你想分享的内容..." oninput="seUpdateText(this)"></textarea>
+    <div class="se-char-count"><span id="seCharCount">0</span> / 150</div>
+  </div>
+
+  <!-- Tab 面板 -->
+  <div class="se-ptabs">
+    <div class="se-ptab active" onclick="seTab('design',this)">设计</div>
+    <div class="se-ptab" onclick="seTab('audience',this)">可见</div>
+    <div class="se-ptab" onclick="seTab('more',this)">更多</div>
+  </div>
+
+  <div class="se-tbody">
+
+    <!-- 设计 Tab -->
+    <div class="se-tc active" id="se-tab-design">
+      <span class="se-slbl">背景</span>
+      <div class="se-bg-grid" id="seBgGrid"></div>
+
+      <span class="se-slbl">显示时长</span>
+      <div class="se-dur-row">
+        <span class="se-dur-lbl">Duration</span>
+        <input type="range" class="se-slider" min="3" max="15" value="7" step="1" id="seDurSlider" oninput="seDurUpdate(this.value)" />
+        <span class="se-dur-val" id="seDurVal">7s</span>
+      </div>
+    </div>
+
+    <!-- 可见 Tab -->
+    <div class="se-tc" id="se-tab-audience">
+      <span class="se-slbl">谁可以看到</span>
+      <div class="se-aud-row">
+        <div class="se-aud-item active" onclick="seAud(this)">
+          <div class="se-aud-dot"></div>
+          <div><div class="se-aud-name">所有人</div><div class="se-aud-desc">任何用户均可查看</div></div>
+        </div>
+        <div class="se-aud-item" onclick="seAud(this)">
+          <div class="se-aud-dot"></div>
+          <div><div class="se-aud-name">仅好友</div><div class="se-aud-desc">仅互相关注的好友可见</div></div>
+        </div>
+        <div class="se-aud-item" onclick="seAud(this)">
+          <div class="se-aud-dot"></div>
+          <div><div class="se-aud-name">限定好友</div><div class="se-aud-desc">仅你指定的亲密好友可见</div></div>
+        </div>
+      </div>
+
+      <span class="se-slbl">动态有效期</span>
+      <div class="se-exp-row">
+        <div class="se-exp-chip" onclick="seExp(this)">6h</div>
+        <div class="se-exp-chip active" onclick="seExp(this)">24h</div>
+        <div class="se-exp-chip" onclick="seExp(this)">48h</div>
+        <div class="se-exp-chip" onclick="seExp(this)">72h</div>
+      </div>
+    </div>
+
+    <!-- 更多 Tab -->
+    <div class="se-tc" id="se-tab-more">
+      <span class="se-slbl">允许操作</span>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;background:rgba(255,255,255,0.02)">
+          <span style="font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.04em">允许转发</span>
+          <div class="se-toggle" id="tog1" onclick="seToggle('tog1')" style="width:34px;height:18px;border-radius:9px;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.16);position:relative;cursor:pointer;transition:background 0.2s">
+            <div style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left 0.2s" id="tog1-knob"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;background:rgba(255,255,255,0.02)">
+          <span style="font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.04em">允许截图</span>
+          <div class="se-toggle" id="tog2" onclick="seToggle('tog2')" style="width:34px;height:18px;border-radius:9px;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.16);position:relative;cursor:pointer;transition:background 0.2s">
+            <div style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left 0.2s" id="tog2-knob"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;background:rgba(255,255,255,0.02)">
+          <span style="font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.04em">显示查看人数</span>
+          <div class="se-toggle" id="tog3" onclick="seToggle('tog3')" style="width:34px;height:18px;border-radius:9px;background:rgba(255,255,255,0.55);border:0.5px solid rgba(255,255,255,0.16);position:relative;cursor:pointer;transition:background 0.2s">
+            <div style="position:absolute;top:2px;left:18px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left 0.2s" id="tog3-knob"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="se-pub" onclick="sePublish()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+      发布动态
+    </button>
+    <button class="se-draft" onclick="storyEditorClose()">保存为草稿</button>
+
+  </div>
+
+  <input type="file" id="seFileInput" accept="image/*" onchange="seImgUpload(event)" style="display:none" />
+
+  </div><!-- /se-scroll-body -->
+
+</div><!-- /storyEditorPage -->
+
+<div class="nc-overlay" id="storyViewerOverlay" onclick="storyViewerClose()"></div>
+
+<div class="nc-page" id="storyViewerPage" style="background:#0d0d0d;padding-bottom:0;overflow:hidden;">
+
+  <div class="se-fixed-head">
+    <div class="status-bar">
+      <div class="status-time" id="storyViewerTime">9:41</div>
+      <div class="status-island" id="storyViewerIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="storyViewerBatPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="storyViewerBatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sv-screen">
+
+    <div class="sv-bg" id="svBg"></div>
+    <div class="sv-grid"></div>
+
+    <div class="sv-progress" id="svProgressWrap"></div>
+
+    <div class="sv-header">
+      <div class="sv-avatar-ring">
+        <div class="sv-avatar-inner" id="svAvatarInner"></div>
+      </div>
+      <div class="sv-user-info">
+        <div class="sv-username" id="svUsername"></div>
+        <div class="sv-meta" id="svMeta"></div>
+      </div>
+      <div class="sv-header-btns">
+        <div class="sv-hdr-btn sv-ai-btn" id="svAiBtn" onclick="svTriggerAI()" title="AI模拟互动">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+            <path d="M12 2l1.09 3.26L16.5 4.27l-2.18 2.73L15.5 10l-3.5-1.5L8.5 10l1.18-3L7.5 4.27l3.41 1L12 2z" fill="currentColor" opacity="0.9"/>
+            <circle cx="18" cy="14" r="2" fill="currentColor" opacity="0.5"/>
+            <circle cx="6" cy="17" r="1.5" fill="currentColor" opacity="0.4"/>
+          </svg>
+        </div>
+        <div class="sv-hdr-btn" onclick="storyViewerClose()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+      </div>
+    </div>
+
+    <div class="sv-badges">
+      <div class="sv-timer-badge">
+        <div class="sv-timer-dot"></div>
+        <span class="sv-timer-text" id="svTimerText"></span>
+      </div>
+      <div class="sv-views-badge">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="sv-views-text" id="svViews">0</span>
+      </div>
+    </div>
+
+    <div class="sv-content">
+      <div class="sv-divider"></div>
+      <div class="sv-text" id="svText"></div>
+      <div class="sv-subtext" id="svSubtext"></div>
+    </div>
+
+    <div class="sv-bottom">
+      <div class="sv-comments">
+        <div class="sv-cmt-scroll" id="svCmtScroll">
+        </div>
+      </div>
+      <div class="sv-input-row">
+        <div class="sv-input-pill">发表评论...</div>
+        <div class="sv-act-btn" id="svLikeBtn" onclick="svToggleLike()">
+          <div class="sv-act-icon" id="svLikeIcon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <span class="sv-act-num" id="svLikeNum">0</span>
+        </div>
+        <div class="sv-act-btn" id="svSaveBtn" onclick="svToggleSave()">
+          <div class="sv-act-icon" id="svSaveIcon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+          <span class="sv-act-num" id="svSaveNum">0</span>
+        </div>
+        <div class="sv-act-btn" onclick="fwdOpen()">
+          <div class="sv-act-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+          <span class="sv-act-num" id="svShareNum">0</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- AI互动加载层 -->
+  <div class="sv-ai-overlay" id="svAiOverlay" style="display:none;">
+    <div class="sv-ai-spinner"></div>
+    <div class="sv-ai-label" id="svAiLabel">AI 生成互动中…</div>
+  </div>
+</div><!-- /storyViewerPage -->
+
+<!-- ========== 转发弹窗 ========== -->
+<div class="fwd-overlay" id="fwdOverlay" onclick="fwdClose()"></div>
+<div class="fwd-sheet" id="fwdSheet">
+  <div class="fwd-handle"></div>
+
+  <div class="fwd-hdr">
+    <div class="fwd-hdr-refresh" id="fwdRefreshBtn" onclick="fwdRefreshRecords()" title="重新生成转发记录">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+    </div>
+    <div class="fwd-hdr-title">Forward</div>
+    <div class="fwd-hdr-close" onclick="fwdClose()">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- 内容预览卡 -->
+  <div class="fwd-preview">
+    <div class="fwd-preview-thumb" id="fwdThumb">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <rect x="3" y="3" width="18" height="18" rx="3"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+    </div>
+    <div class="fwd-preview-info">
+      <div class="fwd-preview-label">转发内容</div>
+      <div class="fwd-preview-text" id="fwdPreviewText">—</div>
+      <div class="fwd-preview-meta" id="fwdPreviewMeta">—</div>
+    </div>
+    <div class="fwd-preview-count">
+      <div class="fwd-preview-num" id="fwdPreviewNum">0</div>
+      <div class="fwd-preview-unit">转发</div>
+    </div>
+  </div>
+
+  <!-- 好友环 -->
+  <div class="fwd-ring-sec">
+    <div class="fwd-sec-label">
+      <span>发送给</span>
+      <span class="fwd-sel-hint" id="fwdSelHint">点击头像选择好友</span>
+    </div>
+    <div class="fwd-ring-scroll" id="fwdRingScroll"></div>
+  </div>
+
+  <div class="fwd-divider"></div>
+
+  <!-- 转发记录 -->
+  <div class="fwd-records-sec">
+    <div class="fwd-records-hdr">
+      <span class="fwd-records-title">转发记录</span>
+      <span class="fwd-records-total" id="fwdRecordsTotal">共 0 次转发</span>
+    </div>
+    <div class="fwd-records-list" id="fwdRecordsList">
+      <div class="fwd-records-empty">暂无转发记录</div>
+    </div>
+  </div>
+
+  <!-- 底部：附言 + 发送 -->
+  <div class="fwd-bottom">
+    <input class="fwd-msg-input" type="text" id="fwdMsgInput" placeholder="附言…" />
+    <button class="fwd-send-btn" id="fwdSendBtn" onclick="fwdDoSend()">发送</button>
+  </div>
+</div>
+
+<!-- ========== 身份扇形弹窗 ========== -->
+<div class="ifm-overlay" id="ifmOverlay" onclick="closeIdentityFanModal()"></div>
+<div class="ifm-shell" id="ifmShell">
+  <div class="ifm-header">
+    <div class="ifm-title">IDENTITY SYNC</div>
+    <div class="ifm-close" onclick="closeIdentityFanModal()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </div>
+  </div>
+  <div class="ifm-track" id="ifmTrack">
+    <div class="ifm-row" id="ifmRow"></div>
+  </div>
+  <div class="ifm-dots" id="ifmDots"></div>
+  <div class="ifm-nav">
+    <button class="ifm-nav-btn" id="ifmPrev" onclick="ifmSlide(-1)" aria-label="上一个">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button class="ifm-nav-btn" id="ifmNext" onclick="ifmSlide(1)" aria-label="下一个">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+</div>
+<div class="ifm-toast" id="ifmToast"></div>
+
+<!-- 资料编辑弹窗 -->
+<div id="pfEditOverlay" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;">
+  <div id="pfEditModal" style="width:calc(100% - 48px);max-width:360px;background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:15px;font-weight:600;color:#0a0a0a;letter-spacing:-0.2px;">编辑资料</div>
+      <button onclick="closePfEditModal()" style="width:28px;height:28px;border:none;background:#f2f2f2;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow-y:auto;">
+      <div>
+        <div style="font-size:10px;letter-spacing:1.5px;color:#999;text-transform:uppercase;margin-bottom:5px;font-family:monospace;">简介 Bio</div>
+        <textarea id="pfEditBio" style="width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:9px 12px;font-size:14px;color:#1a1a1a;resize:none;height:72px;font-family:inherit;outline:none;line-height:1.5;" placeholder="介绍一下自己..."></textarea>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:1.5px;color:#999;text-transform:uppercase;margin-bottom:5px;font-family:monospace;">位置 Location</div>
+        <input id="pfEditLocation" type="text" style="width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:9px 12px;font-size:14px;color:#1a1a1a;font-family:inherit;outline:none;" placeholder="Shanghai, CN"/>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:1.5px;color:#999;text-transform:uppercase;margin-bottom:5px;font-family:monospace;">网站 Website</div>
+        <input id="pfEditWebsite" type="text" style="width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:9px 12px;font-size:14px;color:#1a1a1a;font-family:inherit;outline:none;" placeholder="luna.design"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <div style="font-size:10px;letter-spacing:1.5px;color:#999;text-transform:uppercase;margin-bottom:5px;font-family:monospace;">Following</div>
+          <input id="pfEditFollowing" type="text" style="width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:9px 12px;font-size:14px;color:#1a1a1a;font-family:inherit;outline:none;" placeholder="128"/>
+        </div>
+        <div>
+          <div style="font-size:10px;letter-spacing:1.5px;color:#999;text-transform:uppercase;margin-bottom:5px;font-family:monospace;">Followers</div>
+          <input id="pfEditFollowers" type="text" style="width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:9px 12px;font-size:14px;color:#1a1a1a;font-family:inherit;outline:none;" placeholder="364"/>
+        </div>
+        <div>
+          <div style="font-size:10px;letter-spacing:1.5px;color:#999;text-transform:uppercase;margin-bottom:5px;font-family:monospace;">Posts</div>
+          <input id="pfEditPosts" type="text" style="width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:9px 12px;font-size:14px;color:#1a1a1a;font-family:inherit;outline:none;" placeholder="42"/>
+        </div>
+        <div>
+          <div style="font-size:10px;letter-spacing:1.5px;color:#999;text-transform:uppercase;margin-bottom:5px;font-family:monospace;">Likes</div>
+          <input id="pfEditLikes" type="text" style="width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:9px 12px;font-size:14px;color:#1a1a1a;font-family:inherit;outline:none;" placeholder="1.2k"/>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:1.5px;color:#999;text-transform:uppercase;margin-bottom:5px;font-family:monospace;">加入时间 Joined</div>
+        <input id="pfEditJoined" type="text" style="width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:9px 12px;font-size:14px;color:#1a1a1a;font-family:inherit;outline:none;" placeholder="Joined Jan 2024"/>
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid #f0f0f0;">
+      <button onclick="savePfEditModal()" style="width:100%;padding:13px;background:#0a0a0a;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:0.2px;">保存</button>
+    </div>
+  </div>
+</div>
 
 <script src="chat.js"></script>
 </body>

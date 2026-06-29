@@ -8,7 +8,7 @@ function updateTime() {
   const timeStr = new Date().toLocaleTimeString('zh-CN', {
     timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
   });
-  ['statusTime','taStatusTime','anonStatusTime','ncTime','futureStatusTime'].forEach(id => {
+  ['statusTime','taStatusTime','anonStatusTime','ncTime','futureStatusTime','storyEditorTime'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = timeStr;
   });
@@ -26,8 +26,8 @@ function updateBattery() {
         ? 'linear-gradient(90deg,#f87171,#ef4444)'
         : 'linear-gradient(90deg,#6ee7b7,#34d399)';
     }
-    const ids = ['taBatPct','anonBatPct'];
-    const innerIds = ['taBatInner','anonBatInner'];
+    const ids = ['taBatPct','anonBatPct','storyEditorBatPct'];
+    const innerIds = ['taBatInner','anonBatInner','storyEditorBatInner'];
     ids.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = p; });
     innerIds.forEach(id => {
       const el = document.getElementById(id);
@@ -362,20 +362,77 @@ async function ncCreateAndSync() {
   await getAvatarCache();
   renderConvList();
   renderStoryRing();
+  renderFriendStories();
   closeAddContact();
 }
 
 async function ncSaveToCharDB(data) {
   return new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onupgradeneeded = e => e.target.result.createObjectStore('chars',{keyPath:'id',autoIncrement:true});
-    req.onsuccess = e => {
-      const db = e.target.result;
-      const tx = db.transaction('chars','readwrite');
-      const r  = tx.objectStore('chars').add(data);
-      r.onsuccess = () => res(r.result);
-      r.onerror   = () => res(null);
+    /* 探测当前真实版本，不硬编码版本号，避免与 characters.js 冲突 */
+    const probe = indexedDB.open('LunaCharDB');
+    probe.onupgradeneeded = e => {
+      const db0 = e.target.result;
+      if (!db0.objectStoreNames.contains('chars'))
+        db0.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
     };
+    probe.onsuccess = e => {
+      const cur = e.target.result;
+      const ver = cur.version;
+      const hasChars = cur.objectStoreNames.contains('chars');
+      cur.close();
+      const open = hasChars
+        ? indexedDB.open('LunaCharDB', ver)
+        : indexedDB.open('LunaCharDB', ver + 1);
+      if (!hasChars) {
+        open.onupgradeneeded = e2 => {
+          const db2 = e2.target.result;
+          if (!db2.objectStoreNames.contains('chars'))
+            db2.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+        };
+      }
+      open.onsuccess = e2 => {
+        const db = e2.target.result;
+        const tx = db.transaction('chars', 'readwrite');
+        const r  = tx.objectStore('chars').add(data);
+        r.onsuccess = () => { db.close(); res(r.result); };
+        r.onerror   = () => { db.close(); res(null); };
+      };
+      open.onerror = () => res(null);
+    };
+    probe.onerror = () => res(null);
+  });
+}
+
+/* ---- LunaCharDB 统一打开入口（不硬编码版本号，与 characters.js 保持一致） ---- */
+function openLunaCharDB() {
+  return new Promise((res, rej) => {
+    const probe = indexedDB.open('LunaCharDB');
+    probe.onupgradeneeded = e => {
+      const db0 = e.target.result;
+      if (!db0.objectStoreNames.contains('chars'))
+        db0.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+    };
+    probe.onsuccess = e => {
+      const cur = e.target.result;
+      const ver = cur.version;
+      const hasChars = cur.objectStoreNames.contains('chars');
+      cur.close();
+      if (hasChars) {
+        const req2 = indexedDB.open('LunaCharDB', ver);
+        req2.onsuccess = e2 => res(e2.target.result);
+        req2.onerror   = e2 => rej(e2.target.error);
+      } else {
+        const req3 = indexedDB.open('LunaCharDB', ver + 1);
+        req3.onupgradeneeded = e3 => {
+          const db3 = e3.target.result;
+          if (!db3.objectStoreNames.contains('chars'))
+            db3.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+        };
+        req3.onsuccess = e3 => res(e3.target.result);
+        req3.onerror   = e3 => rej(e3.target.error);
+      }
+    };
+    probe.onerror = e => rej(e.target.error);
   });
 }
 
@@ -388,6 +445,7 @@ const LUNA_STORES = {
   messages:  { keyPath: 'chatKey' },
   anonCards: { keyPath: 'id', autoIncrement: true },
   taContent: { keyPath: 'charId' },
+  groups:    { keyPath: 'id' },
 };
 
 /* ---- 角色头像缓存（name → avatarDataURL 或 null） ---- */
@@ -569,23 +627,32 @@ async function ncLoadSelectData() {
 
 async function ncGetAllChars() {
   return new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onupgradeneeded = e => {
-      const d = e.target.result;
-      if (!d.objectStoreNames.contains('chars')) {
-        d.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
-      }
+    /* 探测当前真实版本，不硬编码版本号，与 characters.js 保持一致 */
+    const probe = indexedDB.open('LunaCharDB');
+    probe.onupgradeneeded = e => {
+      const db0 = e.target.result;
+      if (!db0.objectStoreNames.contains('chars'))
+        db0.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
     };
-    req.onsuccess = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('chars')) {
-        res([]);
-        return;
-      }
-      const r = db.transaction('chars').objectStore('chars').getAll();
-      r.onsuccess = () => res(r.result || []);
-      r.onerror   = () => res([]);
+    probe.onsuccess = e => {
+      const cur = e.target.result;
+      const ver = cur.version;
+      const hasChars = cur.objectStoreNames.contains('chars');
+      cur.close();
+
+      if (!hasChars) { res([]); return; }
+
+      const req2 = indexedDB.open('LunaCharDB', ver);
+      req2.onsuccess = e2 => {
+        const db = e2.target.result;
+        if (!db.objectStoreNames.contains('chars')) { db.close(); res([]); return; }
+        const r = db.transaction('chars').objectStore('chars').getAll();
+        r.onsuccess = () => { db.close(); res(r.result || []); };
+        r.onerror   = () => { db.close(); res([]); };
+      };
+      req2.onerror = () => res([]);
     };
+    probe.onerror = () => res([]);
   });
 }
 
@@ -729,6 +796,436 @@ async function ncImportSelected() {
 
 function openNewPost()    { console.log('new post'); }
 
+/* ════════════════════════════════════════
+   创建方式选择弹窗（单聊 / 群聊）
+════════════════════════════════════════ */
+function openCreateChoice() {
+  document.getElementById('ccOverlay').classList.add('show');
+  document.getElementById('ccSheet').classList.add('show');
+}
+function closeCreateChoice() {
+  document.getElementById('ccOverlay').classList.remove('show');
+  document.getElementById('ccSheet').classList.remove('show');
+}
+
+/* ════════════════════════════════════════
+   群聊创建全屏页（gc-）
+════════════════════════════════════════ */
+let _gcAvatarData = null;     // 上传的群头像图片
+let _gcAvatarMode = 'image';  // 'image' | 'text'
+let _gcEmblemText = '';       // 文字头衔
+let _gcColor = 'ink';
+let _gcAllItems = [];         // 同 _ncAllItems 结构：{type:'char'|'npc', data, charName, charId}
+let _gcSelected = new Set();
+let _gcSubTab = 'all';
+
+function gcRandomId() {
+  // 7位群号，避免以0开头
+  let id = String(Math.floor(Math.random() * 9 + 1));
+  for (let i = 0; i < 6; i++) id += String(Math.floor(Math.random() * 10));
+  return id;
+}
+
+function gcRequiredOthers() {
+  // 群人数含本人，所以需要从角色书同步的人数 = 总人数 - 1，最少需要 2 位他人角色（总人数最少 3）
+  const count = parseInt(document.getElementById('gcFCount')?.value, 10) || 3;
+  return Math.max(2, count - 1);
+}
+
+function openCreateGroup() {
+  // 重置状态
+  _gcAvatarData = null;
+  _gcAvatarMode = 'image';
+  _gcEmblemText = '';
+  _gcColor = 'ink';
+  _gcSelected = new Set();
+  _gcSubTab = 'all';
+
+  document.getElementById('gcFName').value = '';
+  document.getElementById('gcFDesc').value = '';
+  document.getElementById('gcFCount').value = 3;
+  document.getElementById('gcFGroupId').value = gcRandomId();
+  document.getElementById('gcEmblemInput').value = '';
+  document.getElementById('gcSearchInput').value = '';
+
+  document.getElementById('gcAModeImg').classList.add('active');
+  document.getElementById('gcAModeText').classList.remove('active');
+  document.getElementById('gcTextEmblemRow').style.display = 'none';
+
+  document.querySelectorAll('#gcPage .nc-co').forEach((o, i) => o.classList.toggle('selected', i === 0));
+  document.querySelectorAll('#gcPage .nc-stab').forEach(b => b.classList.toggle('active', b.id === 'gcStabAll'));
+
+  const av = document.getElementById('gcPvAvatar');
+  av.innerHTML = `
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+      <path d="M17 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M13 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="rgba(247,246,243,0.5)" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="9" cy="7" r="4" stroke="rgba(247,246,243,0.5)" stroke-width="1.4"/>
+    </svg>
+    <div class="gc-pv-av-hint">群头像</div>`;
+
+  gcUpdateCard();
+  gcLoadSelectData();
+
+  document.getElementById('gcOverlay').classList.add('show');
+  document.getElementById('gcPage').classList.add('show');
+  document.getElementById('gcStatusBar').classList.add('show');
+  document.getElementById('gcPageFooter').classList.add('show');
+
+  const el = document.getElementById('gcTime');
+  if (el) {
+    const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+    el.textContent = new Date().toLocaleTimeString('zh-CN',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false});
+  }
+}
+
+function closeCreateGroup() {
+  document.getElementById('gcOverlay').classList.remove('show');
+  document.getElementById('gcPage').classList.remove('show');
+  document.getElementById('gcStatusBar').classList.remove('show');
+  document.getElementById('gcPageFooter').classList.remove('show');
+}
+
+/* ── 群头像：图片 / 文字头衔切换 ── */
+function gcSwitchAvatarMode(mode) {
+  _gcAvatarMode = mode;
+  document.getElementById('gcAModeImg').classList.toggle('active', mode === 'image');
+  document.getElementById('gcAModeText').classList.toggle('active', mode === 'text');
+  document.getElementById('gcTextEmblemRow').style.display = mode === 'text' ? 'block' : 'none';
+  gcRenderAvatarPreview();
+}
+
+function gcAvatarTap() {
+  if (_gcAvatarMode === 'image') {
+    document.getElementById('gcAvatarInput').click();
+  }
+}
+
+function gcHandleAvatar(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _gcAvatarData = e.target.result;
+    gcRenderAvatarPreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function gcUpdateEmblem() {
+  _gcEmblemText = document.getElementById('gcEmblemInput').value.trim().slice(0, 2);
+  gcRenderAvatarPreview();
+}
+
+function gcRenderAvatarPreview() {
+  const av = document.getElementById('gcPvAvatar');
+  if (_gcAvatarMode === 'image' && _gcAvatarData) {
+    av.innerHTML = `<img src="${_gcAvatarData}"/>`;
+  } else if (_gcAvatarMode === 'text') {
+    const name = document.getElementById('gcFName').value.trim();
+    const text = _gcEmblemText || (name ? name[0] : '群');
+    av.innerHTML = `<span class="gc-pv-av-emblem">${text}</span>`;
+  } else {
+    av.innerHTML = `
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+        <path d="M17 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M13 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="rgba(247,246,243,0.5)" stroke-width="1.4" stroke-linecap="round"/>
+        <circle cx="9" cy="7" r="4" stroke="rgba(247,246,243,0.5)" stroke-width="1.4"/>
+      </svg>
+      <div class="gc-pv-av-hint">群头像</div>`;
+  }
+}
+
+function gcPickColor(el) {
+  document.querySelectorAll('#gcPage .nc-co').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  _gcColor = el.dataset.color;
+}
+
+function gcRegenId() {
+  document.getElementById('gcFGroupId').value = gcRandomId();
+  gcUpdateCard();
+}
+
+/* ── 人数步进器 ── */
+function gcStepCount(delta) {
+  const input = document.getElementById('gcFCount');
+  let v = parseInt(input.value, 10) || 3;
+  v += delta;
+  if (v < 3) v = 3;
+  if (v > 200) v = 200;
+  input.value = v;
+  gcUpdateCard();
+  gcUpdateSyncStatus();
+}
+
+function gcHandleCountInput(input) {
+  let v = parseInt(input.value, 10);
+  if (isNaN(v) || v < 3) v = 3;
+  if (v > 200) v = 200;
+  input.value = v;
+  gcUpdateCard();
+  gcUpdateSyncStatus();
+}
+
+/* ── 预览卡同步更新 ── */
+function gcUpdateCard() {
+  const name = document.getElementById('gcFName').value.trim() || '未命名群聊';
+  const gid  = document.getElementById('gcFGroupId').value.trim() || '——';
+  const count = parseInt(document.getElementById('gcFCount').value, 10) || 3;
+  document.getElementById('gcPvName').textContent = name;
+  document.getElementById('gcPvMeta').textContent = `群号 · ${gid} · ${count} 人`;
+  if (_gcAvatarMode === 'text' && !_gcEmblemText) gcRenderAvatarPreview();
+}
+
+/* ── 同步进度状态 ── */
+function gcUpdateSyncStatus() {
+  const need = gcRequiredOthers();
+  const have = _gcSelected.size;
+  document.getElementById('gcHeroNeed').textContent = need + 1; // 总人数（含本人）
+  document.getElementById('gcHeroSynced').textContent = have;
+  document.getElementById('gcSyncCountLabel').textContent = `${have} / ${need}`;
+
+  const pct = Math.min(100, Math.round((have / need) * 100));
+  const fill = document.getElementById('gcSyncFill');
+  const text = document.getElementById('gcSyncText');
+  const deco = document.getElementById('gcSubmitDeco');
+  const submitBtn = document.getElementById('gcFooterSubmit');
+
+  fill.style.width = pct + '%';
+
+  if (have >= need) {
+    fill.classList.add('complete');
+    text.classList.add('complete');
+    text.textContent = `已同步 ${have} 位角色，可以创建群聊了`;
+    if (deco) deco.textContent = `${have}/${need}`;
+    submitBtn.style.opacity = '1';
+    submitBtn.style.pointerEvents = 'auto';
+  } else {
+    fill.classList.remove('complete');
+    text.classList.remove('complete');
+    text.textContent = `还需选择 ${need - have} 位角色（不含本人）才能创建`;
+    if (deco) deco.textContent = `${have}/${need}`;
+    submitBtn.style.opacity = '.45';
+    submitBtn.style.pointerEvents = 'none';
+  }
+}
+
+/* ── 同步列表加载（与单聊"选择同步"复用同一份角色书数据源） ── */
+async function gcLoadSelectData() {
+  _gcAllItems = []; _gcSelected = new Set();
+  const chars = await ncGetAllChars();
+  chars.forEach(c => {
+    _gcAllItems.push({ type: 'char', data: c, charName: c.name });
+    (c.charNpcs || []).forEach(n => {
+      _gcAllItems.push({ type: 'npc', data: n, charName: c.name, charId: c.id });
+    });
+  });
+  gcRenderSelList();
+  gcUpdateSyncStatus();
+}
+
+function gcSwitchSubTab(tab) {
+  _gcSubTab = tab;
+  ['all','char','npc'].forEach(t => {
+    document.getElementById('gcStab' + t.charAt(0).toUpperCase() + t.slice(1))
+      ?.classList.toggle('active', t === tab);
+  });
+  gcRenderSelList();
+}
+
+function gcFilterSelect(q) {
+  gcRenderSelList(q.trim().toLowerCase());
+}
+
+function gcRenderSelList(q) {
+  const list = document.getElementById('gcSelList');
+  let items = _gcAllItems;
+  if (_gcSubTab === 'char') items = items.filter(i => i.type === 'char');
+  if (_gcSubTab === 'npc')  items = items.filter(i => i.type === 'npc');
+  if (q) items = items.filter(i => (i.data.name||'').toLowerCase().includes(q));
+  if (items.length === 0) {
+    list.innerHTML = `<div class="nc-sel-empty"><div class="nc-sel-empty-title">没有找到</div><div class="nc-sel-empty-desc">角色书里还没有角色或 NPC，先去新建一个角色吧</div></div>`;
+    return;
+  }
+  const relColor = {'恋人':'#c8a97e','友人':'#8eaec8','宿敌':'#c87e7e','家人':'#8ec8a3','其他':'#b8b8b0'};
+  list.innerHTML = items.map((item, idx) => {
+    const d = item.data;
+    const letter = (d.name||'?')[0];
+    const isChar = item.type === 'char';
+    const key = isChar ? `char_${d.id}` : `npc_${item.charId}_${idx}`;
+    const sel = _gcSelected.has(key);
+    const bgStyle = d.cardBg ? `background-image:url(${d.cardBg});background-size:cover;background-position:center;` : '';
+    const avatarHtml = d.avatar
+      ? `<img src="${d.avatar}"/>`
+      : `<span class="nc-sel-av-letter">${letter}</span>`;
+    const tagsHtml = (d.traits||[]).slice(0,3).map(t=>`<span class="nc-sel-tag">${t}</span>`).join('');
+    const relBadge = !isChar && d.rel
+      ? `<div class="nc-sel-rel-badge" style="border-color:${relColor[d.rel]||'#b8b8b0'};color:${relColor[d.rel]||'#b8b8b0'}">${d.rel}</div>`
+      : '';
+    const fromLabel = !isChar ? `<div class="nc-sel-npc-from">来自 · ${item.charName}</div>` : '';
+    return `
+    <div class="nc-sel-card${sel?' selected':''}" onclick="gcToggleSelect('${key}',this)" style="animation-delay:${idx*0.05}s">
+      <div class="nc-sel-top">
+        <div class="nc-sel-top-img" style="${bgStyle}"></div>
+        <div class="nc-sel-top-overlay"></div>
+        <div class="nc-sel-type-tag">${isChar ? 'CHARACTER' : 'NPC'}</div>
+        <div class="nc-sel-check">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none">
+            <path d="M20 6L9 17l-5-5" stroke="#f7f6f3" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="nc-sel-body">
+        <div class="nc-sel-avatar">${avatarHtml}</div>
+        <div class="nc-sel-info">
+          <div class="nc-sel-name">${d.name||'—'}</div>
+          <div class="nc-sel-role">${d.role||d.relDesc?.slice(0,20)||'—'}</div>
+          <div class="nc-sel-tags">${tagsHtml}${relBadge}</div>
+          ${fromLabel}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function gcToggleSelect(key, cardEl) {
+  const need = gcRequiredOthers();
+  if (_gcSelected.has(key)) {
+    _gcSelected.delete(key);
+    cardEl.classList.remove('selected');
+  } else {
+    if (_gcSelected.size >= need) {
+      gcShowToast(`最多同步 ${need} 位角色，可先调整群人数`);
+      return;
+    }
+    _gcSelected.add(key);
+    cardEl.classList.add('selected');
+  }
+  gcUpdateSyncStatus();
+}
+
+function gcShowToast(msg) {
+  const t = document.getElementById('gcToast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ── 创建群聊 ── */
+async function gcCreateGroup() {
+  const name = document.getElementById('gcFName').value.trim();
+  if (!name) {
+    document.getElementById('gcFName').focus();
+    gcShowToast('请先填写群名称');
+    return;
+  }
+
+  const groupId = document.getElementById('gcFGroupId').value.trim() || gcRandomId();
+  const count = parseInt(document.getElementById('gcFCount').value, 10) || 3;
+  const need = gcRequiredOthers();
+
+  if (count < 3) {
+    gcShowToast('群人数最少为 3 人（含本人）');
+    return;
+  }
+  if (_gcSelected.size < need) {
+    gcShowToast(`还需选择 ${need - _gcSelected.size} 位角色才能创建`);
+    return;
+  }
+
+  // 收集已选成员
+  const members = [];
+  for (const key of _gcSelected) {
+    const [type, ...rest] = key.split('_');
+    let item;
+    if (type === 'char') {
+      const id = parseInt(rest[0]);
+      item = _gcAllItems.find(i => i.type === 'char' && i.data.id === id);
+    } else {
+      item = _gcAllItems.find((i, idx) => `npc_${i.charId}_${idx}` === key);
+    }
+    if (!item) continue;
+    members.push({
+      name: item.data.name || '未命名',
+      type: item.type,
+      avatar: item.data.avatar || null,
+      role: item.data.role || item.data.relDesc?.slice(0,20) || '',
+      charId: item.type === 'char' ? item.data.id : item.charId,
+    });
+  }
+
+  // 头像缩略：取前4位成员名首字作为蒙太奇格子
+  const cells = members.slice(0, 4).map(m => m.name[0]);
+  while (cells.length < 4) cells.push('');
+  const cellStyles = cells.map((_, i) => (i % 2 === 1 ? 'dk' : ''));
+
+  const groupRecord = {
+    id: 'grp_' + Date.now(),
+    name,
+    groupId,
+    desc: document.getElementById('gcFDesc').value.trim(),
+    count,
+    color: _gcColor,
+    avatarMode: _gcAvatarMode,
+    avatar: _gcAvatarMode === 'image' ? _gcAvatarData : null,
+    emblem: _gcAvatarMode === 'text' ? (_gcEmblemText || name[0]) : null,
+    members,
+    section: 'My Groups',
+    sub: `${members.length + 1} 位成员 · 群号 ${groupId}`,
+    cells, cellStyles,
+    badge: 0,
+    createdAt: Date.now(),
+  };
+
+  groupsData.unshift(groupRecord);
+  gcSaveGroupsToDB();
+
+  // 同时写入会话列表，可点击进入群聊
+  if (!convData.find(c => c.name === name)) {
+    convData.unshift({
+      name,
+      initial: name[0],
+      preview: `创建了群聊 · ${members.length + 1} 位成员`,
+      time: ncNowTime(),
+      timeVal: Date.now(),
+      createdAt: Date.now(),
+      unread: 0, online: false, pinned: false,
+      type: 'grp',
+      groupId: groupRecord.id,
+    });
+    dbSaveConv();
+  }
+
+  renderGroups();
+  renderConvList();
+  gcShowToast('群聊创建成功');
+  closeCreateGroup();
+}
+
+/* ── 群聊数据持久化（复用 LunaChatDB，新建 groups 表） ── */
+function gcSaveGroupsToDB() {
+  getLunaChatDB().then(db => {
+    if (!db.objectStoreNames.contains('groups')) return; // 表不存在时跳过，下次启动会自动建表
+    const tx = db.transaction('groups', 'readwrite');
+    const store = tx.objectStore('groups');
+    store.clear();
+    groupsData.forEach(g => store.put(g));
+  }).catch(() => {});
+}
+
+async function gcLoadGroupsFromDB() {
+  try {
+    const db = await getLunaChatDB();
+    if (!db.objectStoreNames.contains('groups')) return [];
+    return new Promise(res => {
+      const r = db.transaction('groups').objectStore('groups').getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror = () => res([]);
+    });
+  } catch { return []; }
+}
+
+
 /* ---- 初始化 ---- */
 document.addEventListener('DOMContentLoaded', async () => {
   updateTime();
@@ -740,17 +1237,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const savedConv    = await dbLoadConv();
   const savedFriends = await dbLoadFriends();
+  const savedGroups  = await gcLoadGroupsFromDB();
   convData.push(...savedConv);
   friendsData.push(...savedFriends);
+  groupsData.push(...savedGroups);
 
   /* renderConvList 由 pageshow 统一调用，这里不重复调用 */
   renderMoments();
-  switchTab('messages');
-  const firstBtn = document.getElementById('tabMessages');
-  if (firstBtn) moveArc(firstBtn);
+
+  // 等 ProfileSnapshot 加载完再渲染故事环，确保头像已就绪
+  loadProfileSnapshot().then(snap => {
+    applyProfileSnap(snap);
+    renderFriendStories();
+    renderStoryRing();
+  });
+
+  const _returnTab = window.location.hash === '#profile' ? 'profile' : 'messages';
+  switchTab(_returnTab);
+  if (_returnTab === 'profile') history.replaceState(null, '', window.location.pathname);
+  if (_returnTab === 'messages') {
+    const firstBtn = document.getElementById('tabMessages');
+    if (firstBtn) moveArc(firstBtn);
+  }
   applyGlobalFont();
   applyIsland();
-  renderStoryRing();
   renderFriends();
   renderGroups();
   window._domReady = true;
@@ -909,6 +1419,10 @@ window.addEventListener('pageshow', async function(e) {
     convData.length = 0;
     convData.push(...fresh);
     renderConvList();
+    const freshGroups = await gcLoadGroupsFromDB();
+    groupsData.length = 0;
+    groupsData.push(...freshGroups);
+    renderGroups();
   } else if (e.persisted) {
     /* bfcache恢复：整页reload */
     window.location.reload();
@@ -920,34 +1434,174 @@ window.addEventListener('pageshow', async function(e) {
     });
     await waitReady();
     renderConvList();
+    renderGroups();
   }
 });
 
 function renderStoryRing() {
-  /* 显示全部好友（不过滤online，因为所有AI角色默认都在线） */
   const data = friendsData;
   const el = document.getElementById('storyRingList');
   if (!el) return;
-  if (data.length === 0) {
-    el.innerHTML = `<div style="color:#ccc;font-size:12px;padding:8px 4px;display:flex;align-items:center;gap:4px;">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round">
-        <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-      </svg>
-      暂无好友
-    </div>`;
-    return;
-  }
-  el.innerHTML = data.map(d => `
+  if (data.length === 0) { el.innerHTML = ''; return; }
+
+  // 只渲染好友，不显示"我"
+  const friendsHtml = data.map(d => {
+    const cached = _avatarCache ? _avatarCache[d.name] : null;
+    const initial = d.initial || (d.name||'?')[0].toUpperCase();
+    const innerHtml = cached
+      ? `<img src="${cached}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>`
+      : `<span style="font-size:13px;color:#ccc;font-weight:600;">${initial}</span>`;
+    return `
     <div class="ig-av-item" onclick="openFriendPopup('${d.name}')" style="cursor:pointer">
       <div class="ig-av-ring live">
-        <div class="ig-ci-av">
-          ${avatarHtml(d.name, d.initial)}
+        <div style="width:100%;height:100%;border-radius:50%;background:#1a1a22;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+          ${innerHtml}
           <div class="ig-ci-dot"></div>
         </div>
       </div>
       <div class="ig-av-name">${d.name}</div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+
+  el.innerHTML = friendsHtml;
+}
+
+function renderFriendStories() {
+  // 优先读 ProfileSnapshot，为空则直接从 LunaIdentityDB 取最新身份
+  function getActiveSnap() {
+    return new Promise(res => {
+      loadProfileSnapshot().then(snap => {
+        // snap 有头像图才直接用，否则去 IdentityDB 拿完整数据
+        if (snap && snap.avatarImg && snap.avatarImg.trim()) { res(snap); return; }
+        const req = indexedDB.open('LunaIdentityDB');
+        req.onsuccess = e => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('identities')) {
+            db.close();
+            // IdentityDB 里没数据，至少用 ProfileSnapshot 里的名字
+            res(snap || null);
+            return;
+          }
+          const r = db.transaction('identities').objectStore('identities').getAll();
+          r.onsuccess = () => {
+            db.close();
+            const list = r.result || [];
+            if (list.length === 0) { res(snap || null); return; }
+            // 取 id 最大的（最近创建/选择的身份）
+            const identity = list.sort((a, b) => (Number(b.id)||0) - (Number(a.id)||0))[0];
+            // 如果 IdentityDB 里有头像就用它，否则合并 snap 的名字
+            if (identity.avatarImg && identity.avatarImg.trim()) {
+              res(identity);
+            } else if (snap && snap.name) {
+              res(snap);
+            } else {
+              res(identity);
+            }
+          };
+          r.onerror = () => { db.close(); res(snap || null); };
+        };
+        req.onerror = () => { db.close(); res(snap || null); };
+      });
+    });
+  }
+
+  getActiveSnap().then(snap => {
+
+    // ── 1a. My Story 圆圈（有 + 号，点击进编辑）ring 状态根据是否已发布 ──
+    const av   = document.getElementById('mmtMyStoryAv');
+    const ring = document.getElementById('mmtMyStoryRing');
+    if (av && ring) {
+      const published = localStorage.getItem('luna_my_story_published') === 'true';
+      ring.classList.toggle('ring-active', published);
+      ring.classList.toggle('ring-dash',   !published);
+
+      // 填充 user 头像到 av
+      av.innerHTML = '';
+      if (snap && snap.avatarImg && snap.avatarImg.trim()) {
+        const img = document.createElement('img');
+        img.src = snap.avatarImg;
+        img.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:50%;';
+        av.appendChild(img);
+        if (snap.avatarColor) av.style.background = snap.avatarColor;
+      } else if (snap) {
+        av.style.background = snap.avatarColor && snap.avatarColor.trim() ? snap.avatarColor : '#222';
+        const letter = document.createElement('span');
+        letter.style.cssText = 'font-size:14px;color:#fff;font-weight:600;position:relative;z-index:1;';
+        letter.textContent = (snap.name || '我')[0].toUpperCase();
+        av.appendChild(letter);
+      }
+
+      // + 按钮挂在 arc-wrap 上（position:absolute 相对 arc-wrap 定位）
+      let addBtn = document.getElementById('mmtMyStoryAdd');
+      if (!addBtn) {
+        addBtn = document.createElement('div');
+        addBtn.id = 'mmtMyStoryAdd';
+        addBtn.className = 'mmt-sc-add';
+        addBtn.innerHTML = `<svg width="7" height="7" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M6 2v8M2 6h8"/></svg>`;
+        ring.appendChild(addBtn);   // ← 挂 arc-wrap，不是 av
+      }
+    }
+
+    // ── 1b. 用户昵称圆圈（无 + 号，显示头像+昵称，点击查看自己发布的动态）──
+    const userSlot = document.getElementById('mmtUserStory');
+    if (userSlot && snap) {
+      const bg = snap.avatarColor && snap.avatarColor.trim() ? snap.avatarColor : '#222';
+      const shortName = snap.name ? (snap.name.length > 4 ? snap.name.slice(0,4) : snap.name) : '我';
+      const published = localStorage.getItem('luna_my_story_published') === 'true';
+      const ringClass = published ? 'ring-active' : 'ring-dash';
+      const avatarHtml = snap.avatarImg && snap.avatarImg.trim()
+        ? `<img src="${snap.avatarImg}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>`
+        : `<span style="font-size:13px;color:#fff;font-weight:600;position:relative;z-index:1;">${(snap.name||'我')[0].toUpperCase()}</span>`;
+      userSlot.className = 'mmt-sc-item';
+      userSlot.style.cursor = 'pointer';
+      userSlot.onclick = () => {
+        const raw = localStorage.getItem('luna_my_story_db');
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        /* 检查是否已过期 */
+        if (data.expireAt && Date.now() > data.expireAt) {
+          localStorage.removeItem('luna_my_story_db');
+          localStorage.removeItem('luna_my_story_published');
+          return;
+        }
+        storyViewerOpen(data);
+      };
+      userSlot.innerHTML = `
+        <div class="mmt-sc-arc-wrap ${ringClass}">
+          <div class="mmt-sc-av" style="background:${bg};">
+            ${avatarHtml}
+          </div>
+        </div>
+        <span class="mmt-sc-name mmt-sc-name-bold">${shortName}</span>`;
+    }
+
+    // ── 2. 好友故事环 ── 同步 friendsData，实时反映新加好友和头像
+    const el = document.getElementById('mmtFriendStories');
+    if (!el) return;
+    if (friendsData.length === 0) { el.innerHTML = ''; return; }
+
+    el.innerHTML = friendsData.map(d => {
+      const initial = d.initial || (d.name || '?')[0].toUpperCase();
+      const cachedAvatar = _avatarCache ? _avatarCache[d.name] : null;
+      // Friends with avatar → solid dark ring (active); without → dashed grey ring
+      const ringClass = cachedAvatar ? 'ring-active' : 'ring-dash';
+      const avBg = cachedAvatar ? '#111' : '#e8e8e8';
+      const textColor = cachedAvatar ? '#fff' : '#999';
+      const avatarInner = cachedAvatar
+        ? `<img src="${cachedAvatar}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>`
+        : `<span style="font-size:13px;color:${textColor};font-weight:600;position:relative;z-index:1;">${initial}</span>`;
+      const displayName = d.name.length > 4 ? d.name.slice(0,4) : d.name;
+      return `
+        <div class="mmt-sc-item" onclick="openFriendPopup('${d.name.replace(/'/g,"\\'")}')">
+          <div class="mmt-sc-arc-wrap ${ringClass}">
+            <div class="mmt-sc-av" style="background:${avBg};">
+              ${avatarInner}
+            </div>
+          </div>
+          <span class="mmt-sc-name">${displayName}</span>
+        </div>`;
+    }).join('');
+  });
 }
 
 function switchConvTab(btn, type) {
@@ -1158,19 +1812,54 @@ function renderGroups() {
         </div>
       </div>
       <div class="ct-group-body">
-        ${items.map(d => `
-          <div class="ct-grp-item">
-            <div class="ct-grp-av">
-              ${d.cells.map((c, i) => `<div class="ct-grp-cell ${d.cellStyles[i] === 'dk' ? 'dk' : ''}">${c}</div>`).join('')}
+        ${items.map(d => {
+          let avHtml;
+          if (d.avatarMode === 'image' && d.avatar) {
+            avHtml = `<div class="ct-grp-av" style="display:block;"><img src="${d.avatar}" style="width:100%;height:100%;object-fit:cover;"/></div>`;
+          } else if (d.avatarMode === 'text' && d.emblem) {
+            avHtml = `<div class="ct-grp-av" style="display:flex;align-items:center;justify-content:center;background:#1a1a16;grid-template-columns:none;">
+              <span style="font-family:'Cormorant Garamond',serif;font-size:16px;color:#f7f6f3;">${d.emblem}</span>
+            </div>`;
+          } else {
+            avHtml = `<div class="ct-grp-av">${(d.cells||[]).map((c, i) => `<div class="ct-grp-cell ${(d.cellStyles||[])[i] === 'dk' ? 'dk' : ''}">${c}</div>`).join('')}</div>`;
+          }
+
+          const members = d.members || [];
+          const visibleMembers = members.slice(0, 5);
+          const memberStripHtml = visibleMembers.map(m => {
+            const inner = m.avatar
+              ? `<img src="${m.avatar}"/>`
+              : `<span>${(m.name||'?')[0]}</span>`;
+            return `<div class="ct-grp-mini-av">${inner}</div>`;
+          }).join('');
+          const moreCount = members.length - visibleMembers.length;
+          const moreHtml = moreCount > 0
+            ? `<span class="ct-grp-member-more">+${moreCount}</span>`
+            : `<span class="ct-grp-member-more">含本人 共 ${members.length + 1} 人</span>`;
+
+          return `
+          <div class="ct-grp-item" onclick="openGroupChat('${d.name}', '${d.groupId || ''}')">
+            <div class="ct-grp-top-row">
+              ${avHtml}
+              <div class="ct-grp-head-info">
+                <div class="ct-grp-name-row">
+                  <span class="ct-grp-name">${d.name}</span>
+                  <span class="ct-grp-idtag">#${d.groupId || '——'}</span>
+                </div>
+                <div class="ct-grp-sub">${d.sub}</div>
+              </div>
+              <div class="ct-grp-status">
+                ${d.badge > 0
+                  ? `<div class="ct-grp-badge">${d.badge}</div>`
+                  : `<div class="ct-grp-muted">Muted</div>`}
+              </div>
             </div>
-            <div>
-              <div class="ct-grp-name">${d.name}</div>
-              <div class="ct-grp-sub">${d.sub}</div>
+            <div class="ct-grp-member-strip">
+              ${memberStripHtml}
+              ${moreHtml}
             </div>
-            ${d.badge > 0
-              ? `<div class="ct-grp-badge">${d.badge}</div>`
-              : `<div class="ct-grp-muted">Muted</div>`}
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>
     </div>
   `).join('');
@@ -1195,6 +1884,7 @@ function switchContactTab(tab) {
     f.classList.remove('active');
     fc.style.display = 'none';
     gc.style.display = 'block';
+    renderGroups(); // 每次切到群聊 Tab 都强制重渲染，确保新建群聊能即时显示
   }
 }
 
@@ -1262,6 +1952,14 @@ function openChatroom(name) {
   window.location.href = 'chatroom.html';
 }
 
+function openGroupChat(name, groupId) {
+  localStorage.setItem('luna_island_enabled', localStorage.getItem('luna_island_enabled') || 'false');
+  localStorage.setItem('luna_island_style',   localStorage.getItem('luna_island_style')   || 'minimal');
+  localStorage.setItem('luna_current_group_name', name);
+  localStorage.setItem('luna_current_group_id',   groupId || '');
+  window.location.href = 'groupchat.html';
+}
+
 /* ================================
    角色资料页逻辑
 ================================ */
@@ -1269,14 +1967,7 @@ function openChatroom(name) {
 /* 从 LunaCharDB 按名字查找角色数据 */
 async function getCharDataByName(name) {
   return new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onupgradeneeded = e => {
-      const d = e.target.result;
-      if (!d.objectStoreNames.contains('chars'))
-        d.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
-    };
-    req.onsuccess = e => {
-      const db = e.target.result;
+    openLunaCharDB().then(db => {
       if (!db.objectStoreNames.contains('chars')) { res(null); return; }
       const r = db.transaction('chars').objectStore('chars').getAll();
       r.onsuccess = () => {
@@ -1284,8 +1975,7 @@ async function getCharDataByName(name) {
         res(found || null);
       };
       r.onerror = () => res(null);
-    };
-    req.onerror = () => res(null);
+    }).catch(() => res(null));
   });
 }
 
@@ -1870,15 +2560,12 @@ function anonSpinNpc(btn) {
 
   // 先读角色数据再生成
   new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onsuccess = e => {
-      const db = e.target.result;
+    openLunaCharDB().then(db => {
       if (!db.objectStoreNames.contains('chars')) { res(null); return; }
       const r = db.transaction('chars').objectStore('chars').getAll();
       r.onsuccess = () => res((r.result || []).find(c => c.name === charName) || null);
       r.onerror = () => res(null);
-    };
-    req.onerror = () => res(null);
+    }).catch(() => res(null));
   }).then(async charData => {
 
     const traits = (charData?.traits || []).join('、') || '未知';
@@ -2094,15 +2781,12 @@ async function anonAskAI(question, answerEl) {
   let charData = null;
   if (charName) {
     charData = await new Promise(res => {
-      const req = indexedDB.open('LunaCharDB', 4);
-      req.onsuccess = e => {
-        const db = e.target.result;
+      openLunaCharDB().then(db => {
         if (!db.objectStoreNames.contains('chars')) { res(null); return; }
         const r = db.transaction('chars').objectStore('chars').getAll();
         r.onsuccess = () => res((r.result || []).find(c => c.name === charName) || null);
         r.onerror = () => res(null);
-      };
-      req.onerror = () => res(null);
+      }).catch(() => res(null));
     });
   }
 
@@ -4370,20 +5054,12 @@ function smBuildNodePhysics(canvasId, chars, isFullscreen) {
 async function smRenderAll() {
   // 1. 读取所有角色
   const chars = await new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onupgradeneeded = e => {
-      const d = e.target.result;
-      if (!d.objectStoreNames.contains('chars'))
-        d.createObjectStore('chars', { keyPath:'id', autoIncrement:true });
-    };
-    req.onsuccess = e => {
-      const db = e.target.result;
+    openLunaCharDB().then(db => {
       if (!db.objectStoreNames.contains('chars')) { res([]); return; }
       const r = db.transaction('chars').objectStore('chars').getAll();
       r.onsuccess = () => res(r.result || []);
       r.onerror   = () => res([]);
-    };
-    req.onerror = () => res([]);
+    }).catch(() => res([]));
   });
 
   // 2. 用 convData 补充 createdAt / online / rel 信息到角色
@@ -4509,9 +5185,7 @@ async function smConfirmBatchDelete() {
 
   // 逐个角色：从 IndexedDB 读出 → splice charNpcs → 写回
   await new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onsuccess = e => {
-      const db = e.target.result;
+    openLunaCharDB().then(db => {
       const tx = db.transaction('chars', 'readwrite');
       const store = tx.objectStore('chars');
       const charIds = Object.keys(grouped).map(Number);
@@ -4533,8 +5207,7 @@ async function smConfirmBatchDelete() {
         getReq.onerror = () => { done++; if (done === charIds.length) res(); };
       });
       if (charIds.length === 0) res();
-    };
-    req.onerror = () => res();
+    }).catch(() => res());
   });
 
   // 重置状态
@@ -4802,9 +5475,7 @@ async function smAiGenAdd() {
   const toAdd = [..._smAiGenSelected].map(i => _smAiGenResults[i]).filter(Boolean);
 
   await new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onsuccess = e => {
-      const db    = e.target.result;
+    openLunaCharDB().then(db => {
       const tx    = db.transaction('chars', 'readwrite');
       const store = tx.objectStore('chars');
       const getReq = store.get(parseInt(_smAiGenCharId));
@@ -4834,8 +5505,7 @@ async function smAiGenAdd() {
         store.put(char);
         tx.oncomplete = () => res();
       };
-    };
-    req.onerror = () => res();
+    }).catch(() => res());
   });
 
   smAiGenClose();
@@ -5021,9 +5691,7 @@ async function smNpcSave() {
 
   // 写入对应角色的 charNpcs 数组
   await new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onsuccess = e => {
-      const db = e.target.result;
+    openLunaCharDB().then(db => {
       const tx = db.transaction('chars', 'readwrite');
       const store = tx.objectStore('chars');
       const getReq = store.get(parseInt(bindCharId));
@@ -5036,8 +5704,7 @@ async function smNpcSave() {
         tx.oncomplete = () => res();
       };
       getReq.onerror = () => res();
-    };
-    req.onerror = () => res();
+    }).catch(() => res());
   });
 
   smCloseManual();
@@ -5061,14 +5728,7 @@ function smOpenEdit(charId, npcIdx) {
   _smNpcEditNpcIdx = npcIdx;
 
   // 先读数据，成功后再打开页面
-  const req = indexedDB.open('LunaCharDB', 4);
-  req.onupgradeneeded = e => {
-    const d = e.target.result;
-    if (!d.objectStoreNames.contains('chars'))
-      d.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
-  };
-  req.onsuccess = e => {
-    const db = e.target.result;
+  openLunaCharDB().then(db => {
     const r  = db.transaction('chars').objectStore('chars').get(parseInt(charId));
     r.onsuccess = () => {
       const char = r.result;
@@ -5081,8 +5741,7 @@ function smOpenEdit(charId, npcIdx) {
       document.getElementById('smNpcEditOverlay').classList.add('show');
     };
     r.onerror = () => console.error('[smOpenEdit] IndexedDB get 出错');
-  };
-  req.onerror = () => console.error('[smOpenEdit] 打开数据库失败');
+  }).catch(() => console.error('[smOpenEdit] 打开数据库失败'));
 
   // 同步状态栏
   const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
@@ -5259,9 +5918,7 @@ async function smNpcEditSave() {
   };
 
   await new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onsuccess = e => {
-      const db = e.target.result;
+    openLunaCharDB().then(db => {
       const tx = db.transaction('chars', 'readwrite');
       const store = tx.objectStore('chars');
       const getReq = store.get(parseInt(_smNpcEditCharId));
@@ -5273,8 +5930,7 @@ async function smNpcEditSave() {
         store.put(char);
         tx.oncomplete = () => res();
       };
-    };
-    req.onerror = () => res();
+    }).catch(() => res());
   });
 
   smCloseEdit();
@@ -5285,9 +5941,7 @@ async function smNpcEditDelete() {
   if (!confirm('确定删除这个 NPC 吗？此操作不可恢复。')) return;
 
   await new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onsuccess = e => {
-      const db = e.target.result;
+    openLunaCharDB().then(db => {
       const tx = db.transaction('chars', 'readwrite');
       const store = tx.objectStore('chars');
       const getReq = store.get(parseInt(_smNpcEditCharId));
@@ -5300,8 +5954,7 @@ async function smNpcEditDelete() {
         store.put(char);
         tx.oncomplete = () => res();
       };
-    };
-    req.onerror = () => res();
+    }).catch(() => res());
   });
 
   smCloseEdit();
@@ -5363,14 +6016,7 @@ function smAiNpcDetailOpen(charId, npcIdx) {
   }
 
   // 先读数据，成功后再打开页面
-  const req = indexedDB.open('LunaCharDB', 4);
-  req.onupgradeneeded = e => {
-    const d = e.target.result;
-    if (!d.objectStoreNames.contains('chars'))
-      d.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
-  };
-  req.onsuccess = e => {
-    const db = e.target.result;
+  openLunaCharDB().then(db => {
     // 用 readwrite 事务，这样可以在同一个事务里读+修复写，不会嵌套
     const tx    = db.transaction('chars', 'readwrite');
     const store = tx.objectStore('chars');
@@ -5402,8 +6048,7 @@ function smAiNpcDetailOpen(charId, npcIdx) {
       _smAiNpcDetailFill();
     };
     r.onerror = () => console.error('[smAiNpcDetailOpen] IndexedDB get 出错');
-  };
-  req.onerror = () => console.error('[smAiNpcDetailOpen] 打开数据库失败');
+  }).catch(() => console.error('[smAiNpcDetailOpen] 打开数据库失败'));
 }
 
 function _smAiNpcDetailFill() {
@@ -5584,9 +6229,7 @@ async function smAiNpcDetailSave() {
   });
 
   await new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onsuccess = e => {
-      const db = e.target.result;
+    openLunaCharDB().then(db => {
       const tx = db.transaction('chars', 'readwrite');
       const store = tx.objectStore('chars');
       const getReq = store.get(parseInt(_smAiNpcDetail_charId));
@@ -5598,10 +6241,2197 @@ async function smAiNpcDetailSave() {
         store.put(char);
         tx.oncomplete = () => res();
       };
-    };
-    req.onerror = () => res();
+    }).catch(() => res());
   });
 
   smAiNpcDetailClose();
   smRenderAll();
+}
+
+/* ================================
+   Story 编辑器
+================================ */
+const SE_BG = [
+  '#111','#1c1c1c','#2a2826','#1a1a2e','#0d1b2a',
+  '#1b1b1b','#242424','#1e1a18','#18181a','#f5f5f3',
+  '#eeece8','#e8e6e1','#dddbd6','#e5e5e5','#d6d6d6',
+];
+
+function storyEditorOpen() {
+  const overlay = document.getElementById('storyEditorOverlay');
+  const page    = document.getElementById('storyEditorPage');
+  overlay.classList.add('show');
+  page.classList.add('show');
+  /* 同步状态栏时间 */
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const t  = new Date().toLocaleTimeString('zh-CN',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false});
+  const el = document.getElementById('storyEditorTime');
+  if (el) el.textContent = t;
+  /* 同步电量 */
+  const mainPct   = document.getElementById('batPct');
+  const mainInner = document.getElementById('batInner');
+  const sePct     = document.getElementById('storyEditorBatPct');
+  const seInner   = document.getElementById('storyEditorBatInner');
+  if (mainPct && sePct)     sePct.textContent = mainPct.textContent;
+  if (mainInner && seInner) seInner.style.width = mainInner.style.width;
+  /* 同步灵动岛 */
+  const enabled  = localStorage.getItem('luna_island_enabled') === 'true';
+  const style    = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('storyEditorIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">--:--</span></div></div>`,
+        pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[style] || styleMap.minimal;
+    }
+  }
+  /* 渲染背景色格子 */
+  seBuildBgGrid();
+}
+
+function storyEditorClose() {
+  document.getElementById('storyEditorOverlay').classList.remove('show');
+  document.getElementById('storyEditorPage').classList.remove('show');
+}
+
+function seBuildBgGrid() {
+  const grid = document.getElementById('seBgGrid');
+  if (!grid || grid.childElementCount > 0) return;
+  SE_BG.forEach((color, i) => {
+    const el = document.createElement('div');
+    el.className = 'se-bg-item' + (i === 0 ? ' active' : '');
+    el.style.background = color;
+    el.onclick = () => seSetBg(color, el);
+    grid.appendChild(el);
+  });
+}
+
+function seSetBg(color, el) {
+  document.getElementById('seCanvasBg').style.background = color;
+  document.querySelectorAll('.se-bg-item').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  const dark = ['#111','#1c1c1c','#2a2826','#1a1a2e','#0d1b2a','#1b1b1b','#242424','#1e1a18','#18181a'].includes(color);
+  document.getElementById('sePrevText').style.color     = dark ? '#fff' : '#111';
+  document.getElementById('sePrevDivider').style.background = dark ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.2)';
+  document.getElementById('seCanvasGrid') && (document.querySelector('.se-canvas-grid').style.opacity = dark ? '1' : '0');
+}
+
+function seUpdateText(el) {
+  const val = el.value.slice(0, 150);
+  if (el.value.length > 150) el.value = val;
+  document.getElementById('seCharCount').textContent = val.length;
+  const prev = document.getElementById('sePrevText');
+  prev.innerHTML = val.trim()
+    ? val.replace(/\n/g, '<br>')
+    : '<span class="se-prev-ph">开始输入你的动态...</span>';
+}
+
+function seMode(mode, el) {
+  document.querySelectorAll('.se-mpill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('seUploadZone').style.display = mode === 'photo' ? 'block' : 'none';
+}
+
+function seStyle(s, el) {} // 已废弃，保留空函数防报错
+
+// 预览文字拖动
+(function(){
+  const el = document.getElementById('sePrevText');
+  if (!el) return;
+  el.style.pointerEvents = 'all';
+  let dragging = false, ox = 0, oy = 0, sx = 0, sy = 0;
+
+  function getXY(e) {
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX, y: t.clientY };
+  }
+  function onStart(e) {
+    dragging = true;
+    const { x, y } = getXY(e);
+    const rect = el.getBoundingClientRect();
+    ox = x - rect.left - rect.width / 2;
+    oy = y - rect.top  - rect.height / 2;
+    const layer = el.parentElement.getBoundingClientRect();
+    sx = rect.left + rect.width / 2  - layer.left;
+    sy = rect.top  + rect.height / 2 - layer.top;
+    el.style.cursor = 'grabbing';
+    e.preventDefault();
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const { x, y } = getXY(e);
+    const layer = el.parentElement.getBoundingClientRect();
+    const hw = el.offsetWidth  / 2;
+    const hh = el.offsetHeight / 2;
+    const nx = Math.min(Math.max(x - layer.left - ox, hw), layer.width  - hw);
+    const ny = Math.min(Math.max(y - layer.top  - oy, hh), layer.height - hh);
+    el.style.left      = nx + 'px';
+    el.style.top       = ny + 'px';
+    el.style.transform = 'translate(-50%,-50%)';
+    e.preventDefault();
+  }
+  function onEnd() { dragging = false; el.style.cursor = 'grab'; }
+
+  el.addEventListener('mousedown',  onStart, { passive: false });
+  el.addEventListener('touchstart', onStart, { passive: false });
+  window.addEventListener('mousemove',  onMove, { passive: false });
+  window.addEventListener('touchmove',  onMove, { passive: false });
+  window.addEventListener('mouseup',  onEnd);
+  window.addEventListener('touchend', onEnd);
+})();
+
+function seAud(el) {
+  document.querySelectorAll('.se-aud-item').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function seDurUpdate(v) {
+  document.getElementById('seDurVal').textContent = v + 's';
+}
+
+function seImgUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    const layer = document.getElementById('seImgLayer');
+    layer.style.backgroundImage = 'url(' + ev.target.result + ')';
+    layer.classList.add('on');
+  };
+  r.readAsDataURL(file);
+}
+
+function sePublish() {
+  /* 收集编辑器内容 */
+  const text     = (document.getElementById('seTextarea') || {}).value || '';
+  const bgEl     = document.getElementById('seCanvasBg');
+  /* 背景：优先用 inline style，兜底用 #111 */
+  const bg       = (bgEl && bgEl.style.background) ? bgEl.style.background : '#111';
+  const imgLayer = document.getElementById('seImgLayer');
+  const img      = imgLayer ? imgLayer.style.backgroundImage : '';
+
+  /* 获取有效期（默认24h） */
+  const activeChip = document.querySelector('.se-exp-chip.active');
+  const hours      = activeChip ? parseInt(activeChip.textContent) : 24;
+  const expireAt   = Date.now() + hours * 3600 * 1000;
+
+  /* 获取浏览时长（白条填充秒数，默认7s） */
+  const durSlider    = document.getElementById('seDurSlider');
+  const viewDuration = durSlider ? Math.max(1, parseInt(durSlider.value)) : 7;
+
+  /* 获取可见性 */
+  const activeAud  = document.querySelector('.se-aud-item.active .se-aud-name');
+  const audience   = activeAud ? activeAud.textContent : '所有人';
+
+  /* 收集预览文字的内容、样式和位置 */
+  const sePrev = document.getElementById('sePrevText');
+  const bgDark = ['#111','#1c1c1c','#2a2826','#1a1a2e','#0d1b2a','#1b1b1b','#242424','#1e1a18','#18181a'].includes(bg);
+  const textStyle = sePrev ? {
+    color:         sePrev.style.color || (bgDark ? '#ffffff' : '#111111'),
+    fontSize:      sePrev.style.fontSize || '',
+    fontFamily:    sePrev.style.fontFamily || '',
+    textAlign:     sePrev.style.textAlign || 'center',
+    fontStyle:     sePrev.style.fontStyle || '',
+    fontWeight:    sePrev.style.fontWeight || '',
+    letterSpacing: sePrev.style.letterSpacing || '',
+    lineHeight:    sePrev.style.lineHeight || '',
+    /* 保存拖动后的位置 */
+    left:          sePrev.style.left || '50%',
+    top:           sePrev.style.top  || '50%',
+  } : { color: '#ffffff', left: '50%', top: '50%' };
+
+  /* 异步读取用户信息（从 ProfileSnapshot IndexedDB 或 LunaIdentityDB）*/
+  function _getUserThenSave(username, avatarImg, avatarColor) {
+    const now = Date.now();
+    const storyData = {
+      id:          now,
+      text,
+      bg,
+      img,
+      textStyle,
+      audience,
+      expireAt,
+      expireHours: hours,
+      viewDuration,
+      publishedAt: now,
+      username,
+      avatarImg,
+      avatarColor,
+      watched:  false,
+      views:    0,
+      likes:    0,
+      saves:    0,
+      shares:   0,
+      comments_list: [],
+    };
+    localStorage.setItem('luna_my_story_db', JSON.stringify(storyData));
+    localStorage.setItem('luna_my_story_published', 'true');
+
+    const ring = document.getElementById('mmtMyStoryRing');
+    if (ring) { ring.classList.remove('ring-dash'); ring.classList.add('ring-active'); }
+    if (typeof renderFriendStories === 'function') renderFriendStories();
+    storyEditorClose();
+    seToast('动态已发布 ✦');
+
+    // 发布后自动触发好友互动（异步，不阻塞UI）
+    setTimeout(() => svAutoFriendInteract(storyData).catch(() => {}), 800);
+  }
+
+  /* 先从 ProfileSnapshot DB 取，再从 IdentityDB 取，都失败则用 DOM 上的值 */
+  loadProfileSnapshot().then(snap => {
+    if (snap && snap.name) {
+      _getUserThenSave(snap.name, snap.avatarImg || '', snap.avatarColor || '#444');
+      return;
+    }
+    const req = indexedDB.open('LunaIdentityDB');
+    req.onsuccess = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('identities')) {
+        db.close();
+        /* 从页面DOM取 */
+        const domName = document.getElementById('profileName')?.textContent || 'luna_user';
+        const domColor = document.getElementById('profileAvatar')?.style.background || '#444';
+        const domImg = document.getElementById('profileAvatar')?.querySelector('img')?.src || '';
+        _getUserThenSave(domName, domImg, domColor);
+        return;
+      }
+      const r = db.transaction('identities').objectStore('identities').getAll();
+      r.onsuccess = () => {
+        db.close();
+        const list = (r.result || []).sort((a,b)=>(Number(b.id)||0)-(Number(a.id)||0));
+        if (list.length > 0) {
+          const id = list[0];
+          _getUserThenSave(id.name || 'luna_user', id.avatarImg || '', id.avatarColor || '#444');
+        } else {
+          const domName = document.getElementById('profileName')?.textContent || 'luna_user';
+          _getUserThenSave(domName, '', '#444');
+        }
+      };
+      r.onerror = () => { db.close(); _getUserThenSave('luna_user','','#444'); };
+    };
+    req.onerror = () => _getUserThenSave('luna_user','','#444');
+  }).catch(() => _getUserThenSave('luna_user','','#444'));
+}
+
+function seToast(msg) {
+  const t = document.getElementById('seToast');
+  if (!t) return;
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('on'), 2000);
+}
+
+function seTab(tab, el) {
+  document.querySelectorAll('.se-ptab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.se-tc').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('se-tab-' + tab).classList.add('active');
+}
+
+function seExp(el) {
+  document.querySelectorAll('.se-exp-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+let seToggleStates = { tog1: false, tog2: false, tog3: true };
+function seToggle(id) {
+  seToggleStates[id] = !seToggleStates[id];
+  const el   = document.getElementById(id);
+  const knob = document.getElementById(id + '-knob');
+  if (seToggleStates[id]) {
+    el.style.background = 'rgba(255,255,255,0.55)';
+    knob.style.left = '18px';
+  } else {
+    el.style.background = 'rgba(255,255,255,0.12)';
+    knob.style.left = '2px';
+  }
+}
+
+/* ===== Story Viewer ===== */
+function storyViewerOpen(data) {
+  data = data || {};
+
+  // ── 从 localStorage 读取最新 db（保证数据最新）──
+  const rawDb = localStorage.getItem('luna_my_story_db');
+  const db    = rawDb ? JSON.parse(rawDb) : data;
+
+  const overlay = document.getElementById('storyViewerOverlay');
+  const page    = document.getElementById('storyViewerPage');
+  overlay.classList.add('show');
+  page.classList.add('show');
+
+  // ── 同步状态栏时间 ──
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const t  = new Date().toLocaleTimeString('zh-CN',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false});
+  const timeEl = document.getElementById('storyViewerTime');
+  if (timeEl) timeEl.textContent = t;
+
+  // ── 同步电量 ──
+  const mainPct   = document.getElementById('batPct');
+  const mainInner = document.getElementById('batInner');
+  const svPct     = document.getElementById('storyViewerBatPct');
+  const svInner   = document.getElementById('storyViewerBatInner');
+  if (mainPct && svPct)     svPct.textContent  = mainPct.textContent;
+  if (mainInner && svInner) svInner.style.width = mainInner.style.width;
+
+  // ── 同步灵动岛 ──
+  const enabled  = localStorage.getItem('luna_island_enabled') === 'true';
+  const islandStyle = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('storyViewerIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">--:--</span></div></div>`,
+        pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[islandStyle] || styleMap.minimal;
+    }
+  }
+
+  // ── 背景颜色强制同步 ──
+  const svBgEl = document.getElementById('svBg');
+  if (svBgEl) svBgEl.style.background = db.bg || '#111';
+
+  // ── 图片层同步 ──
+  const svImgLayerEl = document.getElementById('svImgLayer');
+  if (svImgLayerEl) {
+    if (db.img && db.img.trim()) {
+      svImgLayerEl.style.backgroundImage = db.img;
+      svImgLayerEl.classList.add('on');
+    } else {
+      svImgLayerEl.style.backgroundImage = '';
+      svImgLayerEl.classList.remove('on');
+    }
+  }
+
+  // ── 文字内容 + 样式 + 位置同步 ──
+  const svTextEl = document.getElementById('svText');
+  if (svTextEl) {
+    svTextEl.innerHTML = (db.text || '').replace(/\n/g, '<br>');
+    const ts = db.textStyle || {};
+    svTextEl.style.color         = ts.color         || '#ffffff';
+    svTextEl.style.fontSize      = ts.fontSize       || '';
+    svTextEl.style.fontFamily    = ts.fontFamily     || '';
+    svTextEl.style.textAlign     = ts.textAlign      || 'center';
+    svTextEl.style.fontStyle     = ts.fontStyle      || '';
+    svTextEl.style.fontWeight    = ts.fontWeight     || '';
+    svTextEl.style.letterSpacing = ts.letterSpacing  || '';
+    svTextEl.style.lineHeight    = ts.lineHeight     || '';
+    /* 恢复拖动位置 */
+    svTextEl.style.left      = ts.left || '50%';
+    svTextEl.style.top       = ts.top  || '50%';
+    svTextEl.style.transform = 'translate(-50%,-50%)';
+  }
+
+  // ── 隐藏 sv-subtext（文字下方的副标题，不再显示）──
+  const svSubtextEl = document.getElementById('svSubtext');
+  if (svSubtextEl) svSubtextEl.style.display = 'none';
+
+  // ── 隐藏 sv-divider（文字上方的分割线，不再显示）──
+  const svDividerEl = document.querySelector('.sv-divider');
+  if (svDividerEl) svDividerEl.style.display = 'none';
+
+  // ── 头像同步（清除CSS默认渐变，用db数据）──
+  const svAvatarEl = document.getElementById('svAvatarInner');
+  if (svAvatarEl) {
+    svAvatarEl.innerHTML = '';
+    svAvatarEl.style.cssText = 'width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;font-family:Inter,-apple-system,sans-serif;';
+    if (db.avatarImg && db.avatarImg.trim()) {
+      svAvatarEl.innerHTML = `<img src="${db.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    } else {
+      svAvatarEl.textContent = (db.username || '我')[0].toUpperCase();
+      svAvatarEl.style.background = db.avatarColor || '#444';
+    }
+  }
+
+  // ── 用户名同步（优先从 ProfileSnapshot / IdentityDB 读，而非写死 luna_user）──
+  const svUserEl = document.getElementById('svUsername');
+  if (svUserEl) {
+    // 先用 db 里发布时存的用户名（sePublish 已写入），同时异步刷新最新的
+    svUserEl.textContent = db.username || (document.getElementById('profileName')?.textContent) || 'User';
+    // 异步用最新 profile 覆盖，保证始终同步
+    loadProfileSnapshot().then(snap => {
+      if (snap && snap.name && svUserEl) svUserEl.textContent = snap.name;
+    }).catch(() => {});
+  }
+
+  // ── 头像也实时刷新（保证与 profile 一致）──
+  loadProfileSnapshot().then(snap => {
+    const svAv = document.getElementById('svAvatarInner');
+    if (!svAv) return;
+    if (snap && snap.name) {
+      svAv.innerHTML = '';
+      svAv.style.cssText = 'width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;font-family:Inter,-apple-system,sans-serif;';
+      if (snap.avatarImg && snap.avatarImg.trim()) {
+        svAv.innerHTML = `<img src="${snap.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+      } else {
+        svAv.textContent = (snap.name || '我')[0].toUpperCase();
+        svAv.style.background = snap.avatarColor || '#444';
+      }
+    }
+  }).catch(() => {});
+
+  // ── 计算实际时长：优先从 expireAt-publishedAt 反推，兜底用 expireHours，再兜底 24 ──
+  // 这样对旧数据（无 expireHours 字段）也能正确显示实际设置的时长
+  let _totalMs;
+  if (db.expireAt && db.publishedAt) {
+    _totalMs = db.expireAt - db.publishedAt; // 精确反推
+  } else if (db.expireHours) {
+    _totalMs = db.expireHours * 3600 * 1000;
+  } else {
+    _totalMs = 24 * 3600 * 1000;
+  }
+  const _totalHours = Math.round(_totalMs / 3600000); // 四舍五入到整小时
+
+  // ── meta：有效期 + 发布时间（从实际时长反推，新旧数据都准确）──
+  const svMetaEl = document.getElementById('svMeta');
+  if (svMetaEl) {
+    svMetaEl.textContent = _totalHours + 'h 限时 · ' + _svTimeAgo(db.publishedAt);
+  }
+
+  // ── 剩余时间（根据 expireAt 实时计算，并启动实时更新）──
+  const svTimerEl = document.getElementById('svTimerText');
+  if (window._svTimerInterval) { clearInterval(window._svTimerInterval); window._svTimerInterval = null; }
+  function _updateSvTimer() {
+    if (!svTimerEl) return;
+    if (db.expireAt) {
+      const remain = db.expireAt - Date.now();
+      if (remain > 0) {
+        const rh = Math.floor(remain / 3600000);
+        const rm = Math.floor((remain % 3600000) / 60000);
+        svTimerEl.textContent = '剩余 ' + rh + 'h ' + rm + 'm';
+      } else {
+        svTimerEl.textContent = '已过期';
+        if (window._svTimerInterval) { clearInterval(window._svTimerInterval); window._svTimerInterval = null; }
+      }
+    } else {
+      svTimerEl.textContent = '';
+    }
+  }
+  _updateSvTimer();
+  window._svTimerInterval = setInterval(_updateSvTimer, 60000);
+
+  // ── 进度条：根据是否已看过决定行为 ──
+  // 第一次看：动画填充 → 自动关闭；再次看：直接显示满条，不自动关闭
+  (function() {
+    var wrap = document.getElementById('svProgressWrap');
+    if (!wrap) return;
+
+    var slides    = (db.slides && db.slides.length > 0) ? db.slides : [db];
+    var totalCount = slides.length;
+    var currentIdx = (typeof db.currentSlideIdx === 'number') ? db.currentSlideIdx : 0;
+    var durSec     = (db.viewDuration && db.viewDuration > 0) ? db.viewDuration : 7;
+
+    // 是否已经看过（db里记录）
+    var alreadyWatched = db.watched === true;
+
+    // 动态生成 bar HTML
+    var html = '';
+    for (var i = 0; i < totalCount; i++) {
+      if (alreadyWatched || i < currentIdx) {
+        // 已看过 或 之前的slide：直接填满
+        html += '<div class="sv-prog-bar"><div class="sv-prog-done"></div></div>';
+      } else if (i === currentIdx) {
+        // 当前播放：从0%开始（第一次）或满（已看）
+        var initW = alreadyWatched ? '100%' : '0%';
+        html += '<div class="sv-prog-bar"><div class="sv-prog-fill" id="svProgFill" style="width:' + initW + ';transition:none;"></div></div>';
+      } else {
+        html += '<div class="sv-prog-bar"></div>';
+      }
+    }
+    wrap.innerHTML = html;
+
+    // 已看过：直接结束，不播放动画，不自动关闭
+    if (alreadyWatched) return;
+
+    // 第一次看：播放动画，结束后标记已看 + 自动关闭
+    var svPage = document.getElementById('storyViewerPage');
+    var started = false;
+
+    function startFill() {
+      if (started) return;
+      started = true;
+      var f = document.getElementById('svProgFill');
+      if (!f) return;
+      void f.offsetWidth;
+      f.style.transition = 'width ' + durSec + 's linear';
+      f.style.width = '100%';
+
+      // 动画结束后：标记watched，自动关闭
+      setTimeout(function() {
+        // 写回 watched 状态
+        var raw = localStorage.getItem('luna_my_story_db');
+        if (raw) {
+          try {
+            var d = JSON.parse(raw);
+            d.watched = true;
+            localStorage.setItem('luna_my_story_db', JSON.stringify(d));
+          } catch(e) {}
+        }
+        storyViewerClose();
+      }, durSec * 1000);
+    }
+
+    if (svPage) {
+      function onSlideEnd(e) {
+        if (e.target !== svPage) return;
+        svPage.removeEventListener('transitionend', onSlideEnd);
+        startFill();
+      }
+      svPage.addEventListener('transitionend', onSlideEnd);
+      setTimeout(startFill, 500);
+    } else {
+      setTimeout(startFill, 100);
+    }
+  })();
+
+  // ── 浏览量：+1 写回 db ──
+  const svViewsEl = document.getElementById('svViews');
+  if (svViewsEl) {
+    db.views = (db.views || 0) + 1;
+    localStorage.setItem('luna_my_story_db', JSON.stringify(db));
+    svViewsEl.textContent = db.views.toLocaleString();
+  }
+
+  // ── 评论区：清空，只渲染 db 里真实数据，并初始化手动滑动+自动滚动 ──
+  const cmtScroll = document.getElementById('svCmtScroll');
+  if (cmtScroll) {
+    (async () => {
+      // avatarCache[name] = 图片URL字符串 或 null
+      let avatarCache = {};
+      try { avatarCache = await getAvatarCache(); } catch(e) {}
+      cmtScroll.innerHTML = '';
+      const cmts = db.comments_list || [];
+      cmts.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'sv-cmt';
+        const imgUrl  = !c.isNpc ? (avatarCache[c.name] || c.avatarImg || '') : (c.avatarImg || '');
+        const bgColor = c.color || '#555';
+        const avStyle = imgUrl ? `background:${bgColor};overflow:hidden;padding:0;` : `background:${bgColor};`;
+        const avContent = imgUrl
+          ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+          : (c.initial || (c.name||'?')[0]);
+        const avClass   = 'sv-cmt-av' + (c.isNpc ? ' npc-av' : '');
+        const nameStyle = c.isNpc ? `color:${c.npcTextColor || c.color || '#ccc'};` : '';
+        el.innerHTML = `<div class="${avClass}" style="${avStyle}">${avContent}</div><div><span class="sv-cmt-name" style="${nameStyle}">${c.name||''}</span><span class="sv-cmt-txt">${c.text||''}</span><div class="sv-cmt-lk">${c.likes||0} 个赞</div></div>`;
+        cmtScroll.appendChild(el);
+      });
+      svInitCmtScroll(cmtScroll);
+    })();
+  }
+
+  // ── 点赞/收藏/分享数从db读取，不写死 ──
+  svLiked = false;
+  svSaved = false;
+  const likeIcon  = document.getElementById('svLikeIcon');
+  const likeNum   = document.getElementById('svLikeNum');
+  const saveIcon  = document.getElementById('svSaveIcon');
+  const saveNum   = document.getElementById('svSaveNum');
+  const shareNum  = document.getElementById('svShareNum');
+  if (likeIcon) likeIcon.className = 'sv-act-icon';
+  if (saveIcon) saveIcon.className = 'sv-act-icon';
+  if (likeNum)  likeNum.textContent  = String(db.likes  || 0);
+  if (saveNum)  saveNum.textContent  = String(db.saves  || 0);
+  if (shareNum) shareNum.textContent = String(db.shares || 0);
+}
+
+// 辅助：发布时间转"刚刚/x分钟前/x小时前"
+function _svTimeAgo(ts) {
+  if (!ts) return '刚刚';
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return '刚刚';
+  if (mins < 60) return mins + ' 分钟前';
+  return Math.floor(mins / 60) + ' 小时前';
+}
+
+/* ── 评论区：手动滑动 + 自动滚动 ── */
+function svInitCmtScroll(el) {
+  if (!el) return;
+
+  // 停止旧动画
+  if (window._svCmtRafId) { cancelAnimationFrame(window._svCmtRafId); window._svCmtRafId = null; }
+  if (window._svCmtAutoIv) { clearInterval(window._svCmtAutoIv); window._svCmtAutoIv = null; }
+
+  // 重置
+  el.style.animation = 'none';
+  el.style.transform = 'translateY(0px)';
+  el.style.willChange = 'transform';
+
+  const container = el.parentElement; // .sv-comments, overflow:hidden, height:130px
+
+  const items = el.querySelectorAll('.sv-cmt');
+  if (items.length === 0) return;
+
+  // 内容总高 vs 容器高，判断是否需要滚动
+  const containerH = container ? container.clientHeight : 130;
+  const contentH   = el.scrollHeight || el.offsetHeight;
+  const canScroll  = contentH > containerH + 4;
+
+  let currentY  = 0;     // 当前 translateY（负值 = 向上）
+  let isPaused  = false;
+  let resumeTimer = null;
+  let isDragging  = false;
+  let startY      = 0;
+  let startTransY = 0;
+  let velocity    = 0;
+  let lastY       = 0;
+  let lastTs      = 0;
+  let rafId       = null;
+
+  function setY(y) {
+    currentY = y;
+    el.style.transform = 'translateY(' + y + 'px)';
+  }
+
+  // ── 自动向上滚动 ──
+  const SPEED = 22; // px/s
+  let lastRafTs = 0;
+  function rafStep(ts) {
+    if (!isPaused && canScroll) {
+      const dt = ts - lastRafTs;
+      if (dt > 0 && dt < 200) {
+        const newY = currentY - SPEED * dt / 1000;
+        // 到底后回顶（无缝循环）
+        const minY = -(contentH - containerH);
+        setY(newY <= minY ? 0 : newY);
+      }
+    }
+    lastRafTs = ts;
+    window._svCmtRafId = requestAnimationFrame(rafStep);
+  }
+  lastRafTs = performance.now();
+  window._svCmtRafId = requestAnimationFrame(rafStep);
+
+  function pause() {
+    isPaused = true;
+    if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+  }
+  function scheduleResume() {
+    if (resumeTimer) clearTimeout(resumeTimer);
+    resumeTimer = setTimeout(() => { isPaused = false; }, 2000);
+  }
+
+  // 惯性
+  function applyMomentum() {
+    if (Math.abs(velocity) < 0.3) { velocity = 0; return; }
+    const minY = -(contentH - containerH);
+    let newY = currentY + velocity;
+    newY = Math.max(minY, Math.min(0, newY));
+    setY(newY);
+    velocity *= 0.88;
+    rafId = requestAnimationFrame(applyMomentum);
+  }
+  function stopMomentum() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    velocity = 0;
+  }
+
+  function clampY(y) {
+    const minY = canScroll ? -(contentH - containerH) : 0;
+    return Math.max(minY, Math.min(0, y));
+  }
+
+  // ── Touch ──
+  el.addEventListener('touchstart', e => {
+    stopMomentum();
+    pause();
+    startY = e.touches[0].clientY;
+    startTransY = currentY;
+    lastY = startY;
+    lastTs = e.timeStamp;
+    isDragging = true;
+    e.stopPropagation();
+  }, { passive: false });
+
+  el.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const dy = e.touches[0].clientY - startY;
+    const newY = clampY(startTransY + dy);
+    // 速度采样
+    const dts = e.timeStamp - lastTs;
+    if (dts > 0) velocity = (e.touches[0].clientY - lastY) / dts * 16;
+    lastY = e.touches[0].clientY;
+    lastTs = e.timeStamp;
+    setY(newY);
+    e.stopPropagation();
+    e.preventDefault();
+  }, { passive: false });
+
+  el.addEventListener('touchend', e => {
+    isDragging = false;
+    e.stopPropagation();
+    applyMomentum();
+    scheduleResume();
+  }, { passive: false });
+
+  // ── Mouse ──
+  el.addEventListener('mousedown', e => {
+    stopMomentum();
+    pause();
+    startY = e.clientY;
+    startTransY = currentY;
+    lastY = startY;
+    lastTs = performance.now();
+    isDragging = true;
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dy = e.clientY - startY;
+    const now = performance.now();
+    const dts = now - lastTs;
+    if (dts > 0) velocity = (e.clientY - lastY) / dts * 16;
+    lastY = e.clientY;
+    lastTs = now;
+    setY(clampY(startTransY + dy));
+  });
+  window.addEventListener('mouseup', e => {
+    if (!isDragging) return;
+    isDragging = false;
+    applyMomentum();
+    scheduleResume();
+  });
+}
+
+function storyViewerClose() {
+  document.getElementById('storyViewerOverlay').classList.remove('show');
+  document.getElementById('storyViewerPage').classList.remove('show');
+  if (window._svTimerInterval) { clearInterval(window._svTimerInterval); window._svTimerInterval = null; }
+  if (window._svCmtAutoIv)    { clearInterval(window._svCmtAutoIv);    window._svCmtAutoIv = null; }
+  if (window._svCmtRafId)     { cancelAnimationFrame(window._svCmtRafId); window._svCmtRafId = null; }
+}
+
+let svLiked = false;
+let svSaved = false;
+function svToggleLike() {
+  svLiked = !svLiked;
+  const icon = document.getElementById('svLikeIcon');
+  const num  = document.getElementById('svLikeNum');
+  if (icon) icon.className = 'sv-act-icon' + (svLiked ? ' sv-liked' : '');
+  const raw = localStorage.getItem('luna_my_story_db');
+  if (raw) {
+    const db = JSON.parse(raw);
+    db.likes = Math.max(0, (db.likes || 0) + (svLiked ? 1 : -1));
+    localStorage.setItem('luna_my_story_db', JSON.stringify(db));
+    if (num) num.textContent = String(db.likes);
+  }
+}
+function svToggleSave() {
+  svSaved = !svSaved;
+  const icon = document.getElementById('svSaveIcon');
+  const num  = document.getElementById('svSaveNum');
+  if (icon) icon.className = 'sv-act-icon' + (svSaved ? ' sv-liked' : '');
+  const raw = localStorage.getItem('luna_my_story_db');
+  if (raw) {
+    const db = JSON.parse(raw);
+    db.saves = Math.max(0, (db.saves || 0) + (svSaved ? 1 : -1));
+    localStorage.setItem('luna_my_story_db', JSON.stringify(db));
+    if (num) num.textContent = String(db.saves);
+  }
+}
+function svDoShare() {
+  // 已改为弹窗，保留空函数避免旧引用报错
+}
+
+/* ================================================
+   转发弹窗 Forward Modal
+================================================ */
+let _fwdSelected = new Set();
+
+function fwdOpen() {
+  const raw = localStorage.getItem('luna_my_story_db');
+  const db  = raw ? JSON.parse(raw) : {};
+
+  // ── 1. 填充内容预览 ──
+  const previewText = document.getElementById('fwdPreviewText');
+  const previewMeta = document.getElementById('fwdPreviewMeta');
+  const previewNum  = document.getElementById('fwdPreviewNum');
+  const thumb       = document.getElementById('fwdThumb');
+
+  if (previewText) {
+    const txt = (db.text || '').replace(/<[^>]+>/g, '').trim();
+    previewText.textContent = txt || '（无文字内容）';
+  }
+  if (previewNum) {
+    previewNum.textContent = String(db.shares || 0);
+  }
+  if (thumb) {
+    if (db.bgImage && db.bgImage.trim()) {
+      thumb.innerHTML = '<img src="' + db.bgImage + '">';
+    } else if (db.bgColor) {
+      thumb.style.background = db.bgColor;
+      thumb.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+    } else {
+      thumb.style.background = '';
+      thumb.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#444" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+    }
+  }
+
+  // 用户名从 ProfileSnapshot 同步（异步）
+  if (previewMeta) {
+    loadProfileSnapshot().then(snap => {
+      const username = snap?.name || db.username
+        || document.getElementById('svUsername')?.textContent
+        || 'User';
+      const timeAgo = _svTimeAgo(db.publishedAt);
+      previewMeta.textContent = 'Story · @' + username + ' · ' + timeAgo;
+    }).catch(() => {
+      const username = db.username || 'User';
+      if (previewMeta) previewMeta.textContent = 'Story · @' + username + ' · ' + _svTimeAgo(db.publishedAt);
+    });
+  }
+
+  // ── 2. 渲染好友环（含角色头像异步加载） ──
+  _fwdSelected = new Set();
+  _fwdRenderRings(); // async，内部已 await avatarCache
+
+  // ── 3. 核对转发数据完整性 ──
+  const shares  = db.shares || 0;
+  const records = db.forward_records || [];
+  const listEl  = document.getElementById('fwdRecordsList');
+  const totalEl = document.getElementById('fwdRecordsTotal');
+
+  if (shares > 0 && records.length === 0) {
+    if (totalEl) totalEl.textContent = '共 ' + shares + ' 次转发';
+    if (listEl) listEl.innerHTML = `
+      <div class="fwd-records-empty" style="line-height:1.8;">
+        <span style="font-size:11px;color:#666;">正在重新生成转发记录…</span>
+      </div>`;
+    setTimeout(() => fwdRefreshRecords(true), 300);
+  } else {
+    _fwdRenderRecords(db);
+  }
+
+  // ── 4. 重置底部 ──
+  const msgInput = document.getElementById('fwdMsgInput');
+  if (msgInput) msgInput.value = '';
+  _fwdUpdateSendBtn();
+
+  // ── 5. 打开弹窗 ──
+  document.getElementById('fwdOverlay')?.classList.add('active');
+  document.getElementById('fwdSheet')?.classList.add('active');
+}
+
+function fwdClose() {
+  document.getElementById('fwdOverlay')?.classList.remove('active');
+  document.getElementById('fwdSheet')?.classList.remove('active');
+}
+
+/* ── 刷新/重新生成转发记录 ── */
+async function fwdRefreshRecords(silent) {
+  const listEl  = document.getElementById('fwdRecordsList');
+  const totalEl = document.getElementById('fwdRecordsTotal');
+  const btn     = document.getElementById('fwdRefreshBtn');
+
+  // 防止重复点击
+  if (btn && btn._refreshing) return;
+  if (btn) { btn._refreshing = true; btn.style.opacity = '0.4'; }
+
+  if (!silent) {
+    if (listEl) listEl.innerHTML = '<div class="fwd-records-empty">重新生成中…</div>';
+  }
+
+  try {
+    let db = _svGetDb();
+    if (!db) { if (!silent) _svShowToast('还没有发布动态哦'); return; }
+
+    // 清空旧的转发记录和转发数（重新生成）
+    db.forward_records = [];
+    db.shares = 0;
+    db.friends_interacted = false;
+    db.friends_interacted_names = [];
+    db.npc_interacted = false;
+    _svSaveDb(db);
+
+    // Step 1：确保有好友，没有就先生成
+    let realFriends = [...friendsData];
+    if (realFriends.length === 0) {
+      if (listEl) listEl.innerHTML = '<div class="fwd-records-empty">正在生成好友角色…</div>';
+      realFriends = await _svGenerateFriendsList();
+      _fwdRenderRings(); // 刷新好友环
+    }
+
+    // Step 2：好友互动（含转发文案）
+    if (realFriends.length > 0) {
+      if (listEl) listEl.innerHTML = '<div class="fwd-records-empty">好友互动生成中…</div>';
+      const audience = db.audience || '所有人';
+      let targetFriends = realFriends;
+      if (audience === '限定好友') {
+        const shuffled = [...realFriends].sort(() => Math.random() - 0.5);
+        targetFriends = shuffled.slice(0, Math.min(3, shuffled.length));
+      }
+      db = await _svGenerateFriendInteractions(db, targetFriends);
+      _svRefreshUI(db);
+    }
+
+    // Step 3：所有人模式 → 追加 NPC 互动
+    const audience2 = db.audience || '所有人';
+    if (audience2 === '所有人') {
+      if (listEl) listEl.innerHTML = '<div class="fwd-records-empty">NPC 互动生成中…</div>';
+      db = await _svGenerateNPCInteractions(db);
+      _svRefreshUI(db);
+    }
+
+    // 刷新弹窗预览数字
+    const previewNum = document.getElementById('fwdPreviewNum');
+    if (previewNum) previewNum.textContent = String(db.shares || 0);
+
+    // 刷新记录列表
+    _fwdRenderRecords(db);
+    if (!silent) _svShowToast('✦ 转发记录已重新生成');
+
+  } catch(e) {
+    console.error('fwdRefreshRecords error:', e);
+    if (!silent) _svShowToast('生成失败：' + (e.message || '未知错误'));
+    // 失败时恢复显示原有记录
+    const db2 = _svGetDb();
+    if (db2) _fwdRenderRecords(db2);
+  } finally {
+    if (btn) { btn._refreshing = false; btn.style.opacity = ''; }
+  }
+}
+
+async function _fwdRenderRings() {
+  const container = document.getElementById('fwdRingScroll');
+  if (!container) return;
+
+  const list = (typeof friendsData !== 'undefined' && friendsData.length > 0)
+    ? friendsData
+    : [];
+
+  if (list.length === 0) {
+    container.innerHTML = '<div style="font-size:12px;color:#333;padding:8px 0;">暂无好友</div>';
+    return;
+  }
+
+  // 获取头像缓存（LunaCharDB 中的角色头像）
+  let cache = {};
+  try { cache = await getAvatarCache(); } catch(e) {}
+
+  container.innerHTML = list.map(f => {
+    const sel     = _fwdSelected.has(f.name);
+    const initial = (f.name || '?')[0].toUpperCase();
+    // 优先用角色头像缓存，其次用 friendsData 里存的头像，再用首字母
+    const imgUrl  = cache[f.name] || f.avatarImg || '';
+    const avContent = imgUrl
+      ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+      : initial;
+    return `
+      <div class="fwd-ring-item" onclick="fwdToggle('${f.name}')">
+        <div class="fwd-ring-wrap">
+          <div class="fwd-ring-border${sel ? ' fwd-sel' : ''}" id="fwdRb-${f.name}"></div>
+          <div class="fwd-ring-av${sel ? ' fwd-sel' : ''}" id="fwdRa-${f.name}">${avContent}</div>
+          ${f.online ? '<div class="fwd-ring-online-dot"></div>' : ''}
+          <div class="fwd-ring-check${sel ? ' fwd-show' : ''}" id="fwdRc-${f.name}">
+            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="3.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+        <div class="fwd-ring-name${sel ? ' fwd-sel' : ''}" id="fwdRn-${f.name}">${f.name}</div>
+      </div>`;
+  }).join('');
+}
+
+function fwdToggle(name) {
+  if (_fwdSelected.has(name)) {
+    _fwdSelected.delete(name);
+  } else {
+    _fwdSelected.add(name);
+  }
+  // 更新该好友的环状态
+  const sel = _fwdSelected.has(name);
+  const rb = document.getElementById('fwdRb-' + name);
+  const ra = document.getElementById('fwdRa-' + name);
+  const rc = document.getElementById('fwdRc-' + name);
+  const rn = document.getElementById('fwdRn-' + name);
+  if (rb) rb.className = 'fwd-ring-border' + (sel ? ' fwd-sel' : '');
+  if (ra) ra.className = 'fwd-ring-av'     + (sel ? ' fwd-sel' : '');
+  if (rc) rc.className = 'fwd-ring-check'  + (sel ? ' fwd-show' : '');
+  if (rn) rn.className = 'fwd-ring-name'   + (sel ? ' fwd-sel' : '');
+  _fwdUpdateSendBtn();
+}
+
+function _fwdUpdateSendBtn() {
+  const btn  = document.getElementById('fwdSendBtn');
+  const hint = document.getElementById('fwdSelHint');
+  const n    = _fwdSelected.size;
+  if (btn) {
+    if (n > 0) {
+      btn.className = 'fwd-send-btn fwd-active';
+    } else {
+      btn.className = 'fwd-send-btn';
+    }
+  }
+  if (hint) {
+    hint.textContent = n > 0 ? '已选 ' + n + ' 人' : '点击头像选择好友';
+  }
+}
+
+function _fwdRenderRecords(db) {
+  const list     = document.getElementById('fwdRecordsList');
+  const totalEl  = document.getElementById('fwdRecordsTotal');
+  const records  = (db && db.forward_records) ? db.forward_records : [];
+
+  if (totalEl) totalEl.textContent = '共 ' + records.length + ' 次转发';
+
+  if (!list) return;
+  if (records.length === 0) {
+    list.innerHTML = '<div class="fwd-records-empty">暂无转发记录</div>';
+    return;
+  }
+
+  list.innerHTML = records.map(r => {
+    const initial   = r.initial || (r.name || '?')[0].toUpperCase();
+    const hasImg    = r.avatarImg && r.avatarImg.trim();
+    const avContent = hasImg ? '<img src="' + r.avatarImg + '">' : initial;
+    const caption   = (r.caption || '').trim();
+    const toChips   = (r.to || []).map(n => '<span class="fwd-record-chip">' + n + '</span>').join('');
+    return `
+      <div class="fwd-record-item">
+        <div class="fwd-record-av">${avContent}</div>
+        <div class="fwd-record-body">
+          <div class="fwd-record-top">
+            <span class="fwd-record-name">${r.name || '未知'}</span>
+            <span class="fwd-record-time">${r.time || ''}</span>
+          </div>
+          ${caption
+            ? '<div class="fwd-record-caption">' + caption + '</div>'
+            : '<div class="fwd-record-caption fwd-no-caption">未附留言</div>'
+          }
+          <div class="fwd-record-to">
+            <span class="fwd-record-to-label">转给</span>
+            ${toChips || '<span class="fwd-record-chip">—</span>'}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function fwdDoSend() {
+  if (_fwdSelected.size === 0) return;
+
+  const raw = localStorage.getItem('luna_my_story_db');
+  if (!raw) return;
+  const db  = JSON.parse(raw);
+
+  const caption = (document.getElementById('fwdMsgInput')?.value || '').trim();
+
+  // 按钮立即进入已发送状态
+  const btn = document.getElementById('fwdSendBtn');
+  if (btn) {
+    btn.textContent = '发送中…';
+    btn.style.opacity = '0.6';
+    btn.style.cursor = 'not-allowed';
+  }
+
+  // 异步从 ProfileSnapshot 读取真实用户信息
+  loadProfileSnapshot().then(snap => {
+    const username  = snap?.name  || db.username || '我';
+    const avatarImg = snap?.avatarImg  || db.avatarImg  || '';
+    const avatarColor = snap?.avatarColor || db.avatarColor || '#555';
+    const initial   = (username || '?')[0].toUpperCase();
+
+    const newRecord = {
+      name:      username,
+      initial:   initial,
+      avatarImg: avatarImg,
+      time:      '刚刚',
+      caption:   caption,
+      to:        [..._fwdSelected]
+    };
+
+    if (!db.forward_records) db.forward_records = [];
+    db.forward_records.unshift(newRecord);
+
+    // 更新转发数
+    db.shares = (db.shares || 0) + 1;
+    localStorage.setItem('luna_my_story_db', JSON.stringify(db));
+
+    // 更新页面上的转发数字
+    const shareNumEl = document.getElementById('svShareNum');
+    if (shareNumEl) shareNumEl.textContent = String(db.shares);
+
+    // 刷新弹窗数字 & 记录列表
+    const previewNum = document.getElementById('fwdPreviewNum');
+    if (previewNum) previewNum.textContent = String(db.shares);
+    _fwdRenderRecords(db);
+
+    // ── 计算剩余分钟（从 publishedAt + expireHours 动态算） ──
+    const publishedAt  = db.publishedAt || Date.now();
+    const expireHours  = db.expireHours || 24;
+    const totalMinutes = expireHours * 60;
+    const elapsedMin   = Math.floor((Date.now() - publishedAt) / 60000);
+    const minLeft      = Math.max(0, totalMinutes - elapsedMin);
+
+    // ── 判断有无图片（用 db.img 或 db.bg.type） ──
+    const hasBgImg = db.img || (db.bg && db.bg.type === 'image' && db.bg.src);
+    const bgImgSrc = db.img || (db.bg && db.bg.src) || '';
+
+    // ── story card 消息体 ──
+    const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+    const nowStr = new Date().toLocaleTimeString('zh-CN', {
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz
+    });
+
+    const storyCardMsg = {
+      role:          'mine',
+      isStoryCard:   true,
+      time:          nowStr,
+      // story 内容字段（完整同步）
+      scType:        hasBgImg ? 'image' : 'text',
+      scText:        (db.text || '').replace(/<[^>]+>/g, '').trim(),
+      scUsername:    username,
+      scAvatarImg:   avatarImg,
+      scAvatarColor: avatarColor,
+      scCaption:     caption,
+      scBgImage:     bgImgSrc,
+      scBgColor:     db.bgColor || (db.bg && db.bg.color) || '',
+      scMinLeft:     minLeft,         // 实时剩余分钟
+      scTotalMin:    totalMinutes,    // 总时长（用于燃烧条比例）
+      scPublishedAt: publishedAt,
+      scExpireHours: expireHours,
+      scViews:       db.views || db.likes || 0,
+      scNo:          'No. ' + String(Math.floor(Math.random() * 900 + 100)),
+      // 转发人
+      fwdFrom:       username,
+      fwdCaption:    caption,
+    };
+
+    // ── 写入目标好友的 LunaChatDB messages ──
+    _fwdWriteStoryCardToChats([..._fwdSelected], storyCardMsg);
+
+    // 按钮反馈
+    if (btn) {
+      btn.textContent  = '已发送 ✦';
+      btn.style.opacity = '1';
+      btn.style.background = '#2a2a2a';
+      btn.style.color  = '#888';
+      btn.style.cursor = 'not-allowed';
+    }
+
+    setTimeout(() => {
+      _fwdSelected = new Set();
+      const msgInput = document.getElementById('fwdMsgInput');
+      if (msgInput) msgInput.value = '';
+      _fwdUpdateSendBtn();
+      if (btn) {
+        btn.textContent  = '发送';
+        btn.style.background = '';
+        btn.style.color  = '';
+        btn.style.cursor = '';
+      }
+    }, 1800);
+  }).catch(() => {
+    if (btn) { btn.textContent = '发送'; btn.style.opacity = '1'; btn.style.cursor = ''; }
+  });
+}
+
+/* ── 将 story card 消息追加进各好友的 LunaChatDB messages 记录 ── */
+function _fwdWriteStoryCardToChats(friends, storyCardMsg) {
+  function openDB() {
+    return new Promise((res, rej) => {
+      const probe = indexedDB.open('LunaChatDB');
+      probe.onsuccess = e => {
+        const db  = e.target.result;
+        const ver = db.version;
+        const ok  = db.objectStoreNames.contains('messages');
+        db.close();
+        const r = indexedDB.open('LunaChatDB', ok ? ver : ver + 1);
+        if (!ok) {
+          r.onupgradeneeded = e2 => {
+            if (!e2.target.result.objectStoreNames.contains('messages')) {
+              e2.target.result.createObjectStore('messages', { keyPath: 'chatKey' });
+            }
+          };
+        }
+        r.onsuccess = e2 => res(e2.target.result);
+        r.onerror   = () => rej();
+      };
+      probe.onerror = () => rej();
+    });
+  }
+
+  openDB().then(db => {
+    friends.forEach(friendName => {
+      const tx1 = db.transaction('messages', 'readonly');
+      const req  = tx1.objectStore('messages').get(friendName);
+      req.onsuccess = () => {
+        const msgs = (req.result && req.result.msgs) ? [...req.result.msgs] : [];
+        // 每个接收好友获得独立的消息副本
+        msgs.push({ ...storyCardMsg, _fwdTo: friendName });
+        const tx2 = db.transaction('messages', 'readwrite');
+        tx2.objectStore('messages').put({ chatKey: friendName, msgs });
+      };
+    });
+  }).catch(e => console.warn('[fwd] story card write failed', e));
+}
+
+/* ================================================
+   AI 模拟互动系统
+   - sePublish 后自动触发好友互动生成
+   - svTriggerAI 按钮：好友未完成→先生成好友，完成后生成NPC（所有人模式）
+================================================ */
+
+// 马卡龙浅色系色盘（NPC头像背景）
+const _NPC_PASTEL = [
+  '#FFD6E0','#FFDDD2','#FFF3CD','#D8F3DC','#C8E6FA','#E8D5F5',
+  '#FFE5EC','#FFF0E6','#E6FAF5','#F0E6FF','#FAF0E6','#E6F0FF',
+  '#FADADD','#F5E6CC','#CCF5E6','#CCE5F5','#F0CCF5','#F5CCE5',
+];
+function _npcPastel(idx) { return _NPC_PASTEL[idx % _NPC_PASTEL.length]; }
+
+// 从 localStorage 读取 story db（helper）
+function _svGetDb() {
+  const raw = localStorage.getItem('luna_my_story_db');
+  return raw ? JSON.parse(raw) : null;
+}
+function _svSaveDb(db) {
+  localStorage.setItem('luna_my_story_db', JSON.stringify(db));
+}
+
+// 刷新 UI 中的互动数字
+function _svRefreshUI(db) {
+  const likeNum  = document.getElementById('svLikeNum');
+  const saveNum  = document.getElementById('svSaveNum');
+  const shareNum = document.getElementById('svShareNum');
+  if (likeNum)  likeNum.textContent  = String(db.likes  || 0);
+  if (saveNum)  saveNum.textContent  = String(db.saves  || 0);
+  if (shareNum) shareNum.textContent = String(db.shares || 0);
+}
+
+// 刷新评论区 UI（带头像缓存同步）
+function _svRefreshComments(db) {
+  const cmtScroll = document.getElementById('svCmtScroll');
+  if (!cmtScroll) return;
+  (async () => {
+    // avatarCache[name] = 图片URL字符串 或 null
+    let avatarCache = {};
+    try { avatarCache = await getAvatarCache(); } catch(e) {}
+    cmtScroll.innerHTML = '';
+    const cmts = db.comments_list || [];
+    cmts.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'sv-cmt';
+      const imgUrl  = !c.isNpc ? (avatarCache[c.name] || c.avatarImg || '') : (c.avatarImg || '');
+      const bgColor = c.color || '#555';
+      const avStyle = imgUrl ? `background:${bgColor};overflow:hidden;padding:0;` : `background:${bgColor};`;
+      const avContent = imgUrl
+        ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+        : (c.initial || (c.name||'?')[0]);
+      const avClass   = 'sv-cmt-av' + (c.isNpc ? ' npc-av' : '');
+      const nameStyle = c.isNpc ? `color:${c.npcTextColor || c.color || '#ccc'};` : '';
+      el.innerHTML = `<div class="${avClass}" style="${avStyle}">${avContent}</div><div><span class="sv-cmt-name" style="${nameStyle}">${c.name||''}</span><span class="sv-cmt-txt">${c.text||''}</span><div class="sv-cmt-lk">${c.likes||0} 个赞</div></div>`;
+      cmtScroll.appendChild(el);
+    });
+    svInitCmtScroll(cmtScroll);
+  })();
+}
+
+// 动画增加浏览量
+function _svAnimateViews(db, addCount) {
+  const el = document.getElementById('svViews');
+  if (!el) return;
+  const start = db.views || 0;
+  const end   = start + addCount;
+  db.views = end;
+  _svSaveDb(db);
+  let cur = start;
+  const step = Math.max(1, Math.round(addCount / 30));
+  const iv = setInterval(() => {
+    cur = Math.min(cur + step, end);
+    el.textContent = cur.toLocaleString();
+    if (cur >= end) clearInterval(iv);
+  }, 60);
+}
+
+// 调用 AI 的通用函数（沿用 chat.js 已有的 openai-compat 接口）
+async function _svCallAI(systemPrompt, userPrompt, maxTokens) {
+  const cur   = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
+  const model = localStorage.getItem('luna_api_model') || '';
+  if (!cur.baseUrl || !cur.apiKey || !model) throw new Error('请先配置 API');
+  const resp = await fetch(`${cur.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cur.apiKey}` },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt   },
+      ],
+      max_tokens: maxTokens || 800,
+      stream: false,
+    }),
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const data = await resp.json();
+  return data.choices?.[0]?.message?.content?.trim() || '';
+}
+
+// 安全 JSON 解析，去除 markdown 代码块
+function _svParseJson(text) {
+  try {
+    return JSON.parse(text.replace(/```json|```/g, '').trim());
+  } catch(e) {
+    // 尝试提取第一个 [...] 或 {...}
+    const m = text.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
+    if (m) { try { return JSON.parse(m[1]); } catch(e2) {} }
+    return null;
+  }
+}
+
+// 生成好友互动（评论、点赞、收藏、转发）
+async function _svGenerateFriendInteractions(db, friends) {
+  if (!friends || friends.length === 0) return db;
+
+  const storyText   = db.text || '（图片动态，无文字）';
+  const audience    = db.audience || '所有人';
+  const friendsDesc = friends.map(f =>
+    `昵称:${f.name} 人设简介:${f.bio || '无'}`
+  ).join('\n');
+
+  const systemPrompt = `你是一个社交平台模拟引擎，根据用户发布的限时动态内容和好友人设，模拟每个好友的真实互动行为。
+返回严格的 JSON 数组，每个元素对应一个好友：
+[
+  {
+    "name": "好友昵称（必须与输入完全一致）",
+    "action_like": true/false,
+    "action_save": true/false,
+    "action_share": true/false,
+    "forward_caption": "若 action_share 为 true，转发时附带的文案（符合该好友性格，15字以内，口语化自然），action_share 为 false 则为空字符串",
+    "forward_to": ["转发给的1-2个虚构好友昵称，若不转发则为空数组"],
+    "comment": "评论内容，符合该好友性格，不超过30字，若不评论则为空字符串"
+  }
+]
+只返回 JSON，不要说任何其他内容。`;
+
+  const userPrompt = `动态内容：${storyText}
+可见范围：${audience}
+好友列表：
+${friendsDesc}`;
+
+  const raw  = await _svCallAI(systemPrompt, userPrompt, 1200);
+  const list = _svParseJson(raw);
+  if (!Array.isArray(list)) return db;
+
+  let avatarCache = {};
+  try { avatarCache = await getAvatarCache(); } catch(e) {}
+
+  let likesAdd = 0, savesAdd = 0, sharesAdd = 0;
+  const newCmts       = [];
+  const newFwdRecords = [];
+  let   timeOffset    = 0;
+
+  list.forEach(item => {
+    const friend = friends.find(f => f.name === item.name);
+    if (!friend) return;
+    if (item.action_like) likesAdd++;
+    if (item.action_save) savesAdd++;
+    if (item.action_share) {
+      sharesAdd++;
+      const imgUrl = avatarCache[friend.name] || '';
+      const mins   = timeOffset + Math.floor(Math.random() * 8) + 1;
+      timeOffset   = mins;
+      newFwdRecords.push({
+        name:      friend.name,
+        initial:   friend.initial || friend.name[0],
+        avatarImg: imgUrl,
+        color:     friend.avatarColor || '#555',
+        caption:   (item.forward_caption || '').trim(),
+        to:        Array.isArray(item.forward_to) ? item.forward_to.slice(0, 2) : [],
+        time:      mins < 60 ? mins + ' 分钟前' : Math.floor(mins / 60) + ' 小时前',
+        isNpc:     false,
+      });
+    }
+    if (item.comment && item.comment.trim()) {
+      const imgUrl = avatarCache[friend.name] || '';
+      newCmts.push({
+        name:      friend.name,
+        initial:   friend.initial || friend.name[0],
+        color:     friend.avatarColor || '#555',
+        avatarImg: imgUrl,
+        text:      item.comment.trim(),
+        likes:     Math.floor(Math.random() * 5),
+        isNpc:     false,
+      });
+    }
+  });
+
+  db.likes           = (db.likes  || 0) + likesAdd;
+  db.saves           = (db.saves  || 0) + savesAdd;
+  db.shares          = (db.shares || 0) + sharesAdd;
+  db.comments_list   = [...(db.comments_list  || []), ...newCmts];
+  // 好友转发记录插到最前面
+  db.forward_records = [...newFwdRecords, ...(db.forward_records || [])];
+  db.friends_interacted       = true;
+  db.friends_interacted_names = friends.map(f => f.name);
+  _svSaveDb(db);
+  return db;
+}
+
+// 生成好友列表（如果 friendsData 为空）
+async function _svGenerateFriendsList() {
+  const systemPrompt = `你是一个虚拟社交平台的好友生成器。生成5个有个性的好友角色，返回严格 JSON 数组：
+[
+  {
+    "name": "好友昵称（2-4个中文字或英文名）",
+    "bio": "人设简介，20字以内，描述性格和爱好",
+    "initial": "昵称首字母或首字"
+  }
+]
+昵称要有个性，不要太普通，风格各异。只返回JSON。`;
+
+  const raw = await _svCallAI(systemPrompt, '请生成5个好友角色', 600);
+  const list = _svParseJson(raw);
+  if (!Array.isArray(list)) return [];
+
+  list.forEach(item => {
+    if (!item.name) return;
+    if (friendsData.find(f => f.name === item.name)) return;
+    const letter = (item.initial || item.name[0] || 'A').toUpperCase();
+    friendsData.push({
+      name:    item.name,
+      initial: item.name[0] || 'F',
+      bio:     item.bio || '神秘好友',
+      group:   letter,
+      style:   '',
+      online:  Math.random() > 0.5,
+      tag:     '',
+    });
+  });
+
+  dbSaveFriends();
+  renderFriends();
+  renderStoryRing();
+  return friendsData;
+}
+
+// 生成 NPC 互动（所有人模式）
+async function _svGenerateNPCInteractions(db) {
+  const storyText = db.text || '（图片动态）';
+
+  const systemPrompt = `你是一个社交平台模拟引擎，为用户的公开限时动态生成来自陌生人NPC的互动数据。
+返回严格的 JSON 对象：
+{
+  "views_add": 数字（增加的浏览量，50到300之间），
+  "likes_add": 数字（增加的点赞数，5到40之间），
+  "saves_add": 数字（增加的收藏数，1到15之间）,
+  "npcs": [
+    {
+      "nickname": "NPC昵称（2-5个字，有个性，风格多样）",
+      "comment": "评论内容，不超过25字，口语化自然，符合该NPC风格",
+      "action_share": true/false,
+      "forward_caption": "若 action_share 为 true，转发时附带的一句话文案（10字以内，自然口语），否则为空字符串",
+      "forward_to": ["转发给的1-2个虚构昵称，不转发则为空数组"],
+      "pastel_text_color": "一个浅色马卡龙色值如#FFB3C1（用于昵称和评论文字颜色）",
+      "bg_color": "头像背景色，比文字色略深的马卡龙色"
+    }
+  ]（4到8个NPC，每人都有评论，约30%的NPC会转发）
+}
+昵称要多样：有二次元风、文艺风、可爱风、酷盖风等。只返回JSON。`;
+
+  const raw    = await _svCallAI(systemPrompt, `动态内容：${storyText}`, 1200);
+  const result = _svParseJson(raw);
+  if (!result) return db;
+
+  const npcs      = result.npcs || [];
+  const newCmts   = [];
+  const newFwdRec = [];
+  let   sharesAdd = 0;
+  let   timeOff   = 0;
+
+  npcs.forEach((npc, i) => {
+    newCmts.push({
+      name:         npc.nickname || `路人${i+1}`,
+      initial:      (npc.nickname || 'N')[0],
+      color:        npc.bg_color || _npcPastel(i),
+      avatarImg:    '',
+      text:         npc.comment || '',
+      likes:        Math.floor(Math.random() * 12),
+      isNpc:        true,
+      npcTextColor: npc.pastel_text_color || npc.bg_color || _npcPastel(i),
+    });
+    if (npc.action_share) {
+      sharesAdd++;
+      const mins = timeOff + Math.floor(Math.random() * 15) + 2;
+      timeOff    = mins;
+      newFwdRec.push({
+        name:      npc.nickname || `路人${i+1}`,
+        initial:   (npc.nickname || 'N')[0],
+        avatarImg: '',
+        color:     npc.bg_color || _npcPastel(i),
+        caption:   (npc.forward_caption || '').trim(),
+        to:        Array.isArray(npc.forward_to) ? npc.forward_to.slice(0, 2) : [],
+        time:      mins < 60 ? mins + ' 分钟前' : Math.floor(mins / 60) + ' 小时前',
+        isNpc:     true,
+        npcTextColor: npc.pastel_text_color || npc.bg_color || _npcPastel(i),
+      });
+    }
+  });
+
+  const viewsAdd = result.views_add || Math.floor(Math.random() * 150) + 50;
+  const likesAdd = result.likes_add || Math.floor(Math.random() * 25) + 5;
+  const savesAdd = result.saves_add || Math.floor(Math.random() * 8) + 1;
+
+  db.likes           = (db.likes  || 0) + likesAdd;
+  db.saves           = (db.saves  || 0) + savesAdd;
+  db.shares          = (db.shares || 0) + sharesAdd;
+  db.comments_list   = [...(db.comments_list  || []), ...newCmts];
+  // NPC 转发记录追加到末尾（好友在前 NPC 在后）
+  db.forward_records = [...(db.forward_records || []), ...newFwdRec];
+  db.npc_interacted  = true;
+  _svSaveDb(db);
+
+  _svAnimateViews(db, viewsAdd);
+  return db;
+}
+
+// 显示/隐藏 AI 加载层
+function _svShowAiLoading(msg) {
+  const overlay = document.getElementById('svAiOverlay');
+  const label   = document.getElementById('svAiLabel');
+  if (!overlay) return;
+  if (label) label.textContent = msg || 'AI 生成互动中…';
+  overlay.style.display = 'flex';
+}
+function _svHideAiLoading() {
+  const overlay = document.getElementById('svAiOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// 自动在发布时触发好友互动（sePublish 调用）
+async function svAutoFriendInteract(storyDb) {
+  try {
+    const audience = storyDb.audience || '所有人';
+    let friends = [...friendsData];
+
+    // 仅好友 / 限定好友 / 所有人 都先做好友互动
+    if (friends.length === 0) return; // 没好友就跳过，等用户手动触发
+
+    // 限定好友：只取一部分（随机2-3个）
+    let targetFriends = friends;
+    if (audience === '限定好友') {
+      const shuffled = [...friends].sort(() => Math.random() - 0.5);
+      targetFriends = shuffled.slice(0, Math.min(3, shuffled.length));
+    }
+
+    storyDb = await _svGenerateFriendInteractions(storyDb, targetFriends);
+
+    // 同步 UI（如果 viewer 已打开）
+    const viewerPage = document.getElementById('storyViewerPage');
+    if (viewerPage && viewerPage.classList.contains('show')) {
+      _svRefreshUI(storyDb);
+      _svRefreshComments(storyDb);
+    }
+  } catch(e) {
+    console.warn('svAutoFriendInteract error:', e);
+  }
+}
+
+// 按钮点击：AI 模拟互动
+async function svTriggerAI() {
+  const btn = document.getElementById('svAiBtn');
+  let db = _svGetDb();
+  if (!db) { _svShowToast('还没有发布动态哦'); return; }
+
+  const audience = db.audience || '所有人';
+  const friends  = [...friendsData];
+
+  btn && btn.classList.add('ai-pulse');
+  _svShowAiLoading('AI 思考中…');
+
+  try {
+    // Step 1: 确保好友列表存在
+    let realFriends = friends;
+    if (realFriends.length === 0) {
+      _svShowAiLoading('AI 生成好友角色…');
+      realFriends = await _svGenerateFriendsList();
+    }
+
+    // Step 2: 确保每个好友都参与了
+    const alreadyNames = db.friends_interacted_names || [];
+    const uninteracted = realFriends.filter(f => !alreadyNames.includes(f.name));
+
+    if (uninteracted.length > 0) {
+      _svShowAiLoading(`${uninteracted.length} 位好友互动中…`);
+      // 限定好友只用部分
+      let targetFriends = uninteracted;
+      if (audience === '限定好友') {
+        const shuffled = [...uninteracted].sort(() => Math.random() - 0.5);
+        targetFriends = shuffled.slice(0, Math.min(3, shuffled.length));
+      }
+      db = await _svGenerateFriendInteractions(db, targetFriends);
+      _svRefreshUI(db);
+      _svRefreshComments(db);
+    }
+
+    // Step 3: 所有人模式 → 额外生成 NPC 互动
+    if (audience === '所有人' && !db.npc_interacted) {
+      _svShowAiLoading('陌生人路过中…');
+      db = await _svGenerateNPCInteractions(db);
+      _svRefreshUI(db);
+      _svRefreshComments(db);
+    } else if (audience === '所有人' && db.npc_interacted) {
+      // 可再次追加NPC（每次点击都新增一波）
+      _svShowAiLoading('更多路人经过…');
+      db = await _svGenerateNPCInteractions(db);
+      _svRefreshUI(db);
+      _svRefreshComments(db);
+    }
+
+    _svHideAiLoading();
+    btn && btn.classList.remove('ai-pulse');
+    btn && btn.classList.add('ai-active');
+    _svShowToast(audience === '所有人' ? '✦ NPC & 好友互动已生成' : '✦ 好友互动已生成');
+  } catch(e) {
+    _svHideAiLoading();
+    btn && btn.classList.remove('ai-pulse');
+    console.error('svTriggerAI error:', e);
+    _svShowToast('AI 生成失败：' + (e.message || '未知错误'));
+  }
+}
+
+// Story Viewer 内 Toast
+function _svShowToast(msg) {
+  let t = document.getElementById('svInlineToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'svInlineToast';
+    t.style.cssText = 'position:absolute;bottom:90px;left:50%;transform:translateX(-50%) translateY(8px);background:rgba(20,20,26,0.88);border:0.5px solid rgba(255,255,255,0.12);border-radius:16px;padding:6px 14px;font-size:10px;color:rgba(255,255,255,0.75);letter-spacing:0.05em;white-space:nowrap;opacity:0;pointer-events:none;z-index:99;transition:all 0.25s ease;font-family:Inter,sans-serif;';
+    const svScreen = document.querySelector('.sv-screen');
+    if (svScreen) svScreen.appendChild(t);
+    else document.getElementById('storyViewerPage')?.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(8px)';
+  }, 2200);
+}
+
+/* ================================================
+   身份扇形弹窗 — 读取 LunaIdentityDB
+================================================ */
+let _ifmIdentities = [];
+let _ifmIdx = 0;
+let _ifmDragStartX = 0;
+let _ifmDragging = false;
+const IFM_CARD_W = 280;
+const IFM_GAP    = 10;
+
+function _ifmEsc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function _ifmFmtDate(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + '.' +
+    String(d.getMonth()+1).padStart(2,'0') + '.' +
+    String(d.getDate()).padStart(2,'0');
+}
+
+async function _ifmLoadIdentities() {
+  return new Promise(res => {
+    const probe = indexedDB.open('LunaIdentityDB');
+    probe.onsuccess = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('identities')) { db.close(); return res([]); }
+      const r = db.transaction('identities').objectStore('identities').getAll();
+      r.onsuccess = () => res((r.result||[]).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)));
+      r.onerror   = () => res([]);
+    };
+    probe.onerror = () => res([]);
+  });
+}
+
+function _ifmBuildCard(identity) {
+  const initial  = identity.name ? identity.name[0].toUpperCase() : '?';
+  const isActive = identity.active !== false;
+  const idShort  = String(identity.id).toUpperCase().slice(-6);
+  const dateStr  = _ifmFmtDate(identity.createdAt || Date.now());
+  const tagsHtml = (identity.tags || []).slice(0,4)
+    .map(t => `<span class="ifm-tag">${_ifmEsc(t)}</span>`).join('');
+
+  const avatarInner = identity.avatarImg
+    ? `<img src="${_ifmEsc(identity.avatarImg)}" alt=""/>`
+    : initial;
+
+  const bgInner = identity.bgImg
+    ? `<img class="ifm-bg-img" src="${_ifmEsc(identity.bgImg)}" alt=""/>`
+    : identity.avatarImg
+      ? `<img class="ifm-bg-img" src="${_ifmEsc(identity.avatarImg)}" alt=""/>`
+      : `<div class="ifm-bg-letter">${_ifmEsc(initial)}</div>`;
+
+  return `<div class="ifm-card side" data-id="${_ifmEsc(identity.id)}">
+    <div class="ifm-bg" style="background:${_ifmEsc(identity.avatarColor||'#1a1a22')}">
+      ${bgInner}
+      <div class="ifm-bg-noise"></div>
+      <div class="ifm-bg-arc"></div>
+    </div>
+    <div class="ifm-body">
+      <div class="ifm-av-row">
+        <div class="ifm-av" style="background:${_ifmEsc(identity.avatarColor||'#1a1a22')}">${avatarInner}</div>
+        <div class="ifm-pill">
+          <div class="ifm-pill-dot ${isActive?'live':''}"></div>
+          <span>${isActive?'LIVE':'OFF'}</span>
+        </div>
+      </div>
+      <div class="ifm-name">${_ifmEsc(identity.name)}</div>
+      ${identity.role ? `<div class="ifm-role">${_ifmEsc(identity.role)}</div>` : ''}
+      ${identity.desc ? `<div class="ifm-desc">${_ifmEsc(identity.desc)}</div>` : ''}
+      ${tagsHtml ? `<div class="ifm-tags">${tagsHtml}</div>` : ''}
+      <div class="ifm-stats">
+        <div class="ifm-stat-item">
+          <div class="ifm-stat-label">Status</div>
+          <div class="ifm-stat-val">${isActive?'Active':'Off'}</div>
+        </div>
+        <div class="ifm-divider"></div>
+        <div class="ifm-stat-item">
+          <div class="ifm-stat-label">Archive</div>
+          <div class="ifm-stat-id">#${idShort}</div>
+        </div>
+        <div class="ifm-divider"></div>
+        <div class="ifm-stat-item">
+          <div class="ifm-stat-label">Joined</div>
+          <div class="ifm-stat-id">${dateStr}</div>
+        </div>
+      </div>
+      <div class="ifm-actions">
+        <button class="ifm-sync-btn" onclick="ifmSyncIdentity('${_ifmEsc(identity.id)}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          同步此身份
+        </button>
+        <button class="ifm-info-btn" onclick="ifmOpenUser()" aria-label="管理身份">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function _ifmBuildEmpty() {
+  return `<div class="ifm-card center" style="flex:0 0 280px">
+    <div class="ifm-empty">
+      <div class="ifm-empty-icon">
+        <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+          <rect x="8" y="14" width="32" height="22" rx="4" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="18" cy="24" r="4" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="26" y1="21" x2="36" y2="21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="26" y1="26" x2="33" y2="26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="ifm-empty-title">暂无身份档案</div>
+      <div class="ifm-empty-sub">请前往「身份管理」创建你的第一个身份，才能在此同步资料</div>
+      <button class="ifm-empty-go" onclick="ifmGoToUser()">前往创建</button>
+    </div>
+  </div>`;
+}
+
+function _ifmRenderDots() {
+  const el = document.getElementById('ifmDots');
+  if (!el) return;
+  el.innerHTML = _ifmIdentities.map((_,i) =>
+    `<div class="ifm-dot${i===_ifmIdx?' active':''}"></div>`
+  ).join('');
+}
+
+function _ifmUpdatePos(animate) {
+  const row   = document.getElementById('ifmRow');
+  const track = document.getElementById('ifmTrack');
+  if (!row || !track) return;
+  const tw     = track.offsetWidth || 300;
+  const offset = (tw/2) - (IFM_CARD_W/2) - _ifmIdx*(IFM_CARD_W+IFM_GAP);
+  row.style.transition = animate ? 'transform 0.38s cubic-bezier(0.4,0,0.2,1)' : 'none';
+  row.style.transform  = `translateX(${offset}px)`;
+  document.querySelectorAll('#ifmRow .ifm-card').forEach((c,i) => {
+    c.className = 'ifm-card ' + (i===_ifmIdx?'center':'side');
+  });
+  const prev = document.getElementById('ifmPrev');
+  const next = document.getElementById('ifmNext');
+  if (prev) prev.disabled = _ifmIdx === 0;
+  if (next) next.disabled = _ifmIdx === _ifmIdentities.length-1;
+  _ifmRenderDots();
+}
+
+function ifmSlide(dir) {
+  const next = _ifmIdx + dir;
+  if (next < 0 || next >= _ifmIdentities.length) return;
+  _ifmIdx = next;
+  _ifmUpdatePos(true);
+}
+
+async function openIdentityFanModal() {
+  _ifmIdentities = await _ifmLoadIdentities();
+  _ifmIdx = 0;
+
+  const row  = document.getElementById('ifmRow');
+  const nav  = document.querySelector('.ifm-nav');
+  const dots = document.getElementById('ifmDots');
+
+  if (_ifmIdentities.length === 0) {
+    row.innerHTML  = _ifmBuildEmpty();
+    dots.innerHTML = '';
+    if (nav) nav.style.display = 'none';
+  } else {
+    row.innerHTML = _ifmIdentities.map(_ifmBuildCard).join('');
+    if (nav) nav.style.display = 'flex';
+    _ifmUpdatePos(false);
+    _ifmInitDrag();
+  }
+
+  document.getElementById('ifmOverlay').classList.add('active');
+  setTimeout(() => document.getElementById('ifmShell').classList.add('active'), 10);
+}
+
+function closeIdentityFanModal() {
+  document.getElementById('ifmShell').classList.remove('active');
+  document.getElementById('ifmOverlay').classList.remove('active');
+  // 重置 Follow 按钮为未关注状态
+  const btn  = document.getElementById('pfFollowBtn');
+  const text = document.getElementById('pfFollowBtnText');
+  const dot  = document.getElementById('pfFollowBtnDot');
+  if (btn)  btn.style.cssText = '';
+  if (text) text.textContent = 'Follow';
+  if (dot)  dot.style.background = '';
+}
+
+
+/* ── 资料页持久化 ── */
+let _currentProfileId = null; // 当前绑定的 identity id
+
+function saveProfileSnapshot(identity) {
+  _currentProfileId = identity.id;
+  return new Promise(res => {
+    const probe = indexedDB.open('LunaChatProfileDB', 1);
+    probe.onupgradeneeded = e => e.target.result.createObjectStore('profile', { keyPath: 'key' });
+    probe.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction('profile', 'readwrite');
+      tx.objectStore('profile').put({
+        key:         'current',
+        id:          identity.id        || '',
+        name:        identity.name      || '',
+        role:        identity.role      || '',
+        avatarImg:   identity.avatarImg || '',
+        avatarColor: identity.avatarColor || '#1a1a22',
+        bgImg:       identity.bgImg     || identity.avatarImg || '',
+        bio:         identity.bio       || '',
+        location:    identity.location  || '',
+        website:     identity.website   || '',
+        joined:      identity.joined    || '',
+        following:   identity.following || '',
+        followers:   identity.followers || '',
+        posts:       identity.posts     || '',
+        likes:       identity.likes     || '',
+      });
+      tx.oncomplete = () => { db.close(); res(); };
+      tx.onerror    = () => { db.close(); res(); };
+    };
+    probe.onerror = () => res();
+  });
+}
+
+async function loadProfileSnapshot() {
+  return new Promise(res => {
+    const probe = indexedDB.open('LunaChatProfileDB', 1);
+    probe.onupgradeneeded = e => e.target.result.createObjectStore('profile', { keyPath: 'key' });
+    probe.onsuccess = e => {
+      const db = e.target.result;
+      const r = db.transaction('profile').objectStore('profile').get('current');
+      r.onsuccess = () => { db.close(); res(r.result || null); };
+      r.onerror   = () => { db.close(); res(null); };
+    };
+    probe.onerror = () => res(null);
+  });
+}
+
+function applyProfileSnap(snap) {
+  if (!snap) return;
+  _currentProfileId = snap.id || null;
+
+  const av = document.getElementById('profileAvatar');
+  if (av) {
+    av.style.background = snap.avatarColor || '#1a1a22';
+    av.style.position = 'relative';
+    av.innerHTML = '';
+    if (snap.avatarImg && snap.avatarImg.trim() !== '') {
+      const img = document.createElement('img');
+      img.src = snap.avatarImg;
+      img.className = 'ifm-synced-img';
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:13px;';
+      av.appendChild(img);
+    } else {
+      const letter = document.createElement('span');
+      letter.textContent = (snap.name || '?')[0].toUpperCase();
+      av.appendChild(letter);
+    }
+    const online = document.createElement('div');
+    online.className = 'pf-av-online';
+    av.appendChild(online);
+  }
+
+  const name = document.getElementById('profileName');
+  if (name && snap.name) name.textContent = snap.name;
+
+  const handle = document.getElementById('profileHandle');
+  if (handle && snap.role) handle.textContent = '@' + snap.role.replace(/\s+/g,'_').toLowerCase().slice(0,16);
+
+  const idTag = document.getElementById('profileIdTag');
+  if (idTag && snap.id) idTag.textContent = 'ID · ' + String(snap.id).toUpperCase().slice(-6);
+
+  const cover = document.querySelector('.pf-card-cover');
+  if (cover) {
+    const existing = cover.querySelector('img.ifm-synced-cover');
+    if (snap.bgImg) {
+      if (existing) { existing.src = snap.bgImg; }
+      else {
+        const bgImg = document.createElement('img');
+        bgImg.src = snap.bgImg;
+        bgImg.className = 'ifm-synced-cover';
+        bgImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.85;';
+        cover.insertBefore(bgImg, cover.firstChild);
+      }
+    } else if (existing) { existing.remove(); }
+  }
+
+  const bio = document.getElementById('profileBio');
+  if (bio) bio.textContent = snap.bio || '设计师 · 创作者 · 记录日常美好';
+
+  const loc = document.getElementById('profileLocation');
+  if (loc) loc.textContent = snap.location || 'Shanghai, CN';
+
+  const web = document.getElementById('profileWebsite');
+  if (web) web.textContent = snap.website || 'luna.design';
+
+  const joined = document.getElementById('profileJoined');
+  if (joined) joined.textContent = snap.joined || 'Joined Jan 2024';
+  const followingEl = document.getElementById('profileFollowing');
+  if (followingEl) followingEl.textContent = snap.following || '128';
+  const followersEl = document.getElementById('profileFollowers');
+  if (followersEl) followersEl.textContent = snap.followers || '364';
+  const postsEl = document.getElementById('profilePosts');
+  if (postsEl) postsEl.textContent = snap.posts || '42';
+  const likesEl = document.getElementById('profileLikes');
+  if (likesEl) likesEl.textContent = snap.likes || '1.2k';
+}
+
+/* ── 编辑弹窗 ── */
+function openProfileEditModal(e) {
+  if (e.target.closest('#pfFollowBtn')) return; // 点的是follow按钮不触发
+  const overlay = document.getElementById('pfEditOverlay');
+  if (!overlay) return;
+  // 填入当前值
+  document.getElementById('pfEditBio').value       = document.getElementById('profileBio')?.textContent || '';
+  document.getElementById('pfEditLocation').value  = document.getElementById('profileLocation')?.textContent || '';
+  document.getElementById('pfEditWebsite').value   = document.getElementById('profileWebsite')?.textContent || '';
+  document.getElementById('pfEditJoined').value    = document.getElementById('profileJoined')?.textContent || '';
+  document.getElementById('pfEditFollowing').value = document.getElementById('profileFollowing')?.textContent || '';
+  document.getElementById('pfEditFollowers').value = document.getElementById('profileFollowers')?.textContent || '';
+  document.getElementById('pfEditPosts').value     = document.getElementById('profilePosts')?.textContent || '';
+  document.getElementById('pfEditLikes').value     = document.getElementById('profileLikes')?.textContent || '';
+  overlay.style.display = 'flex';
+}
+
+function closePfEditModal() {
+  const overlay = document.getElementById('pfEditOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+async function savePfEditModal() {
+  const bio       = document.getElementById('pfEditBio').value.trim();
+  const loc       = document.getElementById('pfEditLocation').value.trim();
+  const web       = document.getElementById('pfEditWebsite').value.trim();
+  const joined    = document.getElementById('pfEditJoined').value.trim();
+  const following = document.getElementById('pfEditFollowing').value.trim();
+  const followers = document.getElementById('pfEditFollowers').value.trim();
+  const posts     = document.getElementById('pfEditPosts').value.trim();
+  const likes     = document.getElementById('pfEditLikes').value.trim();
+
+  // 更新 DOM
+  const bioEl = document.getElementById('profileBio');
+  if (bioEl) bioEl.textContent = bio;
+  const locEl = document.getElementById('profileLocation');
+  if (locEl) locEl.textContent = loc;
+  const webEl = document.getElementById('profileWebsite');
+  if (webEl) webEl.textContent = web;
+  const joinEl = document.getElementById('profileJoined');
+  if (joinEl) joinEl.textContent = joined;
+  const followingEl = document.getElementById('profileFollowing');
+  if (followingEl && following) followingEl.textContent = following;
+  const followersEl = document.getElementById('profileFollowers');
+  if (followersEl && followers) followersEl.textContent = followers;
+  const postsEl = document.getElementById('profilePosts');
+  if (postsEl && posts) postsEl.textContent = posts;
+  const likesEl = document.getElementById('profileLikes');
+  if (likesEl && likes) likesEl.textContent = likes;
+
+  // 更新 ProfileDB
+  const snap = await loadProfileSnapshot();
+  if (snap) {
+    snap.bio = bio; snap.location = loc; snap.website = web; snap.joined = joined;
+    snap.following = following; snap.followers = followers; snap.posts = posts; snap.likes = likes;
+    await saveProfileSnapshot(snap);
+  }
+
+  // 同步写回 identity DB
+  if (_currentProfileId) {
+    const probe = indexedDB.open('LunaIdentityDB');
+    probe.onsuccess = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('identities')) { db.close(); return; }
+      const tx = db.transaction('identities', 'readwrite');
+      const store = tx.objectStore('identities');
+      const req = store.get(_currentProfileId);
+      req.onsuccess = () => {
+        const identity = req.result;
+        if (!identity) { db.close(); return; }
+        identity.bio = bio; identity.location = loc; identity.website = web; identity.joined = joined;identity.following = following; identity.followers = followers;
+        identity.posts = posts; identity.likes = likes;
+        store.put(identity);
+        tx.oncomplete = () => db.close();
+      };
+    };
+  }
+
+  closePfEditModal();
+}
+
+function ifmSyncIdentity(id) {
+  const identity = _ifmIdentities.find(i => String(i.id) === String(id));
+  if (!identity) return;
+
+  // 同步头像
+  const av = document.getElementById('profileAvatar');
+  if (av) {
+    av.style.background = identity.avatarColor || '#1a1a22';
+    av.style.position = 'relative';
+    av.innerHTML = '';
+    if (identity.avatarImg) {
+      const img = document.createElement('img');
+      img.src = identity.avatarImg;
+      img.className = 'ifm-synced-img';
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:13px;';
+      av.appendChild(img);
+    } else {
+      const letter = document.createElement('span');
+      letter.textContent = (identity.name || '?')[0].toUpperCase();
+      av.appendChild(letter);
+    }
+    const online = document.createElement('div');
+    online.className = 'pf-av-online';
+    av.appendChild(online);
+  }
+
+  // 同步名字
+  const name = document.getElementById('profileName');
+  if (name) name.textContent = identity.name || 'Luna User';
+
+  // 同步handle
+  const handle = document.getElementById('profileHandle');
+  if (handle && identity.role) handle.textContent = '@' + identity.role.replace(/\s+/g,'_').toLowerCase().slice(0,16);
+
+  // 同步背景封面
+  const cover = document.querySelector('.pf-card-cover');
+  if (cover) {
+    const bgSrc = identity.bgImg || identity.avatarImg;
+    const existingBgImg = cover.querySelector('img.ifm-synced-cover');
+    if (bgSrc) {
+      if (existingBgImg) {
+        existingBgImg.src = bgSrc;
+      } else {
+        const bgImg = document.createElement('img');
+        bgImg.src = bgSrc;
+        bgImg.className = 'ifm-synced-cover';
+        bgImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.85;';
+        cover.insertBefore(bgImg, cover.firstChild);
+      }
+    } else {
+      if (existingBgImg) existingBgImg.remove();
+    }
+  }
+
+  // Follow 按钮变为已关注态
+  const fbtn  = document.getElementById('pfFollowBtn');
+  const ftext = document.getElementById('pfFollowBtnText');
+  const fdot  = document.getElementById('pfFollowBtnDot');
+  if (fbtn)  { fbtn.style.background='#e8e8ec'; fbtn.style.color='#0a0a0a'; }
+  if (ftext) ftext.textContent = 'Following';
+  if (fdot)  fdot.style.background = 'rgba(0,0,0,0.22)';
+
+  saveProfileSnapshot(identity);
+  saveProfileSnapshot(identity).then(() => {
+    applyProfileSnap({
+      id: identity.id, name: identity.name, role: identity.role,
+      avatarImg: identity.avatarImg, avatarColor: identity.avatarColor,
+      bgImg: identity.bgImg || identity.avatarImg,
+      bio: identity.bio || '', location: identity.location || '',
+      website: identity.website || '', joined: identity.joined || '',
+    });
+    // 同步完后立即刷新故事环头像
+    renderFriendStories();
+    renderStoryRing();
+  });
+  ifmShowToast('已同步：' + identity.name);
+  setTimeout(closeIdentityFanModal, 1200);
+}
+
+function ifmShowToast(msg) {
+  const t = document.getElementById('ifmToast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._ifmToastTimer);
+  window._ifmToastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function _ifmInitDrag() {
+  const row = document.getElementById('ifmRow');
+  if (!row || row._ifmDragBound) return;
+  row._ifmDragBound = true;
+  row.addEventListener('mousedown', e => { _ifmDragStartX = e.clientX; _ifmDragging = true; });
+  row.addEventListener('mouseup',   e => {
+    if (!_ifmDragging) return; _ifmDragging = false;
+    const dx = e.clientX - _ifmDragStartX;
+    if (Math.abs(dx) > 40) ifmSlide(dx < 0 ? 1 : -1);
+  });
+  row.addEventListener('mouseleave', () => { _ifmDragging = false; });
+  row.addEventListener('touchstart', e => { _ifmDragStartX = e.touches[0].clientX; }, { passive: true });
+  row.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - _ifmDragStartX;
+    if (Math.abs(dx) > 40) ifmSlide(dx < 0 ? 1 : -1);
+  });
+}
+
+function ifmGoToUser() {
+  localStorage.setItem('luna_return_to', 'chat_profile');
+  const mask = document.createElement('div');
+  mask.style.cssText = 'position:fixed;inset:0;background:rgba(238,241,255,0.97);opacity:0;z-index:9999;transition:opacity 0.28s ease;pointer-events:all;';
+  document.body.appendChild(mask);
+  requestAnimationFrame(() => { mask.style.opacity = '1'; });
+  setTimeout(() => { window.location.href = 'user.html'; }, 260);
+}
+
+function ifmOpenUser() {
+  localStorage.setItem('luna_return_to', 'chat_profile');
+  const mask = document.createElement('div');
+  mask.style.cssText = 'position:fixed;inset:0;background:rgba(238,241,255,0.97);opacity:0;z-index:9999;transition:opacity 0.28s ease;pointer-events:all;';
+  document.body.appendChild(mask);
+  requestAnimationFrame(() => { mask.style.opacity = '1'; });
+  setTimeout(() => { window.location.href = 'user.html'; }, 260);
 }

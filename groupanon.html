@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>群互动</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="groupanon.css" />
+</head>
+<body>
+
+<div class="ga-wrap">
+  <div class="ga-frame">
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="ga-header">
+      <div class="h-deco-top"></div>
+      <div class="h-corner-deco2"></div>
+      <div class="h-corner-deco"></div>
+      <div class="h-inner">
+        <div class="h-left" id="headerBack" onclick="handleBack()">
+          <svg width="9" height="15" viewBox="0 0 9 16" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1 1,8 8,15"/></svg>
+        </div>
+        <div class="header-title-block">
+          <div class="header-eyebrow" id="headerEyebrow">GROUP · HUB</div>
+          <div class="header-title" id="headerTitleText">群互动 <span class="header-badge">INTERACT</span></div>
+        </div>
+        <div class="h-actions">
+          <div class="h-action-btn" id="infoBtn" onclick="showInfo()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" stroke-width="2.2"/><line x1="12" y1="11" x2="12" y2="16"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="h-deco-line"></div>
+    </div>
+
+    <!-- ============================================================
+         VIEW 1 — HUB (single module: anonymous Q&A, star-map layout)
+    ============================================================ -->
+    <div class="ga-view ga-view-hub active" id="viewHub">
+
+      <!-- Constellation / fracture background — more dramatic -->
+      <svg class="hub-fracture-svg" viewBox="0 0 390 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <!-- Central timeline spine echo — mirrors the CSS ::before line -->
+        <line x1="195" y1="0" x2="195" y2="900" stroke="#c8c0dc" stroke-width="0.8" stroke-dasharray="4 10" opacity="0.5"/>
+        <!-- Left spine -->
+        <line x1="28" y1="0" x2="28" y2="900" stroke="#dddae8" stroke-width="0.5" stroke-dasharray="2 8" opacity="0.4"/>
+
+        <!-- Left: branching cross-strokes from left spine -->
+        <line x1="28" y1="80"  x2="100" y2="68"  stroke="#ccc8dc" stroke-width="0.7" opacity="0.5"/>
+        <line x1="28" y1="180" x2="95"  y2="168" stroke="#ccc8dc" stroke-width="0.7" opacity="0.45"/>
+        <line x1="28" y1="280" x2="105" y2="265" stroke="#ccc8dc" stroke-width="0.7" opacity="0.4"/>
+        <line x1="28" y1="390" x2="98"  y2="376" stroke="#ccc8dc" stroke-width="0.7" opacity="0.4"/>
+        <line x1="28" y1="500" x2="102" y2="488" stroke="#ccc8dc" stroke-width="0.7" opacity="0.35"/>
+        <line x1="28" y1="610" x2="96"  y2="598" stroke="#ccc8dc" stroke-width="0.7" opacity="0.35"/>
+        <line x1="28" y1="720" x2="100" y2="708" stroke="#ccc8dc" stroke-width="0.7" opacity="0.3"/>
+        <line x1="28" y1="820" x2="94"  y2="810" stroke="#ccc8dc" stroke-width="0.7" opacity="0.3"/>
+
+        <!-- Center spine nodes — timeline markers -->
+        <circle cx="195" cy="120" r="3"   fill="#b8b0cc" opacity="0.6"/>
+        <circle cx="195" cy="120" r="6"   fill="none" stroke="#b8b0cc" stroke-width="0.5" opacity="0.3"/>
+        <circle cx="195" cy="270" r="2.5" fill="#b8b0cc" opacity="0.5"/>
+        <circle cx="195" cy="270" r="5"   fill="none" stroke="#b8b0cc" stroke-width="0.5" opacity="0.25"/>
+        <circle cx="195" cy="430" r="3.5" fill="#9a93ac" opacity="0.55"/>
+        <circle cx="195" cy="430" r="7"   fill="none" stroke="#9a93ac" stroke-width="0.5" opacity="0.25"/>
+        <circle cx="195" cy="590" r="2.5" fill="#b8b0cc" opacity="0.45"/>
+        <circle cx="195" cy="740" r="3"   fill="#b8b0cc" opacity="0.4"/>
+        <circle cx="195" cy="850" r="2"   fill="#b8b0cc" opacity="0.35"/>
+
+        <!-- Left spine nodes -->
+        <circle cx="28" cy="80"  r="2.5" fill="#c4bdd8" opacity="0.6"/>
+        <circle cx="28" cy="180" r="2"   fill="#c4bdd8" opacity="0.5"/>
+        <circle cx="28" cy="280" r="2.5" fill="#c4bdd8" opacity="0.5"/>
+        <circle cx="28" cy="390" r="2"   fill="#c4bdd8" opacity="0.45"/>
+        <circle cx="28" cy="500" r="2.5" fill="#c4bdd8" opacity="0.4"/>
+        <circle cx="28" cy="610" r="2"   fill="#c4bdd8" opacity="0.38"/>
+        <circle cx="28" cy="720" r="2"   fill="#c4bdd8" opacity="0.35"/>
+
+        <!-- Diagonal warp lines — space-time distortion feel -->
+        <line x1="120" y1="0"  x2="390" y2="200" stroke="#e0dcea" stroke-width="0.6" stroke-dasharray="1 9" opacity="0.4"/>
+        <line x1="0"   y1="50" x2="390" y2="320" stroke="#e4e0ee" stroke-width="0.4" stroke-dasharray="1 11" opacity="0.3"/>
+        <line x1="220" y1="0"  x2="390" y2="140" stroke="#dddae8" stroke-width="0.5" stroke-dasharray="1 8" opacity="0.35"/>
+        <line x1="0"  y1="200" x2="300" y2="500" stroke="#e0dcea" stroke-width="0.4" stroke-dasharray="1 10" opacity="0.25"/>
+        <line x1="390" y1="300" x2="100" y2="600" stroke="#e0dcea" stroke-width="0.4" stroke-dasharray="1 9" opacity="0.2"/>
+        <line x1="0"   y1="400" x2="390" y2="650" stroke="#e4e0ee" stroke-width="0.3" stroke-dasharray="1 12" opacity="0.2"/>
+
+        <!-- Scattered micro-stars -->
+        <circle cx="330" cy="55"  r="1.4" fill="#c8c0d8" opacity="0.55"/>
+        <circle cx="355" cy="130" r="0.9" fill="#c8c0d8" opacity="0.45"/>
+        <circle cx="310" cy="220" r="1.2" fill="#c8c0d8" opacity="0.4"/>
+        <circle cx="365" cy="310" r="1"   fill="#c8c0d8" opacity="0.35"/>
+        <circle cx="340" cy="420" r="1.4" fill="#c8c0d8" opacity="0.35"/>
+        <circle cx="75"  cy="155" r="1"   fill="#c8c0d8" opacity="0.35"/>
+        <circle cx="55"  cy="340" r="1.2" fill="#c8c0d8" opacity="0.3"/>
+        <circle cx="82"  cy="520" r="0.8" fill="#c8c0d8" opacity="0.3"/>
+        <circle cx="350" cy="540" r="1.2" fill="#c8c0d8" opacity="0.3"/>
+        <circle cx="60"  cy="690" r="1"   fill="#c8c0d8" opacity="0.28"/>
+        <circle cx="320" cy="700" r="0.9" fill="#c8c0d8" opacity="0.28"/>
+        <circle cx="160" cy="160" r="0.8" fill="#b8b0c8" opacity="0.4"/>
+        <circle cx="240" cy="360" r="0.8" fill="#b8b0c8" opacity="0.35"/>
+        <circle cx="150" cy="550" r="0.8" fill="#b8b0c8" opacity="0.3"/>
+
+        <!-- Horizontal time-grid marks — faint ruled lines -->
+        <line x1="14" y1="220" x2="376" y2="220" stroke="#e4e0ea" stroke-width="0.3" stroke-dasharray="1 6" opacity="0.35"/>
+        <line x1="14" y1="440" x2="376" y2="440" stroke="#e4e0ea" stroke-width="0.3" stroke-dasharray="1 6" opacity="0.3"/>
+        <line x1="14" y1="660" x2="376" y2="660" stroke="#e4e0ea" stroke-width="0.3" stroke-dasharray="1 6" opacity="0.25"/>
+        <line x1="14" y1="860" x2="376" y2="860" stroke="#e4e0ea" stroke-width="0.3" stroke-dasharray="1 6" opacity="0.2"/>
+      </svg>
+
+      <!-- Hub header label -->
+      <div class="hub-header-row">
+        <div class="hub-header-left">
+          <div class="hub-axis-node"></div>
+          <div class="hub-header-tag">GROUP · INTERACT</div>
+        </div>
+        <div class="hub-header-count">11 MODULES</div>
+      </div>
+
+      <!-- Scrollable timeline — one card per row, space-time warp -->
+      <div class="hub-scroll-body">
+        <div class="hub-timeline">
+
+          <!-- ① 匿名问答 — fractured ledger, ink-on-bone -->
+          <div class="htl-item htl-item-1">
+            <div class="htl-node htl-node-live"><span class="htl-live-ring"></span><span class="htl-live-dot"></span></div>
+            <div class="htl-stub">T+00</div>
+            <div class="htl-card tw-card tw-01" onclick="openAnonQA()">
+              <div class="tw-crack"></div>
+              <div class="tw-row-top">
+                <span class="tw-idx">No. 01</span>
+                <span class="tw-flag tw-flag-live">LIVE · 进行中</span>
+              </div>
+              <div class="tw-title">匿名问答</div>
+              <div class="tw-desc">隐藏身份，全员作答</div>
+              <div class="tw-row-bottom">
+                <span class="tw-meta"><span id="hubStatTotal">0</span> 条 · ANONYMOUS</span>
+                <span class="tw-go">进入 →</span>
+              </div>
+              <div class="tw-rule-word">ECHO&nbsp;&nbsp;CHAMBER</div>
+            </div>
+          </div>
+
+          <!-- ② 成员提问 — torn notebook leaf -->
+          <div class="htl-item htl-item-2">
+            <div class="htl-node htl-node-new"><span class="htl-new-label">NEW</span></div>
+            <div class="htl-stub">T+01</div>
+            <div class="htl-card tw-card tw-02" onclick="openMemberAsk()">
+              <div class="tw-margin-line"></div>
+              <div class="tw-row-top">
+                <span class="tw-idx">No. 02</span>
+                <span class="tw-flag tw-flag-new">NEW · 新开放</span>
+              </div>
+              <div class="tw-title">成员提问</div>
+              <div class="tw-desc">成员提问，你来回答</div>
+              <div class="tw-row-bottom">
+                <span class="tw-meta"><span id="hubStatAsk">0</span> 题 · ON RECORD</span>
+                <span class="tw-go">进入 →</span>
+              </div>
+              <div class="tw-corner-tag">MEMORANDUM</div>
+            </div>
+          </div>
+
+          <!-- Interlude marker -->
+          <div class="htl-interlude"><span class="htl-int-line"></span><span class="htl-int-text">drift · 漂移</span></div>
+
+          <!-- ③ 话题炸弹 — pressure dial, concentric rings -->
+          <div class="htl-item htl-item-3">
+            <div class="htl-node htl-node-soon"></div>
+            <div class="htl-stub">T+02</div>
+            <div class="htl-card tw-card tw-03" onclick="gaToast('话题炸弹 即将上线')">
+              <div class="tw-rings"><span></span><span></span><span></span></div>
+              <div class="tw-row-top">
+                <span class="tw-idx">No. 03</span>
+                <span class="tw-flag tw-flag-soon">SOON · 未激活</span>
+              </div>
+              <div class="tw-title">话题炸弹</div>
+              <div class="tw-desc">随机引爆一个无法回避的群聊话题</div>
+              <div class="tw-ghost-word">DETONATE</div>
+            </div>
+          </div>
+
+          <!-- ④ 命运抽签 — oracle slip, bamboo slats -->
+          <div class="htl-item htl-item-4">
+            <div class="htl-node htl-node-soon"></div>
+            <div class="htl-stub">T+03</div>
+            <div class="htl-card tw-card tw-04" onclick="gaToast('命运抽签 即将上线')">
+              <div class="tw-slats"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+              <div class="tw-slat-body">
+                <div class="tw-row-top">
+                  <span class="tw-idx">No. 04</span>
+                  <span class="tw-flag tw-flag-soon">SOON · 未激活</span>
+                </div>
+                <div class="tw-title">命运抽签</div>
+                <div class="tw-desc">让概率决定你的今日走向</div>
+              </div>
+              <div class="tw-ghost-word tw-ghost-rot">FATE</div>
+            </div>
+          </div>
+
+          <!-- Interlude marker -->
+          <div class="htl-interlude htl-int-right"><span class="htl-int-text">fold · 折叠</span><span class="htl-int-line"></span></div>
+
+          <!-- ⑤ 情绪过山车 — seismograph -->
+          <div class="htl-item htl-item-5">
+            <div class="htl-node htl-node-soon"></div>
+            <div class="htl-stub">T+04</div>
+            <div class="htl-card tw-card tw-05" onclick="gaToast('情绪过山车 即将上线')">
+              <svg class="tw-wave" viewBox="0 0 320 70" preserveAspectRatio="none">
+                <path d="M0 45 C30 20, 50 60, 80 32 S130 4, 160 38 S190 60, 220 36 S270 8, 320 42" fill="none" stroke="currentColor" stroke-width="1.1"/>
+                <path d="M0 54 C28 36, 56 66, 86 44 S136 16, 166 46 S196 64, 226 46 S276 20, 320 50" fill="none" stroke="currentColor" stroke-width="0.6" opacity="0.4"/>
+              </svg>
+              <div class="tw-row-top">
+                <span class="tw-idx">No. 05</span>
+                <span class="tw-flag tw-flag-soon">SOON · 未激活</span>
+              </div>
+              <div class="tw-title">情绪过山车</div>
+              <div class="tw-desc">追踪此刻群里的情绪频率</div>
+            </div>
+          </div>
+
+          <!-- ⑥ 时光邮局 — postal slip, sepia -->
+          <div class="htl-item htl-item-6">
+            <div class="htl-node htl-node-soon"></div>
+            <div class="htl-stub">T+05</div>
+            <div class="htl-card tw-card tw-06" onclick="gaToast('时光邮局 即将上线')">
+              <div class="tw-perf tw-perf-t"></div>
+              <div class="tw-perf tw-perf-b"></div>
+              <div class="tw-postmark"></div>
+              <div class="tw-row-top">
+                <span class="tw-idx">No. 06</span>
+                <span class="tw-flag tw-flag-soon">SOON · 未激活</span>
+              </div>
+              <div class="tw-title">时光邮局</div>
+              <div class="tw-desc">写给未来的自己，定时开封</div>
+              <div class="tw-rule-word">PAR&nbsp;AVION</div>
+            </div>
+          </div>
+
+          <!-- Interlude marker -->
+          <div class="htl-interlude"><span class="htl-int-line"></span><span class="htl-int-text">bend · 弯折</span></div>
+
+          <!-- ⑦ 因果纺织机 — loom threads -->
+          <div class="htl-item htl-item-7">
+            <div class="htl-node htl-node-soon"></div>
+            <div class="htl-stub">T+06</div>
+            <div class="htl-card tw-card tw-07" onclick="gaToast('因果纺织机 即将上线')">
+              <svg class="tw-threads" viewBox="0 0 320 110" preserveAspectRatio="none">
+                <line x1="0" y1="0" x2="320" y2="110" stroke="currentColor" stroke-width="0.7" opacity="0.22"/>
+                <line x1="70" y1="0" x2="320" y2="86" stroke="currentColor" stroke-width="0.7" opacity="0.16"/>
+                <line x1="320" y1="0" x2="0" y2="110" stroke="currentColor" stroke-width="0.7" opacity="0.22"/>
+                <line x1="250" y1="0" x2="0" y2="86" stroke="currentColor" stroke-width="0.7" opacity="0.16"/>
+                <circle cx="160" cy="48" r="2.5" fill="currentColor" opacity="0.3"/>
+              </svg>
+              <div class="tw-row-top">
+                <span class="tw-idx">No. 07</span>
+                <span class="tw-flag tw-flag-soon">SOON · 未激活</span>
+              </div>
+              <div class="tw-title">因果纺织机</div>
+              <div class="tw-desc">选择一个行为，看见它的连锁反应</div>
+              <div class="tw-ghost-word">CAUSALITY</div>
+            </div>
+          </div>
+
+          <!-- ⑧ 集体潜意识 — dot mesh / star chart -->
+          <div class="htl-item htl-item-8">
+            <div class="htl-node htl-node-soon"></div>
+            <div class="htl-stub">T+07</div>
+            <div class="htl-card tw-card tw-08" onclick="gaToast('集体潜意识 即将上线')">
+              <svg class="tw-mesh" viewBox="0 0 320 100" preserveAspectRatio="none">
+                <line x1="30" y1="20" x2="90" y2="60" stroke="currentColor" stroke-width="0.5" opacity="0.3"/>
+                <line x1="90" y1="60" x2="160" y2="25" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+                <line x1="160" y1="25" x2="230" y2="65" stroke="currentColor" stroke-width="0.5" opacity="0.3"/>
+                <line x1="230" y1="65" x2="290" y2="20" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+                <line x1="90" y1="60" x2="160" y2="80" stroke="currentColor" stroke-width="0.5" opacity="0.2"/>
+                <circle cx="30"  cy="20" r="2" fill="currentColor" opacity="0.4"/>
+                <circle cx="90"  cy="60" r="2.5" fill="currentColor" opacity="0.45"/>
+                <circle cx="160" cy="25" r="2" fill="currentColor" opacity="0.35"/>
+                <circle cx="160" cy="80" r="1.6" fill="currentColor" opacity="0.3"/>
+                <circle cx="230" cy="65" r="2.2" fill="currentColor" opacity="0.4"/>
+                <circle cx="290" cy="20" r="1.8" fill="currentColor" opacity="0.3"/>
+              </svg>
+              <div class="tw-row-top">
+                <span class="tw-idx">No. 08</span>
+                <span class="tw-flag tw-flag-soon">SOON · 未激活</span>
+              </div>
+              <div class="tw-title">集体潜意识</div>
+              <div class="tw-desc">挖掘群体共同隐藏的念头</div>
+            </div>
+          </div>
+
+          <!-- Interlude marker -->
+          <div class="htl-interlude htl-int-right"><span class="htl-int-text">tear · 撕裂</span><span class="htl-int-line"></span></div>
+
+          <!-- ⑨ 思维工坊 — blueprint grid -->
+          <div class="htl-item htl-item-9">
+            <div class="htl-node htl-node-soon"></div>
+            <div class="htl-stub">T+08</div>
+            <div class="htl-card tw-card tw-09" onclick="gaToast('思维工坊 即将上线')">
+              <div class="tw-grid-bg"></div>
+              <div class="tw-mark tw-mark-tl"></div>
+              <div class="tw-mark tw-mark-tr"></div>
+              <div class="tw-mark tw-mark-bl"></div>
+              <div class="tw-mark tw-mark-br"></div>
+              <div class="tw-row-top">
+                <span class="tw-idx">No. 09</span>
+                <span class="tw-flag tw-flag-soon">SOON · 未激活</span>
+              </div>
+              <div class="tw-title">思维工坊</div>
+              <div class="tw-desc">协作拼装，生成共识地图</div>
+              <div class="tw-coord">34.2°N&nbsp; 118.6°W</div>
+            </div>
+          </div>
+
+          <!-- ⑩ 台词盲盒 — film strip -->
+          <div class="htl-item htl-item-10">
+            <div class="htl-node htl-node-soon"></div>
+            <div class="htl-stub">T+09</div>
+            <div class="htl-card tw-card tw-10" onclick="gaToast('台词盲盒 即将上线')">
+              <div class="tw-sprockets">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <div class="tw-film-body">
+                <div class="tw-row-top">
+                  <span class="tw-idx">No. 10</span>
+                  <span class="tw-flag tw-flag-soon">SOON · 未激活</span>
+                </div>
+                <div class="tw-title">台词盲盒</div>
+                <div class="tw-desc">随机配角色，即兴完成对话</div>
+              </div>
+              <div class="tw-frame-num">FRAME&nbsp;0010</div>
+            </div>
+          </div>
+
+          <!-- Interlude marker -->
+          <div class="htl-interlude"><span class="htl-int-line"></span><span class="htl-int-text">loop · 闭环</span></div>
+
+          <!-- ⑪ 灵魂交换所 — mirrored split -->
+          <div class="htl-item htl-item-11">
+            <div class="htl-node htl-node-soon"></div>
+            <div class="htl-stub">T+10</div>
+            <div class="htl-card tw-card tw-11" onclick="gaToast('灵魂交换所 即将上线')">
+              <div class="tw-mirror-l"></div>
+              <div class="tw-mirror-r"></div>
+              <div class="tw-mirror-div"></div>
+              <div class="tw-row-top">
+                <span class="tw-idx">No. 11</span>
+                <span class="tw-flag tw-flag-soon">SOON · 未激活</span>
+              </div>
+              <div class="tw-title">灵魂交换所</div>
+              <div class="tw-desc">对换身份，用对方的视角说一句话</div>
+              <div class="tw-mirror-word">SWAP&nbsp;·&nbsp;PAWS</div>
+            </div>
+          </div>
+
+          <div class="htl-end-mark"><span>END&nbsp;OF&nbsp;LINE</span></div>
+
+        </div><!-- /hub-timeline -->
+      </div><!-- /hub-scroll-body -->
+
+    </div>
+
+    <!-- ============================================================
+         VIEW 2 — Anonymous Q&A detail (built later; not the focus now)
+    ============================================================ -->
+    <div class="ga-view ga-view-anon" id="viewAnon">
+
+      <!-- Stats strip -->
+      <div class="stats-strip">
+        <div class="stat-cell">
+          <div class="stat-num" id="statTotal">0</div>
+          <div class="stat-lbl">QUESTIONS</div>
+        </div>
+        <div class="stat-div"></div>
+        <div class="stat-cell">
+          <div class="stat-num" id="statAnswered">0</div>
+          <div class="stat-lbl">ANSWERED</div>
+        </div>
+        <div class="stat-div"></div>
+        <div class="stat-cell">
+          <div class="stat-num" id="statPending">0</div>
+          <div class="stat-lbl">PENDING</div>
+        </div>
+      </div>
+
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <div class="tab-track">
+          <div class="tab active" id="tab-all" onclick="switchTab('all')">
+            <span class="tab-label">ALL</span>
+          </div>
+          <div class="tab" id="tab-pending" onclick="switchTab('pending')">
+            <span class="tab-label">PENDING</span>
+          </div>
+          <div class="tab" id="tab-answered" onclick="switchTab('answered')">
+            <span class="tab-label">ANSWERED</span>
+          </div>
+          <div class="tab-indicator" id="tabIndicator"></div>
+        </div>
+      </div>
+
+      <!-- Question feed -->
+      <div class="qa-body" id="qaBody">
+        <!-- Constellation spine running behind cards -->
+        <svg class="fracture-svg" viewBox="0 0 380 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <line x1="28" y1="0" x2="28" y2="800" stroke-width="0.5" class="fr-line"/>
+          <line x1="28" y1="60"  x2="58" y2="54"  stroke-width="0.5" class="fr-line"/>
+          <line x1="28" y1="200" x2="55" y2="194" stroke-width="0.5" class="fr-line"/>
+          <line x1="28" y1="340" x2="60" y2="333" stroke-width="0.5" class="fr-line"/>
+          <line x1="28" y1="480" x2="56" y2="474" stroke-width="0.5" class="fr-line"/>
+          <line x1="28" y1="620" x2="58" y2="614" stroke-width="0.5" class="fr-line"/>
+          <line x1="220" y1="0"  x2="380" y2="100" stroke-width="0.4" class="fr-line" stroke-dasharray="1 8"/>
+          <line x1="280" y1="0"  x2="380" y2="60"  stroke-width="0.3" class="fr-line" stroke-dasharray="1 10"/>
+          <circle cx="28" cy="60"  r="2.2" class="fr-node"/>
+          <circle cx="28" cy="200" r="2"   class="fr-node"/>
+          <circle cx="28" cy="340" r="2.2" class="fr-node"/>
+          <circle cx="28" cy="480" r="2"   class="fr-node"/>
+          <circle cx="28" cy="620" r="1.8" class="fr-node"/>
+          <circle cx="310" cy="45"  r="1.2" class="fr-star"/>
+          <circle cx="355" cy="130" r="0.9" class="fr-star"/>
+          <circle cx="330" cy="260" r="1.1" class="fr-star"/>
+          <circle cx="345" cy="420" r="0.8" class="fr-star"/>
+          <circle cx="300" cy="560" r="1"   class="fr-star"/>
+        </svg>
+        <div id="qaList" class="qa-fracture-field"></div>
+      </div>
+
+      <!-- Ask bar -->
+      <div class="ask-wrap">
+        <div class="ask-deco-top"></div>
+
+        <!-- Mode picker: Self vs AI -->
+        <div class="ask-mode-row" id="askModeRow">
+          <div class="ask-mode-btn active" id="modeManual" onclick="setAskMode('manual')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>自己提问</span>
+          </div>
+          <div class="ask-mode-div"></div>
+          <div class="ask-mode-btn" id="modeAI" onclick="setAskMode('ai')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+            <span>AI 生成</span>
+          </div>
+        </div>
+
+        <!-- Anonymity toggle -->
+        <div class="anon-toggle-row">
+          <div class="anon-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <span class="anon-label">ANONYMOUS MODE</span>
+          <div class="toggle-switch" id="anonToggle" onclick="toggleAnon()" role="switch" aria-checked="true">
+            <div class="toggle-thumb" id="toggleThumb"></div>
+          </div>
+        </div>
+
+        <!-- Input row -->
+        <div class="ask-row" id="askRow">
+          <div class="ask-mask-indicator" id="askMaskIndicator">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 20c0-4 2.7-6 6-6s6 2 6 6"/><line x1="2" y1="2" x2="22" y2="22" stroke-width="1.6" opacity="0.6"/></svg>
+          </div>
+          <input
+            class="ask-field"
+            id="askField"
+            type="text"
+            placeholder="提问..."
+            oninput="onAskInput(this)"
+            onkeydown="onAskKeydown(event)"
+            autocomplete="off"
+            maxlength="200"
+          />
+          <div class="ask-char-count" id="askCharCount">200</div>
+          <div class="ask-send-btn" id="askSendBtn" onclick="submitQuestion()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#eee" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>
+          </div>
+        </div>
+
+        <!-- AI mode row -->
+        <div class="ai-gen-row" id="aiGenRow" style="display:none;">
+          <div class="ai-gen-topic-wrap">
+            <input class="ai-gen-topic" id="aiTopic" type="text" placeholder="主题方向（可选）..." autocomplete="off" maxlength="50"/>
+          </div>
+          <div class="ai-gen-btn" id="aiGenBtn" onclick="aiGenerateQuestion()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>生成问题</span>
+          </div>
+        </div>
+
+        <div class="ask-hint" id="askHint">YOUR IDENTITY IS HIDDEN FROM ALL MEMBERS</div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         VIEW 3 — Member Ask You (成员提问用户)
+    ============================================================ -->
+    <div class="ga-view ga-view-maq" id="viewMaq">
+
+      <!-- Stats strip -->
+      <div class="stats-strip">
+        <div class="stat-cell">
+          <div class="stat-num" id="maqStatTotal">0</div>
+          <div class="stat-lbl">QUESTIONS</div>
+        </div>
+        <div class="stat-div"></div>
+        <div class="stat-cell">
+          <div class="stat-num" id="maqStatDone">0</div>
+          <div class="stat-lbl">ANSWERED</div>
+        </div>
+        <div class="stat-div"></div>
+        <div class="stat-cell">
+          <div class="stat-num" id="maqStatPending">0</div>
+          <div class="stat-lbl">PENDING</div>
+        </div>
+      </div>
+
+      <!-- Question feed: questions sent TO the user -->
+      <div class="qa-body" id="maqBody">
+        <svg class="fracture-svg" viewBox="0 0 380 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <line x1="28" y1="0" x2="28" y2="800" stroke-width="0.5" class="fr-line"/>
+          <line x1="28" y1="60"  x2="58" y2="54"  stroke-width="0.5" class="fr-line"/>
+          <line x1="28" y1="200" x2="55" y2="194" stroke-width="0.5" class="fr-line"/>
+          <line x1="28" y1="340" x2="60" y2="333" stroke-width="0.5" class="fr-line"/>
+          <line x1="28" y1="480" x2="56" y2="474" stroke-width="0.5" class="fr-line"/>
+          <line x1="220" y1="0"  x2="380" y2="100" stroke-width="0.4" class="fr-line" stroke-dasharray="1 8"/>
+          <circle cx="28" cy="60"  r="2.2" class="fr-node"/>
+          <circle cx="28" cy="200" r="2"   class="fr-node"/>
+          <circle cx="28" cy="340" r="2.2" class="fr-node"/>
+          <circle cx="28" cy="480" r="2"   class="fr-node"/>
+          <circle cx="310" cy="45"  r="1.2" class="fr-star"/>
+          <circle cx="345" cy="220" r="0.9" class="fr-star"/>
+          <circle cx="330" cy="400" r="1"   class="fr-star"/>
+        </svg>
+        <div id="maqList" class="qa-fracture-field"></div>
+      </div>
+
+      <!-- Bottom bar: generate a new question from a member -->
+      <div class="ask-wrap">
+        <div class="ask-deco-top"></div>
+
+        <!-- Anonymity toggle for user's answer -->
+        <div class="anon-toggle-row">
+          <div class="anon-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><line x1="2" y1="2" x2="22" y2="22" stroke-width="1.6" opacity="0.6"/></svg>
+          </div>
+          <span class="anon-label">回答匿名展示</span>
+          <div class="toggle-switch" id="maqAnonToggle" onclick="toggleMaqAnon()" role="switch" aria-checked="true">
+            <div class="toggle-thumb" id="maqToggleThumb"></div>
+          </div>
+        </div>
+
+        <!-- Generate question button -->
+        <div class="maq-gen-wrap">
+          <div class="maq-gen-btn" id="maqGenBtn" onclick="generateMaqQuestion()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>让成员向我提问</span>
+          </div>
+        </div>
+
+        <div class="ask-hint">成员提问后 · 作答可匿名或公开</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     OVERLAY SYSTEM
+============================================================ -->
+
+<!-- Info sheet overlay -->
+<div class="sheet-overlay" id="sheetOverlay" onclick="hideInfo()"></div>
+<div class="info-sheet" id="infoSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="sheetTitle">群互动 说明</div>
+  <div class="sheet-rule" id="sheetHubRules">
+    <div class="sheet-rule-num">01</div>
+    <div class="sheet-rule-text">「群互动」汇集群内所有互动玩法，点击模块卡片即可进入。</div>
+  </div>
+  <div class="sheet-rule" id="sheetHubRules2">
+    <div class="sheet-rule-num">02</div>
+    <div class="sheet-rule-text">已上线「匿名问答」和「成员提问」两个模块，另有9个功能即将开放。</div>
+  </div>
+  <!-- 匿名问答 rules -->
+  <div class="sheet-rule sheet-rule-anon" data-anon-only>
+    <div class="sheet-rule-num">01</div>
+    <div class="sheet-rule-text">所有提问均匿名发出，群内任何人（包括管理员）无法查看提问者身份。</div>
+  </div>
+  <div class="sheet-rule sheet-rule-anon" data-anon-only>
+    <div class="sheet-rule-num">02</div>
+    <div class="sheet-rule-text">问题发布后，群内所有成员将依次 AI 作答，回答者身份隐藏。</div>
+  </div>
+  <div class="sheet-rule sheet-rule-anon" data-anon-only>
+    <div class="sheet-rule-num">03</div>
+    <div class="sheet-rule-text">点击答案卡片，猜测是哪位成员的回答，对/错均有专属回应。</div>
+  </div>
+  <div class="sheet-rule sheet-rule-anon" data-anon-only>
+    <div class="sheet-rule-num">04</div>
+    <div class="sheet-rule-text">涉及不当内容的问题将被自动屏蔽，请文明提问。</div>
+  </div>
+  <!-- 成员提问 rules -->
+  <div class="sheet-rule sheet-rule-maq" data-maq-only>
+    <div class="sheet-rule-num">01</div>
+    <div class="sheet-rule-text">点击「让成员向我提问」，系统将由某位成员 AI 生成一个专属于你的问题。</div>
+  </div>
+  <div class="sheet-rule sheet-rule-maq" data-maq-only>
+    <div class="sheet-rule-num">02</div>
+    <div class="sheet-rule-text">你可以选择匿名或实名回答。匿名模式下，其他成员将猜测这是谁的回答。</div>
+  </div>
+  <div class="sheet-rule sheet-rule-maq" data-maq-only>
+    <div class="sheet-rule-num">03</div>
+    <div class="sheet-rule-text">回答完成后，每位成员将生成两个内容：「对你答案的看法」和「TA 心中理想答案」。</div>
+  </div>
+  <div class="sheet-rule sheet-rule-maq" data-maq-only>
+    <div class="sheet-rule-num">04</div>
+    <div class="sheet-rule-text">匿名模式：用户可猜自己是哪位成员；实名模式：成员直接展示对你的评价。</div>
+  </div>
+  <div class="sheet-close" onclick="hideInfo()">CLOSE</div>
+</div>
+
+<!-- ============================================================
+     GAME OVERLAY: answers reveal phase
+============================================================ -->
+<div class="game-overlay" id="gameOverlay">
+  <!-- Phase 1: collecting answers (loading) -->
+  <div class="game-phase" id="phaseCollecting">
+    <div class="game-phase-close" onclick="closeGameOverlay()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      取消
+    </div>
+    <div class="game-phase-inner">
+      <div class="game-collect-icon">
+        <div class="gcol-ring"></div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+      <div class="game-collect-title">群成员正在作答</div>
+      <div class="game-collect-sub" id="collectingSub">请稍候，所有成员的回答正在收集中…</div>
+      <div class="game-collect-members" id="collectingMembers"></div>
+    </div>
+  </div>
+
+  <!-- Phase 2: answers displayed, guess who -->
+  <div class="game-phase hidden" id="phaseGuess">
+    <div class="game-guess-header">
+      <div class="game-phase-close" onclick="closeGameOverlay()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        关闭
+      </div>
+      <div class="game-guess-q" id="guessQ"></div>
+      <div class="game-guess-sub">猜猜看，这是谁的回答？</div>
+    </div>
+    <div class="game-guess-cards" id="guessCards"></div>
+    <div class="game-guess-hint">点击任意答案卡片开始猜测</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     GUESS MODAL: pick a member
+============================================================ -->
+<div class="guess-modal-overlay" id="guessModalOverlay"></div>
+<div class="guess-modal" id="guessModal">
+  <div class="gm-header">
+    <div class="gm-title">这是谁的回答？</div>
+    <div class="gm-answer-preview" id="gmAnswerPreview"></div>
+  </div>
+  <div class="gm-members" id="gmMembers"></div>
+  <div class="gm-close" onclick="closeGuessModal()">取消</div>
+</div>
+
+<!-- ============================================================
+     REVEAL MODAL: result + monologue
+============================================================ -->
+<div class="reveal-overlay" id="revealOverlay"></div>
+<div class="reveal-modal" id="revealModal">
+  <div class="rv-result-badge" id="rvBadge"></div>
+  <div class="rv-portrait" id="rvPortrait"></div>
+  <div class="rv-name" id="rvName"></div>
+  <div class="rv-result-text" id="rvResultText"></div>
+  <div class="rv-tabs">
+    <div class="rv-tab active" id="rvTabResponse" onclick="switchRvTab('response')">TA 的回应</div>
+    <div class="rv-tab" id="rvTabMonologue" onclick="switchRvTab('monologue')">内心独白</div>
+  </div>
+  <div class="rv-content-area">
+    <div class="rv-panel" id="rvPanelResponse">
+      <div class="rv-loading" id="rvLoadingResponse">
+        <div class="rv-dots"><div></div><div></div><div></div></div>
+        <span>生成中…</span>
+      </div>
+      <div class="rv-text" id="rvTextResponse"></div>
+    </div>
+    <div class="rv-panel hidden" id="rvPanelMonologue">
+      <div class="rv-loading" id="rvLoadingMonologue">
+        <div class="rv-dots"><div></div><div></div><div></div></div>
+        <span>生成中…</span>
+      </div>
+      <div class="rv-text" id="rvTextMonologue"></div>
+    </div>
+  </div>
+  <div class="rv-close" onclick="closeRevealModal()">继续猜 →</div>
+</div>
+
+<!-- Toast -->
+<div class="ga-toast" id="gaToast"></div>
+
+<!-- ============================================================
+     MAQ: Question preview overlay — user sees the question + discussion
+============================================================ -->
+<div class="maq-qview-overlay" id="maqQviewOverlay" onclick="closeMaqQview()"></div>
+<div class="maq-qview-sheet" id="maqQviewSheet">
+  <div class="sheet-handle"></div>
+  <!-- Asker info -->
+  <div class="maqq-asker-row">
+    <div class="maqq-asker-av" id="maqAskerAv"></div>
+    <div class="maqq-asker-info">
+      <div class="maqq-asker-name" id="maqAskerName"></div>
+      <div class="maqq-asker-sub">向你发起提问</div>
+    </div>
+    <div class="maqq-asker-badge">GROUP CHAT</div>
+  </div>
+  <!-- Question text -->
+  <div class="maqq-question-box" id="maqQviewQuestion"></div>
+  <!-- Discussion toggle: "看看他们在讨论什么" -->
+  <div class="maqq-discuss-btn" id="maqDiscussBtn" onclick="loadMaqDiscussion()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v4l-4-4H9a2 2 0 0 1-2-2v-1"/><path d="M15 3H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2v4l4-4h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
+    <span>看看成员在讨论什么</span>
+  </div>
+  <!-- Discussion bubble stream -->
+  <div class="maqq-discuss-area" id="maqDiscussArea" style="display:none;">
+    <div class="maqq-discuss-stream" id="maqDiscussStream"></div>
+  </div>
+  <!-- Answer this question -->
+  <div class="maqq-answer-btn" id="maqAnswerBtn" onclick="openMaqAnswer()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    <span>回答这个问题</span>
+  </div>
+  <div class="maqq-close-btn" onclick="closeMaqQview()">关闭</div>
+</div>
+
+<!-- ============================================================
+     MAQ: Answer input sheet
+============================================================ -->
+<div class="maq-answer-overlay" id="maqAnswerOverlay" onclick="closeMaqAnswerSheet()"></div>
+<div class="maq-answer-sheet" id="maqAnswerSheet">
+  <div class="sheet-handle"></div>
+  <div class="maq-ans-header">
+    <div class="maq-ans-title">你的回答</div>
+    <div class="maq-ans-q-preview" id="maqAnsQPreview"></div>
+  </div>
+  <!-- Anon toggle inside answer sheet -->
+  <div class="anon-toggle-row" style="margin-bottom:12px;">
+    <div class="anon-icon">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><line x1="2" y1="2" x2="22" y2="22" stroke-width="1.6" opacity="0.6"/></svg>
+    </div>
+    <span class="anon-label">匿名显示我的回答</span>
+    <div class="toggle-switch" id="maqAnsAnonToggle" onclick="toggleMaqAnsAnon()" role="switch" aria-checked="true">
+      <div class="toggle-thumb" id="maqAnsToggleThumb"></div>
+    </div>
+  </div>
+  <textarea
+    class="maq-ans-textarea"
+    id="maqAnsTextarea"
+    placeholder="写下你的回答…"
+    maxlength="300"
+    oninput="onMaqAnsInput(this)"
+  ></textarea>
+  <div class="maq-ans-meta">
+    <span class="maq-ans-char" id="maqAnsChar">300</span>
+    <div class="maq-ans-hint" id="maqAnsHint">匿名 · 你的名字对成员不可见</div>
+  </div>
+  <div class="maq-ans-submit" id="maqAnsSubmit" onclick="submitMaqAnswer()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>
+    <span>提交回答</span>
+  </div>
+  <div class="maqq-close-btn" onclick="closeMaqAnswerSheet()">取消</div>
+</div>
+
+<!-- ============================================================
+     MAQ: Reactions sheet — each member's reaction to user answer
+     (split: "看法" + "理想答案", 一起生成但分开显示)
+============================================================ -->
+<div class="maq-react-overlay" id="maqReactOverlay"></div>
+<div class="maq-react-sheet" id="maqReactSheet">
+  <div class="sheet-handle"></div>
+  <div class="maq-react-header">
+    <div class="maq-react-title">成员反应</div>
+    <div class="maq-react-sub" id="maqReactSub">你的回答揭晓后，每个人都有话说</div>
+  </div>
+  <!-- Anon guess banner (shown when user answered anonymously) -->
+  <div class="maq-anon-banner" id="maqAnonBanner" style="display:none;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+    <span>你匿名作答 · 你的名字对成员不可见</span>
+  </div>
+  <!-- Per-member reaction cards -->
+  <div class="maq-react-list" id="maqReactList"></div>
+  <!-- Anon identity guess section -->
+  <div class="maq-guess-section" id="maqGuessSection" style="display:none;">
+    <div class="maq-guess-title">成员们猜你是谁</div>
+    <div class="maq-guess-chips" id="maqGuessChips"></div>
+    <div class="maq-reveal-self-btn" id="maqRevealSelfBtn" onclick="revealSelfIdentity()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span>公开我的身份</span>
+    </div>
+  </div>
+  <div class="maq-react-close" onclick="closeMaqReactSheet()">关闭</div>
+</div>
+
+<!-- MAQ: identity reveal result -->
+<div class="maq-reveal-overlay" id="maqRevealOverlay"></div>
+<div class="maq-reveal-modal" id="maqRevealModal">
+  <div class="maqrv-icon">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+  </div>
+  <div class="maqrv-title">身份已揭晓</div>
+  <div class="maqrv-text" id="maqRvText"></div>
+  <div class="maqrv-reactions" id="maqRvReactions"></div>
+  <div class="maq-react-close" onclick="closeMaqRevealModal()">好的</div>
+</div>
+
+<script src="groupanon.js"></script>
+</body>
+</html>
