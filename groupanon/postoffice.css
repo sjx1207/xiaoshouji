@@ -1,0 +1,438 @@
+/* ================================
+   时空邮局 · postoffice.css
+   复用群互动色彩体系：黑白灰 + 冷紫灰点缀，禁止emoji/米色
+================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:        #0a0a0a;
+  --ink-soft:   #2c2c2e;
+  --gray-700:   #595a5c;
+  --gray-500:   #8d8e90;
+  --gray-300:   #c7c7ca;
+  --gray-150:   #e6e6e8;
+  --gray-100:   #f1f1f3;
+  --paper:      #ffffff;
+  --paper-warm: #fafafa;
+  --lilac:      #9a93ac;
+  --lilac-soft: #c9c4d6;
+  --lilac-line: #b8b2c8;
+  --font-ui:    'Space Grotesk', -apple-system, sans-serif;
+  --font-mono:  'DM Mono', monospace;
+  --font-disp:  'Syne', sans-serif;
+  --font-serif: 'Noto Serif SC', serif;
+}
+
+body {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background: #ffffff;
+  font-family: var(--font-ui);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* ================================
+   Outer frame
+================================ */
+.po-wrap { width: 100vw; height: 100vh; overflow: hidden; }
+.po-frame {
+  width: 100vw; height: 100vh;
+  background: radial-gradient(120% 60% at 50% 0%, #fbfbfc 0%, #ffffff 55%), #ffffff;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  position: relative;
+  animation: poFadeIn 0.3s cubic-bezier(0.4,0,0.2,1) both;
+}
+@keyframes poFadeIn {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ================================
+   Status bar (1:1 复刻 群互动)
+================================ */
+.status-bar {
+  position: relative; top: 0; left: 0; right: 0;
+  height: 52px;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 0 22px 6px;
+  z-index: 20;
+  flex-shrink: 0;
+}
+.status-time { font-size: 15px; font-weight: 600; color: #0a0a0a; letter-spacing: 0.2px; font-family: var(--font-mono); }
+.status-island {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 8px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; z-index: 21;
+}
+.status-right { display: flex; align-items: center; gap: 7px; }
+.signal { display: flex; align-items: flex-end; gap: 2px; height: 13px; }
+.signal i { display: block; width: 2.5px; border-radius: 1px; background: #0a0a0a; opacity: 0.55; }
+.signal i:nth-child(1) { height: 4px; }
+.signal i:nth-child(2) { height: 7px; }
+.signal i:nth-child(3) { height: 10px; }
+.signal i:nth-child(4) { height: 13px; }
+.battery { display: flex; align-items: center; gap: 3px; }
+.bat-pct { font-size: 11px; font-weight: 600; color: #0a0a0a; opacity: 0.55; font-family: var(--font-mono); }
+.bat-shell { width: 24px; height: 12px; border-radius: 3px; border: 1.5px solid rgba(10,10,10,0.22); position: relative; overflow: hidden; }
+.bat-inner { position: absolute; left: 1px; top: 1px; bottom: 1px; width: 70%; border-radius: 1.5px; background: linear-gradient(90deg, #6ee7b7, #34d399); transition: width 0.4s; }
+.bat-nub { position: absolute; right: -4px; top: 50%; transform: translateY(-50%); width: 3px; height: 6px; border-radius: 0 2px 2px 0; background: rgba(10,10,10,0.2); }
+
+/* ================================
+   Header (1:1 复刻 群互动)
+================================ */
+.po-header { background: transparent; flex-shrink: 0; padding: 6px 20px 0; position: relative; }
+.h-deco-top { height: 1px; background: linear-gradient(90deg, transparent, var(--gray-300) 30%, var(--gray-300) 70%, transparent); margin-bottom: 10px; }
+.h-corner-deco2 { position: absolute; left: 18px; top: 6px; width: 18px; height: 18px; border-top: 0.5px solid var(--gray-300); border-left: 0.5px solid var(--gray-300); border-radius: 4px 0 0 0; }
+.h-corner-deco  { position: absolute; right: 18px; top: 6px; width: 18px; height: 18px; border-top: 0.5px solid var(--gray-300); border-right: 0.5px solid var(--gray-300); border-radius: 0 4px 0 0; }
+.h-inner { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; }
+.h-left { color: var(--gray-500); cursor: pointer; display: flex; align-items: center; flex-shrink: 0; transition: transform 0.18s; }
+.h-left:active { transform: translateX(-2px); }
+.header-title-block { flex: 1; min-width: 0; }
+.header-eyebrow { font-size: 9px; letter-spacing: 2.5px; color: var(--lilac); font-family: var(--font-mono); text-transform: uppercase; margin-bottom: 3px; }
+.header-title { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: 0.2px; display: flex; align-items: center; gap: 8px; font-family: var(--font-disp); white-space: nowrap; }
+.header-badge { font-size: 8px; letter-spacing: 2px; color: var(--gray-500); border: 0.5px solid var(--gray-300); border-radius: 3px; padding: 1px 6px; font-weight: 500; font-family: var(--font-mono); background: linear-gradient(180deg, #ffffff, var(--gray-100)); }
+.h-actions { display: flex; gap: 12px; align-items: center; flex-shrink: 0; }
+.h-action-btn { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 0.5px solid var(--gray-150); background: var(--paper-warm); transition: transform 0.15s, background 0.15s; }
+.h-action-btn:active { transform: scale(0.92); background: var(--gray-100); }
+.h-deco-line { height: 0.5px; background: linear-gradient(90deg, transparent, var(--gray-150), transparent); }
+
+/* ================================
+   View switching
+================================ */
+.po-view { display: none; flex: 1; min-height: 0; flex-direction: column; position: relative; overflow: hidden; }
+.po-view.active { display: flex; animation: poViewIn 0.32s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes poViewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ================================
+   HALL — 邮局大厅
+================================ */
+.hall-bg-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+.hall-signboard {
+  position: relative; z-index: 1;
+  padding: 10px 22px 16px;
+  flex-shrink: 0;
+}
+.hall-sign-top { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.hall-sign-tag { font-size: 8.5px; letter-spacing: 2.5px; font-family: var(--font-mono); color: var(--gray-500); }
+.hall-sign-tag-r { color: var(--lilac); }
+.hall-sign-title { font-family: var(--font-disp); font-size: 30px; font-weight: 700; color: var(--ink); letter-spacing: 1px; line-height: 1.1; }
+.hall-sign-sub { font-size: 11.5px; color: var(--gray-700); margin-top: 6px; font-family: var(--font-serif); letter-spacing: 0.3px; }
+.hall-sign-rule { height: 1px; margin-top: 14px; background: linear-gradient(90deg, var(--ink) 0%, var(--gray-300) 40%, transparent 100%); }
+
+.hall-scroll-body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 22px 40px; position: relative; z-index: 1; -webkit-overflow-scrolling: touch; }
+.hall-scroll-body::-webkit-scrollbar { display: none; }
+
+.hall-section-label { display: flex; align-items: center; gap: 7px; font-size: 10px; letter-spacing: 2px; font-family: var(--font-mono); color: var(--gray-500); margin: 8px 0 12px; }
+.hsl-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--lilac); flex-shrink: 0; }
+.hsl-count { margin-left: auto; color: var(--gray-300); }
+
+/* 分类卡片网格 */
+.hall-cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hcat-card {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--gray-150);
+  border-radius: 14px;
+  padding: 16px 14px 14px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.22s cubic-bezier(0.16,1,0.3,1), border-color 0.22s, box-shadow 0.22s;
+}
+.hcat-card::before {
+  content: ''; position: absolute; top: -30%; right: -30%; width: 90px; height: 90px;
+  background: radial-gradient(circle, var(--lilac-soft) 0%, transparent 70%);
+  opacity: 0; transition: opacity 0.25s;
+}
+.hcat-card:active { transform: scale(0.96); }
+.hcat-card:hover { border-color: var(--lilac-line); box-shadow: 0 6px 18px -10px rgba(10,10,10,0.18); }
+.hcat-card:hover::before { opacity: 0.5; }
+.hcat-icon { color: var(--ink-soft); margin-bottom: 10px; }
+.hcat-title { font-family: var(--font-disp); font-size: 14.5px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+.hcat-desc { font-size: 10px; color: var(--gray-500); letter-spacing: 0.2px; }
+.hcat-tag { position: absolute; top: 12px; right: 12px; font-size: 8px; letter-spacing: 1.5px; font-family: var(--font-mono); color: var(--gray-300); }
+
+/* 档案柜 空态 */
+.hall-archive-empty { text-align: center; padding: 34px 10px; }
+.hae-stamp { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; border: 1px dashed var(--gray-300); color: var(--gray-300); margin-bottom: 12px; }
+.hae-title { font-size: 12.5px; font-weight: 600; color: var(--gray-700); font-family: var(--font-disp); }
+.hae-sub { font-size: 10.5px; color: var(--gray-500); margin-top: 6px; line-height: 1.6; }
+
+/* 档案柜 信件列表 */
+.hall-archive-list { display: flex; flex-direction: column; gap: 10px; }
+.harc-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--paper); border: 1px solid var(--gray-150); border-radius: 12px;
+  padding: 12px 14px; cursor: pointer;
+  transition: transform 0.18s, border-color 0.18s;
+  animation: harcIn 0.4s cubic-bezier(0.16,1,0.3,1) both;
+}
+.harc-item:active { transform: scale(0.97); }
+.harc-item:hover { border-color: var(--lilac-line); }
+@keyframes harcIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.harc-av { width: 34px; height: 34px; border-radius: 50%; background: var(--gray-100); border: 1px solid var(--gray-150); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--ink-soft); flex-shrink: 0; overflow: hidden; font-family: var(--font-disp); }
+.harc-av .av-img { width: 100%; height: 100%; object-fit: cover; }
+.harc-mid { flex: 1; min-width: 0; }
+.harc-name-row { display: flex; align-items: center; gap: 6px; }
+.harc-name { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.harc-cat-pill { font-size: 8px; letter-spacing: 1px; font-family: var(--font-mono); color: var(--lilac); border: 0.5px solid var(--lilac-line); border-radius: 3px; padding: 1px 5px; }
+.harc-preview { font-size: 10.5px; color: var(--gray-500); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.harc-time { font-size: 9px; color: var(--gray-300); font-family: var(--font-mono); flex-shrink: 0; }
+
+/* ================================
+   WALL — 邮箱墙
+================================ */
+.po-view-wall { padding: 0; }
+.wall-topbar { flex-shrink: 0; padding: 14px 22px 10px; display: flex; flex-direction: column; gap: 4px; }
+.wall-cat-chip { align-self: flex-start; font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: var(--paper); background: var(--ink); border-radius: 20px; padding: 5px 14px; }
+.wall-hint { font-size: 11px; color: var(--gray-500); font-family: var(--font-serif); }
+
+.wall-mailgrid-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 22px 40px; }
+.wall-mailgrid-scroll::-webkit-scrollbar { display: none; }
+.wall-mailgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+.wm-cell {
+  position: relative;
+  aspect-ratio: 1 / 1.05;
+  background: linear-gradient(155deg, #ffffff, var(--gray-100));
+  border: 1px solid var(--gray-150);
+  border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.16,1,0.3,1);
+  animation: wmCellIn 0.42s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes wmCellIn { from { opacity: 0; transform: translateY(10px) scale(0.94); } to { opacity: 1; transform: none; } }
+.wm-cell::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 7px, rgba(10,10,10,0.02) 7px, rgba(10,10,10,0.02) 8px); pointer-events: none; }
+.wm-cell:active { transform: scale(0.94); }
+.wm-num { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; color: var(--gray-300); position: absolute; top: 8px; left: 9px; }
+
+.wm-slot { width: 60%; height: 3px; background: var(--gray-300); border-radius: 2px; margin-bottom: 10px; }
+
+.wm-glow-target { box-shadow: 0 0 0 1px var(--lilac-line), 0 8px 22px -12px rgba(154,147,172,0.6); border-color: var(--lilac-line); }
+.wm-glow-target .wm-slot { background: var(--lilac); animation: wmSlotGlow 1.6s ease-in-out infinite; }
+@keyframes wmSlotGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(154,147,172,0.5);} 50% { box-shadow: 0 0 8px 2px rgba(154,147,172,0.5);} }
+
+.wm-done { opacity: 0.55; }
+.wm-done .wm-slot { background: var(--gray-300); }
+.wm-check { position: absolute; bottom: 8px; right: 9px; color: var(--gray-500); }
+
+.wm-flag {
+  position: absolute; bottom: 8px; left: 9px;
+  font-size: 7.5px; letter-spacing: 1px; font-family: var(--font-mono); color: var(--lilac);
+}
+
+.wall-footer-note { flex-shrink: 0; text-align: center; padding: 10px 0 18px; font-size: 8.5px; letter-spacing: 1.6px; font-family: var(--font-mono); color: var(--gray-300); }
+
+/* ================================
+   STAGE — 取信舞台
+================================ */
+.po-view-stage { padding: 0; }
+.stage-back-row { flex-shrink: 0; padding: 12px 22px 0; }
+.stage-back-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--gray-500); cursor: pointer; padding: 6px 4px; }
+.stage-back-btn:active { opacity: 0.6; }
+
+.stage-theatre { flex: 1; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; padding: 10px 22px 30px; overflow: hidden; }
+
+/* ---- 阶段0：邮箱 ---- */
+.stage-box-scene { display: flex; flex-direction: column; align-items: center; gap: 22px; animation: stageIn 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+.stage-box-scene.hidden, .stage-envelope-scene.hidden, .stage-letter-scene.hidden { display: none; }
+@keyframes stageIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
+
+.sbs-mailbox {
+  position: relative;
+  width: 150px; height: 190px;
+  background: linear-gradient(160deg, #1c1c1e, #0a0a0a);
+  border-radius: 18px 18px 26px 26px;
+  cursor: pointer;
+  box-shadow: 0 20px 40px -18px rgba(10,10,10,0.5);
+  animation: mailboxFloat 3.4s ease-in-out infinite;
+  transition: transform 0.2s;
+}
+.sbs-mailbox:active { transform: scale(0.95); }
+@keyframes mailboxFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.sbs-slot { position: absolute; top: 46px; left: 50%; transform: translateX(-50%); width: 78px; height: 8px; background: #000; border-radius: 4px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); }
+.sbs-plate {
+  position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.55);
+  border: 0.5px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 3px 10px; white-space: nowrap;
+}
+.sbs-glow { position: absolute; inset: -18px; border-radius: 34px; background: radial-gradient(circle, var(--lilac-soft) 0%, transparent 68%); opacity: 0.5; z-index: -1; animation: sbsGlowPulse 2.2s ease-in-out infinite; }
+@keyframes sbsGlowPulse { 0%,100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.08); } }
+.sbs-caption { font-size: 11px; color: var(--gray-500); font-family: var(--font-serif); letter-spacing: 0.3px; }
+
+/* ---- 阶段1：信封抽出 ---- */
+.stage-envelope-scene { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+.env-card {
+  position: relative; width: 250px; height: 168px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  animation: envAppear 0.6s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes envAppear {
+  0%   { opacity: 0; transform: translateY(60px) scale(0.7) rotate(-4deg); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+.env-card:active .env-body { transform: scale(0.97); }
+
+.env-body {
+  position: absolute; inset: 0;
+  background: linear-gradient(160deg, #ffffff, var(--gray-100));
+  border: 1px solid var(--gray-150);
+  border-radius: 10px;
+  box-shadow: 0 18px 36px -16px rgba(10,10,10,0.28);
+  padding: 16px 18px;
+  transition: transform 0.2s;
+}
+.env-flap {
+  position: absolute; top: -1px; left: -1px; right: -1px; height: 88px;
+  background: linear-gradient(160deg, var(--gray-150), var(--gray-100));
+  clip-path: polygon(0 0, 100% 0, 50% 76%);
+  border-radius: 10px 10px 0 0;
+  border-bottom: 1px solid var(--gray-300);
+  z-index: 2;
+}
+.env-postmark { position: absolute; top: 14px; right: 16px; width: 46px; height: 46px; z-index: 3; }
+.env-postmark-ring { position: absolute; inset: 0; border: 1.4px solid var(--lilac); border-radius: 50%; opacity: 0.7; }
+.env-postmark-ring::before { content: ''; position: absolute; inset: 4px; border: 0.6px dashed var(--lilac-line); border-radius: 50%; }
+.env-postmark-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; font-family: var(--font-mono); font-size: 6.5px; letter-spacing: 0.5px; color: var(--lilac); line-height: 1.3; padding: 4px; }
+.env-stamp { position: absolute; top: 12px; left: 16px; width: 30px; height: 38px; border: 1px dashed var(--gray-300); background: var(--paper); z-index: 3; }
+.env-addr-line { position: relative; z-index: 1; font-family: var(--font-serif); color: var(--ink-soft); }
+.env-addr-1 { margin-top: 96px; font-size: 13px; font-weight: 600; }
+.env-addr-2 { margin-top: 6px; font-size: 10px; color: var(--gray-500); }
+.env-par-avion { position: absolute; left: 18px; bottom: 12px; font-family: var(--font-mono); font-size: 8px; letter-spacing: 2px; color: var(--gray-300); }
+
+.env-caption { font-size: 11px; color: var(--gray-500); font-family: var(--font-serif); }
+
+/* 拆封动画：flap 掀起 + 信封轻震 */
+.env-card.opening .env-flap { animation: envFlapOpen 0.55s cubic-bezier(0.5,0,0.2,1) forwards; }
+@keyframes envFlapOpen {
+  0%   { clip-path: polygon(0 0, 100% 0, 50% 76%); }
+  100% { clip-path: polygon(0 0, 100% 0, 50% -40%); opacity: 0; }
+}
+.env-card.opening .env-body { animation: envShake 0.5s ease-in-out; }
+@keyframes envShake {
+  0%,100% { transform: translateX(0) rotate(0); }
+  20% { transform: translateX(-3px) rotate(-1deg); }
+  40% { transform: translateX(3px) rotate(1deg); }
+  60% { transform: translateX(-2px) rotate(-0.5deg); }
+  80% { transform: translateX(2px) rotate(0.5deg); }
+}
+
+/* ---- 阶段2：信纸展开 ---- */
+.stage-letter-scene { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 14px; padding-top: 4px; }
+
+.letter-paper {
+  position: relative;
+  width: 100%; max-width: 320px;
+  flex: 1; min-height: 0;
+  background:
+    repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(10,10,10,0.035) 27px, rgba(10,10,10,0.035) 28px),
+    linear-gradient(180deg, #ffffff, var(--paper-warm));
+  border: 1px solid var(--gray-150);
+  border-radius: 4px;
+  box-shadow: 0 24px 50px -22px rgba(10,10,10,0.32);
+  overflow-y: auto;
+  transform-origin: top center;
+  animation: letterUnfold 0.7s cubic-bezier(0.16,1,0.3,1) both;
+}
+.letter-paper::-webkit-scrollbar { display: none; }
+@keyframes letterUnfold {
+  0%   { opacity: 0; transform: scaleY(0.18) translateY(-10px); }
+  55%  { opacity: 1; }
+  100% { opacity: 1; transform: scaleY(1) translateY(0); }
+}
+/* 折起收好 动画 */
+.letter-paper.folding { animation: letterFold 0.45s cubic-bezier(0.5,0,0.3,1) forwards; }
+@keyframes letterFold {
+  0%   { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(0.1) translateY(-14px); }
+}
+
+.lp-inner { padding: 26px 22px 30px; position: relative; }
+.lp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.lp-from-label { font-size: 8.5px; letter-spacing: 2px; font-family: var(--font-mono); color: var(--gray-300); }
+.lp-from-name { font-family: var(--font-disp); font-size: 18px; font-weight: 700; color: var(--ink); margin-top: 2px; }
+.lp-head-right { text-align: right; flex-shrink: 0; }
+.lp-timestamp { font-family: var(--font-mono); font-size: 9.5px; color: var(--gray-500); }
+.lp-cat-tag { margin-top: 5px; display: inline-block; font-size: 8px; letter-spacing: 1.5px; font-family: var(--font-mono); color: var(--lilac); border: 0.5px solid var(--lilac-line); border-radius: 3px; padding: 2px 6px; }
+.lp-rule { height: 1px; background: linear-gradient(90deg, var(--gray-300), transparent 85%); margin: 14px 0 18px; }
+
+.lp-loading { display: flex; align-items: center; gap: 10px; padding: 30px 0; color: var(--gray-500); font-size: 11.5px; font-family: var(--font-serif); }
+.lp-dots { display: flex; gap: 4px; }
+.lp-dots div { width: 5px; height: 5px; border-radius: 50%; background: var(--lilac); animation: lpDotBounce 1.1s ease-in-out infinite; }
+.lp-dots div:nth-child(2) { animation-delay: 0.15s; }
+.lp-dots div:nth-child(3) { animation-delay: 0.3s; }
+@keyframes lpDotBounce { 0%,60%,100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+.lp-body {
+  font-family: var(--font-serif);
+  font-size: 13.5px; line-height: 1.95;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  letter-spacing: 0.2px;
+}
+.lp-body p { margin-bottom: 14px; }
+
+.lp-sign {
+  margin-top: 26px;
+  text-align: right;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: var(--gray-700);
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.lp-fold-shadow { position: absolute; left: 0; right: 0; top: 33%; height: 40px; background: linear-gradient(180deg, transparent, rgba(10,10,10,0.03), transparent); pointer-events: none; }
+
+.letter-actions { flex-shrink: 0; display: flex; gap: 10px; padding-bottom: 6px; }
+.la-btn { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 9px 16px; border-radius: 20px; cursor: pointer; transition: transform 0.15s; }
+.la-btn:active { transform: scale(0.95); }
+.la-btn-fold { color: var(--gray-700); border: 1px solid var(--gray-300); background: var(--paper); }
+.la-btn-more { color: var(--paper); background: var(--ink); }
+
+/* ================================
+   Info sheet
+================================ */
+.po-sheet-overlay { position: fixed; inset: 0; background: rgba(10,10,10,0.35); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 60; }
+.po-sheet-overlay.open { opacity: 1; pointer-events: auto; }
+.po-info-sheet {
+  position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 100%);
+  width: 100%; max-width: 440px;
+  background: var(--paper); border-radius: 20px 20px 0 0;
+  padding: 10px 24px 28px;
+  z-index: 61; transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
+  box-shadow: 0 -20px 50px -20px rgba(10,10,10,0.3);
+}
+.po-info-sheet.open { transform: translate(-50%, 0); }
+.sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--gray-300); margin: 0 auto 18px; }
+.pis-title { font-family: var(--font-disp); font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+.pis-body p { font-size: 12px; color: var(--gray-700); line-height: 1.8; margin-bottom: 10px; }
+.pis-close { margin-top: 6px; text-align: center; font-size: 12px; font-weight: 600; color: var(--paper); background: var(--ink); border-radius: 20px; padding: 11px; cursor: pointer; }
+
+/* ================================
+   Toast
+================================ */
+.po-toast {
+  position: fixed; left: 50%; bottom: 34px; transform: translate(-50%, 16px);
+  background: var(--ink); color: var(--paper);
+  font-size: 11.5px; padding: 10px 18px; border-radius: 20px;
+  opacity: 0; pointer-events: none; transition: all 0.28s cubic-bezier(0.16,1,0.3,1);
+  z-index: 80; white-space: nowrap; font-family: var(--font-ui);
+}
+.po-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ================================
+   Responsive tightening for small screens
+================================ */
+@media (max-width: 360px) {
+  .hall-cat-grid { gap: 8px; }
+  .hcat-card { padding: 13px 11px 11px; }
+  .env-card { width: 220px; height: 150px; }
+}

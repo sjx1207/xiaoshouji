@@ -93,11 +93,115 @@ let _currentRvTab    = 'response';
    Fallback demo members (used when no real group data)
 ---------------------------------------------------------------- */
 const DEMO_MEMBERS = [
-  { id:'m1', name:'萧沐白', initial:'萧', avatar:null, role:'admin', bio:'冷峻、寡言，外表疏离实则内心细腻。' },
-  { id:'m2', name:'林清欢', initial:'林', avatar:null, role:'member', bio:'温柔体贴，习惯用玩笑话掩盖在意。' },
-  { id:'m3', name:'顾辞年', initial:'顾', avatar:null, role:'member', bio:'毒舌但护短，嘴硬心软的双子座。' },
-  { id:'m4', name:'白鹿鸣', initial:'白', avatar:null, role:'member', bio:'开朗活泼，藏不住情绪的透明人。' },
+  {
+    id:'m1', name:'萧沐白', initial:'萧', avatar:null, role:'admin',
+    bio:'冷峻、寡言，外表疏离实则内心细腻。是这个群的大哥，对弟弟妹妹们有保护欲但嘴上不说。',
+    relations: {
+      m2: { callName:'清欢', relationship:'青梅竹马，从小认识，心里有点特别但绝口不提' },
+      m3: { callName:'老三', relationship:'发小，互相看不顺眼但关键时刻都挺对方' },
+      m4: { callName:'小四', relationship:'最小的弟弟，暗中关照，表面淡漠' },
+    }
+  },
+  {
+    id:'m2', name:'林清欢', initial:'林', avatar:null, role:'member',
+    bio:'温柔体贴，习惯用玩笑话掩盖在意。在这个群里排行老二，最会察言观色。',
+    relations: {
+      m1: { callName:'沐白哥', relationship:'青梅竹马，从小认识，对他有说不清的情愫' },
+      m3: { callName:'辞年', relationship:'室友般的关系，什么都聊，但经常被他气到' },
+      m4: { callName:'鹿鸣', relationship:'像对小弟弟，看他开心就开心' },
+    }
+  },
+  {
+    id:'m3', name:'顾辞年', initial:'顾', avatar:null, role:'member',
+    bio:'毒舌但护短，嘴硬心软的双子座。排行老三，嘴上最刻薄，心里最义气。',
+    relations: {
+      m1: { callName:'大哥', relationship:'死党，明面上互怼，私下最能说心里话' },
+      m2: { callName:'二姐', relationship:'经常被她说教，但其实很信任她' },
+      m4: { callName:'小白', relationship:'时常欺负他，其实最怕他受委屈' },
+    }
+  },
+  {
+    id:'m4', name:'白鹿鸣', initial:'白', avatar:null, role:'member',
+    bio:'开朗活泼，藏不住情绪的透明人。群里最小，什么都写在脸上，傻白甜但心思比看起来细。',
+    relations: {
+      m1: { callName:'沐白哥', relationship:'最崇拜的人，一直想在他面前显得成熟一点' },
+      m2: { callName:'清欢姐', relationship:'最亲的姐姐，什么都跟她说' },
+      m3: { callName:'辞年哥', relationship:'表面上怕他，其实根本没在怕' },
+    }
+  },
 ];
+
+/* ----------------------------------------------------------------
+   Load user identity (persona) from IndexedDB LunaIdentityDB
+   Returns the active identity object, or null if none found.
+   Fields we care about: name, role, desc, tags, gender, avatarImg, avatarColor, bgImg
+---------------------------------------------------------------- */
+let _userIdentity = null;   // active user persona
+let _userGender   = null;   // 'female'|'male'|'other'|null  — derived from identity
+
+async function loadUserIdentity() {
+  try {
+    /* Probe LunaIdentityDB */
+    const db = await new Promise((res, rej) => {
+      const req = indexedDB.open('LunaIdentityDB');
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = () => rej(new Error('no db'));
+    });
+    if (!db.objectStoreNames.contains('identities')) { db.close(); return null; }
+    const list = await new Promise(res => {
+      const r = db.transaction('identities').objectStore('identities').getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror   = () => res([]);
+    });
+    db.close();
+    if (!list.length) return null;
+    /* Prefer the first active identity; fall back to first in list */
+    const active = list.find(i => i.active !== false) || list[0];
+    return active;
+  } catch(e) { return null; }
+}
+
+/* Derive pronoun / gender label from identity.
+   Heuristic: check gender field, desc, tags for clues.
+   Returns 'female' | 'male' | 'other' | null */
+function deriveGender(identity) {
+  if (!identity) return null;
+  const src = [
+    identity.gender || '',
+    identity.desc   || '',
+    (identity.tags  || []).join(' '),
+    identity.role   || '',
+  ].join(' ').toLowerCase();
+
+  if (/女|she|her|girl|lady/.test(src))  return 'female';
+  if (/男|he|him|boy|guy/.test(src))     return 'male';
+  return null;   // unknown → prompts will avoid hard-coded pronoun
+}
+
+/* Returns Chinese pronoun for AI prompts */
+function userPronoun() {
+  if (_userGender === 'female') return '她';
+  if (_userGender === 'male')   return '他';
+  return 'TA';   // gender-neutral
+}
+
+/* Returns the user's display name for AI prompts */
+function userDisplayName() {
+  return _userIdentity?.name || '群主';
+}
+
+/* Build a persona brief for the user (used in MAQ prompts so AI knows who is answering) */
+function buildUserBrief() {
+  if (!_userIdentity) return '群组的创建者，其他信息未知。';
+  const parts = [];
+  if (_userIdentity.role)  parts.push(_userIdentity.role);
+  if (_userIdentity.desc)  parts.push(_userIdentity.desc);
+  if (_userIdentity.tags && _userIdentity.tags.length) {
+    parts.push('标签：' + _userIdentity.tags.join('、'));
+  }
+  if (_userIdentity.gender) parts.push(_userIdentity.gender);
+  return parts.length ? parts.join('；') : '群组的创建者。';
+}
 
 /* ----------------------------------------------------------------
    Load group data from localStorage (written by groupchat.js)
@@ -147,6 +251,66 @@ function renderAvatar(member, sizeClass) {
     return `<img src="${escHtml(member.avatar)}" class="${sizeClass} av-img" alt="${escHtml(member.name)}" onerror="this.parentElement.innerHTML='${escHtml(member.initial||'?')}'" />`;
   }
   return escHtml(member ? (member.initial || '?') : '?');
+}
+
+/* ----------------------------------------------------------------
+   Cross-page navigation — seamless jump to standalone feature pages
+   (coaster.html / fortune.html / topicbomb.html / etc.)
+
+   Strategy:
+   1. preloadPage() — fired on hover/touchstart, *before* the click
+      actually happens. Warms the browser's HTTP cache for the target
+      page + its own .css/.js by requesting it in the background, so
+      by the time the user actually taps, the bytes are already local.
+   2. navigateToPage() — fired on click. Fades in a full-screen white
+      overlay over ~180ms (matches the target page's own fade-in),
+      then swaps location.href. Because step 1 already warmed the
+      cache, the new page paints almost immediately, so the overlay
+      reads as one continuous transition instead of a blank flash.
+---------------------------------------------------------------- */
+const _preloadedPages = new Set();
+
+function preloadPage(url) {
+  if (_preloadedPages.has(url)) return;
+  _preloadedPages.add(url);
+  try {
+    /* Warm the page itself */
+    const linkHtml = document.createElement('link');
+    linkHtml.rel = 'prefetch';
+    linkHtml.href = url;
+    linkHtml.as = 'document';
+    document.head.appendChild(linkHtml);
+
+    /* Also warm its sibling .css / .js, since every feature page
+       in this project follows the same name.html/.css/.js pattern */
+    const base = url.replace(/\.html?$/, '');
+    ['.css', '.js'].forEach(ext => {
+      const l = document.createElement('link');
+      l.rel = 'prefetch';
+      l.href = base + ext;
+      l.as = ext === '.css' ? 'style' : 'script';
+      document.head.appendChild(l);
+    });
+
+    /* Fallback for browsers that ignore <link rel=prefetch>: a plain
+       fetch still populates the HTTP cache in most cases. */
+    fetch(url, { mode: 'no-cors', priority: 'low' }).catch(() => {});
+  } catch (e) { /* prefetch is best-effort, never block on it */ }
+}
+
+function navigateToPage(url) {
+  preloadPage(url); /* in case click fires before hover/touchstart did */
+  const overlay = document.getElementById('pageTransition');
+  if (!overlay) { location.href = url; return; }
+
+  overlay.innerHTML = '<div class="pt-spinner"></div>';
+  overlay.classList.add('active');
+
+  /* Give the browser one paint frame to show the overlay, then jump.
+     220ms mirrors the .ga-frame entrance fade already used across
+     these pages, so the swap feels like a single motion rather than
+     "page A disappears, blank gap, page B appears". */
+  setTimeout(() => { location.href = url; }, 180);
 }
 
 /* ----------------------------------------------------------------
@@ -296,10 +460,12 @@ async function aiGenerateQuestion() {
 
   const memberNames = _groupMembers.map(m => m.name).join('、');
   const memberDesc  = _groupMembers.map(m => `${m.name}（${buildMemberBrief(m)}）`).join('；');
-  const prompt = `群成员有：${memberDesc}。
+  const userName    = userDisplayName();
+  const userBrief   = buildUserBrief();
+  const prompt = `群成员有：${memberDesc}。群主是「${userName}」（${userBrief}）。
 请想一个适合在群里匿名抛出来问大家的问题，目的是让${memberNames}各自答出来时风格差异明显、能看出性格区别。
 要求：
-- 问题要具体、有抓手，避免\"你怎么看XX\"这种泛泛的提法，最好能带出一个具体场景或选择
+- 问题要具体、有抓手，避免"你怎么看XX"这种泛泛的提法，最好能带出一个具体场景或选择
 - 不涉及隐私、敏感、攻击性话题
 - 口语化，像群里随手发的一句话，不要书面语，25字以内
 ${topic ? `- 围绕这个方向来想：${topic}` : '- 话题方向自定，日常、喜好、习惯、小毛病、人生态度都可以'}
@@ -1108,9 +1274,38 @@ function buildGroupCastLine(excludeId) {
     .join('、');
 }
 
+/**
+ * Build a relationship context block for a member扮演时的称呼+关系说明。
+ * 让 AI 扮演时知道"我该怎么称呼对方、我们什么关系"，避免称呼错乱。
+ */
+function buildRelationContext(member) {
+  const others = _groupMembers.filter(m => m.id !== member.id);
+  if (!others.length) return '';
+
+  const lines = others.map(other => {
+    /* relations 字段优先（支持 DEMO 或真实成员补充的关系） */
+    const rel = member.relations && member.relations[other.id];
+    if (rel) {
+      const callPart = rel.callName ? `叫TA「${rel.callName}」` : `叫TA「${other.name}」`;
+      const relPart  = rel.relationship ? `，${rel.relationship}` : '';
+      return `- 对「${other.name}」：${callPart}${relPart}`;
+    }
+    /* 没有关系数据时，至少告知名字 */
+    return `- 对「${other.name}」：直接叫「${other.name}」`;
+  });
+
+  return `\n【你和群内其他人的称呼与关系——说话时必须用这里的称呼，不能乱叫】\n${lines.join('\n')}`;
+}
+
 async function generateMemberAnswer(question, member) {
-  const brief    = buildMemberBrief(member);
-  const castLine = buildGroupCastLine(member.id);
+  const brief       = buildMemberBrief(member);
+  const castLine    = buildGroupCastLine(member.id);
+  const relationCtx = buildRelationContext(member);
+
+  /* User persona context — so members know who asked */
+  const userName  = userDisplayName();
+  const userBrief = buildUserBrief();
+  const pronoun   = userPronoun();
 
   const systemPrompt = `你正在扮演群聊成员「${member.name}」，绝对不能让人感觉是AI在说话。
 
@@ -1118,23 +1313,26 @@ async function generateMemberAnswer(question, member) {
 ${brief}
 
 【群里的其他成员】（你认识他们，说话风格跟他们都不一样）
-${castLine || '暂无其他成员'}
+${castLine || '暂无其他成员'}${relationCtx}
 
-【受众背景】
-这个群的主要用户是女生，她们对细腻的情感描写、生活场景感、有共鸣的小心思比较敏感，喜欢能让人会心一笑或者「哎这个我也这样」的回答。如果符合角色性格，可以带出一点细腻的情绪或生活感。
+【发问的群主是谁】
+群主叫「${userName}」。${userBrief}
+这道匿名问题就是${pronoun}发出来的。你在心里知道这一点，但回答时不必点破。
 
 【核心要求——必须做到】
 1. 用「${member.name}」这个具体的人会有的口吻说话：措辞、语气、节奏都要有辨识度，不能跟群里其他人雷同
-2. 有具体细节或场景，不要泛泛表态——\"我觉得还好\"这种废话不算回答
-3. 像在手机上随手打字：允许口头语、不完整句子、停顿感，但不要堆砌\"yyds\"\"绷不住\"等过度网络热词
+2. 有具体细节或场景，不要泛泛表态——"我觉得还好"这种废话不算回答
+3. 像在手机上随手打字：允许口头语、不完整句子、停顿感，但不要堆砌"yyds""绷不住"等过度网络热词
 4. 允许有立场和态度——可以敷衍、可以认真、可以反问、可以吐槽——只要符合这个人
+5. 如果回答中自然提到群内其他人，必须用上方「你和群内其他人的称呼」里注明的叫法，不能乱叫、不能颠倒辈分
 
 【严禁清单——一条都不能犯】
-- 禁止以\"作为一个XX\"\"我觉得这个问题很\"\"说实话\"开场
+- 禁止以"作为一个XX""我觉得这个问题很""说实话"开场
 - 禁止每段都升华或讲大道理
 - 禁止鸡汤式圆满收尾
-- 禁止出现\"AI\"\"模型\"\"程序\"等破坏沉浸感的词
+- 禁止出现"AI""模型""程序"等破坏沉浸感的词
 - 禁止语气和措辞跟群里其他成员雷同
+- 禁止用错称呼：叫法必须严格遵照上方关系说明，弟弟不能叫哥，晚辈不能反叫长辈名字
 
 字数：90–160字，要有具体例子或场景，不要空泛表态度。`;
 
@@ -1146,23 +1344,30 @@ async function generateMemberResponseToUser(q, ans, correct) {
   const member = _groupMembers.find(m => m.id === ans.memberId);
   if (!member) return '（无回应）';
 
-  const brief = buildMemberBrief(member);
-  const guessResult = correct === null ? '用户刚刚直接看到了你的答案，没有经过猜测环节'
-    : correct ? '用户一下就猜中了这是你的回答' : '用户猜了别人，没猜到这是你的回答';
+  const brief       = buildMemberBrief(member);
+  const relationCtx = buildRelationContext(member);
+  const userName    = userDisplayName();
+  const pronoun     = userPronoun();
+  const guessResult = correct === null
+    ? `「${userName}」刚刚直接看到了你的答案，没有经过猜测环节`
+    : correct
+      ? `「${userName}」一下就猜中了这是你的回答`
+      : `「${userName}」猜了别人，没猜到这是你的回答`;
 
   const systemPrompt = `你正在扮演群聊成员「${member.name}」，绝对不能让人感觉是AI在说话。
 
 【这个人是谁】
-${brief}
+${brief}${relationCtx}
 
 【场景】
-刚才匿名问答游戏里，你回答了一个问题，现在身份被揭晓了，对方知道刚才那条回答是你写的。${guessResult}。
+刚才匿名问答游戏里，你回答了一个问题，现在身份被揭晓了，「${userName}」知道刚才那条回答是你写的。${guessResult}。
 
 【核心要求】
 - 用「${member.name}」真实会有的反应说一句话：得意、心虚、无奈、调侃、装作无所谓——取决于TA的性格
 - 像私聊随口说一句，不是总结陈词，不是客套寒暄
 - 不升华不讲大道理，不堆砌网络热词，不油腻
-- 禁止出现\"AI\"\"模型\"\"程序\"
+- 如果提到其他群成员，必须用上方关系说明里的叫法
+- 禁止出现"AI""模型""程序"
 
 字数：50–100字。`;
 
@@ -1174,14 +1379,20 @@ async function generateMemberMonologue(q, ans, correct) {
   const member = _groupMembers.find(m => m.id === ans.memberId);
   if (!member) return '（无独白）';
 
-  const brief = buildMemberBrief(member);
-  const guessResult = correct === null ? '用户没有经过猜测，直接看到了答案是我的'
-    : correct ? '用户猜到了答案是我的' : '用户没猜到，以为这是别人的回答';
+  const brief       = buildMemberBrief(member);
+  const relationCtx = buildRelationContext(member);
+  const userName    = userDisplayName();
+  const pronoun     = userPronoun();
+  const guessResult = correct === null
+    ? `「${userName}」没有经过猜测，直接看到了答案是我的`
+    : correct
+      ? `「${userName}」猜到了答案是我的`
+      : `「${userName}」没猜到，以为这是别人的回答`;
 
   const systemPrompt = `你正在扮演群聊成员「${member.name}」，写一段只有TA自己能看到的内心独白。
 
 【这个人是谁】
-${brief}
+${brief}${relationCtx}
 
 【场景】
 刚才群里匿名问答，我用真心话回答了一个问题，现在身份被揭晓。${guessResult}。
@@ -1189,9 +1400,10 @@ ${brief}
 【核心要求】
 - 第一人称，没有过滤、没有顾虑的真实内心活动，可以跟刚才说出口的回答语气完全不一样
 - 体现「${member.name}」更深一层的心理：表里不一、犹豫、矛盾、自我吐槽、突然转折，要有真实的思维质感
-- 不要写成\"感慨人生\"的统一模板，不要鸡汤式收尾，结尾不必强行点题
+- 独白中如果提及其他群成员，称呼严格按上方关系说明
+- 不要写成"感慨人生"的统一模板，不要鸡汤式收尾，结尾不必强行点题
 - 直接写独白正文，不要加标题或引导语
-- 禁止出现\"AI\"\"模型\"\"程序\"
+- 禁止出现"AI""模型""程序"
 
 字数：100–170字。`;
 
@@ -1330,12 +1542,18 @@ async function generateMaqQuestion() {
 
   try {
     const memberDesc = _groupMembers.map(m => `${m.name}（${buildMemberBrief(m)}）`).join('；');
+    const userName   = userDisplayName();
+    const userBrief  = buildUserBrief();
+    const pronoun    = userPronoun();
+
     const prompt = `群成员有：${memberDesc}。
-请挑一位最适合「主动来问群主一个问题」的成员，模拟TA此刻发消息问群主一个问题。
+被提问的对象是群主「${userName}」，${pronoun}的基本情况：${userBrief}
+请挑一位最适合「主动来问「${userName}」一个问题」的成员，模拟TA此刻发消息问${pronoun}一个问题。
 要求：
 - 必须严格符合这个人的性格和说话风格——性格不同，问法截然不同：冷峻的人更直接简短，温柔的人更迂回，毒舌的人会带点挑衅，活泼的人可能先感叹一句再问
-- 问题要体现这个成员此刻的动机：好奇、关心、试探、八卦、抬杠、想了解你——具体结合性格判断
-- 禁止用\"我想问你一个问题\"\"请问你\"这种开场，直接切入，口语化，25字以内
+- 问题要体现这个成员此刻的动机：好奇、关心、试探、八卦、抬杠、想了解${pronoun}——具体结合性格判断
+- 问题要和「${userName}」这个人有关系，不是随机泛问，要符合${pronoun}的身份或特质
+- 禁止用"我想问你一个问题""请问你"这种开场，直接切入，口语化，25字以内
 - 输出格式（严格JSON，不要markdown代码块）：
 {"asker":"成员名","question":"问题内容"}
 只输出这个JSON对象，不要任何其他文字。`;
@@ -1497,14 +1715,16 @@ async function loadMaqDiscussion() {
   try {
     const names = discuss.map(m => `${m.name}（${buildMemberBrief(m)}）`).join('、');
     const memberCount = discuss.length;
-    const prompt = `群聊场景：${q.asker.name}刚才在群里问了群主一个问题：「${q.questionText}」
-群主还没有回答。其他在线的群成员有且只有以下${memberCount}位：${names}。
-请模拟这几位成员看到这个问题后，在群里猜测、讨论"群主会怎么回答这个问题"的真实片段——可以是猜群主的态度、可以是调侃ta可能会说什么、可以是互相押注、可以是跑题聊起自己的经历，越像真实群聊越好。
+    const userName = userDisplayName();
+    const pronoun  = userPronoun();
+    const prompt = `群聊场景：${q.asker.name}刚才在群里问了「${userName}」一个问题：「${q.questionText}」
+「${userName}」还没有回答。其他在线的群成员有且只有以下${memberCount}位：${names}。
+请模拟这几位成员看到这个问题后，在群里猜测、讨论"「${userName}」会怎么回答这个问题"的真实片段——可以是猜${pronoun}的态度、可以是调侃${pronoun}可能会说什么、可以是互相押注、可以是跑题聊起自己的经历，越像真实群聊越好。
 要求：
 - 5-7条消息，只能由上面这${memberCount}位成员发言，不能出现任何其他人名
 - 每条消息要短，符合手机打字习惯，可以有省略、口头语、表情化的语气词，但不要堆砌网络热词
 - 每个人的话要符合各自性格，不能所有人语气趋同
-- 重点是猜测"群主会怎么说"，而不是讨论这个问题本身的答案
+- 重点是猜测"「${userName}」会怎么说"，而不是讨论这个问题本身的答案
 - 输出严格JSON数组，不要markdown代码块：[{"name":"成员名","msg":"消息内容"}, ...]
 只输出这个JSON数组，不要任何前缀文字，name字段只能是上述成员名之一。`;
 
@@ -1722,8 +1942,11 @@ async function openMaqReactions(qid) {
 }
 
 async function generateMaqMemberReaction(q, member) {
-  const brief    = buildMemberBrief(member);
-  const castLine = buildGroupCastLine(member.id);
+  const brief       = buildMemberBrief(member);
+  const castLine    = buildGroupCastLine(member.id);
+  const relationCtx = buildRelationContext(member);
+  const userName    = userDisplayName();
+  const pronoun     = userPronoun();
 
   const systemPrompt = `你是群聊成员「${member.name}」，请完全代入这个角色来写，不要有任何AI腔调。
 
@@ -1731,24 +1954,25 @@ async function generateMaqMemberReaction(q, member) {
 ${brief}
 
 【群里的其他成员】（你认识他们，跟他们的说话风格不一样）
-${castLine || '暂无其他成员'}
+${castLine || '暂无其他成员'}${relationCtx}
 
 【场景】
-提问者是群里的成员，刚才问了群主一个问题：「${q.questionText}」
-群主回答了：「${q.userAnswer.text}」
+提问者是群里的成员，刚才问了「${userName}」一个问题：「${q.questionText}」
+「${userName}」回答了：「${q.userAnswer.text}」
 你看到了这个回答，要说说你的真实看法，以及你自己会怎么回答这个问题。
 
 【核心要求——逐条执行】
 1. 完全代入「${member.name}」的性格说话，跟群里其他成员的语气必须有明显区别
-2. "看法"：是「${member.name}」对这个回答的真实反应，不是评委打分——要有具体的情绪和判断，不要出现\"我觉得这个回答很有意思/真实/深刻\"之类套话，90–150字
-3. "理想答案"：用「${member.name}」自己会说的方式说出来，不是\"标准答案\"，40–70字，要带出性格
-4. 严禁：以\"作为XX\"\"我觉得这个问题\"\"说实话\"开场，禁止升华讲大道理，禁止鸡汤收尾，禁止堆砌网络热词
+2. "看法"：是「${member.name}」对这个回答的真实反应，不是评委打分——要有具体的情绪和判断，不要出现"我觉得这个回答很有意思/真实/深刻"之类套话，90–150字
+3. "理想答案"：用「${member.name}」自己会说的方式说出来，不是"标准答案"，40–70字，要带出性格
+4. 严禁：以"作为XX""我觉得这个问题""说实话"开场，禁止升华讲大道理，禁止鸡汤收尾，禁止堆砌网络热词
 5. 绝不能提及自己是AI、模型、程序
+6. 如果在看法或理想答案里自然提到其他群成员，必须用上方关系说明里的称呼，不能叫错
 
 严格输出JSON（不要markdown代码块，不要任何其他文字）：
 {"view":"看法内容","ideal":"理想答案"}`;
 
-  const prompt = `请生成你对这个回答的看法和理想答案。记住：你是「${member.name}」，用你自己独特的语气来说，不能跟其他成员雷同。`;
+  const prompt = `请生成你对「${userName}」这个回答的看法和理想答案。记住：你是「${member.name}」，用你自己独特的语气来说，不能跟其他成员雷同。`;
   const raw    = await callClaude(prompt, systemPrompt, 520);
   console.log('[generateMaqMemberReaction] raw:', raw.slice(0,200));
   return safeParseJSON(raw, false);
@@ -2114,10 +2338,22 @@ function loadMaqQuestionsFromStorage() {
 /* ----------------------------------------------------------------
    INIT
 ---------------------------------------------------------------- */
-document.addEventListener('DOMContentLoaded', () => {
+/* Clear any leftover transition overlay when this page is restored
+   from the browser's back/forward cache (e.g. user tapped a feature
+   card, then hit the system back button) — otherwise it could show
+   as a stuck white screen. */
+window.addEventListener('pageshow', () => {
+  document.getElementById('pageTransition')?.classList.remove('active');
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
   updateTime();
   updateBattery();
   applyIsland();
+
+  /* Load user persona first, so all AI prompts can reference it */
+  _userIdentity = await loadUserIdentity();
+  _userGender   = deriveGender(_userIdentity);
 
   loadGroupData();
 

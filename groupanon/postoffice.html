@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>时空邮局</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="postoffice.css" />
+</head>
+<body>
+
+<div class="po-wrap">
+  <div class="po-frame">
+
+    <!-- ============ Status bar (复刻群互动) ============ -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ Header (复刻群互动) ============ -->
+    <div class="po-header">
+      <div class="h-deco-top"></div>
+      <div class="h-corner-deco2"></div>
+      <div class="h-corner-deco"></div>
+      <div class="h-inner">
+        <div class="h-left" id="headerBack" onclick="handleBack()">
+          <svg width="9" height="15" viewBox="0 0 9 16" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1 1,8 8,15"/></svg>
+        </div>
+        <div class="header-title-block">
+          <div class="header-eyebrow" id="headerEyebrow">GROUP · FEATURE</div>
+          <div class="header-title" id="headerTitleText">时空邮局 <span class="header-badge">PAR AVION</span></div>
+        </div>
+        <div class="h-actions">
+          <div class="h-action-btn" id="infoBtn" onclick="showPoInfo()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" stroke-width="2.2"/><line x1="12" y1="11" x2="12" y2="16"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="h-deco-line"></div>
+    </div>
+
+    <!-- ============================================================
+         VIEW 1 — 邮局大厅 HALL：分类墙 + 邮箱格
+    ============================================================ -->
+    <div class="po-view po-view-hall active" id="viewHall">
+
+      <svg class="hall-bg-svg" viewBox="0 0 390 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <line x1="195" y1="0" x2="195" y2="900" stroke="#d8d4e2" stroke-width="0.6" stroke-dasharray="3 9" opacity="0.4"/>
+        <line x1="0" y1="120" x2="390" y2="60"  stroke="#e4e0ec" stroke-width="0.4" stroke-dasharray="1 8" opacity="0.35"/>
+        <line x1="0" y1="420" x2="390" y2="480" stroke="#e4e0ec" stroke-width="0.4" stroke-dasharray="1 9" opacity="0.3"/>
+        <line x1="0" y1="700" x2="390" y2="640" stroke="#e4e0ec" stroke-width="0.4" stroke-dasharray="1 8" opacity="0.25"/>
+        <circle cx="40" cy="90" r="1.4" fill="#c8c0d8" opacity="0.4"/>
+        <circle cx="350" cy="160" r="1" fill="#c8c0d8" opacity="0.35"/>
+        <circle cx="320" cy="500" r="1.2" fill="#c8c0d8" opacity="0.3"/>
+        <circle cx="55" cy="620" r="1" fill="#c8c0d8" opacity="0.3"/>
+      </svg>
+
+      <!-- 邮局招牌 -->
+      <div class="hall-signboard">
+        <div class="hall-sign-top">
+          <span class="hall-sign-tag">TIME · SPACE</span>
+          <span class="hall-sign-tag hall-sign-tag-r">EST. ∞</span>
+        </div>
+        <div class="hall-sign-title">时空邮局</div>
+        <div class="hall-sign-sub">寄给你的信，落在了不同的时区里</div>
+        <div class="hall-sign-rule"></div>
+      </div>
+
+      <div class="hall-scroll-body">
+
+        <!-- 分类选择：工作 / 爱情 / 生活 / 更多 -->
+        <div class="hall-section-label">
+          <span class="hsl-dot"></span>
+          <span>SELECT · 挑一个方向投递</span>
+        </div>
+
+        <div class="hall-cat-grid" id="hallCatGrid">
+          <div class="hcat-card" data-cat="work" onclick="selectCategory('work')">
+            <div class="hcat-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="3" y1="12" x2="21" y2="12"/></rect></svg>
+            </div>
+            <div class="hcat-title">工作来信</div>
+            <div class="hcat-desc">职场心事 · 未竟之业</div>
+            <div class="hcat-tag">NO. 01</div>
+          </div>
+
+          <div class="hcat-card" data-cat="love" onclick="selectCategory('love')">
+            <div class="hcat-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+            </div>
+            <div class="hcat-title">情书来信</div>
+            <div class="hcat-desc">未说出口的话</div>
+            <div class="hcat-tag">NO. 02</div>
+          </div>
+
+          <div class="hcat-card" data-cat="life" onclick="selectCategory('life')">
+            <div class="hcat-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="9"/></svg>
+            </div>
+            <div class="hcat-title">生活来信</div>
+            <div class="hcat-desc">日常琐碎 · 一地鸡毛</div>
+            <div class="hcat-tag">NO. 03</div>
+          </div>
+
+          <div class="hcat-card" data-cat="growth" onclick="selectCategory('growth')">
+            <div class="hcat-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-6"/></svg>
+            </div>
+            <div class="hcat-title">成长来信</div>
+            <div class="hcat-desc">写给过去 / 未来的自己</div>
+            <div class="hcat-tag">NO. 04</div>
+          </div>
+
+          <div class="hcat-card" data-cat="secret" onclick="selectCategory('secret')">
+            <div class="hcat-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="1.5"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div class="hcat-title">秘密来信</div>
+            <div class="hcat-desc">只敢写在纸上的心事</div>
+            <div class="hcat-tag">NO. 05</div>
+          </div>
+
+          <div class="hcat-card" data-cat="random" onclick="selectCategory('random')">
+            <div class="hcat-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <div class="hcat-title">随机来信</div>
+            <div class="hcat-desc">交给时空，不设方向</div>
+            <div class="hcat-tag">NO. 06</div>
+          </div>
+        </div>
+
+        <!-- 已选成员/分类 概览 + 时间轴（存档信件） -->
+        <div class="hall-section-label" style="margin-top:26px;">
+          <span class="hsl-dot"></span>
+          <span>ARCHIVE · 邮局档案柜</span>
+          <span class="hsl-count" id="hallArchiveCount">0 封</span>
+        </div>
+
+        <div class="hall-archive-empty" id="hallArchiveEmpty">
+          <div class="hae-stamp">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 7l9 6 9-6"/></svg>
+          </div>
+          <div class="hae-title">档案柜是空的</div>
+          <div class="hae-sub">点击上方分类，走向邮箱墙投递第一封信</div>
+        </div>
+
+        <div class="hall-archive-list" id="hallArchiveList"></div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         VIEW 2 — 邮箱墙 WALL：选定分类后，随机指向一位成员的邮箱格
+    ============================================================ -->
+    <div class="po-view po-view-wall" id="viewWall">
+
+      <div class="wall-topbar">
+        <div class="wall-cat-chip" id="wallCatChip">工作来信</div>
+        <div class="wall-hint">轻触发光的邮箱格，看看今天落款是谁</div>
+      </div>
+
+      <div class="wall-mailgrid-scroll">
+        <div class="wall-mailgrid" id="wallMailGrid">
+          <!-- 邮箱格由 JS 动态生成 -->
+        </div>
+      </div>
+
+      <div class="wall-footer-note">MAILBOXES ARE ASSIGNED BY TIME, NOT BY YOU</div>
+    </div>
+
+    <!-- ============================================================
+         VIEW 3 — 取信舞台 STAGE：抽出信封 → 开封 → 展信动画 → 阅读
+    ============================================================ -->
+    <div class="po-view po-view-stage" id="viewStage">
+
+      <div class="stage-back-row">
+        <div class="stage-back-btn" onclick="backToWallFromStage()">
+          <svg width="8" height="13" viewBox="0 0 9 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1 1,8 8,15"/></svg>
+          <span>回到邮箱墙</span>
+        </div>
+      </div>
+
+      <!-- 舞台：邮箱 → 抽出信封 → 拆封 → 信纸展开 -->
+      <div class="stage-theatre" id="stageTheatre">
+
+        <!-- 阶段 0：闭合邮箱 -->
+        <div class="stage-box-scene" id="stageBoxScene">
+          <div class="sbs-mailbox" id="sbsMailbox" onclick="drawLetter()">
+            <div class="sbs-slot"></div>
+            <div class="sbs-plate" id="sbsPlate">NO. --</div>
+            <div class="sbs-glow"></div>
+          </div>
+          <div class="sbs-caption">邮箱正在发光 · 轻触取出信件</div>
+        </div>
+
+        <!-- 阶段 1：信封被抽出，浮在空中 -->
+        <div class="stage-envelope-scene hidden" id="stageEnvelopeScene">
+          <div class="env-card" id="envCard" onclick="openEnvelope()">
+            <div class="env-flap"></div>
+            <div class="env-body">
+              <div class="env-postmark">
+                <div class="env-postmark-ring"></div>
+                <div class="env-postmark-text" id="envPostmarkText">--</div>
+              </div>
+              <div class="env-stamp"></div>
+              <div class="env-addr-line env-addr-1" id="envAddrTo"></div>
+              <div class="env-addr-line env-addr-2" id="envAddrFrom"></div>
+              <div class="env-par-avion">PAR AVION · 空邮</div>
+            </div>
+          </div>
+          <div class="env-caption">轻触信封，拆开封蜡</div>
+        </div>
+
+        <!-- 阶段 2：信纸展开阅读 -->
+        <div class="stage-letter-scene hidden" id="stageLetterScene">
+          <div class="letter-paper" id="letterPaper">
+
+            <div class="lp-inner">
+              <div class="lp-head">
+                <div class="lp-head-left">
+                  <div class="lp-from-label">来信人</div>
+                  <div class="lp-from-name" id="lpFromName">——</div>
+                </div>
+                <div class="lp-head-right">
+                  <div class="lp-timestamp" id="lpTimestamp">--</div>
+                  <div class="lp-cat-tag" id="lpCatTag">LIFE</div>
+                </div>
+              </div>
+              <div class="lp-rule"></div>
+
+              <div class="lp-loading" id="lpLoading">
+                <div class="lp-dots"><div></div><div></div><div></div></div>
+                <span id="lpLoadingText">信件正在穿越时空…</span>
+              </div>
+
+              <div class="lp-body" id="lpBody"></div>
+
+              <div class="lp-sign" id="lpSign"></div>
+            </div>
+
+            <div class="lp-fold-shadow"></div>
+          </div>
+
+          <div class="letter-actions" id="letterActions" style="display:none;">
+            <div class="la-btn la-btn-fold" onclick="foldLetterBack()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 12l6-6M3 12l6 6"/></svg>
+              <span>折起收好</span>
+            </div>
+            <div class="la-btn la-btn-more" onclick="drawAnotherFromStage()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span>再取一封</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Info sheet -->
+<div class="po-sheet-overlay" id="poSheetOverlay" onclick="closePoInfo()"></div>
+<div class="po-info-sheet" id="poInfoSheet">
+  <div class="sheet-handle"></div>
+  <div class="pis-title">时空邮局 · 玩法说明</div>
+  <div class="pis-body">
+    <p>选一个方向投递，邮局会从群成员中随机指派一位「今日邮差」。</p>
+    <p>轻触发光的邮箱格取出信封，拆开封蜡，展信阅读——每一封信都严格贴合该成员的人设写成，落款为TA本人。</p>
+    <p>同一个时段（分类＋成员＋当前小时）只会生成一次信件，重复查看会直接读取已存档的内容，不会重复消耗生成。</p>
+    <p>所有读过的信都会留在下方「邮局档案柜」里，随时可以重新翻阅。</p>
+  </div>
+  <div class="pis-close" onclick="closePoInfo()">好的</div>
+</div>
+
+<!-- Toast -->
+<div class="po-toast" id="poToast"></div>
+
+<script src="postoffice.js"></script>
+</body>
+</html>

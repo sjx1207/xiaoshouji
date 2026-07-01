@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>集体潜意识</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="collective.css" />
+</head>
+<body>
+
+<div class="ga-wrap">
+  <div class="ga-frame">
+
+    <!-- Status bar (1:1 复刻自 groupanon) -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header (1:1 复刻自 groupanon) -->
+    <div class="ga-header">
+      <div class="h-deco-top"></div>
+      <div class="h-corner-deco2"></div>
+      <div class="h-corner-deco"></div>
+      <div class="h-inner">
+        <div class="h-left" id="headerBack" onclick="handleBack()">
+          <svg width="9" height="15" viewBox="0 0 9 16" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1 1,8 8,15"/></svg>
+        </div>
+        <div class="header-title-block">
+          <div class="header-eyebrow">GROUP · FEATURE</div>
+          <div class="header-title">集体潜意识 <span class="header-badge">UNCONSCIOUS</span></div>
+        </div>
+        <div class="h-actions">
+          <div class="h-action-btn" id="infoBtn" onclick="showInfo()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" stroke-width="2.2"/><line x1="12" y1="11" x2="12" y2="16"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="h-deco-line"></div>
+    </div>
+
+    <!-- ============================================================
+         主视图 — 集体潜意识
+    ============================================================ -->
+    <div class="col-view">
+
+      <!-- Word input header -->
+      <div class="col-input-wrap">
+        <div class="col-input-deco"></div>
+        <div class="col-input-row">
+          <div class="col-input-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><circle cx="11" cy="11" r="3"/><line x1="11" y1="4" x2="11" y2="6"/><line x1="11" y1="16" x2="11" y2="18"/><line x1="4" y1="11" x2="6" y2="11"/><line x1="16" y1="11" x2="18" y2="11"/></svg>
+          </div>
+          <input
+            class="col-input-field"
+            id="colWordInput"
+            type="text"
+            placeholder="投下一个词……"
+            maxlength="12"
+            autocomplete="off"
+            oninput="onColWordInput(this)"
+            onkeydown="onColWordKeydown(event)"
+          />
+          <div class="col-input-submit" id="colSubmitBtn" onclick="submitCollectiveWord()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#eee" stroke-width="2.4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+          </div>
+        </div>
+        <div class="col-input-hint">MERGED &nbsp;·&nbsp; 全员将各自给出未经修饰的第一反应</div>
+      </div>
+
+      <!-- History word chips -->
+      <div class="col-history-row" id="colHistoryRow"></div>
+
+      <!-- Network stage -->
+      <div class="col-stage" id="colStage">
+
+        <!-- Idle state -->
+        <div class="col-idle" id="colIdle">
+          <svg class="col-idle-svg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="110" cy="110" r="90" fill="none" stroke="#ded9ea" stroke-width="0.6" stroke-dasharray="2 6"/>
+            <circle cx="110" cy="110" r="58" fill="none" stroke="#ded9ea" stroke-width="0.6" stroke-dasharray="2 6"/>
+            <line x1="70" y1="60" x2="140" y2="150" stroke="#e4e0ee" stroke-width="0.6"/>
+            <line x1="150" y1="70" x2="65" y2="140" stroke="#e4e0ee" stroke-width="0.6"/>
+            <line x1="110" y1="30" x2="110" y2="190" stroke="#e4e0ee" stroke-width="0.5" stroke-dasharray="1 5"/>
+            <circle cx="70" cy="60" r="3" fill="#c4bdd8"/>
+            <circle cx="150" cy="70" r="2.5" fill="#c4bdd8"/>
+            <circle cx="140" cy="150" r="3.2" fill="#9a93ac"/>
+            <circle cx="65" cy="140" r="2.6" fill="#c4bdd8"/>
+            <circle cx="110" cy="110" r="4" fill="#0a0a0a"/>
+          </svg>
+          <div class="col-idle-title">尚无投放</div>
+          <div class="col-idle-sub">输入任意一个词——一件物品、一个情绪、一个名字都可以<br>群里每个人都会不假思索地说出脑中蹦出的第一反应</div>
+          <div class="col-idle-examples">
+            <span class="col-example-chip" onclick="fillCollectiveWord('雨')">雨</span>
+            <span class="col-example-chip" onclick="fillCollectiveWord('孤独')">孤独</span>
+            <span class="col-example-chip" onclick="fillCollectiveWord('钱')">钱</span>
+            <span class="col-example-chip" onclick="fillCollectiveWord('家')">家</span>
+            <span class="col-example-chip" onclick="fillCollectiveWord('自由')">自由</span>
+          </div>
+        </div>
+
+        <!-- Loading state -->
+        <div class="col-loading hidden" id="colLoading">
+          <div class="col-loading-ring">
+            <div class="col-loading-core"></div>
+          </div>
+          <div class="col-loading-word" id="colLoadingWord"></div>
+          <div class="col-loading-status" id="colLoadingStatus">正在潜入每个人的第一反应……</div>
+          <div class="col-loading-members" id="colLoadingMembers"></div>
+        </div>
+
+        <!-- Network graph -->
+        <div class="col-network hidden" id="colNetwork">
+          <svg class="col-net-svg" id="colNetSvg" viewBox="0 0 340 460" xmlns="http://www.w3.org/2000/svg">
+            <g id="colEdgesLayer"></g>
+            <g id="colNodesLayer"></g>
+          </svg>
+          <div class="col-net-legend">
+            <div class="col-legend-item"><span class="col-legend-swatch col-legend-resonance"></span>共鸣</div>
+            <div class="col-legend-item"><span class="col-legend-swatch col-legend-conflict"></span>冲突</div>
+            <div class="col-legend-item"><span class="col-legend-swatch col-legend-shadow"></span>潜藏人格</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="col-bottom-hint">点击任意节点 · 查看完整的第一反应</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     Info sheet overlay
+============================================================ -->
+<div class="sheet-overlay" id="sheetOverlay" onclick="hideInfo()"></div>
+<div class="info-sheet" id="infoSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">集体潜意识 说明</div>
+  <div class="sheet-rule">
+    <div class="sheet-rule-num">01</div>
+    <div class="sheet-rule-text">输入任意一个词，群内每位成员会各自给出不经修饰的第一反应，直觉、联想、条件反射都算数。</div>
+  </div>
+  <div class="sheet-rule">
+    <div class="sheet-rule-num">02</div>
+    <div class="sheet-rule-text">反应会以节点形式呈现在关系网络图中，节点之间的连线代表两人反应之间存在共鸣或冲突。</div>
+  </div>
+  <div class="sheet-rule">
+    <div class="sheet-rule-num">03</div>
+    <div class="sheet-rule-text">部分性格复杂的成员可能浮现出「潜藏人格」节点，展示TA在这个词面前藏起来的另一面。</div>
+  </div>
+  <div class="sheet-rule">
+    <div class="sheet-rule-num">04</div>
+    <div class="sheet-rule-text">点击任意节点可展开完整内容，包括反应原文、心理成因与潜台词，篇幅较长，请耐心阅读。</div>
+  </div>
+  <div class="sheet-close" onclick="hideInfo()">CLOSE</div>
+</div>
+
+<!-- ============================================================
+     Node detail sheet — long-form content
+============================================================ -->
+<div class="col-detail-overlay" id="colDetailOverlay" onclick="closeColDetail()"></div>
+<div class="col-detail-sheet" id="colDetailSheet">
+  <div class="sheet-handle"></div>
+
+  <div class="col-detail-header">
+    <div class="col-detail-av" id="colDetailAv"></div>
+    <div class="col-detail-headinfo">
+      <div class="col-detail-name" id="colDetailName"></div>
+      <div class="col-detail-tag">对「<span id="colDetailWord"></span>」的第一反应</div>
+    </div>
+    <div class="col-detail-shadow-badge hidden" id="colDetailShadowBadge">潜藏人格</div>
+  </div>
+
+  <div class="col-detail-scroll" id="colDetailScroll">
+    <div class="col-detail-block">
+      <div class="col-detail-block-label">FIRST&nbsp;REACTION · 第一反应</div>
+      <div class="col-detail-text col-detail-reaction" id="colDetailReaction"></div>
+    </div>
+
+    <div class="col-detail-block">
+      <div class="col-detail-block-label">TRACE · 心理成因</div>
+      <div class="col-detail-text" id="colDetailTrace"></div>
+    </div>
+
+    <div class="col-detail-block">
+      <div class="col-detail-block-label">UNDERTONE · 潜台词</div>
+      <div class="col-detail-text" id="colDetailUndertone"></div>
+    </div>
+
+    <div class="col-detail-block" id="colDetailLinksBlock">
+      <div class="col-detail-block-label">LINKS · 与谁共鸣或冲突</div>
+      <div class="col-detail-links" id="colDetailLinks"></div>
+    </div>
+  </div>
+
+  <div class="col-detail-close" onclick="closeColDetail()">收起</div>
+</div>
+
+<!-- Toast -->
+<div class="ga-toast" id="gaToast"></div>
+
+<script src="collective.js"></script>
+</body>
+</html>

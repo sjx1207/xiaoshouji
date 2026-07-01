@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>台词盲盒</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="lineboxdraw.css" />
+</head>
+<body>
+
+<div class="lb-wrap">
+  <div class="lb-frame">
+
+    <!-- Status bar — 1:1 复刻 groupanon -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="lb-header">
+      <div class="h-deco-top"></div>
+      <div class="h-corner-deco2"></div>
+      <div class="h-corner-deco"></div>
+      <div class="h-inner">
+        <div class="h-left" id="headerBack" onclick="handleBack()">
+          <svg width="9" height="15" viewBox="0 0 9 16" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1 1,8 8,15"/></svg>
+        </div>
+        <div class="header-title-block">
+          <div class="header-eyebrow">GROUP · FEATURE</div>
+          <div class="header-title">台词盲盒 <span class="header-badge">SCENE&nbsp;BOX</span></div>
+        </div>
+        <div class="h-actions">
+          <div class="h-action-btn" id="rulesBtn" onclick="showRules()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" stroke-width="2.2"/><line x1="12" y1="11" x2="12" y2="16"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="h-deco-line"></div>
+    </div>
+
+    <!-- ============================================================
+         SCROLL BODY
+    ============================================================ -->
+    <div class="lb-scroll">
+
+      <!-- ============ STAGE 0 — 主题输入 / 机器待机 ============ -->
+      <div class="lb-stage lb-stage-input active" id="stageInput">
+
+        <div class="lb-intro">
+          <div class="lb-intro-tag">SCENE · GENERATOR</div>
+          <div class="lb-intro-title">给一个主题<br/>抽出一句台词</div>
+          <div class="lb-intro-desc">机器会按你的主题写出一句台词，群里剩下的角色要当场演绎，你是导演，随时可以喊卡、换人、重抽。</div>
+        </div>
+
+        <!-- 盲盒机器 -->
+        <div class="lb-machine" id="lbMachine">
+          <div class="lbm-glass">
+            <div class="lbm-shelf lbm-shelf-1">
+              <span class="lbm-box"></span><span class="lbm-box"></span><span class="lbm-box"></span>
+            </div>
+            <div class="lbm-shelf lbm-shelf-2">
+              <span class="lbm-box"></span><span class="lbm-box"></span><span class="lbm-box"></span>
+            </div>
+            <div class="lbm-shelf lbm-shelf-3">
+              <span class="lbm-box"></span><span class="lbm-box"></span><span class="lbm-box"></span>
+            </div>
+            <div class="lbm-shine"></div>
+          </div>
+          <div class="lbm-slot">
+            <div class="lbm-slot-mouth"></div>
+            <div class="lbm-card-peek" id="lbmCardPeek"></div>
+          </div>
+          <div class="lbm-base">
+            <div class="lbm-base-label">LINE&nbsp;·&nbsp;BOX</div>
+            <div class="lbm-base-dial"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+
+        <!-- 主题输入区 -->
+        <div class="lb-input-panel">
+          <div class="lb-input-label">今天的主题</div>
+          <div class="lb-input-row">
+            <input
+              type="text"
+              id="lbThemeInput"
+              class="lb-input"
+              placeholder="例如：分手、迟到的道歉、深夜食堂…"
+              maxlength="24"
+              oninput="onThemeInput(this)"
+              onkeydown="onThemeKeydown(event)"
+            />
+            <div class="lb-input-char" id="lbInputChar">24</div>
+          </div>
+
+          <!-- 主题速选 chips -->
+          <div class="lb-chip-row" id="lbChipRow">
+            <span class="lb-chip" onclick="pickChip(this)">分手前夜</span>
+            <span class="lb-chip" onclick="pickChip(this)">深夜食堂</span>
+            <span class="lb-chip" onclick="pickChip(this)">迟到的道歉</span>
+            <span class="lb-chip" onclick="pickChip(this)">意外重逢</span>
+            <span class="lb-chip" onclick="pickChip(this)">职场对峙</span>
+            <span class="lb-chip" onclick="pickChip(this)">雨天告白</span>
+          </div>
+
+          <div class="lb-draw-btn" id="lbDrawBtn" onclick="startDraw()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-3.2-6.4"/><polyline points="20 4 20 10 14 10"/></svg>
+            <span>抽取台词</span>
+          </div>
+        </div>
+
+        <!-- 历史记录条 -->
+        <div class="lb-history-section" id="lbHistorySection" style="display:none;">
+          <div class="lb-history-title">往期台词</div>
+          <div class="lb-history-list" id="lbHistoryList"></div>
+        </div>
+
+      </div>
+
+      <!-- ============ STAGE 1 — 抽取动画 ============ -->
+      <div class="lb-stage lb-stage-drawing" id="stageDrawing">
+        <div class="lb-drawing-wrap">
+          <div class="lb-draw-machine">
+            <div class="ldm-drum" id="ldmDrum">
+              <div class="ldm-card ldm-c1"></div>
+              <div class="ldm-card ldm-c2"></div>
+              <div class="ldm-card ldm-c3"></div>
+              <div class="ldm-card ldm-c4"></div>
+              <div class="ldm-card ldm-c5"></div>
+            </div>
+            <div class="ldm-ring"></div>
+            <div class="ldm-ring ldm-ring2"></div>
+          </div>
+          <div class="lb-drawing-theme" id="lbDrawingTheme"></div>
+          <div class="lb-drawing-status" id="lbDrawingStatus">正在从台词库中抽取…</div>
+          <div class="lb-drawing-dots"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+
+      <!-- ============ STAGE 2 — 舞台：一人在场，逐句推进 ============ -->
+      <div class="lb-stage lb-stage-result" id="stageResult">
+
+        <div class="lb-result-top">
+          <div class="lb-result-eyebrow">TAKE&nbsp;<span id="lbTakeNum">01</span></div>
+          <div class="lb-result-theme-pill" id="lbResultThemePill"></div>
+        </div>
+
+        <!-- 台词卡片 -->
+        <div class="lb-line-card" id="lbLineCard">
+          <div class="llc-corner llc-corner-tl"></div>
+          <div class="llc-corner llc-corner-br"></div>
+          <div class="llc-quote-mark">"</div>
+          <div class="llc-line-text" id="llcLineText"></div>
+          <div class="llc-meta">
+            <span class="llc-meta-item" id="llcMood"></span>
+            <span class="llc-meta-dot">·</span>
+            <span class="llc-meta-item" id="llcScene"></span>
+          </div>
+          <div class="llc-sprockets">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+
+        <!-- 候场名单：一排头像，标出当前在场的人 -->
+        <div class="lb-cast-strip" id="lbCastStrip"></div>
+
+        <!-- ============ 舞台区：当前唯一在演的人 + 逐句台词 ============ -->
+        <div class="lb-stage-box" id="lbStageBox">
+
+          <div class="lsb-frame">
+            <div class="lsb-spot"></div>
+            <div class="lsb-performer" id="lsbPerformer">
+              <div class="lsb-avatar" id="lsbAvatar"></div>
+              <div class="lsb-name" id="lsbName"></div>
+              <div class="lsb-status-tag" id="lsbStatusTag">上场中</div>
+            </div>
+
+            <!-- 台词逐句展示 -->
+            <div class="lsb-script" id="lsbScript">
+              <div class="lsb-script-loading" id="lsbScriptLoading">
+                <div class="lsb-dots"><div></div><div></div><div></div></div>
+                <span>正在代入台词…</span>
+              </div>
+              <div class="lsb-script-line" id="lsbScriptLine"></div>
+              <div class="lsb-script-progress" id="lsbScriptProgress"></div>
+            </div>
+
+            <!-- 用户点击推进下一句 -->
+            <div class="lsb-next-btn" id="lsbNextBtn" onclick="advanceScriptLine()">
+              <span id="lsbNextBtnText">下一句</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </div>
+
+          <!-- 导演控制条：直接作用于台上这个人 -->
+          <div class="lb-director-bar">
+            <div class="ldb-btn ldb-cut" id="ldbCutBtn" onclick="directorCut()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+              <span>喊卡</span>
+            </div>
+            <div class="ldb-btn ldb-reshoot" id="ldbReshootBtn" onclick="directorReshoot()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              <span>重来</span>
+            </div>
+            <div class="ldb-btn ldb-swap" id="ldbSwapBtn" onclick="directorSwap()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>
+              <span>换人</span>
+            </div>
+            <div class="ldb-btn ldb-again" id="ldbAgainBtn" onclick="drawAgainSameTheme()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-3.2-6.4"/><polyline points="20 4 20 10 14 10"/></svg>
+              <span>再抽一张</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 已下场演员的存档（谢幕后收进这里，仍可回看） -->
+        <div class="lb-archive-section" id="lbArchiveSection" style="display:none;">
+          <div class="lb-archive-title">已谢幕</div>
+          <div class="lb-archive-list" id="lbArchiveList"></div>
+        </div>
+
+        <div class="lb-back-input" onclick="backToInput()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <span>换个主题</span>
+        </div>
+
+      </div>
+
+    </div><!-- /lb-scroll -->
+
+  </div><!-- /lb-frame -->
+</div><!-- /lb-wrap -->
+
+<!-- 谢幕演员回看弹层（点击已谢幕列表查看完整存档，不是主展示路径） -->
+<div class="lb-actor-overlay" id="lbActorOverlay" onclick="closeActorSheet()"></div>
+<div class="lb-actor-sheet" id="lbActorSheet">
+  <div class="sheet-handle"></div>
+  <div class="las-header">
+    <div class="las-avatar" id="lasAvatar"></div>
+    <div class="las-info">
+      <div class="las-name" id="lasName"></div>
+      <div class="las-role" id="lasRole"></div>
+    </div>
+    <div class="las-status-badge" id="lasStatusBadge"></div>
+  </div>
+  <div class="las-tabs">
+    <div class="las-tab active" id="lasTabLine" onclick="switchActorTab('line')">演绎回放</div>
+    <div class="las-tab" id="lasTabNote" onclick="switchActorTab('note')">导演笔记</div>
+  </div>
+  <div class="las-content">
+    <div class="las-panel" id="lasPanelLine">
+      <div class="las-text" id="lasTextLine"></div>
+    </div>
+    <div class="las-panel hidden" id="lasPanelNote">
+      <div class="las-text" id="lasTextNote"></div>
+    </div>
+  </div>
+  <div class="las-close" onclick="closeActorSheet()">关闭</div>
+</div>
+
+<!-- 规则说明弹层 -->
+<div class="lb-rules-overlay" id="lbRulesOverlay" onclick="closeRules()"></div>
+<div class="lb-rules-sheet" id="lbRulesSheet">
+  <div class="sheet-handle"></div>
+  <div class="lrs-title">玩法说明</div>
+  <div class="lrs-item">
+    <div class="lrs-num">01</div>
+    <div class="lrs-text">输入一个主题，机器会随机抽出一句符合主题的台词，写在卡片上。</div>
+  </div>
+  <div class="lrs-item">
+    <div class="lrs-num">02</div>
+    <div class="lrs-text">群里剩下的角色会依次登场，用各自的方式演绎这句台词。</div>
+  </div>
+  <div class="lrs-item">
+    <div class="lrs-num">03</div>
+    <div class="lrs-text">你是导演：随时可以喊卡打断、重来让同一个人再演一次、或者换人交给下一位。</div>
+  </div>
+  <div class="lrs-item">
+    <div class="lrs-num">04</div>
+    <div class="lrs-text">同一张台词卡不满意也可以直接再抽一张，主题不变，重新开局。</div>
+  </div>
+  <div class="lrs-close" onclick="closeRules()">知道了</div>
+</div>
+
+<!-- Toast -->
+<div class="lb-toast" id="lbToast"></div>
+
+<script src="lineboxdraw.js"></script>
+</body>
+</html>

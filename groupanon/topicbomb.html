@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>话题炸弹</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="topicbomb.css" />
+</head>
+<body>
+
+<div class="tb-wrap">
+  <div class="tb-frame">
+
+    <!-- Status bar (1:1 与 groupanon 保持一致) -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="tb-header">
+      <div class="h-deco-top"></div>
+      <div class="h-corner-deco2"></div>
+      <div class="h-corner-deco"></div>
+      <div class="h-inner">
+        <div class="h-left" id="headerBack" onclick="handleBack()">
+          <svg width="9" height="15" viewBox="0 0 9 16" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1 1,8 8,15"/></svg>
+        </div>
+        <div class="header-title-block">
+          <div class="header-eyebrow" id="headerEyebrow">GROUP · BOMB</div>
+          <div class="header-title" id="headerTitleText">话题炸弹 <span class="header-badge">DETONATE</span></div>
+        </div>
+        <div class="h-actions">
+          <div class="h-action-btn" id="historyBtn" onclick="openHistorySheet()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+          </div>
+          <div class="h-action-btn" id="infoBtn" onclick="showInfo()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" stroke-width="2.2"/><line x1="12" y1="11" x2="12" y2="16"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="h-deco-line"></div>
+    </div>
+
+    <!-- ============================================================
+         张力值条 — 贯穿全程的小型仪表（默契 / 张力）
+    ============================================================ -->
+    <div class="tension-bar">
+      <div class="tension-label">
+        <span class="tension-tag">张力值</span>
+        <span class="tension-num" id="tensionNum">0</span>
+      </div>
+      <div class="tension-track">
+        <div class="tension-fill" id="tensionFill"></div>
+        <div class="tension-tick" style="left:25%"></div>
+        <div class="tension-tick" style="left:50%"></div>
+        <div class="tension-tick" style="left:75%"></div>
+      </div>
+      <div class="tension-streak" id="tensionStreak">连续引爆 0</div>
+    </div>
+
+    <!-- ============================================================
+         STAGE 1 — 引爆台：输入主题词 / 随机生成气泡
+    ============================================================ -->
+    <div class="tb-stage tb-stage-input active" id="stageInput">
+
+      <div class="ignite-deco">
+        <span class="ignite-ring r1"></span>
+        <span class="ignite-ring r2"></span>
+        <span class="ignite-ring r3"></span>
+        <span class="ignite-core" id="igniteCore">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M5 7l2.6 2.6"/><path d="M2 14h4"/><path d="M19 14h3"/><path d="M16.4 9.6 19 7"/><circle cx="12" cy="15" r="6"/></svg>
+        </span>
+      </div>
+
+      <div class="ignite-title">点一个词，炸开整个群</div>
+      <div class="ignite-sub">输入一个主题词，或留空直接随机引爆</div>
+
+      <div class="ignite-input-row">
+        <input type="text" class="ignite-input" id="topicInput" placeholder="例如：恋爱脑 / 加班 / 异地恋…" maxlength="16" oninput="onTopicInput(this)" onkeydown="onTopicKeydown(event)" />
+        <div class="ignite-input-count" id="topicCount">16</div>
+      </div>
+
+      <div class="ignite-actions">
+        <div class="ignite-btn ignite-btn-random" id="btnRandom" onclick="generateBubbles(true)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+          <span>随机引爆</span>
+        </div>
+        <div class="ignite-btn ignite-btn-go" id="btnGenerate" onclick="generateBubbles(false)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>生成话题泡</span>
+        </div>
+      </div>
+
+      <div class="ignite-hint">
+        <span class="ignite-hint-dot"></span>
+        <span>AI 会结合群成员的人设，挑出最容易吵起来 / 聊开的角度</span>
+      </div>
+
+    </div>
+
+    <!-- ============================================================
+         STAGE 2 — 气泡选择场：漂浮气泡，点击引爆
+    ============================================================ -->
+    <div class="tb-stage tb-stage-bubbles" id="stageBubbles">
+
+      <div class="bubble-field-header">
+        <div class="bfh-left">
+          <span class="bfh-tag">SELECT ONE · 选一个引爆</span>
+        </div>
+        <div class="bfh-redo" onclick="generateBubbles(_lastWasRandom)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span>换一批</span>
+        </div>
+      </div>
+
+      <div class="bubble-field" id="bubbleField">
+        <!-- bubbles injected by JS -->
+        <div class="bubble-loading" id="bubbleLoading">
+          <div class="bl-orb"></div>
+          <div class="bl-text">正在引爆话题词…</div>
+        </div>
+      </div>
+
+      <div class="bubble-field-foot">轻触任意泡泡，它会替你引爆这个话题</div>
+
+    </div>
+
+    <!-- ============================================================
+         STAGE 3 — 倒计时引爆动画
+    ============================================================ -->
+    <div class="tb-stage tb-stage-detonate" id="stageDetonate">
+      <div class="detonate-stack">
+        <div class="detonate-word" id="detonateWord">恋爱脑</div>
+        <div class="detonate-shock s1"></div>
+        <div class="detonate-shock s2"></div>
+        <div class="detonate-shock s3"></div>
+        <div class="detonate-particles" id="detonateParticles"></div>
+      </div>
+      <div class="detonate-caption" id="detonateCaption">引爆中…</div>
+    </div>
+
+    <!-- ============================================================
+         STAGE 4 — 接龙场：话题正式抛出 + 群成员逐个发言（用户主动点"下一个"推进）
+    ============================================================ -->
+    <div class="tb-stage tb-stage-fuse" id="stageFuse">
+
+      <div class="fuse-topic-card">
+        <div class="fuse-topic-eyebrow">本轮话题 · 第 <span id="fuseRoundNum">1</span> 轮接龙</div>
+        <div class="fuse-topic-text" id="fuseTopicText">—</div>
+        <div class="fuse-topic-meta">
+          <span id="fuseProgressText">0</span> / <span id="fuseMemberCount">0</span> 人已发言 · <span id="fuseTimer">00:00</span>
+        </div>
+      </div>
+
+      <div class="fuse-stream" id="fuseStream"></div>
+
+      <!-- 逐人查看控制条：看完一人后可选择"让TA继续说"或推进"下一个" -->
+      <div class="fuse-next-bar" id="fuseNextBar" style="display:none;">
+        <div class="fuse-continue-btn" id="fuseContinueBtn" onclick="continueCurrentFuseMember()">
+          <span id="fuseContinueBtnText">让TA继续说</span>
+        </div>
+        <div class="fuse-next-bar-row">
+          <div class="fuse-next-btn" id="fuseNextBtn" onclick="advanceFuseToNextMember()">
+            <span id="fuseNextBtnText">下一个</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="fuse-blast-btn disabled" id="fuseBlastBtn" onclick="goToBlastFromFuse()">
+            <span>去引爆</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================
+         开局转盘 — 决定本轮接龙谁第一个发言（等概率随机，不会每次都一样）
+    ============================================================ -->
+    <div class="starter-wheel-overlay" id="starterWheelOverlay">
+      <div class="starter-wheel-modal">
+        <div class="starter-wheel-title">转盘决定本轮谁先发言</div>
+        <div class="starter-wheel-wrap">
+          <div class="starter-wheel-pointer">▼</div>
+          <svg class="starter-wheel-svg" id="starterWheelSvg" viewBox="0 0 240 240"></svg>
+        </div>
+        <div class="starter-wheel-result" id="starterWheelResult">&nbsp;</div>
+        <div class="starter-wheel-btn" id="starterWheelBtn" onclick="spinStarterWheel()">
+          <span>开始转动</span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ============================================================
+         STAGE 5 — 本轮判定：选出本轮被炸的人 + 惩罚 + 申诉
+    ============================================================ -->
+    <div class="tb-stage tb-stage-result" id="stageResult">
+
+      <div class="result-blast" id="resultBlast">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+
+      <div class="result-card">
+        <div class="result-eyebrow">第 <span id="resultRoundNum">1</span> 轮 · 炸出的一句话共识</div>
+        <div class="result-line" id="resultLine">—</div>
+        <div class="result-source" id="resultSource">综合 <span id="resultMemberCount">0</span> 人本轮发言生成</div>
+      </div>
+
+      <div class="result-judge-title" id="resultJudgeTitle">这轮接龙里，谁的发言最该被炸？</div>
+
+      <!-- 5a 判定：选出本轮谁说得最差（支持多选/全员），也可以直接放过这轮没人炸 -->
+      <div class="judge-multi-bar" id="judgeMultiBar">
+        <div class="judge-multi-hint">可多选，也可以直接全员炸</div>
+        <div class="judge-multi-all" id="judgeAllBtn" onclick="toggleBlastAll()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg>
+          <span id="judgeAllBtnText">全员炸</span>
+        </div>
+      </div>
+      <div class="judge-grid judge-grid-members" id="judgeMemberGrid"></div>
+      <div class="judge-skip-row" id="judgeSkipRow" onclick="skipBlastThisRound()">
+        <span>这轮都说得挺好的，不炸了</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="judge-confirm-row" id="judgeConfirmRow" style="display:none;">
+        <div class="judge-confirm-btn" id="judgeConfirmBtn" onclick="confirmBlastSelection()">
+          <span id="judgeConfirmText">确认引爆 0 人</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+
+      <!-- 处理队列进度（多人时显示，例如"正在处理 2/3"） -->
+      <div class="blast-queue-bar" id="blastQueueBar" style="display:none;">
+        <span id="blastQueueText">正在处理 1/1</span>
+      </div>
+
+      <!-- 5b 惩罚选择层（判定后出现） -->
+      <div class="punish-panel" id="punishPanel" style="display:none;">
+        <div class="punish-title">
+          <span id="punishTargetName">—</span> 被炸了，给TA安排个惩罚
+        </div>
+        <div class="punish-grid" id="punishGrid"></div>
+      </div>
+
+      <!-- 5c 惩罚卡片动画层 -->
+      <div class="punish-blast-overlay" id="punishBlastOverlay">
+        <div class="punish-blast-card" id="punishBlastCard">
+          <div class="pb-tag">黑历史 · DETONATED</div>
+          <div class="pb-name" id="pbName">—</div>
+          <div class="pb-text" id="pbText">—</div>
+        </div>
+      </div>
+
+      <!-- 5c2 作文/书信类惩罚 — AI 现场生成专属稿纸样式展示 -->
+      <div class="essay-overlay" id="essayOverlay">
+        <div class="essay-modal">
+          <div class="essay-modal-head">
+            <span id="essayModalTitle">TA 的检讨小作文</span>
+            <div class="essay-close-btn" onclick="closeEssayModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+          </div>
+          <div class="essay-modal-body" id="essayModalBody">
+            <div class="essay-loading">
+              <div class="essay-loading-orb"></div>
+              <div id="essayLoadingText">正在按TA的人设写小作文，并设计一份专属稿纸…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5d 申诉区（惩罚确认后出现） -->
+      <div class="appeal-panel" id="appealPanel" style="display:none;">
+        <div class="appeal-head">
+          <div class="appeal-av" id="appealAv"></div>
+          <div class="appeal-headtext">
+            <div class="appeal-name" id="appealName">—</div>
+            <div class="appeal-tag">不服判定 · 申诉中</div>
+          </div>
+        </div>
+        <div class="appeal-stream" id="appealStream"></div>
+        <div class="appeal-input-row">
+          <div class="appeal-assist-btn" id="appealAssistBtn" onclick="openReplyAssist()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M5 7l2.6 2.6"/><path d="M2 14h4"/><path d="M19 14h3"/><path d="M16.4 9.6 19 7"/><circle cx="12" cy="15" r="6"/></svg>
+            <span>帮我回复</span>
+          </div>
+          <input type="text" class="appeal-input" id="appealInput" placeholder="想回TA两句…" maxlength="60" onkeydown="onAppealKeydown(event)" />
+          <div class="appeal-send-btn" id="appealSendBtn" onclick="sendAppealReply()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </div>
+        </div>
+        <div class="appeal-verdict-row" id="appealVerdictRow">
+          <div class="appeal-verdict-btn appeal-verdict-revoke" id="appealRevokeBtn" onclick="revokePendingPunishment()">
+            <span>申诉成立，撤销惩罚</span>
+          </div>
+          <div class="appeal-verdict-btn appeal-verdict-uphold" id="appealUpholdBtn" onclick="commitPendingPunishment()">
+            <span>维持原判</span>
+          </div>
+        </div>
+        <div class="appeal-close-row" id="appealCloseRow" onclick="closeAppealPanel()">
+          <span id="appealCloseRowText">结束申诉，继续</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+
+      <!-- 5d2 本轮被炸名单汇总 — 全部处理完后展示，确保每个人的惩罚内容都看得到、点得开 -->
+      <div class="blast-summary-panel" id="blastSummaryPanel" style="display:none;">
+        <div class="blast-summary-title">本轮黑历史清单</div>
+        <div class="blast-summary-list" id="blastSummaryList"></div>
+      </div>
+
+      <!-- 5e 回合操作：继续接龙 / 结束本话题 / 查看完整记录 -->
+      <div class="result-actions" id="resultActions" style="display:none;">
+        <div class="result-action-btn result-action-secondary" id="btnEndTopic" onclick="endTopicToInput()">
+          <span>结束本话题</span>
+        </div>
+        <div class="result-action-btn result-action-primary" id="btnNextRound" onclick="startNextFuseRound()">
+          <span>继续接龙</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+      <div class="result-actions-row2" id="resultActionsRow2" style="display:none;">
+        <div class="result-action-link" id="btnViewFull" onclick="openFullTranscript()">
+          <span>查看本话题完整记录</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     完整发言记录 — 底部抽屉
+============================================================ -->
+<div class="tb-sheet-overlay" id="transcriptOverlay" onclick="closeFullTranscript()"></div>
+<div class="tb-sheet" id="transcriptSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">完整发言记录</div>
+  <div class="transcript-list" id="transcriptList"></div>
+  <div class="sheet-close" onclick="closeFullTranscript()">关闭</div>
+</div>
+
+<!-- ============================================================
+     历史引爆记录 — 底部抽屉
+============================================================ -->
+<div class="tb-sheet-overlay" id="historyOverlay" onclick="closeHistorySheet()"></div>
+<div class="tb-sheet" id="historySheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">引爆记录</div>
+  <div class="history-list" id="historyList"></div>
+  <div class="sheet-close" onclick="closeHistorySheet()">关闭</div>
+</div>
+
+<!-- ============================================================
+     玩法说明 — 底部抽屉
+============================================================ -->
+<div class="tb-sheet-overlay" id="infoOverlay" onclick="closeInfoSheet()"></div>
+<div class="tb-sheet" id="infoSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">玩法说明</div>
+  <div class="info-rule"><div class="info-rule-num">01</div><div class="info-rule-text">输入或随机生成一个主题词，AI 会炸出几个相关的话题角度，做成气泡漂在屏幕上，点中一个即引爆。</div></div>
+  <div class="info-rule"><div class="info-rule-num">02</div><div class="info-rule-text">话题抛出后开始接龙：群成员按人设一轮轮接话，每一轮结束你都要选出这一轮说得最差、最该被炸的人。</div></div>
+  <div class="info-rule"><div class="info-rule-num">03</div><div class="info-rule-text">被炸的人会收到一份随机生成的惩罚，由你来挑一条最狠的；惩罚会留下黑历史标签，记进TA的引爆记录里。</div></div>
+  <div class="info-rule"><div class="info-rule-num">04</div><div class="info-rule-text">如果TA不服判定，会跳出来跟你申诉辩解——你可以继续跟TA聊，不知道怎么回也可以点「帮我回复」让AI按人设给你三种说法。</div></div>
+  <div class="info-rule"><div class="info-rule-num">05</div><div class="info-rule-text">一个话题可以反复接龙多轮，直到你点「结束本话题」收尾；每次判定都会影响顶部的张力值。</div></div>
+  <div class="sheet-close" onclick="closeInfoSheet()">知道了</div>
+</div>
+
+<!-- ============================================================
+     回复助手 — AI帮你生成三种不同回复
+============================================================ -->
+<div class="tb-sheet-overlay" id="replyAssistOverlay" onclick="closeReplyAssistSheet()"></div>
+<div class="tb-sheet" id="replyAssistSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title-row">
+    <div class="sheet-title">帮你想了三种说法</div>
+    <div class="reply-reroll-btn" id="replyAssistReroll" onclick="rerollReplyDrafts()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <span>换一批</span>
+    </div>
+  </div>
+  <div class="reply-draft-list" id="replyAssistList"></div>
+  <div class="reply-draft-hint">点一条，直接以这句话回TA</div>
+  <div class="sheet-close" onclick="closeReplyAssistSheet()">取消</div>
+</div>
+
+<!-- Toast -->
+<div class="tb-toast" id="tbToast"></div>
+
+<script src="topicbomb.js"></script>
+</body>
+</html>

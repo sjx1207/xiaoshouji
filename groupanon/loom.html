@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>因果纺织机</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="loom.css" />
+</head>
+<body>
+
+<div class="ga-wrap">
+  <div class="ga-frame">
+
+    <!-- Status bar (1:1 复刻群互动) -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="ga-header">
+      <div class="h-deco-top"></div>
+      <div class="h-corner-deco2"></div>
+      <div class="h-corner-deco"></div>
+      <div class="h-inner">
+        <div class="h-left" id="headerBack" onclick="handleBack()">
+          <svg width="9" height="15" viewBox="0 0 9 16" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1 1,8 8,15"/></svg>
+        </div>
+        <div class="header-title-block">
+          <div class="header-eyebrow">FATE · LOOM</div>
+          <div class="header-title">因果纺织机 <span class="header-badge">CAUSALITY</span></div>
+        </div>
+        <div class="h-actions">
+          <div class="h-action-btn galaxy-entry-btn" id="galaxyEntryBtn" onclick="openGalaxyBrowse()" title="回顾命运星系">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.6" stroke-linecap="round"><path d="M12 2l2.9 6.7L22 9.6l-5 4.9 1.2 7-6.2-3.4L5.8 21.5 7 14.5l-5-4.9 7.1-.9z"/></svg>
+            <span class="galaxy-entry-badge" id="galaxyEntryBadge" style="display:none;">0</span>
+          </div>
+          <div class="h-action-btn" onclick="showLoomInfo()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.5" stroke-width="2.2"/><line x1="12" y1="11" x2="12" y2="16"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="h-deco-line"></div>
+    </div>
+
+    <!-- ============================================================
+         STAGE 1 — 织机台：三根丝线 + 可拖拽卡片
+    ============================================================ -->
+    <div class="loom-view active" id="stageLoom">
+
+      <svg class="loom-bg-svg" viewBox="0 0 390 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="60" r="1" fill="#c8c0d8" opacity="0.4"/>
+        <circle cx="350" cy="90" r="1.2" fill="#c8c0d8" opacity="0.35"/>
+        <circle cx="320" cy="200" r="0.8" fill="#c8c0d8" opacity="0.3"/>
+        <circle cx="60" cy="260" r="1" fill="#c8c0d8" opacity="0.3"/>
+        <circle cx="360" cy="380" r="1" fill="#c8c0d8" opacity="0.3"/>
+        <circle cx="30" cy="450" r="0.8" fill="#c8c0d8" opacity="0.25"/>
+        <circle cx="340" cy="560" r="1" fill="#c8c0d8" opacity="0.25"/>
+      </svg>
+
+      <div class="loom-intro">
+        <div class="loom-intro-tag">THREE THREADS · 三线定局</div>
+        <div class="loom-intro-desc">把卡片拖到对应的丝线上，织出一段因果</div>
+      </div>
+
+      <div class="loom-ai-suggest-btn" id="loomAiSuggestBtn" onclick="aiSuggestThreads()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2l2.9 6.7L22 9.6l-5 4.9 1.2 7-6.2-3.4L5.8 21.5 7 14.5l-5-4.9 7.1-.9z"/></svg>
+        <span id="loomAiSuggestLabel">AI 帮我想一段因果</span>
+      </div>
+
+      <!-- 卡片池：待放置 -->
+      <div class="loom-pool" id="loomPool">
+        <div class="loom-card" data-slot="cause" id="cardCause">
+          <div class="lc-mark">起</div>
+          <input class="lc-input" id="inputCause" placeholder="写下一个起因…" maxlength="40" />
+          <div class="lc-hint">CAUSE</div>
+        </div>
+        <div class="loom-card" data-slot="twist" id="cardTwist">
+          <div class="lc-mark">转</div>
+          <input class="lc-input" id="inputTwist" placeholder="写下一个转折…" maxlength="40" />
+          <div class="lc-hint">TWIST</div>
+        </div>
+        <div class="loom-card" data-slot="result" id="cardResult">
+          <div class="lc-mark">果</div>
+          <input class="lc-input" id="inputResult" placeholder="写下一个结果…" maxlength="40" />
+          <div class="lc-hint">RESULT</div>
+        </div>
+      </div>
+
+      <!-- 三根丝线 -->
+      <div class="loom-threads" id="loomThreads">
+
+        <div class="loom-thread" data-accept="cause" id="threadCause">
+          <div class="lt-label">
+            <span class="lt-label-cn">起因</span>
+            <span class="lt-label-en">CAUSE THREAD</span>
+          </div>
+          <div class="lt-line lt-line-cause"></div>
+          <div class="lt-slot" id="slotCause">
+            <span class="lt-slot-ph">拖入起因卡片</span>
+          </div>
+        </div>
+
+        <div class="loom-thread" data-accept="twist" id="threadTwist">
+          <div class="lt-label">
+            <span class="lt-label-cn">转折</span>
+            <span class="lt-label-en">TWIST THREAD</span>
+          </div>
+          <div class="lt-line lt-line-twist"></div>
+          <div class="lt-slot" id="slotTwist">
+            <span class="lt-slot-ph">拖入转折卡片</span>
+          </div>
+        </div>
+
+        <div class="loom-thread" data-accept="result" id="threadResult">
+          <div class="lt-label">
+            <span class="lt-label-cn">结果</span>
+            <span class="lt-label-en">RESULT THREAD</span>
+          </div>
+          <div class="lt-line lt-line-result"></div>
+          <div class="lt-slot" id="slotResult">
+            <span class="lt-slot-ph">拖入结果卡片</span>
+          </div>
+        </div>
+
+        <!-- 织出的经纬光带，穿梭状态时出现 -->
+        <svg class="loom-weave-svg" id="loomWeaveSvg" viewBox="0 0 390 420" preserveAspectRatio="none">
+          <path id="weavePath" d="" stroke="url(#weaveGrad)" stroke-width="1.2" fill="none" opacity="0" />
+          <defs>
+            <linearGradient id="weaveGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#bdb6cc"/>
+              <stop offset="100%" stop-color="#9a93ac"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="loom-weave-btn disabled" id="loomWeaveBtn" onclick="startWeaving()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2v20M2 12h20"/><path d="M5 5l14 14M19 5L5 19" opacity="0.5"/></svg>
+        <span>开始纺织</span>
+      </div>
+
+    </div>
+
+    <!-- ============================================================
+         STAGE 2 — 纺织动画：梭子穿行 + 人物关系分析
+    ============================================================ -->
+    <div class="loom-view" id="stageWeaving">
+      <div class="weaving-stage">
+        <svg class="weaving-loom-svg" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="150" cy="150" r="118" fill="none" stroke="#e6e3ee" stroke-width="0.6"/>
+          <circle cx="150" cy="150" r="90" fill="none" stroke="#ddd8e8" stroke-width="0.5" stroke-dasharray="2 6"/>
+          <g id="weavingLines"></g>
+          <circle cx="150" cy="150" r="3.5" fill="#0a0a0a" id="shuttleDot"/>
+        </svg>
+        <div class="weaving-label" id="weavingLabel">正在拆解因果结构…</div>
+        <div class="weaving-dots"><div></div><div></div><div></div></div>
+      </div>
+      <div class="weaving-log" id="weavingLog"></div>
+    </div>
+
+    <!-- ============================================================
+         STAGE 3 — 短剧演绎：逐幕揭示，人物卡逐个浮现
+    ============================================================ -->
+    <div class="loom-view" id="stageDrama">
+      <div class="drama-topline">
+        <div class="drama-chain" id="dramaChain"></div>
+      </div>
+
+      <div class="drama-scroll" id="dramaScroll">
+        <!-- 场景卡片动态插入 -->
+      </div>
+
+      <div class="drama-bottom-bar">
+        <div class="drama-progress" id="dramaProgress">
+          <span id="dramaProgIdx">0</span><span class="drama-prog-sep">/</span><span id="dramaProgTotal">0</span>
+        </div>
+        <div class="drama-next-btn" id="dramaNextBtn" onclick="revealNextScene()">
+          <span id="dramaNextLabel">展开下一幕</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9,6 15,12 9,18"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         STAGE 4 — 命运网：加入星系
+    ============================================================ -->
+    <div class="loom-view" id="stageGalaxy">
+      <div class="galaxy-frame">
+        <svg class="galaxy-svg" id="galaxySvg" viewBox="0 0 390 560" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="galaxyCoreGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#0a0a0a"/>
+              <stop offset="100%" stop-color="#0a0a0a" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <g id="galaxyExisting"></g>
+          <g id="galaxyNewStar"></g>
+        </svg>
+        <div class="galaxy-caption" id="galaxyCaption">这段因果，是否值得成为命运网里的一颗星？</div>
+        <div class="galaxy-star-name" id="galaxyStarName"></div>
+      </div>
+
+      <div class="galaxy-actions" id="galaxyActionsPre">
+        <div class="galaxy-btn galaxy-btn-primary" onclick="joinGalaxy()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2l2.9 6.7L22 9.6l-5 4.9 1.2 7-6.2-3.4L5.8 21.5 7 14.5l-5-4.9 7.1-.9z"/></svg>
+          <span>加入命运网 · 化作星辰</span>
+        </div>
+        <div class="galaxy-btn galaxy-btn-ghost" onclick="restartLoom()">
+          <span>再织一段</span>
+        </div>
+      </div>
+
+      <div class="galaxy-actions hidden" id="galaxyActionsPost">
+        <div class="galaxy-joined-tag">已并入星系</div>
+        <div class="galaxy-btn galaxy-btn-ghost" onclick="restartLoom()">
+          <span>再织一段</span>
+        </div>
+      </div>
+
+      <div class="galaxy-actions hidden" id="galaxyActionsBrowse">
+        <div class="galaxy-browse-hint" id="galaxyBrowseHint">点击一颗星，回顾那段因果</div>
+        <div class="galaxy-btn galaxy-btn-ghost" onclick="switchStage('stageLoom')">
+          <span>返回织机台</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="ga-toast" id="gaToast"></div>
+
+<!-- 星星回顾详情面板 -->
+<div class="loom-info-overlay" id="starDetailOverlay" onclick="closeStarDetail()"></div>
+<div class="loom-info-sheet star-detail-sheet" id="starDetailSheet">
+  <div class="sheet-handle"></div>
+  <div class="star-detail-name" id="starDetailName"></div>
+  <div class="star-detail-time" id="starDetailTime"></div>
+  <div class="star-detail-chain" id="starDetailChain"></div>
+  <div class="star-detail-scenes" id="starDetailScenes"></div>
+  <div class="sheet-close" onclick="closeStarDetail()">关闭</div>
+</div>
+
+<!-- Info sheet -->
+<div class="loom-info-overlay" id="loomInfoOverlay" onclick="closeLoomInfo()"></div>
+<div class="loom-info-sheet" id="loomInfoSheet">
+  <div class="sheet-handle"></div>
+  <div class="loom-info-title">因果纺织机</div>
+  <div class="loom-info-body">
+    在三根丝线上各放一张卡片——起因、转折、结果。织机会拆解群内人物关系，让每个人在这段因果里各自扮演该扮演的角色，演绎成一段短剧。喜欢这段命运，就让它化作星系里的一颗星。
+  </div>
+  <div class="sheet-close" onclick="closeLoomInfo()">知道了</div>
+</div>
+
+<script src="loom.js"></script>
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>命运抽签</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="fortune.css" />
+</head>
+<body>
+
+<div class="ft-wrap">
+  <div class="ft-frame">
+
+    <!-- ============ Status bar — 与群互动页一致 ============ -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ Header ============ -->
+    <div class="ft-header">
+      <div class="h-deco-top"></div>
+      <div class="h-corner-deco2"></div>
+      <div class="h-corner-deco"></div>
+      <div class="h-inner">
+        <div class="h-left" id="headerBack" onclick="handleFtBack()">
+          <svg width="9" height="15" viewBox="0 0 9 16" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1 1,8 8,15"/></svg>
+        </div>
+        <div class="header-title-block">
+          <div class="header-eyebrow">FATE · DRAW</div>
+          <div class="header-title">命运抽签 <span class="header-badge">FORTUNE</span></div>
+        </div>
+        <div class="h-actions">
+          <div class="h-action-btn" id="archiveBtn" onclick="openArchive()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l1-3h16l1 3"/><path d="M4 7h16v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z"/><path d="M9 12h6"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="h-deco-line"></div>
+    </div>
+
+    <!-- ===================================================
+         VIEW 1 — 抽签台 DRAW STAGE
+    =================================================== -->
+    <div class="ft-view ft-view-draw active" id="viewDraw">
+
+      <svg class="draw-bg-svg" viewBox="0 0 390 760" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="195" cy="230" r="150" fill="none" stroke="#ddd9e6" stroke-width="0.6" opacity="0.5"/>
+        <circle cx="195" cy="230" r="190" fill="none" stroke="#e6e3ee" stroke-width="0.4" stroke-dasharray="2 8" opacity="0.45"/>
+        <circle cx="195" cy="230" r="115" fill="none" stroke="#e6e3ee" stroke-width="0.4" opacity="0.4"/>
+        <line x1="195" y1="40" x2="195" y2="420" stroke="#e6e3ee" stroke-width="0.4" stroke-dasharray="1 7" opacity="0.4"/>
+        <line x1="15" y1="230" x2="375" y2="230" stroke="#e6e3ee" stroke-width="0.4" stroke-dasharray="1 7" opacity="0.3"/>
+        <circle cx="60" cy="90" r="1.3" fill="#c9c2da" opacity="0.5"/>
+        <circle cx="335" cy="120" r="1" fill="#c9c2da" opacity="0.45"/>
+        <circle cx="350" cy="320" r="1.2" fill="#c9c2da" opacity="0.4"/>
+        <circle cx="40" cy="360" r="1" fill="#c9c2da" opacity="0.4"/>
+        <circle cx="300" cy="60" r="0.8" fill="#c9c2da" opacity="0.35"/>
+      </svg>
+
+      <div class="draw-scroll">
+
+        <!-- Ritual intro -->
+        <div class="draw-intro">
+          <div class="draw-intro-mark">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18" stroke-width="0.8" opacity="0.5"/></svg>
+          </div>
+          <div class="draw-intro-eyebrow">凡心所向 · 素履以往</div>
+          <div class="draw-intro-title">求一支签<br/>问一段缘</div>
+          <div class="draw-intro-sub">静心默念所惑之事，而后抽取签文</div>
+        </div>
+
+        <!-- Stick canister + sticks -->
+        <div class="canister-stage" id="canisterStage">
+          <div class="canister-glow"></div>
+          <div class="canister-body">
+            <div class="canister-rim"></div>
+            <div class="canister-sticks" id="canisterSticks">
+              <!-- sticks injected by JS -->
+            </div>
+            <div class="canister-shell"></div>
+            <div class="canister-base"></div>
+          </div>
+          <div class="canister-label">SHAKE THE FATE</div>
+        </div>
+
+        <div class="draw-action-area">
+          <div class="draw-btn" id="drawBtn" onclick="startDraw()">
+            <span class="draw-btn-ring"></span>
+            <span class="draw-btn-text">摇 签</span>
+          </div>
+          <div class="draw-hint">轻触签筒，命运自有安排</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===================================================
+         VIEW 2 — 签文结果 RESULT STAGE
+    =================================================== -->
+    <div class="ft-view ft-view-result" id="viewResult">
+      <div class="result-scroll" id="resultScroll">
+
+        <div class="result-stick-wrap">
+          <div class="result-stick" id="resultStickArt"></div>
+        </div>
+
+        <div class="result-card">
+          <div class="result-card-deco-tl"></div>
+          <div class="result-card-deco-br"></div>
+          <div class="result-card-loading" id="resultCardLoading">
+            <div class="rd-incense"><i></i><i></i><i></i></div>
+            <div class="rd-dots"><div></div><div></div><div></div></div>
+            <span>签文正在凝结…</span>
+          </div>
+          <div class="result-card-content" id="resultCardContent">
+            <div class="result-rank" id="resultRank">上上签</div>
+            <div class="result-rank-en" id="resultRankEn">SUPREME FORTUNE</div>
+            <div class="result-divider"><span></span><i></i><span></span></div>
+            <div class="result-poem" id="resultPoem"></div>
+            <div class="result-poem-vernacular" id="resultVernacular"></div>
+          </div>
+        </div>
+
+        <div class="result-section-label">
+          <span>请一位群中之人 · 解你此签</span>
+        </div>
+
+        <div class="char-pick-list" id="charPickList">
+          <!-- character cards injected -->
+        </div>
+
+        <div class="result-finish-row" id="resultFinishRow" style="display:none;">
+          <div class="result-finish-btn" id="finishPickBtn" onclick="openBestPick()">
+            <span>已问过所有人 · 选出最合心意的解读</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===================================================
+         VIEW 3 — 签筒档案 ARCHIVE
+    =================================================== -->
+    <div class="ft-view ft-view-archive" id="viewArchive">
+      <div class="archive-scroll" id="archiveScroll">
+        <div class="archive-header-row">
+          <div class="archive-header-tag">FATE ARCHIVE</div>
+          <div class="archive-header-count" id="archiveCount">0 支</div>
+        </div>
+        <div class="archive-list" id="archiveList"></div>
+        <div class="archive-empty" id="archiveEmpty" style="display:none;">
+          <div class="archive-empty-mark">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.4L12 15.8 7.1 18l.9-5.4-4-3.9 5.5-.8z"/></svg>
+          </div>
+          <div class="archive-empty-text">尚未求得签文</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================================================
+     DRAW ANIMATION OVERLAY — 摇签开签动画
+=================================================== -->
+<div class="shake-overlay" id="shakeOverlay">
+  <div class="shake-stage">
+    <div class="shake-canister" id="shakeCanister">
+      <div class="shake-canister-rim"></div>
+      <div class="shake-sticks-inner" id="shakeSticksInner"></div>
+      <div class="shake-canister-shell"></div>
+    </div>
+    <div class="shake-emerge-stick" id="shakeEmergeStick"></div>
+    <div class="shake-status-text" id="shakeStatusText">摇 签 中</div>
+    <div class="shake-progress-dots"><i></i><i></i><i></i></div>
+  </div>
+</div>
+
+<!-- ===================================================
+     READING MODAL — 角色解签结果（居中卷轴式，正文中嵌入可点的心声）
+=================================================== -->
+<div class="reading-overlay" id="readingOverlay" onclick="closeReading(event)"></div>
+<div class="reading-modal-stage" id="readingModalStage">
+  <div class="reading-modal" id="readingSheet">
+
+    <div class="rdm-seal-corner rdm-seal-tl"></div>
+    <div class="rdm-seal-corner rdm-seal-br"></div>
+    <div class="rdm-top-ornament">
+      <svg width="120" height="14" viewBox="0 0 120 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 7H46" stroke="currentColor" stroke-width="0.6" opacity="0.5"/>
+        <path d="M74 7H120" stroke="currentColor" stroke-width="0.6" opacity="0.5"/>
+        <circle cx="60" cy="7" r="4.2" fill="none" stroke="currentColor" stroke-width="0.7" opacity="0.7"/>
+        <circle cx="60" cy="7" r="1.4" fill="currentColor" opacity="0.6"/>
+        <circle cx="52" cy="7" r="1" fill="currentColor" opacity="0.4"/>
+        <circle cx="68" cy="7" r="1" fill="currentColor" opacity="0.4"/>
+      </svg>
+    </div>
+
+    <div class="rdm-close-x" onclick="closeReading()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
+    </div>
+
+    <div class="reading-head">
+      <div class="reading-avatar" id="readingAvatar"></div>
+      <div class="reading-head-info">
+        <div class="reading-name" id="readingName"></div>
+        <div class="reading-role" id="readingRole"></div>
+      </div>
+      <div class="reading-mark">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.4L12 15.8 7.1 18l.9-5.4-4-3.9 5.5-.8z"/></svg>
+      </div>
+    </div>
+
+    <div class="rdm-hint-row">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+      <span>文中标记为<i class="rdm-hint-chip">暗纹底色</i>的句子，话里有话 · 点击窥见TA没说出口的心思</span>
+    </div>
+
+    <div class="reading-body" id="readingBody">
+      <div class="reading-loading show" id="loadInterp">
+        <div class="rd-incense"><i></i><i></i><i></i></div>
+        <div class="rd-dots"><div></div><div></div><div></div></div>
+        <span>TA正在凝视签文，斟酌字句…</span>
+      </div>
+      <div class="reading-text" id="textInterp"></div>
+    </div>
+
+    <div class="rdm-bottom-ornament">
+      <svg width="160" height="10" viewBox="0 0 160 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 5H66" stroke="currentColor" stroke-width="0.5" opacity="0.4"/>
+        <path d="M94 5H160" stroke="currentColor" stroke-width="0.5" opacity="0.4"/>
+        <path d="M74 1L80 5L74 9L86 5Z" fill="none" stroke="currentColor" stroke-width="0.6" opacity="0.6"/>
+      </svg>
+    </div>
+
+    <div class="reading-foot-btn" id="readingFootBtn" onclick="closeReading()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      <span>收下这份解读</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     HEART-VOICE POPOVER — 点击正文中的暗藏心声片段后弹出
+=================================================== -->
+<div class="heart-pop-overlay" id="heartPopOverlay" onclick="closeHeartPop(event)"></div>
+<div class="heart-pop" id="heartPop">
+  <div class="hp-seal" id="hpSealIcon">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 12c2-5 6-8 10-8s8 3 10 8c-2 5-6 8-10 8s-8-3-10-8z"/><circle cx="12" cy="12" r="3"/></svg>
+  </div>
+  <div class="hp-label">这句话背后，没说出口的心思</div>
+  <div class="hp-text" id="heartPopText"></div>
+  <div class="hp-warn">仅你窥见 · TA当时并没真的说出这句心思</div>
+  <div class="hp-close" onclick="closeHeartPop()">轻轻合上</div>
+</div>
+
+<!-- ===================================================
+     BEST PICK SHEET — 选出最贴心的一支解读
+=================================================== -->
+<div class="bestpick-overlay" id="bestpickOverlay" onclick="closeBestPick(event)"></div>
+<div class="bestpick-sheet" id="bestpickSheet">
+  <div class="sheet-handle"></div>
+  <div class="bestpick-title">谁的解读最懂你的心</div>
+  <div class="bestpick-sub">选定后，这支签将带着 TA 的解读被珍藏</div>
+  <div class="bestpick-list" id="bestpickList"></div>
+  <div class="bestpick-cancel" onclick="closeBestPick()">再想想</div>
+</div>
+
+<!-- ===================================================
+     ARCHIVE DETAIL — 回顾某支签（先看最佳，其余需解锁）
+=================================================== -->
+<div class="adetail-overlay" id="adetailOverlay" onclick="closeArchiveDetail(event)"></div>
+<div class="adetail-sheet" id="adetailSheet">
+  <div class="sheet-handle"></div>
+  <div class="adetail-scroll" id="adetailScroll">
+    <!-- injected by JS -->
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="ft-toast" id="ftToast"></div>
+
+<script src="fortune.js"></script>
+</body>
+</html>
