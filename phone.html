@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Phone — 电话</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Fraunces:opsz,wght@9..144,100&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="phone.css" />
+</head>
+<body>
+
+<!-- 轻提示 toast（通话计费 / 号码办理等操作反馈） -->
+<div id="pnToast" class="pn-toast"></div>
+
+<!-- ===================== 状态栏 ===================== -->
+<div class="status-bar">
+  <div class="status-time" id="statusTime">9:41</div>
+  <div class="status-island" id="statusIsland"></div>
+  <div class="status-right">
+    <div class="signal">
+      <i></i><i></i><i></i><i></i>
+    </div>
+    <div class="battery">
+      <span class="bat-pct" id="batPct">76</span>
+      <div class="bat-shell">
+        <div class="bat-inner" id="batInner"></div>
+        <div class="bat-nub"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 页面内容区 ===================== -->
+<div class="screen-content">
+
+  <!-- 通话记录 -->
+  <div class="page" id="page-recents">
+
+    <!-- 华丽头部 -->
+    <div class="recents-hero">
+      <div class="rh-corner">
+        <div class="rh-dot-row"><span class="rh-dot"></span><span class="rh-dot"></span><span class="rh-dot dark"></span></div>
+        <div class="rh-dot-row"><span class="rh-dot dark"></span><span class="rh-dot"></span><span class="rh-dot"></span></div>
+        <div class="rh-hline" style="width:42px"></div>
+        <div class="rh-hline" style="width:28px"></div>
+      </div>
+      <div class="rh-eyebrow">call history · 通话记录</div>
+      <div class="rh-title-kr">通话 <span class="rh-title-light">记录</span></div>
+      <div class="rh-title-en">Recent · All Calls</div>
+      <div class="rh-deco-lines">
+        <div class="rh-dl" style="width:38px;opacity:.9"></div>
+        <div class="rh-dlg" style="width:4px"></div>
+        <div class="rh-dl" style="width:14px;opacity:.35"></div>
+        <div class="rh-dlg" style="width:4px"></div>
+        <div class="rh-dl" style="width:60px;opacity:.6"></div>
+        <div class="rh-dlg" style="width:4px"></div>
+        <div class="rh-dl" style="width:8px;opacity:.25"></div>
+        <div class="rh-dlg" style="width:4px"></div>
+        <div class="rh-dl" style="width:44px;opacity:.8"></div>
+        <div class="rh-dlg" style="width:4px"></div>
+        <div class="rh-dl" style="width:22px;opacity:.4"></div>
+        <div class="rh-dlg" style="flex:1"></div>
+      </div>
+      <div class="rh-meta-strip">
+        <span class="rh-date" id="recentsDate">2025 · 06 · 04</span>
+        <div class="rh-sep"></div>
+        <span class="rh-total">今日 6 条</span>
+      </div>
+    </div>
+
+    <!-- 列表区 -->
+    <div class="page-scroll">
+
+      <!-- 分区：收到的通话 Incoming -->
+      <div class="rc-section-head">
+        <span class="rc-sh-kr">收到的通话</span>
+        <span class="rc-sh-en">Incoming</span>
+        <div class="rc-sh-rule"></div>
+      </div>
+
+      <!-- 状态1：收到 · 接通 -->
+      <div class="rc-item">
+        <div class="rc-av">
+          KM
+          <div class="rc-badge rc-badge-in">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7l-10 10"/><path d="M8 7l9 0l0 9"/></svg>
+          </div>
+        </div>
+        <div class="rc-body">
+          <div class="rc-name">金民俊</div>
+          <div class="rc-sub">
+            <svg class="rc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/><path d="M15 7a2 2 0 0 1 2 2"/><path d="M15 3a6 6 0 0 1 6 6"/></svg>
+            <span class="rc-sub-text">收到 · Connected</span>
+          </div>
+          <div class="rc-pill rc-pill-conn">已接通</div>
+        </div>
+        <div class="rc-right">
+          <div class="rc-time">09:12</div>
+          <div class="rc-dur">12分 34秒</div>
+        </div>
+      </div>
+
+      <!-- 状态2：收到 · 未接 -->
+      <div class="rc-item">
+        <div class="rc-av rc-av-dim">
+          PJ
+          <div class="rc-badge rc-badge-miss">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7l-10 10"/><path d="M8 7l9 0l0 9"/></svg>
+          </div>
+        </div>
+        <div class="rc-body">
+          <div class="rc-name rc-name-dim">朴智雅</div>
+          <div class="rc-sub">
+            <svg class="rc-icon rc-icon-miss" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
+            <span class="rc-sub-text rc-sub-miss">未接 · Missed</span>
+          </div>
+          <div class="rc-pill rc-pill-miss">未接听</div>
+        </div>
+        <div class="rc-right">
+          <div class="rc-time">08:44</div>
+          <div class="rc-dur rc-dur-miss">—</div>
+        </div>
+      </div>
+
+      <!-- 状态3：收到 · 中途挂断 -->
+      <div class="rc-item">
+        <div class="rc-av">
+          LS
+          <div class="rc-badge rc-badge-in">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7l-10 10"/><path d="M8 7l9 0l0 9"/></svg>
+          </div>
+        </div>
+        <div class="rc-body">
+          <div class="rc-name">李秀妍</div>
+          <div class="rc-sub">
+            <svg class="rc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/></svg>
+            <span class="rc-sub-text">接了挂断 · Ended</span>
+          </div>
+          <div class="rc-pill rc-pill-hang">中途挂断</div>
+        </div>
+        <div class="rc-right">
+          <div class="rc-time">07:58</div>
+          <div class="rc-dur">0分 22秒</div>
+        </div>
+      </div>
+
+      <!-- 分区间隔 -->
+      <div class="rc-section-gap"></div>
+
+      <!-- 分区：拨出的通话 Outgoing -->
+      <div class="rc-section-head">
+        <span class="rc-sh-kr">拨出的通话</span>
+        <span class="rc-sh-en">Outgoing</span>
+        <div class="rc-sh-rule"></div>
+      </div>
+
+      <!-- 状态4：拨出 · 接通 -->
+      <div class="rc-item">
+        <div class="rc-av">
+          OC
+          <div class="rc-badge rc-badge-out">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17l10 -10"/><path d="M8 7l9 0l0 9"/></svg>
+          </div>
+        </div>
+        <div class="rc-body">
+          <div class="rc-name">吴赞浩</div>
+          <div class="rc-sub">
+            <svg class="rc-icon rc-icon-out" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/><path d="M15 7a2 2 0 0 1 2 2"/><path d="M15 3a6 6 0 0 1 6 6"/></svg>
+            <span class="rc-sub-text">拨出已接 · Connected</span>
+          </div>
+          <div class="rc-pill rc-pill-conn">已接通</div>
+        </div>
+        <div class="rc-right">
+          <div class="rc-time">18:05</div>
+          <div class="rc-dur">5分 09秒</div>
+        </div>
+      </div>
+
+      <!-- 状态5：拨出 · 对方未接 -->
+      <div class="rc-item">
+        <div class="rc-av rc-av-dim">
+          HJ
+          <div class="rc-badge rc-badge-miss">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17l10 -10"/><path d="M8 7l9 0l0 9"/></svg>
+          </div>
+        </div>
+        <div class="rc-body">
+          <div class="rc-name rc-name-dim">韩志敏</div>
+          <div class="rc-sub">
+            <svg class="rc-icon rc-icon-miss" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
+            <span class="rc-sub-text rc-sub-miss">对方未接 · No Answer</span>
+          </div>
+          <div class="rc-pill rc-pill-miss">无人接听</div>
+        </div>
+        <div class="rc-right">
+          <div class="rc-time">14:22</div>
+          <div class="rc-dur rc-dur-miss">—</div>
+        </div>
+      </div>
+
+      <!-- 状态6：拨出 · 中途挂断 -->
+      <div class="rc-item">
+        <div class="rc-av">
+          CY
+          <div class="rc-badge rc-badge-out">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17l10 -10"/><path d="M8 7l9 0l0 9"/></svg>
+          </div>
+        </div>
+        <div class="rc-body">
+          <div class="rc-name">崔宥娜</div>
+          <div class="rc-sub">
+            <svg class="rc-icon rc-icon-out" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/></svg>
+            <span class="rc-sub-text">拨出挂断 · Ended</span>
+          </div>
+          <div class="rc-pill rc-pill-hang">中途挂断</div>
+        </div>
+        <div class="rc-right">
+          <div class="rc-time">11:37</div>
+          <div class="rc-dur">1分 03秒</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 键盘 -->
+  <div class="page active" id="page-keypad">
+    <div class="kp-page-inner">
+
+      <!-- 侧边竖向装饰 -->
+      <div class="kp-side-deco">
+        <div class="kp-side-seg" style="flex:1;"></div>
+        <div class="kp-side-dot"></div>
+        <div class="kp-side-seg" style="height:12px;"></div>
+        <div class="kp-side-dot"></div>
+        <div class="kp-side-seg" style="flex:1;"></div>
+      </div>
+
+      <!-- BG 背景网格线 SVG -->
+      <svg class="kp-bg-lines" viewBox="0 0 390 280" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="72" y1="0" x2="72" y2="280" stroke="#eeeee8" stroke-width="0.5"/>
+        <line x1="144" y1="0" x2="144" y2="280" stroke="#eeeee8" stroke-width="0.5"/>
+        <line x1="216" y1="0" x2="216" y2="280" stroke="#eeeee8" stroke-width="0.5"/>
+        <line x1="288" y1="0" x2="288" y2="280" stroke="#eeeee8" stroke-width="0.5"/>
+        <line x1="360" y1="0" x2="360" y2="280" stroke="#eeeee8" stroke-width="0.5"/>
+        <line x1="0" y1="60" x2="390" y2="60" stroke="#eeeee8" stroke-width="0.5"/>
+        <line x1="0" y1="120" x2="390" y2="120" stroke="#eeeee8" stroke-width="0.5"/>
+        <line x1="0" y1="180" x2="390" y2="180" stroke="#eeeee8" stroke-width="0.5"/>
+        <line x1="0" y1="240" x2="390" y2="240" stroke="#eeeee8" stroke-width="0.5"/>
+        <line x1="330" y1="0" x2="390" y2="60" stroke="#e4e4de" stroke-width="0.5"/>
+        <line x1="350" y1="0" x2="390" y2="40" stroke="#e8e8e2" stroke-width="0.5"/>
+        <line x1="0" y1="220" x2="40" y2="280" stroke="#e4e4de" stroke-width="0.5"/>
+      </svg>
+
+      <!-- ① 头部（新设计） -->
+      <div class="kp-header">
+
+        <!-- TOP META BAR -->
+        <div class="kp-top-meta">
+          <div class="kp-breadcrumb">
+            <div class="kp-back-btn" onclick="if(window.parent && window.parent.closePhoneApp) window.parent.closePhoneApp(); else window.history.back();">
+              <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
+                <path d="M5 1L1 5L5 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span class="kp-bc-text">DIAL PAD</span>
+            <div class="kp-bc-sep"></div>
+            <span class="kp-bc-active">KEYPAD</span>
+          </div>
+          <div class="kp-corner-deco">
+            <div class="kp-dot-row">
+              <div class="kp-dot"></div>
+              <div class="kp-dot kp-dot-dk"></div>
+              <div class="kp-dot kp-dot-dk"></div>
+            </div>
+            <div class="kp-corner-line" style="width:28px;"></div>
+            <div class="kp-corner-line" style="width:18px;"></div>
+          </div>
+        </div>
+
+        <!-- TITLE BLOCK -->
+        <div class="kp-title-block">
+          <div class="kp-title-row">
+            <span class="kp-title-main">键盘</span>
+            <span class="kp-title-sub">Keypad - Dial</span>
+          </div>
+          <!-- 横线装饰 -->
+          <div class="kp-title-deco-line">
+            <div class="kp-tl-seg" style="width:32px;"></div>
+            <div class="kp-tl-gap"></div>
+            <div class="kp-tl-dot"></div>
+            <div class="kp-tl-gap"></div>
+            <div class="kp-tl-seg" style="width:8px;"></div>
+            <div class="kp-tl-gap"></div>
+            <div class="kp-tl-seg kp-tl-light" style="width:20px;"></div>
+            <div class="kp-tl-gap"></div>
+            <div class="kp-tl-dot" style="background:#d0d0cc;"></div>
+            <div class="kp-tl-gap"></div>
+            <div class="kp-tl-seg kp-tl-light" style="flex:1;"></div>
+          </div>
+          <!-- META ROW -->
+          <div class="kp-meta-row">
+            <div class="kp-meta-pill">
+              <div class="kp-meta-dot"></div>
+              <span class="kp-meta-text">READY</span>
+            </div>
+            <div class="kp-meta-divider"></div>
+            <span class="kp-meta-hint">输入号码后拨打</span>
+            <div class="kp-meta-tag">KR · CN</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FULL SEPARATOR -->
+      <div class="kp-sep-full">
+        <div class="kp-sep-line"></div>
+        <span class="kp-sep-num">001</span>
+        <div class="kp-sep-diamond"></div>
+        <div class="kp-sep-line"></div>
+      </div>
+
+      <!-- ② 联系人识别卡（新设计） -->
+      <div class="kpcc-wrap">
+        <div class="kpcc-outer">
+
+          <!-- 未知状态 -->
+          <div id="kpccUnknown" class="kpcc-inner">
+            <div class="kpcc-avatar-wrap">
+              <div class="kpcc-avatar">
+                <svg class="kpcc-av-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="8" r="4" stroke="#888" stroke-width="1.2"/>
+                  <path d="M4 20c0-4 3.58-7 8-7s8 3 8 7" stroke="#888" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="kpcc-avatar-ring"></div>
+            </div>
+            <div class="kpcc-info">
+              <div class="kpcc-label-row">
+                <span class="kpcc-eyebrow">CONTACT</span>
+                <div class="kpcc-eyebrow-line"></div>
+              </div>
+              <div class="kpcc-name-unknown">未知号码</div>
+              <div class="kpcc-sub-row">
+                <div class="kpcc-sub-dot"></div>
+                <span class="kpcc-sub-text">Unknown</span>
+                <div class="kpcc-sub-dot"></div>
+                <span class="kpcc-sub-text">请输入号码拨打</span>
+              </div>
+            </div>
+            <span class="kpcc-tag-right">?</span>
+          </div>
+
+          <!-- 已知状态 -->
+          <div id="kpccKnown" class="kpcc-inner" style="display:none">
+            <div class="kpcc-avatar-wrap">
+              <div class="kpcc-avatar kpcc-av-known" id="kpccAvatar">KM</div>
+              <div class="kpcc-avatar-ring"></div>
+            </div>
+            <div class="kpcc-info">
+              <div class="kpcc-label-row">
+                <span class="kpcc-eyebrow">CONTACT</span>
+                <div class="kpcc-eyebrow-line"></div>
+              </div>
+              <div class="kpcc-name-known" id="kpccName">金民俊</div>
+              <div class="kpcc-sub-row">
+                <div class="kpcc-sub-dot"></div>
+                <span class="kpcc-sub-text" id="kpccSubtitle">手机 · Mobile</span>
+              </div>
+            </div>
+            <div class="kpcc-call-mini">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5-2.5l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>
+            </div>
+          </div>
+
+          <!-- 卡片底部 -->
+          <div class="kpcc-footer">
+            <span class="kpcc-ft-text">ID · UNVERIFIED</span>
+            <div class="kpcc-ft-dots">
+              <div class="kpcc-ft-dot"></div><div class="kpcc-ft-dot"></div><div class="kpcc-ft-dot"></div>
+              <div class="kpcc-ft-dot"></div><div class="kpcc-ft-dot"></div>
+            </div>
+            <span class="kpcc-ft-text">SIGNAL · ON</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ③ 拨号框（新设计） -->
+      <div class="kp-dial-section">
+        <div class="kp-dial-label-row">
+          <span class="kp-dial-eyebrow">INPUT</span>
+          <span class="kp-dial-count" id="kpDialCount">0 / 16</span>
+        </div>
+        <div class="kp-dial-box">
+          <div class="kp-dial-bar"></div>
+          <div class="kp-dial-inner">
+            <span id="dialDisplay" class="kp-dial-placeholder">— — — — — —</span>
+          </div>
+          <div class="kp-dial-right">
+            <span class="kp-dial-tag">DIAL NUM</span>
+            <div class="kp-dial-corner">
+              <div class="kp-dial-corner-seg"></div>
+              <div class="kp-dial-corner-dot"></div>
+              <div class="kp-dial-corner-seg" style="width:3px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="kp-dial-sub-row">
+          <div class="kp-dial-sub-dash"></div>
+          <span class="kp-dial-sub-text">· · ·</span>
+          <div class="kp-dial-sub-dash" style="width:6px;"></div>
+          <span class="kp-dial-sub-text">AWAITING INPUT</span>
+        </div>
+      </div>
+
+      <!-- ⑤ 键盘网格（flex:1 填满剩余） -->
+      <div class="kp-grid-wrap">
+        <div class="kp-kb-grid">
+          <div class="kp-key" onclick="dialPress('1')"><span class="kp-key-num">1</span><span class="kp-key-alpha">&nbsp;</span></div>
+          <div class="kp-key" onclick="dialPress('2')"><span class="kp-key-num">2</span><span class="kp-key-alpha">ABC</span></div>
+          <div class="kp-key" onclick="dialPress('3')"><span class="kp-key-num">3</span><span class="kp-key-alpha">DEF</span></div>
+          <div class="kp-key" onclick="dialPress('4')"><span class="kp-key-num">4</span><span class="kp-key-alpha">GHI</span></div>
+          <div class="kp-key" onclick="dialPress('5')"><span class="kp-key-num">5</span><span class="kp-key-alpha">JKL</span></div>
+          <div class="kp-key" onclick="dialPress('6')"><span class="kp-key-num">6</span><span class="kp-key-alpha">MNO</span></div>
+          <div class="kp-key" onclick="dialPress('7')"><span class="kp-key-num">7</span><span class="kp-key-alpha">PQRS</span></div>
+          <div class="kp-key" onclick="dialPress('8')"><span class="kp-key-num">8</span><span class="kp-key-alpha">TUV</span></div>
+          <div class="kp-key" onclick="dialPress('9')"><span class="kp-key-num">9</span><span class="kp-key-alpha">WXYZ</span></div>
+          <div class="kp-key" onclick="dialPress('*')"><span class="kp-key-sym">*</span></div>
+          <div class="kp-key" onclick="dialPress('0')"><span class="kp-key-num">0</span><span class="kp-key-alpha">+</span></div>
+          <div class="kp-key" onclick="dialPress('#')"><span class="kp-key-sym">#</span></div>
+        </div>
+      </div>
+
+      <!-- ⑥ 操作行（固定高度） -->
+      <div class="kp-action-row">
+        <div class="kp-act-left">
+          <div class="kp-add-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          </div>
+          <span class="kp-act-label">添加<br>联系人</span>
+        </div>
+        <div class="kp-call-btn" onclick="kpPlaceCall()">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f9f9f9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5-2.5l5 2v4a2 2 0 0 1-2 2a16 16 0 0 1-15-15a2 2 0 0 1 2-2"/>
+          </svg>
+        </div>
+        <div class="kp-del-btn" onclick="dialDelete()">
+          <div class="kp-del-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 7h-9l-4 5l4 5h9a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1z"/>
+              <path d="M12 11l4 4"/><path d="M16 11l-4 4"/>
+            </svg>
+          </div>
+          <span class="kp-act-label">删除</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 联系人 -->
+  <div class="page" id="page-contacts">
+
+    <!-- ══ 头部区 ══ -->
+    <div class="ct-hero" id="ctHero">
+
+      <!-- 角落装饰 -->
+      <div class="ct-corner-deco">
+        <div class="ct-cd-sq"></div>
+      </div>
+      <div class="ct-count-badge" id="ctCountBadge">048</div>
+
+      <!-- 眉标 -->
+      <div class="ct-eyebrow">address book · No. Contacts</div>
+
+      <!-- 主标题 -->
+      <div class="ct-title-row">
+        <span class="ct-title-main">联系人</span>
+        <span class="ct-title-light">Contacts</span>
+      </div>
+
+      <!-- 副标题 -->
+      <div class="ct-hero-sub">ALL · Full List · 全部联系人</div>
+
+      <!-- 装饰线 -->
+      <div class="ct-deco-strip">
+        <div class="ct-dl" style="width:32px;opacity:.9"></div>
+        <div class="ct-dlg" style="width:4px"></div>
+        <div class="ct-dl" style="width:10px;opacity:.3"></div>
+        <div class="ct-dlg" style="width:4px"></div>
+        <div class="ct-dl" style="width:52px;opacity:.6"></div>
+        <div class="ct-dlg" style="width:4px"></div>
+        <div class="ct-dl" style="width:6px;opacity:.22"></div>
+        <div class="ct-dlg" style="width:4px"></div>
+        <div class="ct-dl" style="width:38px;opacity:.75"></div>
+        <div class="ct-dlg" style="flex:1"></div>
+      </div>
+
+      <!-- 两个操作按钮 -->
+      <div class="ct-hero-btns">
+
+        <!-- 记录按钮 -->
+        <div class="ct-hbtn" id="ctBtnRecords" onclick="switchTab('recents')">
+          <div class="ct-hbtn-icon ct-hbtn-icon-rec">
+            <!-- 三条横线 + 左侧竖条 = "记录/历史"图形 -->
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="1" width="16" height="16" rx="3" stroke="currentColor" stroke-width="0.7" stroke-dasharray="2 1.5"/>
+              <line x1="5" y1="6" x2="13" y2="6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              <line x1="5" y1="9" x2="11" y2="9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              <line x1="5" y1="12" x2="13" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              <line x1="2.5" y1="5" x2="2.5" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="ct-hbtn-label-wrap">
+            <span class="ct-hbtn-kr">记录</span>
+            <span class="ct-hbtn-en">History</span>
+          </div>
+        </div>
+
+        <!-- 竖向分割 -->
+        <div class="ct-hbtn-divider"></div>
+
+        <!-- 添加按钮 -->
+        <div class="ct-hbtn ct-hbtn-add" id="ctBtnAdd">
+          <div class="ct-hbtn-icon ct-hbtn-icon-add">
+            <!-- 方框 + 十字 = "新增"图形 -->
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="1" width="16" height="16" rx="3" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-width="0.8"/>
+              <line x1="9" y1="5" x2="9" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="5" y1="9" x2="13" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="9" cy="9" r="3.2" stroke="currentColor" stroke-width="0.5" stroke-dasharray="1.5 1.2"/>
+            </svg>
+          </div>
+          <div class="ct-hbtn-label-wrap">
+            <span class="ct-hbtn-kr">添加</span>
+            <span class="ct-hbtn-en">New</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ 搜索栏 ══ -->
+    <div class="ct-search-wrap">
+      <div class="ct-search-eyebrow">
+        <span>SEARCH</span>
+        <div class="ct-se-dash"></div>
+        <span>姓名</span>
+      </div>
+      <div class="ct-search-box">
+        <div class="ct-search-left-bar"></div>
+        <div class="ct-search-icon-ring">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.4" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg>
+        </div>
+        <input
+          class="ct-search-input"
+          id="ctSearchInput"
+          type="text"
+          placeholder="搜索联系人…"
+          oninput="ctSearch(this.value)"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+        />
+        <div class="ct-search-hint" id="ctSearchHint">NAME · NUMBER</div>
+        <div class="ct-search-mic" id="ctSearchClear" onclick="ctClearSearch()" style="display:none;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f9f9f7" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </div>
+        <div class="ct-search-mic" id="ctSearchMicBtn" onclick="void(0)">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f9f9f7" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+        </div>
+        <div class="ct-search-corner"></div>
+      </div>
+    </div>
+
+    <!-- ══ 装饰条（替换 Chip 分类）══ -->
+    <div class="ct-deco-bar-row">
+      <div class="ct-deco-pill">
+        <div class="ct-deco-pill-dot"></div>
+        <span class="ct-deco-pill-txt">A — Z</span>
+      </div>
+      <div class="ct-deco-mid-line"></div>
+      <div class="ct-deco-pill ct-deco-pill-sm">
+        <span class="ct-deco-pill-txt">·· ·· ··</span>
+      </div>
+      <div class="ct-deco-mid-line ct-deco-mid-line-long"></div>
+      <div class="ct-deco-corner-mark">
+        <div class="ct-dcm-inner"></div>
+      </div>
+    </div>
+
+    <!-- ══ 列表区 + 右侧字母轨 ══ -->
+    <div class="ct-list-area">
+
+      <!-- 联系人列表 -->
+      <div class="ct-scroll" id="ctScrollArea">
+        <!-- 动态渲染 by JS -->
+      </div>
+
+      <!-- 右侧字母滑条 -->
+      <div class="ct-alpha-rail" id="ctAlphaRail">
+        <div class="ct-alpha-rail-line"></div>
+        <!-- 字母由 JS 渲染 -->
+      </div>
+
+    </div>
+
+  </div>
+
+</div><!-- /screen-content -->
+
+<!-- ===================== 导航栏 ===================== -->
+<div class="nav-bar" id="nav-bar">
+  <div class="nav-track"><div class="nav-indicator" id="nav-indicator"></div></div>
+
+  <div class="nav-item" id="nav-recents" onclick="switchTab('recents')">
+    <div class="nav-icon-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/></svg>
+    </div>
+    <span class="nav-label">记录</span>
+  </div>
+
+  <div class="nav-item active" id="nav-keypad" onclick="switchTab('keypad')">
+    <div class="nav-icon-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="7" cy="6" r="1"/><circle cx="12" cy="6" r="1"/><circle cx="17" cy="6" r="1"/><circle cx="7" cy="11" r="1"/><circle cx="12" cy="11" r="1"/><circle cx="17" cy="11" r="1"/><circle cx="7" cy="16" r="1"/><circle cx="12" cy="16" r="1"/><circle cx="17" cy="16" r="1"/><circle cx="12" cy="21" r="1"/></svg>
+    </div>
+    <span class="nav-label">键盘</span>
+  </div>
+
+  <div class="nav-item" id="nav-contacts" onclick="switchTab('contacts')">
+    <div class="nav-icon-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></svg>
+    </div>
+    <span class="nav-label">联系人</span>
+  </div>
+</div>
+
+<!-- ===================== 来电：灵动岛通知横幅 ===================== -->
+<!-- 当灵动岛开启时，点击横幅可进入全屏来电界面 -->
+<div class="ic-notif-banner" id="icNotifBanner">
+  <div class="ic-nb-card" id="icNbCard" onclick="icBannerExpand()">
+    <div class="ic-nb-av" id="icNbAv">?</div>
+    <div class="ic-nb-body">
+      <div class="ic-nb-app">Phone · 来电</div>
+      <div class="ic-nb-name" id="icNbName">来电中…</div>
+      <div class="ic-nb-sub" id="icNbSub">Mobile</div>
+    </div>
+    <div class="ic-nb-btns">
+      <div class="ic-nb-btn ic-nb-end" id="icNbEndBtn" onclick="event.stopPropagation();icDeclineCall()">拒接</div>
+      <div class="ic-nb-btn ic-nb-ans" id="icNbAnsBtn" onclick="event.stopPropagation();icAnswerCall()">接听</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 来电：全屏来电界面 ===================== -->
+<div class="ic-full" id="icFullScreen">
+  <div class="ic-full-backdrop">
+    <div class="ic-orb ic-orb-1"></div>
+    <div class="ic-orb ic-orb-2"></div>
+    <div class="ic-orb ic-orb-3"></div>
+  </div>
+  <div class="ic-full-grid"></div>
+  <!-- 角落装饰 -->
+  <div class="ic-corner-code ic-corner-tl">INCOMING<br>CALL · 来电</div>
+  <div class="ic-corner-code ic-corner-tr">PHONE<br>·· ··</div>
+  <div class="ic-corner-code ic-corner-bl">SIM 1<br>MOBILE</div>
+  <!-- 侧边装饰轨 -->
+  <div class="ic-side-rail ic-side-rail-l">
+    <div class="ic-side-tick ic-side-tick-l" style="top:20%"></div>
+    <div class="ic-side-tick ic-side-tick-l" style="top:50%"></div>
+    <div class="ic-side-tick ic-side-tick-l" style="top:80%"></div>
+  </div>
+  <div class="ic-side-rail ic-side-rail-r">
+    <div class="ic-side-tick ic-side-tick-r" style="top:30%"></div>
+    <div class="ic-side-tick ic-side-tick-r" style="top:60%"></div>
+  </div>
+
+  <!-- 顶部信息 -->
+  <div class="ic-full-top">
+    <div class="ic-full-tag">incoming call</div>
+    <div class="ic-avatar-wrap">
+      <div class="ic-avatar" id="icAvatar">?</div>
+      <div class="ic-avatar-ring"></div>
+      <div class="ic-avatar-ring2"></div>
+      <div class="ic-avatar-ring3"></div>
+    </div>
+    <div class="ic-name" id="icName">来电中</div>
+    <div class="ic-meta" id="icMeta">Mobile</div>
+    <div class="ic-deco">
+      <div class="ic-deco-line"></div>
+      <div class="ic-deco-dot"></div>
+      <div class="ic-deco-dash"></div>
+      <div class="ic-deco-dot"></div>
+      <div class="ic-deco-line" style="max-width:18px;"></div>
+    </div>
+    <div class="ic-wave">
+      <div class="ic-wave-bar"></div><div class="ic-wave-bar"></div><div class="ic-wave-bar"></div>
+      <div class="ic-wave-bar"></div><div class="ic-wave-bar"></div><div class="ic-wave-bar"></div>
+      <div class="ic-wave-bar"></div><div class="ic-wave-bar"></div><div class="ic-wave-bar"></div>
+    </div>
+  </div>
+
+  <!-- 中间快捷回复 -->
+  <div class="ic-full-mid">
+    <div class="ic-quick-label">quick reply · 快捷回复</div>
+    <div class="ic-quick-chips">
+      <div class="ic-chip" onclick="icQuickReply(this)">稍后回电</div>
+      <div class="ic-chip" onclick="icQuickReply(this)">开会中</div>
+      <div class="ic-chip" onclick="icQuickReply(this)">5分钟后</div>
+    </div>
+
+    <!-- 无灵动岛：拒接选项面板 -->
+    <div class="ic-decline-panel" id="icDeclinePanel">
+      <div class="ic-decline-title">decline options · 拒接方式</div>
+      <div class="ic-decline-opts">
+        <div class="ic-decline-opt" onclick="icSelectDecline('mute')">
+          <div class="ic-decline-opt-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round">
+              <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .55-.07 1.08-.2 1.6M4.27 4.27L21 21"/>
+            </svg>
+          </div>
+          <div>
+            <div class="ic-decline-opt-text">静音来电</div>
+            <div class="ic-decline-opt-sub">铃声静音，不挂断</div>
+          </div>
+        </div>
+        <div class="ic-decline-opt" onclick="icSelectDecline('later')">
+          <div class="ic-decline-opt-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+          <div>
+            <div class="ic-decline-opt-text">稍后提醒</div>
+            <div class="ic-decline-opt-sub">10分钟后再次响铃</div>
+          </div>
+        </div>
+        <div class="ic-decline-opt" onclick="icSelectDecline('reject')">
+          <div class="ic-decline-opt-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#c53030" stroke-width="2" stroke-linecap="round">
+              <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5-2.5l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/><line x1="3" y1="3" x2="21" y2="21"/>
+            </svg>
+          </div>
+          <div>
+            <div class="ic-decline-opt-text" style="color:#c53030;">直接拒接</div>
+            <div class="ic-decline-opt-sub">挂断并发送短信</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部按钮 -->
+  <div class="ic-full-btns">
+    <!-- 有灵动岛：滑动接听 -->
+    <div class="ic-slide-track" id="icSlideTrack" style="display:none">
+      <div class="ic-slide-thumb" onclick="icAnswerCall()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5-2.5l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>
+        </svg>
+      </div>
+      <div class="ic-slide-hint">slide to answer →</div>
+    </div>
+
+    <!-- 无灵动岛：三按钮 -->
+    <div class="ic-three-btns" id="icThreeBtns">
+      <div class="ic-btn-wrap" onclick="icShowDeclinePanel()">
+        <div class="ic-btn-circle ic-btn-ignore">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+        </div>
+        <div class="ic-btn-lbl">不接</div>
+      </div>
+      <div class="ic-btn-wrap" onclick="icDeclineCall()">
+        <div class="ic-btn-circle ic-btn-end">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+            <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.26 9.74a2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11z"/>
+            <line x1="23" y1="1" x2="1" y2="23"/>
+          </svg>
+        </div>
+        <div class="ic-btn-lbl">挂断</div>
+      </div>
+      <div class="ic-btn-wrap" onclick="icAnswerCall()">
+        <div class="ic-btn-circle ic-btn-ans">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+            <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5-2.5l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>
+          </svg>
+        </div>
+        <div class="ic-btn-lbl">接听</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 联系人详情页 ===================== -->
+<div class="page-detail" id="pageDetail">
+
+  <!-- HERO -->
+  <div class="cd-hero">
+    <div class="cd-hero-texture"></div>
+    <div class="cd-hero-grad"></div>
+    <div class="cd-topbar">
+      <div class="cd-topbar-btn" onclick="closeDetail()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(248,248,246,0.9)" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div class="cd-topbar-label">CHARACTER · 角色详情</div>
+      <div class="cd-topbar-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(248,248,246,0.9)"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+      </div>
+    </div>
+    <div class="cd-hero-bottom">
+      <div class="cd-av" id="cdAvatar">KM<div class="cd-av-ring"></div></div>
+      <div class="cd-hero-info">
+        <div class="cd-hero-name" id="cdName">—</div>
+        <div class="cd-hero-role" id="cdRole">—</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;padding-bottom:4px;">
+        <div class="cd-status-dot"></div>
+        <span class="cd-status-label">激活中</span>
+      </div>
+    </div>
+    <div class="cd-hero-rule"></div>
+  </div>
+
+  <!-- 滚动体 -->
+  <div class="cd-scroll">
+
+    <!-- 基本信息浮卡 -->
+    <div class="cd-float">
+      <div class="cd-float-cell">
+        <div class="cd-float-key">GENDER</div>
+        <div class="cd-float-val" id="cdGender">—</div>
+      </div>
+      <div class="cd-float-cell">
+        <div class="cd-float-key">AGE</div>
+        <div class="cd-float-val" id="cdAge">—</div>
+      </div>
+      <div class="cd-float-cell">
+        <div class="cd-float-key">BIRTHDAY</div>
+        <div class="cd-float-val" id="cdBirthday">—</div>
+      </div>
+    </div>
+
+    <!-- 电话号码 -->
+    <div class="cd-sec">
+      <div class="cd-sec-line"></div>
+      <div class="cd-sec-label">联系方式 · PHONE</div>
+      <div class="cd-sec-line cd-sec-line-short"></div>
+    </div>
+    <div id="cdPhoneWrap"></div>
+
+    <!-- 快捷操作 -->
+    <div class="cd-actions" style="margin-bottom:2px;margin-top:10px;">
+      <div class="cd-act">
+        <div class="cd-act-btn primary" id="cdCallBtn" onclick="cdPlaceCall()">
+          <div class="cd-act-corner"></div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f8f8f6" stroke-width="2" stroke-linecap="round"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5-2.5l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>
+        </div>
+        <div class="cd-act-lbl">CALL</div>
+      </div>
+      <div class="cd-act">
+        <div class="cd-act-btn">
+          <div class="cd-act-corner"></div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="cd-act-lbl">CHAT</div>
+      </div>
+      <div class="cd-act">
+        <div class="cd-act-btn">
+          <div class="cd-act-corner"></div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.723v6.554a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/></svg>
+        </div>
+        <div class="cd-act-lbl">VIDEO</div>
+      </div>
+      <div class="cd-act">
+        <div class="cd-act-btn">
+          <div class="cd-act-corner"></div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </div>
+        <div class="cd-act-lbl">MORE</div>
+      </div>
+    </div>
+
+    <!-- PERSONA 性格标签 -->
+    <div class="cd-sec">
+      <div class="cd-sec-line"></div>
+      <div class="cd-sec-label">PERSONA · 性格标签</div>
+      <div class="cd-sec-line cd-sec-line-short"></div>
+    </div>
+    <div class="cd-traits" id="cdTraits" style="margin-bottom:4px;"></div>
+
+    <!-- ABOUT -->
+    <div class="cd-sec">
+      <div class="cd-sec-line"></div>
+      <div class="cd-sec-label">ABOUT · 人设描述</div>
+      <div class="cd-sec-line cd-sec-line-short"></div>
+    </div>
+    <div class="cd-desc-card" style="margin-bottom:4px;">
+      <span class="cd-desc-quote">"</span>
+      <div class="cd-desc-text" id="cdDesc">暂无人设描述。</div>
+    </div>
+
+    <!-- AI: 声线印象 -->
+    <div class="cd-sec">
+      <div class="cd-sec-line"></div>
+      <div class="cd-sec-label">VOICE TONE · AI生成</div>
+      <div class="cd-sec-line cd-sec-line-short"></div>
+    </div>
+    <div class="cd-ai-block" style="margin-bottom:4px;">
+      <div class="cd-ai-header">
+        <div class="cd-ai-label-wrap">
+          <div class="cd-ai-dot"></div>
+          <div class="cd-ai-label">声线 &amp; 语气印象</div>
+        </div>
+        <div class="cd-ai-gen-btn">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#f8f8f6" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v3M18.36 5.64l-2.12 2.12M21 12h-3M18.36 18.36l-2.12-2.12M12 18v3M7.76 18.36l-2.12-2.12M3 12h3M5.64 5.64l2.12 2.12"/></svg>
+          <div class="cd-ai-gen-label">AI 生成</div>
+        </div>
+      </div>
+      <div class="cd-ai-body">
+        <div class="cd-ai-placeholder">
+          <div class="cd-ai-ph-dash" style="background:#f0f0ec;"></div>
+          <div class="cd-ai-ph-text">点击生成声线印象…</div>
+          <div class="cd-ai-ph-dash" style="background:#f0f0ec;"></div>
+        </div>
+        <div class="cd-ai-voice-bars" style="margin-top:6px;">
+          <div class="cd-ai-bar" style="height:6px;opacity:0.4;"></div>
+          <div class="cd-ai-bar" style="height:10px;opacity:0.5;"></div>
+          <div class="cd-ai-bar" style="height:14px;opacity:0.55;"></div>
+          <div class="cd-ai-bar" style="height:9px;opacity:0.45;"></div>
+          <div class="cd-ai-bar" style="height:16px;opacity:0.6;"></div>
+          <div class="cd-ai-bar" style="height:11px;opacity:0.5;"></div>
+          <div class="cd-ai-bar" style="height:7px;opacity:0.4;"></div>
+          <div class="cd-ai-bar" style="height:13px;opacity:0.52;"></div>
+          <div class="cd-ai-bar" style="height:10px;opacity:0.48;"></div>
+          <div class="cd-ai-bar" style="height:6px;opacity:0.38;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI: 今日心情 -->
+    <div class="cd-sec">
+      <div class="cd-sec-line"></div>
+      <div class="cd-sec-label">TODAY MOOD · AI生成</div>
+      <div class="cd-sec-line cd-sec-line-short"></div>
+    </div>
+    <div class="cd-ai-block" style="margin-bottom:4px;">
+      <div class="cd-ai-header">
+        <div class="cd-ai-label-wrap">
+          <div class="cd-ai-dot" style="background:#888;width:4px;height:4px;"></div>
+          <div class="cd-ai-label">今日状态 &amp; 心情</div>
+        </div>
+        <div class="cd-ai-gen-btn" style="background:#f2f2f0;border:0.5px solid #e0e0dc;">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v3M18.36 5.64l-2.12 2.12M21 12h-3M18.36 18.36l-2.12-2.12M12 18v3M7.76 18.36l-2.12-2.12M3 12h3M5.64 5.64l2.12 2.12"/></svg>
+          <div class="cd-ai-gen-label" style="color:#555;">刷新</div>
+        </div>
+      </div>
+      <div class="cd-ai-body">
+        <div class="cd-ai-placeholder">
+          <div class="cd-ai-ph-dash" style="background:#eee;"></div>
+          <div class="cd-ai-ph-text">每次打开随机生成…</div>
+          <div class="cd-ai-ph-dash" style="background:#eee;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYSTEM PROMPT -->
+    <div class="cd-sec">
+      <div class="cd-sec-line"></div>
+      <div class="cd-sec-label">SYSTEM PROMPT</div>
+      <div class="cd-sec-line cd-sec-line-short"></div>
+    </div>
+    <div class="cd-prompt-card" style="margin:0 14px;">
+      <div class="cd-prompt-topbar">
+        <div class="cd-prompt-dot"></div>
+        <div class="cd-prompt-dot"></div>
+        <div class="cd-prompt-dot"></div>
+        <span class="cd-prompt-tag">SYSTEM · PROMPT</span>
+      </div>
+      <div class="cd-prompt-body">
+        <div class="cd-prompt-text" id="cdPrompt">暂无 System Prompt。</div>
+      </div>
+      <div class="cd-prompt-regen">
+        <div class="cd-prompt-regen-btn">
+          <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+          <div class="cd-prompt-regen-lbl">AI 重新生成</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部操作 -->
+    <div class="cd-bottom-actions">
+      <div class="cd-apply-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f8f8f6" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <div class="cd-apply-label">应用角色</div>
+      </div>
+      <div class="cd-act-row2">
+        <div class="cd-edit-btn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.8" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+          <div class="cd-edit-lbl">编辑资料</div>
+        </div>
+        <div class="cd-del-btn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          <div class="cd-del-lbl">删除角色</div>
+        </div>
+      </div>
+    </div>
+    <div class="cd-spacer"></div>
+  </div>
+</div><!-- /page-detail -->
+
+<script src="luna-banner.js"></script>
+<script src="luna-system-messages.js"></script>
+<script src="phone.js"></script>
+</body>
+</html>

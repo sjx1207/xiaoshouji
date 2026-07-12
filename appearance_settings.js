@@ -141,15 +141,23 @@ document.addEventListener('DOMContentLoaded', function() {
   apApplyIsland();
   apApplyGlobalFont();
 
-  /* ── 主页面返回按钮 → 跳回 chatsetting.html ── */
+  /* ── 主页面返回按钮 → 用 history.back() 回到来源页面（通常是 chatsetting）──
+     之前用 window.location.href = 'chatsetting.html' 会强制产生一条新的
+     历史记录，导致历史栈变成 chatroom → chatsetting → appearance_settings → chatsetting(新)，
+     这样一路点返回最终无法回到 chat 列表页（会在 chatroom/chatsetting 之间循环卡住）。
+     改用 history.back() 保持历史栈干净；没有可回退的历史时才兜底跳转。 */
   const apBack = document.getElementById('apNavBack');
   if (apBack) {
     apBack.style.cursor = 'pointer';
     apBack.addEventListener('click', function() {
-      const charParam = AP_CHAR_ID && AP_CHAR_ID !== 'default'
-        ? '?char=' + encodeURIComponent(AP_CHAR_ID)
-        : '';
-      window.location.href = 'chatsetting.html' + charParam;
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        const charParam = AP_CHAR_ID && AP_CHAR_ID !== 'default'
+          ? '?char=' + encodeURIComponent(AP_CHAR_ID)
+          : '';
+        window.location.href = 'chatsetting.html' + charParam;
+      }
     });
   }
 });

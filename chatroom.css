@@ -401,11 +401,12 @@ body {
   flex-shrink: 0; overflow: hidden;
 }
 .cr-luna-bubble {
-  background: #f7f7f7;
-  border: 0.5px solid rgba(0,0,0,0.07);
-  border-radius: 22px 22px 22px 6px;
-  padding: 13px 16px;
+  background: #f4f3f1;
+  border: none;
+  border-radius: 20px;
+  padding: 12px 16px;
   position: relative;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.02), 0 2px 8px rgba(0,0,0,0.035);
 }
 .cr-luna-accent {
   position: absolute;
@@ -423,16 +424,16 @@ body {
 
 .cr-msg-footer {
   display: flex; align-items: center; gap: 5px;
-  margin-top: 10px; padding: 7px 8px 0;
-  border-top: 0.5px solid rgba(0,0,0,0.07);
+  margin-top: 8px; padding: 0 8px;
+  opacity: 0.55;
 }
 .cr-footer-lbl {
-  font-size: 10px; color: #bbb;
-  letter-spacing: 1px; font-weight: 600;
+  font-size: 9px; color: #b0aca4;
+  letter-spacing: 1.2px; font-weight: 600;
   font-family: 'Space Mono', monospace;
 }
 .cr-footer-dot {
-  width: 4px; height: 4px;
+  width: 3px; height: 3px;
   border-radius: 50%; background: #ccc;
 }
 .cr-msg-time {
@@ -440,6 +441,123 @@ body {
   font-size: 10px; color: #b8b2aa;
   letter-spacing: .3px;
   font-family: 'Inter', sans-serif;
+}
+
+/* ================================================================
+   双语翻译气泡 — 内嵌式 / 外挂式
+   可通过下列 CSS 变量自定义外观（在 chatsetting 自定义气泡样式中修改）：
+   --bubble-bg / --bubble-border / --bubble-radius / --bubble-text / --bubble-font-size
+   --trans-bg / --trans-text / --trans-border / --trans-tag-bg / --trans-tag-text
+================================================================ */
+.bubble {
+  background: var(--bubble-bg, inherit);
+  border-color: var(--bubble-border, inherit);
+  border-radius: var(--bubble-radius, inherit);
+  color: var(--bubble-text, inherit);
+  font-size: var(--bubble-font-size, inherit);
+}
+.cr-luna-bubble.has-trans { cursor: pointer; }
+.cr-luna-bubble.has-trans:active { transform: scale(0.99); }
+
+/* 内嵌式：点击气泡展开/收起译文 */
+.trans-inner {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+  padding-left: 8px;
+  transition: max-height 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.24s ease, margin-top 0.32s cubic-bezier(0.4,0,0.2,1);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.trans-inner.show {
+  max-height: 200px;
+  opacity: 1;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--trans-border, rgba(0,0,0,0.08));
+  animation: transInnerRise 0.32s cubic-bezier(0.34,1.2,0.64,1) both;
+}
+@keyframes transInnerRise {
+  from { transform: translateY(-3px); }
+  to   { transform: translateY(0); }
+}
+.trans-inner .trans-text {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--trans-text, #7a746c);
+  font-family: 'Inter', sans-serif;
+  font-style: italic;
+  position: relative;
+  padding-left: 10px;
+}
+.trans-inner .trans-text::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 3px; bottom: 3px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--trans-accent-a, #c9c2b6), var(--trans-accent-b, #e2ddd2));
+}
+
+/* 外挂式：独立气泡附于原消息下方，默认常显 */
+.trans-outer {
+  margin-top: 7px;
+  margin-left: 8px;
+  background: var(--trans-bg, linear-gradient(155deg, #fbfaf7, #f2f0e9));
+  border: none;
+  border-radius: 16px;
+  padding: 9px 13px;
+  max-width: fit-content;
+  opacity: 0;
+  transform: translateY(-5px) scale(0.98);
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.34,1.15,0.64,1);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.02), 0 3px 10px rgba(0,0,0,0.05);
+  position: relative;
+}
+.trans-outer::before {
+  content: '';
+  position: absolute;
+  top: -5px; left: 14px;
+  width: 9px; height: 9px;
+  background: inherit;
+  border-left: inherit;
+  border-top: inherit;
+  border-radius: 3px 0 0 0;
+  transform: rotate(45deg);
+  z-index: -1;
+}
+.trans-outer.show { opacity: 1; transform: translateY(0) scale(1); }
+.trans-outer .trans-text {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--trans-text, #8a8478);
+  font-family: 'Inter', sans-serif;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+/* 语言标签「粤」「EN」等 */
+.trans-lang-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--trans-tag-bg, linear-gradient(135deg, #eae6da, #ddd7c8));
+  color: var(--trans-tag-text, #8a8272);
+  font-family: 'Space Mono', monospace;
+  flex-shrink: 0;
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
 }
 
 /* 建议芯片 */
@@ -485,7 +603,7 @@ body {
 }
 .cr-mine-bubble {
   background: #1a1a1a;
-  border-radius: 22px 22px 6px 22px;
+  border-radius: 22px;
   padding: 13px 16px;
 }
 .cr-mine-bubble .cr-msg-p {
@@ -514,7 +632,7 @@ body {
 .cr-typing-bubble {
   background: #f7f7f7;
   border: 0.5px solid rgba(0,0,0,0.07);
-  border-radius: 22px 22px 22px 6px;
+  border-radius: 22px;
   padding: 15px 20px;
   display: flex; gap: 6px; align-items: center;
 }
@@ -952,6 +1070,35 @@ body {
   letter-spacing: 0.3px; line-height: 1.55;
 }
 
+/* "使用" 按钮 — 固定大小，不随描述文字长度而变形 */
+.fp-use-btn {
+  flex-shrink: 0;
+  margin-left: auto;
+  align-self: center;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+  transition: transform 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.fp-use-btn:active {
+  background: #333;
+  transform: scale(0.94);
+}
+
 .fp-swipe-hint {
   font-family: 'Space Mono', monospace;
   font-size: 8px; letter-spacing: 1.5px;
@@ -1100,6 +1247,110 @@ body {
 .cr-luna-bubble.ctx-selecting {
   animation: ctxBubblePop 0.18s ease both;
 }
+
+/* ================================
+   通话方式选择弹窗 — Call Choice Sheet
+================================ */
+#callChoiceOverlay {
+  position: fixed; inset: 0;
+  z-index: 600;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#callChoiceOverlay.open {
+  pointer-events: all;
+  opacity: 1;
+}
+
+.call-choice-menu {
+  position: relative;
+  width: 260px;
+  background: rgba(242,242,247,0.96);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.30), 0 4px 12px rgba(0,0,0,0.15);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  animation: ctxMenuPop 0.22s cubic-bezier(0.34,1.4,0.64,1) both;
+}
+
+.call-choice-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: background 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.call-choice-item:active {
+  background: rgba(0,0,0,0.08);
+}
+
+.call-choice-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.06);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.call-choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.call-choice-title {
+  font-size: 15.5px;
+  font-weight: 500;
+  color: #1a1a1a;
+  font-family: -apple-system, 'Inter', sans-serif;
+  letter-spacing: -0.2px;
+}
+
+.call-choice-sub {
+  font-size: 12px;
+  color: rgba(0,0,0,0.42);
+  font-family: -apple-system, 'Inter', sans-serif;
+}
+
+.call-choice-sep {
+  height: 0.5px;
+  background: rgba(0,0,0,0.12);
+  margin: 0 18px;
+}
+
+/* 占位提示 Toast（语音通话未开放时展示） */
+.call-placeholder-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(26,26,26,0.88);
+  color: #fff;
+  font-size: 13px;
+  font-family: -apple-system, 'Inter', sans-serif;
+  letter-spacing: 0.2px;
+  padding: 10px 20px;
+  border-radius: 20px;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  white-space: nowrap;
+}
+.call-placeholder-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 /* ================================
    引用条 — Quote Bar
 ================================ */
@@ -1152,6 +1403,95 @@ body {
 .cr-luna-bubble, .cr-mine-bubble {
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* ================================================================
+   消息气泡内 · 被引用预览块 — Bubble Quote Preview
+   出现在正文上方，点击可跳转并高亮原消息
+================================================================ */
+.cr-bubble-quote {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 7px 9px;
+  margin-bottom: 7px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.cr-bubble-quote:active { transform: scale(0.985); }
+
+/* 己方（黑底）气泡内的引用块：浅色半透明 */
+.cr-mine-bubble .cr-bubble-quote {
+  background: rgba(255,255,255,0.08);
+}
+.cr-mine-bubble .cr-bubble-quote:active { background: rgba(255,255,255,0.13); }
+.cr-mine-bubble .cr-bubble-quote-bar {
+  background: rgba(255,255,255,0.35);
+}
+.cr-mine-bubble .cr-bubble-quote-who {
+  color: rgba(255,255,255,0.55);
+}
+.cr-mine-bubble .cr-bubble-quote-txt {
+  color: rgba(255,255,255,0.4);
+}
+
+/* 对方（浅底）气泡内的引用块：深色半透明 */
+.cr-luna-bubble .cr-bubble-quote {
+  background: rgba(0,0,0,0.045);
+  margin-left: 8px;
+  margin-right: 4px;
+}
+.cr-luna-bubble .cr-bubble-quote:active { background: rgba(0,0,0,0.08); }
+.cr-luna-bubble .cr-bubble-quote-bar {
+  background: rgba(0,0,0,0.18);
+}
+.cr-luna-bubble .cr-bubble-quote-who {
+  color: rgba(0,0,0,0.4);
+}
+.cr-luna-bubble .cr-bubble-quote-txt {
+  color: rgba(0,0,0,0.32);
+}
+
+.cr-bubble-quote-bar {
+  width: 2.5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 26px;
+}
+.cr-bubble-quote-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cr-bubble-quote-who {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  font-family: 'Inter', sans-serif;
+}
+.cr-bubble-quote-txt {
+  font-size: 11.5px;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 被跳转定位到的原消息：短暂高亮闸光效果 */
+@keyframes crQuoteJumpFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(255,196,0,0); }
+  15%  { box-shadow: 0 0 0 5px rgba(255,196,0,0.16); }
+  100% { box-shadow: 0 0 0 0 rgba(255,196,0,0); }
+}
+.cr-mine-bubble.cr-quote-jump-flash,
+.cr-luna-bubble.cr-quote-jump-flash {
+  animation: crQuoteJumpFlash 1.1s ease-out;
 }
 
 /* ================================
@@ -1687,6 +2027,303 @@ body {
   background: rgba(255,255,255,0.18);
 }
 #memeTabBar::-webkit-scrollbar { display: none; }
+
+/* ================================
+   视频通话记录 — 灰色居中提示行（类似 WeChat/FaceTime 系统通话记录）
+================================ */
+.cr-vc-log-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 10px 0;
+  width: 100%;
+}
+.cr-vc-log-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(0,0,0,0.045);
+  color: rgba(60,60,60,0.62);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+.cr-vc-log-pill svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+.cr-vc-log-time {
+  color: rgba(60,60,60,0.4);
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+/* 右滑呼出的"心声"隐藏面板：默认收起（高度 0），滑出后展开，样式呼应
+   app 里既有的"此刻心声"斜体旁白质感，但用更克制的卡片承载，避免和
+   聊天气泡本身抢视觉重心。 */
+.cr-vc-log-thought {
+  max-width: 84%;
+  margin-top: 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: max-height 0.32s cubic-bezier(0.34,1.05,0.64,1), opacity 0.22s ease, transform 0.22s ease, margin-top 0.32s ease;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.65;
+  font-style: italic;
+  color: rgba(40,40,40,0.72);
+  padding-left: 12px;
+  border-left: 2px solid rgba(140,115,220,0.4);
+  text-align: left;
+}
+.cr-vc-log-thought-show {
+  max-height: 220px;
+  opacity: 1;
+  transform: translateY(0);
+  margin-top: 10px;
+}
+.cr-vc-log-thought-label {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(140,115,220,0.65);
+  margin-bottom: 3px;
+}
+
+/* ================================
+   AI 主动发起视频通话 — 全屏来电界面（不再是聊天卡片）
+================================ */
+.cr-incoming-call {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(1.03);
+  transition: opacity 0.36s cubic-bezier(0.4,0,0.2,1), transform 0.36s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none;
+}
+.cr-incoming-call.cric-show {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+.cr-incoming-call.cric-hide {
+  opacity: 0;
+  transform: scale(0.98);
+}
+.cric-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(165deg, #17151f 0%, #1d1a2a 28%, #100e16 60%, #08070a 100%);
+  z-index: -2;
+}
+/* 环境光晕：从头像区域向外扩散的柔和紫光，让上半屏不再是死黑一片 */
+.cric-bg::before {
+  content: '';
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  width: 420px;
+  height: 420px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(150,125,225,0.16) 0%, rgba(150,125,225,0.05) 45%, transparent 72%);
+  z-index: -1;
+}
+/* 细微噪点纹理，避免大片纯色渐变显脏/显假 */
+.cric-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.cric-topbar {
+  width: 100%;
+  flex-shrink: 0;
+  padding: 18px 22px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cric-topbar-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.32);
+}
+.cric-topbar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(175,155,240,0.75);
+  box-shadow: 0 0 8px rgba(175,155,240,0.6);
+  animation: cricDotPulse 1.4s ease-in-out infinite;
+}
+@keyframes cricDotPulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+
+/* 内容整体垂直居中在剩余空间里，不再头重脚轻 */
+.cric-center {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 32px;
+  margin-top: -28px; /* 视觉上略微上移，给底部按钮留呼吸区，避免正正好中分显呆板 */
+}
+
+.cric-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.cric-avatar-wrap {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 26px;
+}
+.cric-avatar {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(150,125,225,0.35), rgba(90,75,140,0.2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  border: 1.5px solid rgba(255,255,255,0.16);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+.cric-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(175,155,240,0.5);
+  animation: cricPulse 2s ease-out infinite;
+}
+.cric-ring-2 { animation-delay: 0.66s; }
+.cric-ring-3 { animation-delay: 1.32s; }
+@keyframes cricPulse {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  100% { transform: scale(1.65); opacity: 0; }
+}
+.cric-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: rgba(255,255,255,0.97);
+  margin: 0 0 7px;
+}
+.cric-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.cric-sub-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(175,155,240,0.7);
+}
+.cric-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.46);
+  margin: 0;
+}
+.cric-reason-wrap {
+  background: rgba(255,255,255,0.045);
+  border: 0.5px solid rgba(255,255,255,0.09);
+  border-radius: 14px;
+  padding: 12px 18px;
+  max-width: 280px;
+}
+.cric-reason {
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+  font-style: italic;
+  color: rgba(255,255,255,0.68);
+  text-align: center;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.cric-bottom {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 88px;
+  padding: 0 24px calc(env(safe-area-inset-bottom, 0px) + 46px);
+}
+.cric-btn-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+}
+.cric-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.14s cubic-bezier(0.4,0,0.2,1), box-shadow 0.14s;
+}
+.cric-btn:active { transform: scale(0.90); }
+.cric-decline {
+  background: linear-gradient(155deg, #ef4b44, #c93832);
+  box-shadow: 0 6px 20px rgba(224,69,63,0.38), 0 0 0 1px rgba(255,255,255,0.08) inset;
+}
+.cric-accept {
+  background: linear-gradient(155deg, #3ed368, #26a84a);
+  box-shadow: 0 6px 20px rgba(52,200,90,0.38), 0 0 0 1px rgba(255,255,255,0.08) inset;
+  animation: cricAcceptBreathe 2.2s ease-in-out infinite;
+}
+@keyframes cricAcceptBreathe {
+  0%, 100% { box-shadow: 0 6px 20px rgba(52,200,90,0.38), 0 0 0 1px rgba(255,255,255,0.08) inset; }
+  50%      { box-shadow: 0 6px 26px rgba(52,200,90,0.58), 0 0 0 1px rgba(255,255,255,0.1) inset; }
+}
+.cric-btn-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.01em;
+}
+
 
 /* ================================
    心声记录页 — Whisper History

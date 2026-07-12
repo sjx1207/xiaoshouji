@@ -1,0 +1,582 @@
+/* ================================================================
+   videolog.css — 视频通话记录：居中弹窗 + 独立列表/详情页共用样式
+   与 videocall.css 的转录条视觉语言保持一致（深色、Space Mono 标签、
+   紫色强调色 rgba(140,115,220,...)），这样从通话页 → 聊天气泡 → 记录
+   弹窗/记录页，观感是同一套体系，不会跳出另一种风格。
+================================================================ */
+
+/* ----------------------------------------------------------------
+   1. 居中弹窗（chatroom.html 里点通话小条时用）
+---------------------------------------------------------------- */
+.vl-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+.vl-modal-overlay.vl-modal-show { opacity: 1; }
+.vl-modal-overlay.vl-modal-hide { opacity: 0; }
+
+.vl-modal-card {
+  width: 100%;
+  max-width: 380px;
+  max-height: 78vh;
+  background: linear-gradient(180deg, #1c1c1e 0%, #131315 100%);
+  border: 0.5px solid rgba(255,255,255,0.09);
+  border-radius: 22px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.94) translateY(14px);
+  transition: transform 0.26s cubic-bezier(0.34,1.1,0.64,1);
+}
+.vl-modal-overlay.vl-modal-show .vl-modal-card { transform: scale(1) translateY(0); }
+
+.vl-modal-topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.08);
+}
+.vl-modal-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.88);
+  letter-spacing: 0.01em;
+}
+.vl-modal-close {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.55);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.vl-modal-close:hover { background: rgba(255,255,255,0.12); }
+
+.vl-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px 22px;
+  -webkit-overflow-scrolling: touch;
+}
+.vl-modal-content::-webkit-scrollbar { display: none; }
+
+/* ----------------------------------------------------------------
+   2. 详情内容（弹窗和独立页面共用）
+---------------------------------------------------------------- */
+.vl-detail-loading,
+.vl-detail-empty,
+.vl-list-empty {
+  text-align: center;
+  padding: 40px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: rgba(255,255,255,0.32);
+}
+
+.vl-detail-header {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.08);
+}
+.vl-detail-date {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.38);
+  letter-spacing: 0.03em;
+}
+.vl-detail-status {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.92);
+  margin-top: 4px;
+}
+.vl-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.vl-detail-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: rgba(175,155,240,0.75);
+  border: 0.5px solid rgba(175,155,240,0.35);
+  border-radius: 20px;
+  padding: 2px 9px;
+}
+.vl-detail-reason {
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.42);
+  font-style: italic;
+}
+
+.vl-detail-thought {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-left: 2px solid rgba(175,155,240,0.5);
+  background: rgba(175,155,240,0.06);
+  border-radius: 0 8px 8px 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.7;
+  font-style: italic;
+  color: rgba(255,255,255,0.78);
+}
+.vl-detail-thought-label {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(175,155,240,0.75);
+  margin-bottom: 4px;
+}
+
+/* 弹窗自动生成心声期间的过渡态：轻微呼吸动画提示"正在生成"，
+   而不是一段静止的"……"看起来像卡住了 */
+@keyframes vlThoughtPulse {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.9; }
+}
+.vl-detail-thought-loading {
+  animation: vlThoughtPulse 1.3s ease-in-out infinite;
+}
+
+.vl-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ----------------------------------------------------------------
+   3. 转录消息行 —— 与 videocall.css 里 .vc-msg-luna / .vc-line-*
+      的样式规则保持一致（同一套视觉语言，class 名前缀换成 vl- 避免
+      和 videocall.html 页面的样式互相冲突）
+---------------------------------------------------------------- */
+.vl-msg-luna {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 1.5px solid rgba(140,118,215,0.35);
+}
+.vl-msg-you {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding-right: 12px;
+  border-right: 1.5px solid rgba(255,255,255,0.16);
+  align-self: flex-end;
+  max-width: 88%;
+}
+
+.vl-line-speaker {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(175,155,240,0.6);
+  margin-bottom: 4px;
+}
+
+.vl-line-luna,
+.vl-line-you {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 100%;
+  margin: 3px 0;
+}
+.vl-line-luna { text-align: left; }
+.vl-line-you  { text-align: right; }
+.vl-line-is-action { margin: 6px 0; }
+
+.vl-seg-speech {
+  color: rgba(255,255,255,0.88);
+  font-weight: 400;
+}
+.vl-seg-action {
+  display: inline-block;
+  font-style: italic;
+  font-family: 'Cormorant Garamond', 'Fraunces', serif;
+  font-size: 12.5px;
+  color: rgba(175,155,240,0.56);
+  letter-spacing: 0.015em;
+}
+.vl-seg-action::before { content: "· "; opacity: 0.6; }
+
+.vl-trans-line {
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+
+.vl-ts {
+  display: block;
+  margin-top: 3px;
+  font-size: 9px;
+  color: rgba(255,255,255,0.18);
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.04em;
+}
+
+/* ----------------------------------------------------------------
+   4. 独立列表/详情页（videolog.html） —— 重新设计：
+      · 禁止米色/暖调背景，改成纯粹的黑白灰体系，整体偏白、偏浅
+      · 参考韩系杂志/画册排版的克制感：大量留白、极细分割线、
+        小号等宽字母间距标签、纤细衬线数字做装饰，而不是堆砌颜色
+      · 不使用任何韩文字符，"韩系感"完全靠版式节奏和材质质感传达
+      · 状态栏与 chatroom / videocall 同步复刻（真实时钟/电量/灵动岛），
+        保证从聊天页 → 设置页 → 这个记录页的体验是连贯的同一部"手机"
+---------------------------------------------------------------- */
+.vl-page-body {
+  margin: 0;
+  min-height: 100vh;
+  background: #fbfbfb;
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: #161616;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── 状态栏：与 chatroom.js 的 crTick / applyIsland 完全一致的数据源
+   （luna_tz / luna_battery / luna_island_enabled / luna_island_style），
+   只是配色换成浅色页面专用的深色文字/图标，视觉上呼应 chatroom.js 里
+   已有的 .fw-status-bar（转发页）那一套"白底状态栏"规范。 ── */
+.vl-status-bar {
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 22px 9px;
+  background: #fbfbfb;
+  position: relative;
+  z-index: 5;
+}
+.vl-status-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: #161616;
+  letter-spacing: 0.2px;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+.vl-status-island {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 6px;
+  pointer-events: none;
+}
+.vl-status-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.vl-signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 13px;
+}
+.vl-signal i {
+  display: block;
+  width: 2.5px;
+  border-radius: 1px;
+  background: #161616;
+  opacity: 0.82;
+}
+.vl-signal i:nth-child(1) { height: 4px; }
+.vl-signal i:nth-child(2) { height: 7px; }
+.vl-signal i:nth-child(3) { height: 10px; }
+.vl-signal i:nth-child(4) { height: 13px; }
+.vl-battery { display: flex; align-items: center; gap: 3px; }
+.vl-bat-pct { font-size: 11px; font-weight: 600; color: #161616; opacity: 0.82; }
+.vl-bat-shell {
+  width: 24px; height: 12px;
+  border: 1.5px solid rgba(22,22,22,0.5);
+  border-radius: 3.5px;
+  padding: 1.5px;
+  position: relative;
+}
+.vl-bat-inner { width: 76%; height: 100%; border-radius: 1.5px; background: #161616; }
+.vl-bat-nub {
+  position: absolute; right: -4px; top: 50%; transform: translateY(-50%);
+  width: 2.5px; height: 5px; background: rgba(22,22,22,0.4); border-radius: 0 2px 2px 0;
+}
+
+/* 灵动岛胶囊在浅色页面上保持原来的黑色实体（真实设备的灵动岛本来就是
+   一块物理黑色区域，不随壁纸/页面变色），这里直接复用与 chatroom 相同
+   的 si-* 结构与配色，只把承载它的容器换成 vl- 前缀。 */
+.vl-status-island .si-capsule { background: #000; border-radius: 24px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.vl-status-island .si-minimal  .si-capsule { width: 100px; height: 28px; }
+.vl-status-island .si-glow     .si-capsule { width: 100px; height: 28px; box-shadow: 0 0 10px 4px rgba(255,255,255,0.4); }
+.vl-status-island .si-clock    .si-capsule { width: 118px; height: 28px; gap: 6px; padding: 0 10px; }
+.vl-status-island .si-pulse    .si-capsule { width: 66px;  height: 28px; gap: 10px; }
+.vl-status-island .si-ripple   .si-capsule { width: 100px; height: 28px; overflow: visible; }
+.vl-status-island .si-rainbow  .si-capsule { width: 100px; height: 28px; background: linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6,#a78bfa,#f43f5e); background-size:300% 100%; }
+.vl-status-island .si-music    .si-capsule { width: 100px; height: 28px; gap: 3px; padding: 0 12px; align-items: flex-end; padding-bottom: 5px; }
+.vl-status-island .si-scan     .si-capsule { width: 100px; height: 28px; overflow: hidden; }
+.vl-status-island .si-clock-text { font-size: 12px; font-weight: 600; color: #fff; letter-spacing: -0.3px; white-space: nowrap; }
+.vl-status-island .si-dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: 0.9; }
+.vl-status-island .si-ring { position: absolute; inset: -1px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.6); }
+.vl-status-island .si-bar { width: 3px; background: #fff; border-radius: 2px; opacity: 0.9; height: 12px; }
+.vl-status-island .si-scanline { position: absolute; left:0; right:0; height:1.5px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent); top: 40%; }
+
+.vl-page-wrap {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 18px 22px 60px;
+  min-height: 100vh;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* 极细装饰：右上角一枚描边圆弧 + 左侧竖向发丝线，呼应韩系画册常见的
+   "留白里放一点几何线条"手法，纯灰阶、不抢视觉重心 */
+.vl-deco-arc {
+  position: absolute;
+  top: 6px;
+  right: 14px;
+  width: 120px;
+  height: 120px;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+.vl-deco-arc::before {
+  content: '';
+  position: absolute;
+  inset: 18px;
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 50%;
+}
+
+.vl-page-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.36);
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+.vl-page-eyebrow .vl-back-arrow {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: rgba(0,0,0,0.5);
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.vl-page-eyebrow .vl-back-arrow:hover { background: rgba(0,0,0,0.05); }
+
+.vl-page-title {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+  position: relative;
+  z-index: 1;
+  color: #141414;
+}
+.vl-page-title span {
+  font-family: 'Fraunces', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(0,0,0,0.42);
+}
+
+.vl-page-sub {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: rgba(0,0,0,0.42);
+  margin: 0 0 20px;
+  max-width: 340px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 细分割线 + 小标签，替代原来"卡片堆叠"的密度，先给列表一个清晰的
+   版面起点，质感更接近排版精良的目录页而不是功能列表 */
+.vl-section-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 14px;
+}
+.vl-section-rule .vl-rule-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.32);
+  white-space: nowrap;
+}
+.vl-section-rule .vl-rule-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(0,0,0,0.09);
+}
+
+.vl-screen-hidden { display: none !important; }
+
+/* 列表行 —— 不再用"到处都是圆角白卡片"的堆叠感，改成极细描边分隔的
+   行列表，每行左侧一枚纤细衬线编号（01/02/03…）做装饰，右侧图标改为
+   纯线条、无底色填充，整体更克制、更「印刷品」 */
+.vl-list-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.07);
+  border-radius: 14px;
+  padding: 15px 16px;
+  margin-bottom: 9px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+.vl-list-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+  border-color: rgba(0,0,0,0.12);
+}
+
+.vl-list-index {
+  flex-shrink: 0;
+  width: 26px;
+  font-family: 'Fraunces', 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: rgba(0,0,0,0.28);
+  text-align: center;
+}
+
+.vl-list-icon {
+  flex-shrink: 0;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: #f4f4f4;
+  border: 1px solid rgba(0,0,0,0.06);
+  color: rgba(20,20,20,0.72);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.vl-list-main { flex: 1; min-width: 0; }
+.vl-list-status {
+  font-size: 14px;
+  font-weight: 600;
+  color: #141414;
+  letter-spacing: -0.005em;
+}
+.vl-list-date {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: rgba(0,0,0,0.38);
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+.vl-list-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: rgba(0,0,0,0.4);
+  border: 1px solid rgba(0,0,0,0.14);
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+
+.vl-list-chevron {
+  flex-shrink: 0;
+  color: rgba(0,0,0,0.22);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.vl-list-del {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: rgba(0,0,0,0.26);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.vl-list-del:hover {
+  background: rgba(0,0,0,0.06);
+  color: rgba(0,0,0,0.75);
+}
+
+.vl-list-empty {
+  text-align: center;
+  padding: 64px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  color: rgba(0,0,0,0.32);
+  border: 1px dashed rgba(0,0,0,0.12);
+  border-radius: 16px;
+}
+
+/* 详情屏：复用弹窗那套深色转录样式，套进浅色页面里做成一张深色卡片，
+   外面再包一层极细白框，看起来像"胶片被夹在浅色相册页里"，保留通话
+   回放本身应有的沉浸感，同时不破坏整页的浅色调性 */
+.vl-detail-screen-card {
+  background: linear-gradient(180deg, #1c1c1e 0%, #131315 100%);
+  border-radius: 20px;
+  padding: 18px 18px 22px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.14);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.vl-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  color: rgba(0,0,0,0.5);
+  cursor: pointer;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+.vl-back-btn:hover { color: rgba(0,0,0,0.85); }

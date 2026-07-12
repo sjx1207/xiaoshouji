@@ -366,14 +366,27 @@ document.addEventListener('DOMContentLoaded', async function () {
   // 10. 恢复默认
   document.getElementById('csClearBtn')?.addEventListener('click', csClearBg);
 
-  // 11. 返回按钮 → 跳回聊天页面（chatroom 从 localStorage 读角色名，不需要传参）
+  // 11. 返回按钮 → 用 history.back() 回到来源页面（通常是 chatroom）
+  //     之前用 window.location.href = 'chatroom.html' 会强制产生一条新的
+  //     历史记录，导致历史栈变成 chat → chatroom → chatsetting → chatroom(新)，
+  //     这样在新的 chatroom 页面里再点返回，会退回到 chatsetting 而不是 chat 列表，
+  //     形成"点返回回不到 chat 页面"的问题。改用 history.back() 保持历史栈干净，
+  //     没有可回退的历史时再兜底跳转到 chatroom.html。
   document.getElementById('csNavBack')?.addEventListener('click', () => {
-    window.location.href = 'chatroom.html';
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = 'chatroom.html';
+    }
   });
 
-  // 12. 取消按钮 → 同样跳回聊天页面
+  // 12. 取消按钮 → 同样用 history.back()，理由同上
   document.getElementById('csCancelBtn')?.addEventListener('click', () => {
-    window.location.href = 'chatroom.html';
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = 'chatroom.html';
+    }
   });
 
   // 13. 主题美化卡片 — 跳转到 appearance_settings.html 并携带当前角色 ID
@@ -395,6 +408,22 @@ document.addEventListener('DOMContentLoaded', async function () {
         ? '?char=' + encodeURIComponent(currentChar)
         : '';
       window.location.href = 'memory.html' + param;
+    });
+  }
+
+  /* ── 视频记录卡片 → videolog.html（原来这张卡片完全没绑定点击事件，
+     点了没反应）。用法和上面的"角色专属记忆"卡片完全一致：把当前角色名
+     作为 ?char= 参数带过去，videolog.js 的 vlCharacterId() 会优先读这个
+     参数，落地就是"这个角色"名下的视频记录列表，而不是全局记录。 ── */
+  const recordVideoCard = document.getElementById('recordVideoCard');
+  if (recordVideoCard) {
+    recordVideoCard.style.cursor = 'pointer';
+    recordVideoCard.addEventListener('click', () => {
+      const currentChar = localStorage.getItem('luna_current_chat') || '';
+      const param = currentChar && currentChar !== 'default'
+        ? '?char=' + encodeURIComponent(currentChar)
+        : '';
+      window.location.href = 'videolog.html' + param;
     });
   }
 });
@@ -942,11 +971,32 @@ function blToggleLang() {
   blSaveState();
 }
 
+function blToggleDropdown(forceClose) {
+  const list    = document.getElementById('blDropdownList');
+  const trigger = document.getElementById('blDropdownTrigger');
+  const arrow   = document.getElementById('blDropdownArrow');
+  if (!list || !trigger) return;
+  const willOpen = forceClose === true ? false : (list.style.display === 'none');
+  list.style.display = willOpen ? 'block' : 'none';
+  trigger.classList.toggle('open', willOpen);
+  if (arrow) arrow.classList.toggle('open', willOpen);
+}
+
+// 点击下拉外部区域时自动收起
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('blDropdownWrap');
+  if (!wrap) return;
+  if (!wrap.contains(e.target)) blToggleDropdown(true);
+});
+
 function blSelLang(el, name, sub) {
-  document.querySelectorAll('.lang-chip').forEach(c => c.classList.remove('lc-on'));
-  el.classList.add('lc-on');
+  document.querySelectorAll('.bl-dropdown-item').forEach(c => c.classList.remove('bl-item-on'));
+  el.classList.add('bl-item-on');
   document.getElementById('blSelLangChip').textContent = name;
   document.getElementById('blSelLangSub').textContent = sub;
+  const label = document.getElementById('blDropdownLabel');
+  if (label) label.textContent = name + ' · ' + sub;
+  blToggleDropdown(true); // 选中后自动收起下拉
   blSaveState();
 }
 
@@ -974,20 +1024,30 @@ function blSaveState() {
 
 function blLoadState() {
   try {
-    const saved = JSON.parse(localStorage.getItem('luna_bilingual') || '{}');
-    if (saved.mode === 'off') blSetMode('off');
+    const raw = localStorage.getItem('luna_bilingual');
+    // 未保存过任何记录时，翻译功能默认关闭
+    const saved = raw ? JSON.parse(raw) : { mode: 'off' };
+
+    // 语言：先同步选中语言展示与下拉列表高亮，再决定开关状态
     if (saved.lang) {
       document.getElementById('blSelLangChip').textContent = saved.lang;
       document.getElementById('blSelLangSub').textContent = saved.langSub || '';
-      // 同步网格高亮
-      document.querySelectorAll('.lang-chip').forEach(el => {
-        const nameEl = el.childNodes[0];
-        const match = nameEl && nameEl.textContent && nameEl.textContent.trim() === saved.lang;
-        el.classList.toggle('lc-on', match);
+      document.getElementById('blDropdownLabel').textContent = saved.lang + ' · ' + (saved.langSub || '');
+      // 同步下拉列表勾选态
+      document.querySelectorAll('.bl-dropdown-item').forEach(el => {
+        const nameEl = el.querySelector('.bl-item-name');
+        const match = nameEl && nameEl.textContent.trim() === saved.lang;
+        el.classList.toggle('bl-item-on', match);
       });
     }
+
     if (saved.style) blSelStyle(saved.style);
-  } catch(e) {}
+
+    // 模式开关：默认关闭，仅当明确保存为 'on' 时才开启
+    blSetMode(saved.mode === 'on' ? 'on' : 'off');
+  } catch(e) {
+    blSetMode('off');
+  }
 }
 
 function blSave() {
@@ -998,6 +1058,197 @@ function blSave() {
 document.addEventListener('DOMContentLoaded', function() {
   blLoadState();
 });
+
+/* ================================================================
+   生图与语音模型 · 读取「设置 · AI 模型」页写入的 localStorage 配置
+   （密钥/端点/服务商等敏感与体积较大的配置，仍沿用 settings.js 的
+   luna_image_* / luna_voice_* localStorage，作为唯一数据源）
+   但「是否允许在当前角色对话中调用」这个开关是按角色维度的状态，
+   与双语设置/气泡预设一样落 IndexedDB，key 为角色 ID，不用全局 key，
+   避免切换角色后开关状态互相污染
+================================================================ */
+
+// 与 settings.js 的 IMAGE_PROVIDERS 保持一致的展示名映射
+const AM_IMAGE_PROVIDER_LABELS = {
+  'gpt-image-2': 'GPT Image 2',
+  'nano-banana-pro': 'Nano Banana Pro',
+  'seedream': 'Seedream',
+  'custom': '自定义反代'
+};
+
+/* ── IndexedDB：按角色存储模型开关状态 ── */
+const AM_DB_NAME    = 'LunaCharModelPrefsDB';
+const AM_DB_VERSION = 1;
+const AM_STORE      = 'charModelPrefs'; // keyPath: charId
+
+function amOpenDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(AM_DB_NAME, AM_DB_VERSION);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(AM_STORE)) {
+        db.createObjectStore(AM_STORE, { keyPath: 'charId' });
+      }
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+function amCurrentCharId() {
+  return localStorage.getItem('luna_current_chat') || 'default';
+}
+
+async function amGetCharPrefs(charId) {
+  const db = await amOpenDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(AM_STORE, 'readonly');
+    const req = tx.objectStore(AM_STORE).get(charId);
+    req.onsuccess = () => resolve(req.result || { charId, imageEnabled: true, voiceEnabled: true });
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function amSetCharPrefs(charId, patch) {
+  const db = await amOpenDB();
+  const existing = await amGetCharPrefs(charId);
+  const merged = Object.assign({}, existing, patch, { charId, updatedAt: Date.now() });
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(AM_STORE, 'readwrite');
+    const req = tx.objectStore(AM_STORE).put(merged);
+    req.onsuccess = () => resolve(merged);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+function amGotoSettings(target) {
+  // 记录希望展开的目标（设置页可据此自动跳到对应子页面，若未实现则忽略）
+  try { sessionStorage.setItem('luna_settings_jump_target', target === 'voice' ? 'voice' : 'image'); } catch(e) {}
+  window.location.href = 'settings.html';
+}
+
+async function amToggleImage() {
+  const btn = document.getElementById('amImageToggle');
+  if (btn.classList.contains('am-disabled') || btn.disabled) return;
+  const on = !btn.classList.contains('pct-toggle-on');
+  btn.classList.toggle('pct-toggle-on', on);
+  btn.classList.toggle('pct-toggle-off', !on);
+  await amSetCharPrefs(amCurrentCharId(), { imageEnabled: on });
+}
+
+async function amToggleVoice() {
+  const btn = document.getElementById('amVoiceToggle');
+  if (btn.classList.contains('am-disabled') || btn.disabled) return;
+  const on = !btn.classList.contains('pct-toggle-on');
+  btn.classList.toggle('pct-toggle-on', on);
+  btn.classList.toggle('pct-toggle-off', !on);
+  await amSetCharPrefs(amCurrentCharId(), { voiceEnabled: on });
+}
+
+async function amRenderImageStatus(prefs) {
+  const activeId = parseInt(localStorage.getItem('luna_image_active_id')) || null;
+  const provider = localStorage.getItem('luna_image_provider') || 'gpt-image-2';
+  const cur = JSON.parse(localStorage.getItem('luna_image_current') || '{}');
+  const configured = !!activeId;
+
+  const iconWrap  = document.getElementById('amImageIconWrap');
+  const desc      = document.getElementById('amImageDesc');
+  const chipProv  = document.getElementById('amImageChipProvider');
+  const chipExtra = document.getElementById('amImageChipExtra');
+  const toggle    = document.getElementById('amImageToggle');
+
+  iconWrap.classList.toggle('am-icon-empty', !configured);
+
+  if (!configured) {
+    desc.textContent = '尚未配置，前往设置页接入';
+    chipProv.textContent = '未配置';
+    chipProv.classList.remove('pct-chip-on');
+    chipExtra.style.display = 'none';
+    toggle.classList.remove('pct-toggle-on');
+    toggle.classList.add('pct-toggle-off', 'am-disabled');
+    return;
+  }
+
+  const label = AM_IMAGE_PROVIDER_LABELS[provider] || provider;
+  desc.textContent = provider === 'custom'
+    ? `自定义反代 · ${cur.customModel || '未填模型名'}`
+    : `已接入 ${label}，可在对话中生成图片`;
+  chipProv.textContent = label;
+  chipProv.classList.add('pct-chip-on');
+
+  if (provider === 'custom' && cur.customUrl) {
+    try {
+      chipExtra.textContent = new URL(cur.customUrl).hostname;
+      chipExtra.style.display = '';
+      chipExtra.classList.add('pct-chip-on');
+    } catch(e) {
+      chipExtra.style.display = 'none';
+    }
+  } else {
+    chipExtra.style.display = 'none';
+  }
+
+  toggle.classList.remove('am-disabled');
+  const on = prefs.imageEnabled !== false; // 默认开启，仅显式存 false 才关闭
+  toggle.classList.toggle('pct-toggle-on', on);
+  toggle.classList.toggle('pct-toggle-off', !on);
+}
+
+async function amRenderVoiceStatus(prefs) {
+  const activeId = parseInt(localStorage.getItem('luna_voice_active_id')) || null;
+  const model = localStorage.getItem('luna_voice_model') || '';
+  const region = localStorage.getItem('luna_voice_region') === 'global' ? '国际版' : '中国版';
+  const configured = !!activeId;
+
+  const iconWrap = document.getElementById('amVoiceIconWrap');
+  const desc     = document.getElementById('amVoiceDesc');
+  const chipModel  = document.getElementById('amVoiceChipModel');
+  const chipRegion = document.getElementById('amVoiceChipRegion');
+  const toggle   = document.getElementById('amVoiceToggle');
+
+  iconWrap.classList.toggle('am-icon-empty', !configured);
+
+  if (!configured) {
+    desc.textContent = '尚未配置，前往设置页接入';
+    chipModel.textContent = '未配置';
+    chipModel.classList.remove('pct-chip-on');
+    chipRegion.style.display = 'none';
+    toggle.classList.remove('pct-toggle-on');
+    toggle.classList.add('pct-toggle-off', 'am-disabled');
+    return;
+  }
+
+  desc.textContent = `已接入 ${model || 'MiniMax 语音'}，可在对话中合成语音回复`;
+  chipModel.textContent = model || '已配置';
+  chipModel.classList.add('pct-chip-on');
+  chipRegion.textContent = region;
+  chipRegion.style.display = '';
+  chipRegion.classList.add('pct-chip-on');
+
+  toggle.classList.remove('am-disabled');
+  const on = prefs.voiceEnabled !== false;
+  toggle.classList.toggle('pct-toggle-on', on);
+  toggle.classList.toggle('pct-toggle-off', !on);
+}
+
+async function amLoadState() {
+  const charId = amCurrentCharId();
+  const prefs = await amGetCharPrefs(charId);
+  await amRenderImageStatus(prefs);
+  await amRenderVoiceStatus(prefs);
+}
+
+document.addEventListener('DOMContentLoaded', () => { amLoadState(); });
+
+// 设置页在另一个标签页改了生图/语音配置时，本页切回前台自动刷新展示
+window.addEventListener('storage', (e) => {
+  if (!e.key) return;
+  if (e.key.startsWith('luna_image_') || e.key.startsWith('luna_voice_')) amLoadState();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') amLoadState();
+});
+
 /* ================================================================
    自定义气泡样式 — CSS编辑器 · 实时预览 · IndexedDB 预设库
 ================================================================ */
@@ -1316,17 +1567,36 @@ document.addEventListener('DOMContentLoaded', blCssInit);
    PERSONA PANEL · 角色配对面板
 ================================================================ */
 
-/* ── 读取角色库（复用 characters.js 的 LunaCharDB）── */
+/* ── 读取角色库（复用 characters.js 的 LunaCharDB，不硬编码版本号）── */
 function csOpenCharDB() {
   return new Promise((res, rej) => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('chars'))
-        db.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+    const probe = indexedDB.open('LunaCharDB');
+    probe.onupgradeneeded = e => {
+      const db0 = e.target.result;
+      if (!db0.objectStoreNames.contains('chars'))
+        db0.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
     };
-    req.onsuccess = e => res(e.target.result);
-    req.onerror   = e => rej(e.target.error);
+    probe.onsuccess = e => {
+      const cur = e.target.result;
+      const ver = cur.version;
+      const hasChars = cur.objectStoreNames.contains('chars');
+      cur.close();
+      if (hasChars) {
+        const req2 = indexedDB.open('LunaCharDB', ver);
+        req2.onsuccess = e2 => res(e2.target.result);
+        req2.onerror   = e2 => rej(e2.target.error);
+      } else {
+        const req3 = indexedDB.open('LunaCharDB', ver + 1);
+        req3.onupgradeneeded = e3 => {
+          const db3 = e3.target.result;
+          if (!db3.objectStoreNames.contains('chars'))
+            db3.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+        };
+        req3.onsuccess = e3 => res(e3.target.result);
+        req3.onerror   = e3 => rej(e3.target.error);
+      }
+    };
+    probe.onerror = e => rej(e.target.error);
   });
 }
 async function csGetAllChars() {
@@ -1839,11 +2109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* 尝试从 LunaCharDB 读头像 */
     let avatarHtml = initial;
     try {
-      const charDb = await new Promise((res, rej) => {
-        const r = indexedDB.open('LunaCharDB', 4);
-        r.onsuccess = e => res(e.target.result);
-        r.onerror   = () => rej();
-      });
+      const charDb = await csOpenCharDB();
       if (charDb.objectStoreNames.contains('chars') && charName) {
         const chars = await new Promise(res => {
           const r = charDb.transaction('chars').objectStore('chars').getAll();

@@ -370,6 +370,8 @@ document.addEventListener('DOMContentLoaded', () => {
   applyGlobalFont();
   applyIsland();
   updateApiSubtitle();
+  updateVoiceSubtitle();
+  updateImageSubtitle();
 
   // ✅ 新增：监听灵动岛变化，实时同步设置页状态栏
   window.addEventListener('storage', (e) => {
@@ -697,6 +699,163 @@ async function deleteSavedFont(e, id) {
     localStorage.removeItem('luna_font_active_name');
   }
   loadFontSavedList();
+}
+
+/* ================================
+   消息横幅页面
+   共享存储 key（供其他 App 读取调用）：
+     luna_banner_enabled : 'true' | 'false'
+     luna_banner_style   : 'champagne' | 'sage' | 'midnight' | 'rose' | 'oat' | 'mist'
+     luna_banner_update  : 时间戳，用于跨页面/跨 App 监听变化
+================================ */
+
+const BANNER_STYLES = ['champagne','sage','midnight','rose','oat','mist'];
+
+const BANNER_ICON_MAP = {
+  champagne: '<i class="ti-sparkle-fallback" style="width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,#fff8ee 0%,transparent 70%);"></i>',
+  sage:      '',
+  midnight:  '<i style="width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,#e6c896 0%,transparent 70%);"></i>',
+  rose:      '',
+  oat:       '',
+  mist:      '<i style="width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,#f2f6f4 0%,transparent 70%);"></i>'
+};
+
+function openBannerPage() {
+  const page = document.getElementById('bannerPage');
+  page.classList.add('show');
+  const enabled = localStorage.getItem('luna_banner_enabled') === 'true';
+  const style   = localStorage.getItem('luna_banner_style') || 'champagne';
+  document.getElementById('bannerToggle').checked = enabled;
+  document.getElementById('bannerPreviewSection').style.display = enabled ? '' : 'none';
+  document.getElementById('bannerStyleSection').style.display   = enabled ? '' : 'none';
+  if (enabled) {
+    document.querySelectorAll('[data-bstyle]').forEach(c =>
+      c.classList.toggle('selected', c.dataset.bstyle === style));
+    document.querySelectorAll('[id^="bcheck-"]').forEach(c => c.style.opacity = '0');
+    const chk = document.getElementById('bcheck-' + style);
+    if (chk) chk.style.opacity = '1';
+  }
+  updateBannerPreview(style);
+}
+
+function closeBannerPage() {
+  document.getElementById('bannerPage').classList.remove('show');
+}
+
+function onBannerToggle(enabled) {
+  localStorage.setItem('luna_banner_enabled', enabled);
+  document.getElementById('bannerPreviewSection').style.display = enabled ? '' : 'none';
+  document.getElementById('bannerStyleSection').style.display   = enabled ? '' : 'none';
+  if (!enabled) {
+    localStorage.removeItem('luna_banner_style');
+  } else if (!localStorage.getItem('luna_banner_style')) {
+    localStorage.setItem('luna_banner_style', 'champagne');
+  }
+  localStorage.setItem('luna_banner_update', Date.now().toString());
+  const style = localStorage.getItem('luna_banner_style') || 'champagne';
+  updateBannerPreview(style);
+  document.querySelectorAll('[data-bstyle]').forEach(c =>
+    c.classList.toggle('selected', c.dataset.bstyle === style));
+  document.querySelectorAll('[id^="bcheck-"]').forEach(c => c.style.opacity = '0');
+  const chk = document.getElementById('bcheck-' + style);
+  if (chk) chk.style.opacity = '1';
+}
+
+function selectBannerStyle(style) {
+  localStorage.setItem('luna_banner_style', style);
+  document.querySelectorAll('[data-bstyle]').forEach(c =>
+    c.classList.toggle('selected', c.dataset.bstyle === style));
+  document.querySelectorAll('[id^="bcheck-"]').forEach(c => c.style.opacity = '0');
+  const chk = document.getElementById('bcheck-' + style);
+  if (chk) chk.style.opacity = '1';
+  updateBannerPreview(style);
+  localStorage.setItem('luna_banner_update', Date.now().toString());
+}
+
+function updateBannerPreview(style) {
+  const el = document.getElementById('bannerPreviewEl');
+  if (!el) return;
+  BANNER_STYLES.forEach(s => el.classList.remove('bn-' + s));
+  el.classList.add('bn-' + style);
+  const iconEl = document.getElementById('bnPvIcon');
+  if (iconEl) iconEl.innerHTML = BANNER_ICON_MAP[style] || '';
+}
+
+/* 供其他 App / 页面调用：读取当前横幅配置，并可直接弹出一条真实的横幅通知。
+   完整实现见共享模块 luna-banner.js（wallet.js / messages.js 等其他 App 通过
+   <script src="luna-banner.js"> 引入后即可调用 LunaBanner.show({...})）。
+   本页（设置 App）保留一份等价实现作为兜底，避免脚本加载顺序问题导致方法缺失。
+   用法示例：
+     LunaBanner.show({ app: 'Wallet', title: '办卡成功', message: '你的新卡已添加到卡包' });
+   仅读取配置（不弹出）：
+     const cfg = LunaBanner.getConfig();
+   跨页面监听样式/开关变化：
+     window.addEventListener('storage', e => { if (e.key === 'luna_banner_update') { ... } })
+*/
+if (!window.LunaBanner || !window.LunaBanner.__isFullImpl) {
+  window.LunaBanner = {
+    __isFullImpl: true,
+
+    getConfig() {
+      return {
+        enabled: localStorage.getItem('luna_banner_enabled') === 'true',
+        style: localStorage.getItem('luna_banner_style') || 'champagne'
+      };
+    },
+
+    /* 在当前页面弹出一条横幅，样式取自用户在「设置 → 消息横幅」中选择的样式。
+       若用户已关闭横幅开关，则不弹出（尊重用户设置）。
+       参数：{ app, title, message, icon, duration }
+       返回：是否成功弹出（false 表示横幅功能已被用户关闭） */
+    show(opts) {
+      const cfg = this.getConfig();
+      if (!cfg.enabled) return false;
+
+      const { app = 'Luna', title = '', message = '', icon = '', duration = 3600 } = opts || {};
+
+      let host = document.getElementById('lunaBannerHost');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'lunaBannerHost';
+        host.style.cssText = 'position:fixed;top:52px;left:0;right:0;z-index:20000;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;';
+        document.body.appendChild(host);
+      }
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const iconHtml = icon || (BANNER_ICON_MAP[cfg.style] || '');
+
+      const el = document.createElement('div');
+      el.className = 'bn-banner bn-' + cfg.style + ' luna-banner-toast';
+      el.style.cssText = 'pointer-events:auto;box-sizing:border-box;transform:translateY(-16px);opacity:0;transition:transform 0.32s cubic-bezier(.22,1,.36,1),opacity 0.32s;';
+      el.innerHTML = `
+        <div class="bn-icon">${iconHtml}</div>
+        <div class="bn-body">
+          <div class="bn-top">
+            <span class="bn-app">${app}</span>
+            <span class="bn-time">${timeStr}</span>
+          </div>
+          ${title ? `<div class="bn-title">${title}</div>` : ''}
+          ${message ? `<p class="bn-msg">${message}</p>` : ''}
+        </div>`;
+
+      host.appendChild(el);
+      requestAnimationFrame(() => {
+        el.style.transform = 'translateY(0)';
+        el.style.opacity = '1';
+      });
+
+      const remove = () => {
+        el.style.transform = 'translateY(-16px)';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 340);
+      };
+      const timer = setTimeout(remove, duration);
+      el.addEventListener('click', () => { clearTimeout(timer); remove(); });
+
+      return true;
+    }
+  };
 }
 
 /* ================================
@@ -1100,6 +1259,1004 @@ function updateApiSubtitle() {
   const cur = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
   const model = localStorage.getItem('luna_api_model') || '';
   sub.textContent = model || (cur.baseUrl ? new URL(cur.baseUrl).hostname : '已配置');
+}
+
+/* ================================
+   语音模型（MiniMax T2A）设置页
+================================ */
+
+// 中国版 / 国际版 endpoint 映射
+const VOICE_HOSTS = {
+  cn:     'https://api.minimaxi.com',
+  global: 'https://api.minimax.io'
+};
+
+// IndexedDB（语音预设）
+const voiceDbName = 'LunaVoiceDB';
+const voiceStoreName = 'presets';
+let voiceDb = null;
+
+function openVoiceDb() {
+  return new Promise((res, rej) => {
+    if (voiceDb) return res(voiceDb);
+    const req = indexedDB.open(voiceDbName, 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(voiceStoreName, { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = e => { voiceDb = e.target.result; res(voiceDb); };
+    req.onerror = () => rej(req.error);
+  });
+}
+async function voiceDbGetAll() {
+  const db = await openVoiceDb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(voiceStoreName, 'readonly');
+    const req = tx.objectStore(voiceStoreName).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function voiceDbAdd(item) {
+  const db = await openVoiceDb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(voiceStoreName, 'readwrite');
+    const req = tx.objectStore(voiceStoreName).add(item);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function voiceDbDelete(id) {
+  const db = await openVoiceDb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(voiceStoreName, 'readwrite');
+    const req = tx.objectStore(voiceStoreName).delete(id);
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
+  });
+}
+
+// 页面状态
+let voiceRegion = localStorage.getItem('luna_voice_region') || 'cn';
+let voiceSelectedModel = 'speech-2.8-hd';
+let voiceListActiveType = 'system';
+let voiceListCache = null;
+let voiceDeleteTargetId = null;
+let voiceDesignLastId = '';
+
+function openVoicePage() {
+  document.getElementById('voicePage').classList.add('show');
+  loadVoicePresetList();
+
+  // 恢复上次配置
+  voiceRegion = localStorage.getItem('luna_voice_region') || 'cn';
+  switchVoiceRegion(voiceRegion, true);
+
+  const saved = JSON.parse(localStorage.getItem('luna_voice_current') || '{}');
+  if (saved.groupId) document.getElementById('voiceGroupId').value = saved.groupId;
+  if (saved.apiKey)  document.getElementById('voiceApiKey').value = saved.apiKey;
+  if (saved.voiceId) document.getElementById('voiceVoiceId').value = saved.voiceId;
+
+  voiceSelectedModel = localStorage.getItem('luna_voice_model') || 'speech-2.8-hd';
+  document.querySelectorAll('.voice-model-chip').forEach(el => {
+    el.classList.toggle('active', el.dataset.model === voiceSelectedModel);
+  });
+
+  onVoiceConfigInput();
+  onVoiceVoiceIdInput();
+}
+
+function closeVoicePage() {
+  document.getElementById('voicePage').classList.remove('show');
+}
+
+function switchVoiceRegion(region, silent) {
+  voiceRegion = region;
+  document.getElementById('voiceRegionCn').classList.toggle('active', region === 'cn');
+  document.getElementById('voiceRegionGlobal').classList.toggle('active', region === 'global');
+  if (!silent) {
+    localStorage.setItem('luna_voice_region', region);
+  }
+}
+
+function onVoiceConfigInput() {
+  const gid = document.getElementById('voiceGroupId').value.trim();
+  const key = document.getElementById('voiceApiKey').value.trim();
+  document.getElementById('voiceFetchBtn').disabled = !(gid && key);
+  document.getElementById('voiceDesignBtn').disabled = !(gid && key && document.getElementById('voiceDesignPrompt').value.trim() && document.getElementById('voiceDesignPreview').value.trim());
+}
+
+function onVoiceVoiceIdInput() {
+  // Voice ID 输入框内容变化时同步启用测试区
+}
+
+function onVoiceDesignInput() {
+  const gid = document.getElementById('voiceGroupId').value.trim();
+  const key = document.getElementById('voiceApiKey').value.trim();
+  const prompt = document.getElementById('voiceDesignPrompt').value.trim();
+  const preview = document.getElementById('voiceDesignPreview').value.trim();
+  document.getElementById('voiceDesignBtn').disabled = !(gid && key && prompt && preview);
+}
+
+function toggleVoiceKeyVisible() {
+  const inp = document.getElementById('voiceApiKey');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function selectVoiceModel(id, el) {
+  voiceSelectedModel = id;
+  document.querySelectorAll('.voice-model-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function voiceHost() {
+  return VOICE_HOSTS[voiceRegion] || VOICE_HOSTS.cn;
+}
+
+// 获取账号内音色列表 (POST /v1/get_voice)
+async function fetchVoiceList() {
+  const groupId = document.getElementById('voiceGroupId').value.trim();
+  const apiKey  = document.getElementById('voiceApiKey').value.trim();
+  if (!groupId || !apiKey) return;
+
+  const btn = document.getElementById('voiceFetchBtn');
+  btn.disabled = true;
+  btn.textContent = '获取中...';
+
+  const listSection = document.getElementById('voiceListSection');
+  const loading     = document.getElementById('voiceListLoading');
+  const content     = document.getElementById('voiceListContent');
+
+  listSection.style.display = '';
+  loading.style.display = 'flex';
+  content.innerHTML = '';
+
+  try {
+    const resp = await fetch(`${voiceHost()}/v1/get_voice?GroupId=${encodeURIComponent(groupId)}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ voice_type: 'all' })
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (data.base_resp && data.base_resp.status_code !== 0) {
+      throw new Error(data.base_resp.status_msg || '获取失败');
+    }
+
+    voiceListCache = {
+      system: data.system_voice || [],
+      voice_cloning: data.voice_cloning || [],
+      voice_generation: data.voice_generation || []
+    };
+
+    // 存当前配置
+    localStorage.setItem('luna_voice_current', JSON.stringify({
+      groupId, apiKey, voiceId: document.getElementById('voiceVoiceId').value.trim()
+    }));
+
+    loading.style.display = 'none';
+    renderVoiceList(voiceListActiveType);
+
+  } catch(e) {
+    loading.style.display = 'none';
+    content.innerHTML = `<div class="font-empty" style="color:#ff3b30;">获取失败：${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '获取账号内音色列表';
+  }
+}
+
+function switchVoiceListTab(type, el) {
+  voiceListActiveType = type;
+  document.querySelectorAll('.voice-list-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderVoiceList(type);
+}
+
+function renderVoiceList(type) {
+  const content = document.getElementById('voiceListContent');
+  if (!voiceListCache) return;
+  const list = voiceListCache[type] || [];
+
+  if (!list.length) {
+    content.innerHTML = '<div class="font-empty">该分类下暂无音色</div>';
+    return;
+  }
+
+  content.innerHTML = list.map(v => {
+    const name = v.voice_name || v.voice_id;
+    const desc = Array.isArray(v.description) ? v.description.join(' ') : '';
+    const safeId = v.voice_id.replace(/[^a-zA-Z0-9]/g,'-');
+    return `
+      <div class="api-model-item" id="voice-${safeId}" onclick="pickVoiceId('${v.voice_id.replace(/'/g,"\\'")}')">
+        <div class="api-model-dot"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="api-model-name">${name}</div>
+          ${desc ? `<div class="voice-item-sub">${desc}</div>` : `<div class="voice-item-sub">${v.voice_id}</div>`}
+        </div>
+        <svg class="api-model-check" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    `;
+  }).join('');
+
+  markSelectedVoiceItem();
+}
+
+function pickVoiceId(id) {
+  document.getElementById('voiceVoiceId').value = id;
+  markSelectedVoiceItem();
+}
+
+function markSelectedVoiceItem() {
+  const current = document.getElementById('voiceVoiceId').value.trim();
+  document.querySelectorAll('.api-model-item').forEach(el => el.classList.remove('selected'));
+  if (!current) return;
+  const safeId = current.replace(/[^a-zA-Z0-9]/g,'-');
+  const target = document.getElementById('voice-' + safeId);
+  if (target) target.classList.add('selected');
+}
+
+// 捏声音 · 音色设计 (POST /v1/voice_design)
+async function runVoiceDesign() {
+  const groupId = document.getElementById('voiceGroupId').value.trim();
+  const apiKey  = document.getElementById('voiceApiKey').value.trim();
+  const prompt  = document.getElementById('voiceDesignPrompt').value.trim();
+  const preview = document.getElementById('voiceDesignPreview').value.trim();
+  if (!groupId || !apiKey || !prompt || !preview) return;
+
+  const btn = document.getElementById('voiceDesignBtn');
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+
+  const resultBox = document.getElementById('voiceDesignResult');
+
+  try {
+    const resp = await fetch(`${voiceHost()}/v1/voice_design?GroupId=${encodeURIComponent(groupId)}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ prompt, preview_text: preview })
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (data.base_resp && data.base_resp.status_code !== 0) {
+      throw new Error(data.base_resp.status_msg || '生成失败');
+    }
+
+    voiceDesignLastId = data.voice_id;
+    document.getElementById('voiceDesignVoiceId').textContent = data.voice_id;
+
+    const audioEl = document.getElementById('voiceDesignAudio');
+    if (data.trial_audio) {
+      audioEl.src = hexToAudioUrl(data.trial_audio, 'audio/mp3');
+    }
+    resultBox.style.display = '';
+
+  } catch(e) {
+    resultBox.style.display = '';
+    document.getElementById('voiceDesignVoiceId').textContent = '生成失败：' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '生成专属音色';
+  }
+}
+
+function useDesignedVoice() {
+  if (!voiceDesignLastId) return;
+  document.getElementById('voiceVoiceId').value = voiceDesignLastId;
+  markSelectedVoiceItem();
+}
+
+// hex 编码音频 → 可播放的 blob URL
+function hexToAudioUrl(hex, mime) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  }
+  const blob = new Blob([bytes], { type: mime });
+  return URL.createObjectURL(blob);
+}
+
+// 合成试听 (POST /v1/t2a_v2)
+async function sendVoiceTest() {
+  const groupId = document.getElementById('voiceGroupId').value.trim();
+  const apiKey  = document.getElementById('voiceApiKey').value.trim();
+  const voiceId = document.getElementById('voiceVoiceId').value.trim();
+  const text    = document.getElementById('voiceTestInput').value.trim();
+  if (!groupId || !apiKey || !voiceId || !text) return;
+
+  const btn = document.getElementById('voiceTestBtn');
+  btn.disabled = true;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '合成中...';
+
+  const output = document.getElementById('voiceTestOutput');
+
+  try {
+    const resp = await fetch(`${voiceHost()}/v1/t2a_v2?GroupId=${encodeURIComponent(groupId)}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: voiceSelectedModel,
+        text: text,
+        stream: false,
+        voice_setting: { voice_id: voiceId, speed: 1.0, vol: 1.0, pitch: 0 },
+        audio_setting: { sample_rate: 32000, bitrate: 128000, format: 'mp3' }
+      })
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (data.base_resp && data.base_resp.status_code !== 0) {
+      throw new Error(data.base_resp.status_msg || '合成失败');
+    }
+    const hex = data.data && data.data.audio;
+    if (!hex) throw new Error('未返回音频数据');
+
+    const audioEl = document.getElementById('voiceTestAudio');
+    audioEl.src = hexToAudioUrl(hex, 'audio/mp3');
+    output.style.display = '';
+    audioEl.play().catch(() => {});
+
+    // 存当前配置
+    localStorage.setItem('luna_voice_current', JSON.stringify({ groupId, apiKey, voiceId }));
+    localStorage.setItem('luna_voice_model', voiceSelectedModel);
+
+  } catch(e) {
+    output.style.display = '';
+    output.innerHTML = `<div style="color:#ff3b30;font-size:13px;">请求失败：${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+// 保存预设弹窗
+function openSaveVoiceModal() {
+  document.getElementById('voicePresetNameInput').value = '';
+  document.getElementById('voiceSaveMask').classList.add('show');
+  setTimeout(() => document.getElementById('voicePresetNameInput').focus(), 200);
+}
+function closeSaveVoiceModal() {
+  document.getElementById('voiceSaveMask').classList.remove('show');
+}
+async function confirmSaveVoice() {
+  const name    = document.getElementById('voicePresetNameInput').value.trim();
+  const groupId = document.getElementById('voiceGroupId').value.trim();
+  const apiKey  = document.getElementById('voiceApiKey').value.trim();
+  const voiceId = document.getElementById('voiceVoiceId').value.trim();
+  if (!name) return;
+  await voiceDbAdd({
+    name, region: voiceRegion, groupId, apiKey,
+    model: voiceSelectedModel, voiceId, time: Date.now()
+  });
+  closeSaveVoiceModal();
+  loadVoicePresetList();
+}
+
+// 删除预设弹窗
+function openDeleteVoiceModal(id, name) {
+  voiceDeleteTargetId = id;
+  document.getElementById('voiceDeleteDesc').textContent = `确定要删除预设「${name}」吗？删除后无法恢复。`;
+  document.getElementById('voiceDeleteMask').classList.add('show');
+}
+function closeDeleteVoiceModal() {
+  document.getElementById('voiceDeleteMask').classList.remove('show');
+  voiceDeleteTargetId = null;
+}
+async function confirmDeleteVoice() {
+  if (!voiceDeleteTargetId) return;
+  await voiceDbDelete(voiceDeleteTargetId);
+  closeDeleteVoiceModal();
+  loadVoicePresetList();
+}
+
+// 加载预设列表
+async function loadVoicePresetList() {
+  const list = document.getElementById('voicePresetList');
+  if (!list) return;
+  const presets = await voiceDbGetAll();
+  const activeId = parseInt(localStorage.getItem('luna_voice_active_id')) || null;
+
+  if (!presets.length) {
+    list.innerHTML = '<div class="font-empty" id="voicePresetEmpty">还没有保存的预设</div>';
+    return;
+  }
+
+  list.innerHTML = presets.map(p => `
+    <div class="api-preset-item ${p.id === activeId ? 'active-preset' : ''}" onclick="applyVoicePreset(${p.id})">
+      <div class="api-preset-icon">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+          <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" stroke="#6366f1" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M6 11v1a6 6 0 0 0 12 0v-1" stroke="#6366f1" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="api-preset-info">
+        <div class="api-preset-name">${p.name}</div>
+        <div class="api-preset-meta">${p.model || '未选择模型'} · ${p.region === 'global' ? '国际版' : '中国版'} · ${p.voiceId || '未选音色'}</div>
+      </div>
+      ${p.id === activeId ? '<span class="api-preset-active-tag">使用中</span>' : ''}
+      <button class="api-preset-del" onclick="event.stopPropagation();openDeleteVoiceModal(${p.id},'${p.name.replace(/'/g,"\\'")}')">✕</button>
+    </div>
+  `).join('');
+
+  updateVoiceSubtitle();
+}
+
+async function applyVoicePreset(id) {
+  const presets = await voiceDbGetAll();
+  const p = presets.find(x => x.id === id);
+  if (!p) return;
+  localStorage.setItem('luna_voice_active_id', id);
+  localStorage.setItem('luna_voice_region', p.region || 'cn');
+  localStorage.setItem('luna_voice_current', JSON.stringify({ groupId: p.groupId, apiKey: p.apiKey, voiceId: p.voiceId }));
+  localStorage.setItem('luna_voice_model', p.model || 'speech-2.8-hd');
+
+  // 填入表单
+  switchVoiceRegion(p.region || 'cn', true);
+  document.getElementById('voiceGroupId').value = p.groupId || '';
+  document.getElementById('voiceApiKey').value = p.apiKey || '';
+  document.getElementById('voiceVoiceId').value = p.voiceId || '';
+  voiceSelectedModel = p.model || 'speech-2.8-hd';
+  document.querySelectorAll('.voice-model-chip').forEach(el => {
+    el.classList.toggle('active', el.dataset.model === voiceSelectedModel);
+  });
+
+  onVoiceConfigInput();
+  markSelectedVoiceItem();
+  loadVoicePresetList();
+}
+
+function updateVoiceSubtitle() {
+  const sub = document.getElementById('voiceCurrentSub');
+  if (!sub) return;
+  const activeId = parseInt(localStorage.getItem('luna_voice_active_id')) || null;
+  if (!activeId) { sub.textContent = '未配置'; return; }
+  const model = localStorage.getItem('luna_voice_model') || '';
+  const region = localStorage.getItem('luna_voice_region') === 'global' ? '国际版' : '中国版';
+  sub.textContent = model ? `${model} · ${region}` : region;
+}
+
+/* ================================
+   生图模型设置页
+   支持：GPT Image 2 / Nano Banana Pro / Seedream / 自定义反代
+   逻辑结构与语音模型页保持一致：
+   配置 → 参数 → 测试 → 预设，均落 IndexedDB + localStorage
+================================ */
+
+// 服务商规格表：端点、鉴权方式、可选参数、请求/响应解析方式
+const IMAGE_PROVIDERS = {
+  'gpt-image-2': {
+    label: 'GPT Image 2',
+    baseUrl: 'https://api.openai.com/v1',
+    path: '/images/generations',
+    auth: 'bearer',                 // Authorization: Bearer xxx
+    model: 'gpt-image-2',
+    sizes: [
+      { id: '1024x1024', label: '1:1 方形' },
+      { id: '1536x1024', label: '3:2 横向' },
+      { id: '1024x1536', label: '2:3 竖向' }
+    ],
+    qualities: [
+      { id: 'low', label: '低（快）' },
+      { id: 'medium', label: '中' },
+      { id: 'high', label: '高（细）' }
+    ],
+    hasQuality: true,
+    buildBody(cfg) {
+      return {
+        model: this.model,
+        prompt: cfg.prompt,
+        size: cfg.size,
+        quality: cfg.quality,
+        n: cfg.count
+      };
+    },
+    // 响应统一解析为 [{url}] 或 [{b64}]
+    parseImages(data) {
+      return (data.data || []).map(item => ({
+        url: item.url || null,
+        b64: item.b64_json || null
+      }));
+    }
+  },
+  'nano-banana-pro': {
+    label: 'Nano Banana Pro',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    path: '/models/nano-banana-pro:generateImages',
+    auth: 'query',                  // ?key=xxx（Gemini 兼容风格）
+    model: 'nano-banana-pro',
+    sizes: [
+      { id: '1:1', label: '1:1 方形' },
+      { id: '16:9', label: '16:9 横向' },
+      { id: '9:16', label: '9:16 竖向' }
+    ],
+    qualities: [],
+    hasQuality: false,
+    buildBody(cfg) {
+      return {
+        prompt: cfg.prompt,
+        aspectRatio: cfg.size,
+        sampleCount: cfg.count
+      };
+    },
+    parseImages(data) {
+      const list = data.images || data.generatedImages || [];
+      return list.map(item => ({
+        url: item.url || null,
+        b64: item.imageBytes || item.b64_json || null
+      }));
+    }
+  },
+  seedream: {
+    label: 'Seedream',
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    path: '/images/generations',
+    auth: 'bearer',
+    model: 'doubao-seedream',
+    sizes: [
+      { id: '1024x1024', label: '1:1 方形' },
+      { id: '1280x720', label: '16:9 横向' },
+      { id: '720x1280', label: '9:16 竖向' }
+    ],
+    qualities: [],
+    hasQuality: false,
+    buildBody(cfg) {
+      return {
+        model: this.model,
+        prompt: cfg.prompt,
+        size: cfg.size,
+        n: cfg.count,
+        response_format: 'url'
+      };
+    },
+    parseImages(data) {
+      return (data.data || []).map(item => ({
+        url: item.url || null,
+        b64: item.b64_json || null
+      }));
+    }
+  },
+  custom: {
+    label: '自定义',
+    baseUrl: '',                    // 由用户填写的反代地址
+    path: '/images/generations',    // 约定为 OpenAI 兼容路径
+    auth: 'bearer',
+    model: '',                      // 由用户填写
+    sizes: [
+      { id: '1024x1024', label: '1:1 方形' },
+      { id: '1536x1024', label: '3:2 横向' },
+      { id: '1024x1536', label: '2:3 竖向' }
+    ],
+    qualities: [
+      { id: 'low', label: '低（快）' },
+      { id: 'medium', label: '中' },
+      { id: 'high', label: '高（细）' }
+    ],
+    hasQuality: true,
+    buildBody(cfg) {
+      return {
+        model: this.model || cfg.customModel,
+        prompt: cfg.prompt,
+        size: cfg.size,
+        quality: cfg.quality,
+        n: cfg.count
+      };
+    },
+    parseImages(data) {
+      return (data.data || []).map(item => ({
+        url: item.url || null,
+        b64: item.b64_json || null
+      }));
+    }
+  }
+};
+
+// IndexedDB（生图预设）
+const imageDbName = 'LunaImageDB';
+const imageStoreName = 'presets';
+let imageDb = null;
+
+function openImageDb() {
+  return new Promise((res, rej) => {
+    if (imageDb) return res(imageDb);
+    const req = indexedDB.open(imageDbName, 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(imageStoreName, { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = e => { imageDb = e.target.result; res(imageDb); };
+    req.onerror = () => rej(req.error);
+  });
+}
+async function imageDbGetAll() {
+  const db = await openImageDb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(imageStoreName, 'readonly');
+    const req = tx.objectStore(imageStoreName).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function imageDbAdd(item) {
+  const db = await openImageDb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(imageStoreName, 'readwrite');
+    const req = tx.objectStore(imageStoreName).add(item);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function imageDbDelete(id) {
+  const db = await openImageDb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(imageStoreName, 'readwrite');
+    const req = tx.objectStore(imageStoreName).delete(id);
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
+  });
+}
+
+// 页面状态
+let imageProvider = localStorage.getItem('luna_image_provider') || 'gpt-image-2';
+let imageSelectedSize = '';
+let imageSelectedQuality = '';
+let imageSelectedCount = 1;
+let imageDeleteTargetId = null;
+
+function openImagePage() {
+  document.getElementById('imagePage').classList.add('show');
+  loadImagePresetList();
+
+  imageProvider = localStorage.getItem('luna_image_provider') || 'gpt-image-2';
+  switchImageProvider(imageProvider, true);
+
+  const saved = JSON.parse(localStorage.getItem('luna_image_current') || '{}');
+  if (saved.apiKey) document.getElementById('imageApiKey').value = saved.apiKey;
+  if (saved.customUrl) document.getElementById('imageCustomUrl').value = saved.customUrl;
+  if (saved.customModel) document.getElementById('imageCustomModel').value = saved.customModel;
+
+  onImageConfigInput();
+}
+
+function closeImagePage() {
+  document.getElementById('imagePage').classList.remove('show');
+}
+
+function toggleImageKeyVisible() {
+  const inp = document.getElementById('imageApiKey');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// 切换服务商：重建端点提示 / 参数网格 / 显隐自定义字段
+function switchImageProvider(id, silent) {
+  imageProvider = id;
+  const spec = IMAGE_PROVIDERS[id];
+  if (!spec) return;
+
+  document.querySelectorAll('.image-provider-btn').forEach(el => {
+    el.classList.toggle('active', el.dataset.provider === id);
+  });
+
+  const isCustom = id === 'custom';
+  document.getElementById('imageCustomUrlWrap').style.display = isCustom ? '' : 'none';
+  document.getElementById('imageCustomModelWrap').style.display = isCustom ? '' : 'none';
+
+  // 端点提示
+  const hintWrap = document.getElementById('imageEndpointHintWrap');
+  const hint = document.getElementById('imageEndpointHint');
+  if (isCustom) {
+    hintWrap.style.display = 'none';
+  } else {
+    hintWrap.style.display = '';
+    hint.textContent = `${spec.baseUrl}${spec.path}`;
+  }
+
+  // 画面比例网格
+  const sizeGrid = document.getElementById('imageSizeGrid');
+  sizeGrid.innerHTML = spec.sizes.map((s, i) => `
+    <button class="image-chip ${i === 0 ? 'active' : ''}" data-size="${s.id}" onclick="selectImageSize('${s.id}', this)">${s.label}</button>
+  `).join('');
+  imageSelectedSize = spec.sizes[0] ? spec.sizes[0].id : '';
+
+  // 画质网格（仅支持画质的服务商显示）
+  const qualityWrap = document.getElementById('imageQualityWrap');
+  const qualityGrid = document.getElementById('imageQualityGrid');
+  if (spec.hasQuality && spec.qualities.length) {
+    qualityWrap.style.display = '';
+    const defaultIdx = spec.qualities.findIndex(q => q.id === 'medium');
+    const activeIdx = defaultIdx >= 0 ? defaultIdx : 0;
+    qualityGrid.innerHTML = spec.qualities.map((q, i) => `
+      <button class="image-chip ${i === activeIdx ? 'active' : ''}" data-quality="${q.id}" onclick="selectImageQuality('${q.id}', this)">${q.label}</button>
+    `).join('');
+    imageSelectedQuality = spec.qualities[activeIdx].id;
+  } else {
+    qualityWrap.style.display = 'none';
+    imageSelectedQuality = '';
+  }
+
+  if (!silent) {
+    localStorage.setItem('luna_image_provider', id);
+  }
+
+  onImageConfigInput();
+}
+
+function selectImageSize(id, el) {
+  imageSelectedSize = id;
+  el.parentElement.querySelectorAll('.image-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function selectImageQuality(id, el) {
+  imageSelectedQuality = id;
+  el.parentElement.querySelectorAll('.image-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function selectImageCount(n, el) {
+  imageSelectedCount = n;
+  el.parentElement.querySelectorAll('.image-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function onImageConfigInput() {
+  const key = document.getElementById('imageApiKey').value.trim();
+  let ok = !!key;
+  if (imageProvider === 'custom') {
+    const url = document.getElementById('imageCustomUrl').value.trim();
+    const model = document.getElementById('imageCustomModel').value.trim();
+    ok = ok && !!url && !!model;
+  }
+  const btn = document.getElementById('imageTestBtn');
+  if (btn) btn.disabled = !ok;
+}
+
+// 拼装当前服务商的请求端点与鉴权
+function imageRequestTarget() {
+  const spec = IMAGE_PROVIDERS[imageProvider];
+  const apiKey = document.getElementById('imageApiKey').value.trim();
+
+  if (imageProvider === 'custom') {
+    const baseUrl = document.getElementById('imageCustomUrl').value.trim().replace(/\/$/, '');
+    const model = document.getElementById('imageCustomModel').value.trim();
+    return {
+      url: `${baseUrl}${spec.path}`,
+      apiKey,
+      model
+    };
+  }
+
+  return {
+    url: spec.auth === 'query'
+      ? `${spec.baseUrl}${spec.path}?key=${encodeURIComponent(apiKey)}`
+      : `${spec.baseUrl}${spec.path}`,
+    apiKey,
+    model: spec.model
+  };
+}
+
+// 生成并预览 (统一封装各服务商差异)
+async function sendImageTest() {
+  const spec = IMAGE_PROVIDERS[imageProvider];
+  const prompt = document.getElementById('imageTestPrompt').value.trim();
+  const apiKey = document.getElementById('imageApiKey').value.trim();
+  if (!prompt || !apiKey) return;
+  if (imageProvider === 'custom') {
+    const url = document.getElementById('imageCustomUrl').value.trim();
+    const model = document.getElementById('imageCustomModel').value.trim();
+    if (!url || !model) return;
+  }
+
+  const btn = document.getElementById('imageTestBtn');
+  btn.disabled = true;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '生成中...';
+
+  const output = document.getElementById('imageTestOutput');
+  output.style.display = '';
+  output.innerHTML = '<div class="api-spinner" style="margin:16px auto;"></div>';
+
+  try {
+    const target = imageRequestTarget();
+    const body = spec.buildBody({
+      prompt,
+      size: imageSelectedSize,
+      quality: imageSelectedQuality,
+      count: imageSelectedCount,
+      customModel: target.model
+    });
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (spec.auth === 'bearer') headers['Authorization'] = `Bearer ${target.apiKey}`;
+
+    const resp = await fetch(target.url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '');
+      throw new Error(`HTTP ${resp.status}${errText ? ' · ' + errText.slice(0, 120) : ''}`);
+    }
+    const data = await resp.json();
+    const images = spec.parseImages(data);
+
+    if (!images.length) {
+      output.innerHTML = '<div class="image-result-error">未返回图片数据，请检查参数或服务商返回格式</div>';
+      return;
+    }
+
+    const gridClass = images.length === 1 ? 'image-result-grid single' : 'image-result-grid';
+    output.innerHTML = `<div class="${gridClass}">${images.map(img => {
+      const src = img.url || (img.b64 ? `data:image/png;base64,${img.b64}` : '');
+      return src ? `<div class="image-result-item"><img src="${src}" alt="生成结果" /></div>` : '';
+    }).join('')}</div>`;
+
+    // 存当前配置
+    const cfg = { apiKey };
+    if (imageProvider === 'custom') {
+      cfg.customUrl = document.getElementById('imageCustomUrl').value.trim();
+      cfg.customModel = document.getElementById('imageCustomModel').value.trim();
+    }
+    localStorage.setItem('luna_image_current', JSON.stringify(cfg));
+
+  } catch(e) {
+    output.innerHTML = `<div class="image-result-error">请求失败：${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+// 保存预设弹窗
+function openSaveImageModal() {
+  document.getElementById('imagePresetNameInput').value = '';
+  document.getElementById('imageSaveMask').classList.add('show');
+  setTimeout(() => document.getElementById('imagePresetNameInput').focus(), 200);
+}
+function closeSaveImageModal() {
+  document.getElementById('imageSaveMask').classList.remove('show');
+}
+async function confirmSaveImage() {
+  const name = document.getElementById('imagePresetNameInput').value.trim();
+  const apiKey = document.getElementById('imageApiKey').value.trim();
+  if (!name) return;
+
+  const preset = {
+    name,
+    provider: imageProvider,
+    apiKey,
+    size: imageSelectedSize,
+    quality: imageSelectedQuality,
+    count: imageSelectedCount,
+    time: Date.now()
+  };
+  if (imageProvider === 'custom') {
+    preset.customUrl = document.getElementById('imageCustomUrl').value.trim();
+    preset.customModel = document.getElementById('imageCustomModel').value.trim();
+  }
+
+  await imageDbAdd(preset);
+  closeSaveImageModal();
+  loadImagePresetList();
+}
+
+// 删除预设弹窗
+function openDeleteImageModal(id, name) {
+  imageDeleteTargetId = id;
+  document.getElementById('imageDeleteDesc').textContent = `确定要删除预设「${name}」吗？删除后无法恢复。`;
+  document.getElementById('imageDeleteMask').classList.add('show');
+}
+function closeDeleteImageModal() {
+  document.getElementById('imageDeleteMask').classList.remove('show');
+  imageDeleteTargetId = null;
+}
+async function confirmDeleteImage() {
+  if (!imageDeleteTargetId) return;
+  await imageDbDelete(imageDeleteTargetId);
+  closeDeleteImageModal();
+  loadImagePresetList();
+}
+
+// 加载预设列表
+async function loadImagePresetList() {
+  const list = document.getElementById('imagePresetList');
+  if (!list) return;
+  const presets = await imageDbGetAll();
+  const activeId = parseInt(localStorage.getItem('luna_image_active_id')) || null;
+
+  if (!presets.length) {
+    list.innerHTML = '<div class="font-empty" id="imagePresetEmpty">还没有保存的预设</div>';
+    return;
+  }
+
+  list.innerHTML = presets.map(p => {
+    const providerLabel = (IMAGE_PROVIDERS[p.provider] || {}).label || p.provider;
+    const modelLabel = p.provider === 'custom' ? (p.customModel || '未填模型') : providerLabel;
+    return `
+    <div class="api-preset-item ${p.id === activeId ? 'active-preset' : ''}" onclick="applyImagePreset(${p.id})">
+      <div class="api-preset-icon">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+          <rect x="3" y="4" width="18" height="16" rx="3" stroke="#6366f1" stroke-width="1.6"/>
+          <circle cx="8.5" cy="9.5" r="1.4" fill="#6366f1"/>
+          <path d="M21 15.5l-5.5-5.5-9.5 9.5" stroke="#6366f1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="api-preset-info">
+        <div class="api-preset-name">${p.name}</div>
+        <div class="api-preset-meta">${modelLabel} · ${p.size || '默认比例'}</div>
+      </div>
+      ${p.id === activeId ? '<span class="api-preset-active-tag">使用中</span>' : ''}
+      <button class="api-preset-del" onclick="event.stopPropagation();openDeleteImageModal(${p.id},'${p.name.replace(/'/g,"\\'")}')">✕</button>
+    </div>
+  `;
+  }).join('');
+
+  updateImageSubtitle();
+}
+
+async function applyImagePreset(id) {
+  const presets = await imageDbGetAll();
+  const p = presets.find(x => x.id === id);
+  if (!p) return;
+
+  localStorage.setItem('luna_image_active_id', id);
+  localStorage.setItem('luna_image_provider', p.provider || 'gpt-image-2');
+
+  const cfg = { apiKey: p.apiKey || '' };
+  if (p.provider === 'custom') {
+    cfg.customUrl = p.customUrl || '';
+    cfg.customModel = p.customModel || '';
+  }
+  localStorage.setItem('luna_image_current', JSON.stringify(cfg));
+
+  // 填入表单
+  switchImageProvider(p.provider || 'gpt-image-2', true);
+  document.getElementById('imageApiKey').value = p.apiKey || '';
+  if (p.provider === 'custom') {
+    document.getElementById('imageCustomUrl').value = p.customUrl || '';
+    document.getElementById('imageCustomModel').value = p.customModel || '';
+  }
+
+  // 恢复参数选择
+  if (p.size) {
+    const sizeBtn = document.querySelector(`#imageSizeGrid .image-chip[data-size="${p.size}"]`);
+    if (sizeBtn) selectImageSize(p.size, sizeBtn);
+  }
+  if (p.quality) {
+    const qBtn = document.querySelector(`#imageQualityGrid .image-chip[data-quality="${p.quality}"]`);
+    if (qBtn) selectImageQuality(p.quality, qBtn);
+  }
+  if (p.count) {
+    const cBtn = document.querySelector(`#imageCountGrid .image-chip[data-count="${p.count}"]`);
+    if (cBtn) selectImageCount(p.count, cBtn);
+  }
+
+  onImageConfigInput();
+  loadImagePresetList();
+}
+
+function updateImageSubtitle() {
+  const sub = document.getElementById('imageCurrentSub');
+  if (!sub) return;
+  const activeId = parseInt(localStorage.getItem('luna_image_active_id')) || null;
+  if (!activeId) { sub.textContent = '未配置'; return; }
+  const provider = localStorage.getItem('luna_image_provider') || 'gpt-image-2';
+  const spec = IMAGE_PROVIDERS[provider];
+  if (provider === 'custom') {
+    const cfg = JSON.parse(localStorage.getItem('luna_image_current') || '{}');
+    sub.textContent = cfg.customModel || '自定义反代';
+  } else {
+    sub.textContent = spec ? spec.label : '已配置';
+  }
 }
 
 /* ================================

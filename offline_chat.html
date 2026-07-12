@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Luna — 离线聊天</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600&family=Manrope:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
   <link rel="stylesheet" href="offline_chat.css" />
 </head>
@@ -42,7 +42,7 @@
           </button>
           <div class="hd-nav-right">
             <button class="hd-act"><i class="ti ti-book" style="font-size:14px;" aria-hidden="true"></i></button>
-            <button class="hd-act"><i class="ti ti-dots" style="font-size:14px;" aria-hidden="true"></i></button>
+            <button class="hd-act" id="hdMoreBtn"><i class="ti ti-dots" style="font-size:14px;" aria-hidden="true"></i></button>
           </div>
         </div>
         <div class="hd-center">
@@ -53,7 +53,7 @@
           </div>
           <div class="hd-name">Luna</div>
           <div class="hd-en">The Watcher · 守夜者</div>
-          <div class="hd-desc">永夜的守望，三百年的孤独</div>
+          <div class="hd-desc" style="display:none"></div>
           <div class="hd-badges">
             <span class="hd-badge on">在线</span>
             <span class="hd-badge">AI 角色</span>
@@ -64,12 +64,6 @@
           <div class="hd-stat"><div class="hd-stat-v" id="convCount">247</div><div class="hd-stat-l">对话</div></div>
           <div class="hd-stat"><div class="hd-stat-v" id="daysCount">32d</div><div class="hd-stat-l">相识</div></div>
           <div class="hd-stat"><div class="hd-stat-v" id="floorNum">#1</div><div class="hd-stat-l">当前楼</div></div>
-        </div>
-        <div class="hd-scene-bar" id="sceneBar">
-          <div class="hd-stag"><i class="ti ti-map-pin" aria-hidden="true"></i><span class="hd-stag-t">废弃图书馆</span></div>
-          <div class="hd-stag"><i class="ti ti-moon" aria-hidden="true"></i><span class="hd-stag-t">深夜三时</span></div>
-          <div class="hd-stag"><i class="ti ti-cloud" aria-hidden="true"></i><span class="hd-stag-t">寒雾 · 烛光</span></div>
-          <div class="hd-stag fl" id="floorTag"><span class="hd-stag-t">楼 #1</span></div>
         </div>
       </div>
 
@@ -93,17 +87,17 @@
 
         <div class="inp-foot">
           <div class="inp-foot-left">
-            <button class="icon-btn" title="重回" aria-label="重回">
+            <button class="icon-btn" id="regenBtn" title="重新生成上一条回复" aria-label="重回">
               <i class="ti ti-rotate" aria-hidden="true"></i>
             </button>
             <div class="btn-sep"></div>
-            <button class="icon-btn" title="提示" aria-label="提示">
+            <button class="icon-btn" id="continueBtn" title="让角色继续说下去" aria-label="提示">
               <i class="ti ti-bulb" aria-hidden="true"></i>
             </button>
             <div class="btn-sep"></div>
           </div>
           <div class="inp-foot-right">
-            <span class="char-count" id="charCount">0</span>
+            <span class="char-count" id="charCount">0 / 500</span>
             <button class="inp-send" id="sendBtn" aria-label="发送">
               <i class="ti ti-arrow-up" aria-hidden="true"></i>
             </button>
@@ -113,6 +107,188 @@
       </div>
 
     </div><!-- /.offline-page -->
+
+    <!-- ================================
+         「···」小菜单：基础设置 / 美化设置
+    ================================= -->
+    <div class="hd-more-backdrop" id="hdMoreBackdrop"></div>
+    <div class="hd-more-menu" id="hdMoreMenu">
+      <div class="hd-more-item" id="hdMoreBasic">
+        <i class="ti ti-adjustments" aria-hidden="true"></i>
+        <span>基础设置</span>
+      </div>
+      <div class="hd-more-item" id="hdMoreBeauty">
+        <i class="ti ti-palette" aria-hidden="true"></i>
+        <span>美化设置</span>
+      </div>
+    </div>
+
+    <!-- ================================
+         基础设置 —— 全屏覆盖页
+    ================================= -->
+    <div class="os-page" id="osBasicPage">
+      <div class="os-hd">
+        <button class="os-back" id="osBasicBack"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+        <div class="os-hd-title">基础设置</div>
+        <div class="os-hd-spacer"></div>
+      </div>
+
+      <div class="os-body">
+
+        <!-- 文风设定 -->
+        <div class="os-sec">
+          <div class="os-sec-title">
+            <i class="ti ti-feather" aria-hidden="true"></i>
+            <span>文风设定</span>
+          </div>
+          <div class="os-sec-desc">决定 AI 叙述与对白的语言风格，会直接影响生成内容的文字质感</div>
+
+          <div class="os-chip-row" id="osStyleChips">
+            <div class="os-chip" data-style-preset="活泼口语">活泼口语</div>
+            <div class="os-chip" data-style-preset="文艺抖音风">文艺抖音风</div>
+            <div class="os-chip" data-style-preset="冷酷简约">冷酷简约</div>
+            <div class="os-chip" data-style-preset="撒娇可爱">撒娇可爱</div>
+            <div class="os-chip" data-style-preset="深情文学风">深情文学风</div>
+          </div>
+
+          <label class="os-label">文风标题</label>
+          <input class="os-input" id="osStyleName" placeholder="给这份文风起个名字，例如「清冷夜话」" maxlength="30" />
+
+          <label class="os-label">文风内容描述</label>
+          <textarea class="os-textarea" id="osStyleDesc" rows="4" placeholder="描述这份文风的语气、用词习惯、句式特点……越具体AI越贴合"></textarea>
+
+          <div class="os-save-row">
+            <select class="os-select" id="osStyleLoadSelect">
+              <option value="">从已保存的文风中载入…</option>
+            </select>
+            <button class="os-btn-ghost" id="osStyleLoadBtn">载入</button>
+            <button class="os-btn-ghost danger" id="osStyleDeleteBtn">删除</button>
+            <button class="os-btn-solid" id="osStyleSaveBtn">保存留档</button>
+          </div>
+        </div>
+
+        <!-- 人称设置 -->
+        <div class="os-sec">
+          <div class="os-sec-title">
+            <i class="ti ti-user" aria-hidden="true"></i>
+            <span>人称设置</span>
+          </div>
+          <div class="os-sec-desc">决定叙述视角，user 与角色可以各自使用不同人称</div>
+
+          <label class="os-label">User（你）的人称</label>
+          <div class="os-seg" id="osUserPov">
+            <div class="os-seg-item" data-pov="1">第一人称</div>
+            <div class="os-seg-item" data-pov="2">第二人称</div>
+            <div class="os-seg-item" data-pov="3">第三人称</div>
+          </div>
+
+          <label class="os-label" style="margin-top:14px;">Char（角色）的人称</label>
+          <div class="os-seg" id="osCharPov">
+            <div class="os-seg-item" data-pov="1">第一人称</div>
+            <div class="os-seg-item" data-pov="2">第二人称</div>
+            <div class="os-seg-item" data-pov="3">第三人称</div>
+          </div>
+        </div>
+
+        <!-- 语言设置 / 是否双语 -->
+        <div class="os-sec">
+          <div class="os-sec-title">
+            <i class="ti ti-language" aria-hidden="true"></i>
+            <span>语言设置</span>
+          </div>
+          <div class="os-sec-desc">判断角色说话是否需要双语呈现；与「聊天设置」里的双语配置共用同一份数据，两处保持一致</div>
+
+          <div class="os-row">
+            <div class="os-row-left">
+              <div class="os-row-title">双语模式</div>
+              <div class="os-row-desc">开启后角色先用目标语言说原话，再附上中文翻译（原话||中文）</div>
+            </div>
+            <div class="os-toggle" id="osBilingualToggle"><div class="os-toggle-thumb"></div></div>
+          </div>
+
+          <div class="os-lang-row" id="osBilingualLangRow" style="margin-top:10px;">
+            <input class="os-input os-lang-select" id="osBilingualLang" placeholder="目标语言，例如：粤语 / 泰语 / 日语" maxlength="20" style="margin-bottom:0;" />
+          </div>
+        </div>
+
+        <!-- 线下世界书 -->
+        <div class="os-sec">
+          <div class="os-sec-title">
+            <i class="ti ti-book-2" aria-hidden="true"></i>
+            <span>线下世界书</span>
+          </div>
+          <div class="os-sec-desc">仅在离线叙事中生效的世界设定，可保存多份随时切换</div>
+
+          <label class="os-label">世界书标题</label>
+          <input class="os-input" id="osWbName" placeholder="例如「废弃图书馆的传说」" maxlength="30" />
+
+          <label class="os-label">世界书内容</label>
+          <textarea class="os-textarea" id="osWbDesc" rows="5" placeholder="设定背景、规则、场景细节……"></textarea>
+
+          <div class="os-save-row">
+            <select class="os-select" id="osWbLoadSelect">
+              <option value="">从已保存的世界书中载入…</option>
+            </select>
+            <button class="os-btn-ghost" id="osWbLoadBtn">载入</button>
+            <button class="os-btn-ghost danger" id="osWbDeleteBtn">删除</button>
+            <button class="os-btn-solid" id="osWbSaveBtn">保存留档</button>
+          </div>
+        </div>
+
+        <!-- 记忆同步 -->
+        <div class="os-sec">
+          <div class="os-sec-title">
+            <i class="ti ti-refresh" aria-hidden="true"></i>
+            <span>记忆同步</span>
+          </div>
+
+          <div class="os-row">
+            <div class="os-row-left">
+              <div class="os-row-title">同步线上记忆</div>
+              <div class="os-row-desc">开启后会读取 chatroom 中与该角色的线上聊天记忆</div>
+            </div>
+            <div class="os-toggle" id="osSyncToggle"><div class="os-toggle-thumb"></div></div>
+          </div>
+
+          <div class="os-row">
+            <div class="os-row-left">
+              <div class="os-row-title">上下文记忆条数</div>
+              <div class="os-row-desc">每次生成时携带的历史消息条数，越多越连贯但更耗token</div>
+            </div>
+            <div class="os-stepper">
+              <button class="os-step-btn" id="osMemMinus">−</button>
+              <span class="os-step-val" id="osMemVal">12</span>
+              <button class="os-step-btn" id="osMemPlus">+</button>
+            </div>
+          </div>
+
+          <div class="os-row os-row-placeholder">
+            <div class="os-row-left">
+              <div class="os-row-title">线下记忆</div>
+              <div class="os-row-desc">即将上线 — 敬请期待</div>
+            </div>
+            <span class="os-soon-tag">SOON</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================================
+         美化设置 —— 占位页
+    ================================= -->
+    <div class="os-page" id="osBeautyPage">
+      <div class="os-hd">
+        <button class="os-back" id="osBeautyBack"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+        <div class="os-hd-title">美化设置</div>
+        <div class="os-hd-spacer"></div>
+      </div>
+      <div class="os-placeholder">
+        <i class="ti ti-palette" aria-hidden="true"></i>
+        <div class="os-placeholder-title">美化设置</div>
+        <div class="os-placeholder-desc">敬请期待，这里将来会有更多外观自定义选项</div>
+      </div>
+    </div>
 
   </div><!-- /.luna-frame -->
 </div><!-- /.luna-wrap -->

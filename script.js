@@ -1623,6 +1623,7 @@ function openApp(name) {
     'forum': 'forum.html',
     'beautify': 'beautify.html',
     'wallet': 'wallet.html',
+    'sms': 'messages.html',
     'user': 'user.html',
     'dialognovel': 'dialognovel.html',
   }

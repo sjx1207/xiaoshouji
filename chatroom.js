@@ -1,3 +1,36 @@
+/* ---- LunaCharDB 统一打开入口（不硬编码版本号，与 characters.js 保持一致） ---- */
+function openLunaCharDB() {
+  return new Promise((res, rej) => {
+    const probe = indexedDB.open('LunaCharDB');
+    probe.onupgradeneeded = e => {
+      const db0 = e.target.result;
+      if (!db0.objectStoreNames.contains('chars'))
+        db0.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+    };
+    probe.onsuccess = e => {
+      const cur = e.target.result;
+      const ver = cur.version;
+      const hasChars = cur.objectStoreNames.contains('chars');
+      cur.close();
+      if (hasChars) {
+        const req2 = indexedDB.open('LunaCharDB', ver);
+        req2.onsuccess = e2 => res(e2.target.result);
+        req2.onerror   = e2 => rej(e2.target.error);
+      } else {
+        const req3 = indexedDB.open('LunaCharDB', ver + 1);
+        req3.onupgradeneeded = e3 => {
+          const db3 = e3.target.result;
+          if (!db3.objectStoreNames.contains('chars'))
+            db3.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+        };
+        req3.onsuccess = e3 => res(e3.target.result);
+        req3.onerror   = e3 => rej(e3.target.error);
+      }
+    };
+    probe.onerror = e => rej(e.target.error);
+  });
+}
+
 /* ================================
    Chatroom — chatroom.js
 ================================ */
@@ -266,9 +299,7 @@ document.body.insertAdjacentHTML('beforeend', `
           const el=document.getElementById('wsDays');if(el)el.textContent='1';
         }
       };
-      const cp=indexedDB.open('LunaCharDB',4);
-      cp.onsuccess=ev=>{
-        const cdb=ev.target.result;
+      openLunaCharDB().then(cdb=>{
         if(!cdb.objectStoreNames.contains('chars'))return;
         const cr=cdb.transaction('chars').objectStore('chars').getAll();
         cr.onsuccess=()=>{
@@ -278,7 +309,7 @@ document.body.insertAdjacentHTML('beforeend', `
             if(av)av.innerHTML=`<img src="${found.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"/>`;
           }
         };
-      };
+      }).catch(()=>{});
     // 恢复上次的心声数据
     try {
       const saved = localStorage.getItem('luna_whisper_data_' + name);
@@ -2106,6 +2137,7 @@ function crOpenAiImageViewer(desc, bg, fg) {
     { id:'quote',    label:'引用', icon:'❝',  danger:false },
     { id:'star',     label:'收藏', icon:'☆',  danger:false },
     { id:'edit',     label:'修改', icon:'✎',  danger:false },
+    { id:'rewind',   label:'重回', icon:'↺',  danger:false, lunaOnly:true },
     { id:'forward',  label:'转发', icon:'↗',  danger:false },
     { id:'multi',    label:'多选', icon:'☑',  danger:false },
     { id:'recall',   label:'撤回', icon:'↩',  danger:true  },
@@ -2123,15 +2155,18 @@ function crOpenAiImageViewer(desc, bg, fg) {
   let ctxMsgIndex   = -1;
   let longPressTimer= null;
 
-  /* ── 构建菜单 ── */
-  function buildMenu() {
+  /* ── 构建菜单（按消息角色过滤：'rewind' 只在 AI 消息上出现） ── */
+  function buildMenu(isMine) {
     menu.innerHTML = '';
-    CTX_ITEMS.forEach((item, idx) => {
-      if (idx === 6) {
+    const items = CTX_ITEMS.filter(it => !(it.lunaOnly && isMine));
+    let dangerStarted = false;
+    items.forEach((item) => {
+      if (item.danger && !dangerStarted) {
         /* 危险操作前加分隔线 */
         const sep = document.createElement('div');
         sep.className = 'msg-ctx-sep';
         menu.appendChild(sep);
+        dangerStarted = true;
       }
       const btn = document.createElement('button');
       btn.className = 'msg-ctx-item' + (item.danger ? ' danger' : '');
@@ -2173,14 +2208,14 @@ function crOpenAiImageViewer(desc, bg, fg) {
     mirror.style.left   = rect.left + 'px';
     mirror.style.width  = rect.width + 'px';
 
-    buildMenu();
+    buildMenu(isMine);
 
     /* 菜单位置：气泡下方，自己消息右对齐，对方消息左对齐 */
     const menuW = 200;
     let menuTop  = rect.bottom + 8;
     let menuLeft = isMine ? rect.right - menuW : rect.left;
 
-    if (menuTop + 320 > window.innerHeight) menuTop = rect.top - 328;
+    if (menuTop + (isMine ? 320 : 360) > window.innerHeight) menuTop = rect.top - (isMine ? 328 : 368);
     menuLeft = Math.max(12, Math.min(menuLeft, window.innerWidth - menuW - 12));
 
     menu.style.top   = menuTop  + 'px';
@@ -2219,7 +2254,7 @@ function crOpenAiImageViewer(desc, bg, fg) {
         break;
 
       case 'quote':
-        crShowQuoteBar(msg.text);
+        crShowQuoteBar(msg, ctxMsgIndex);
         break;
 
       case 'star':
@@ -2233,6 +2268,15 @@ function crOpenAiImageViewer(desc, bg, fg) {
       case 'edit':
         /* 修改：弹出居中编辑弹窗 */
         crOpenEditModal(ctxMsgIndex, msg.text);
+        break;
+
+      case 'rewind':
+        /* 重回：只能对 AI 消息使用，弹出反馈弹窗 */
+        if (msg.role === 'luna') {
+          window.crOpenRewindModal(ctxMsgIndex);
+        } else {
+          crShowTip('只能对 Ta 的消息使用「重回」');
+        }
         break;
 
       case 'recall':
@@ -2265,10 +2309,36 @@ function crOpenAiImageViewer(desc, bg, fg) {
     closeCtxMenu();
   }
 
+  /* ── 双语内嵌气泡点击逻辑 ──
+     未展开：点击气泡任意位置 → 展开翻译
+     已展开：点击上半部分（原文） → 收起翻译；点击下半部分（译文区）→ 弹出功能菜单
+     返回 true 表示这次点击已被双语逻辑消费，调用方不应再继续走"弹菜单"流程 */
+  function handleBilingualBubbleClick(e, bubble, wrap) {
+    var transInner = bubble.querySelector('.trans-inner');
+    if (!transInner) return false; /* 不是内嵌双语气泡，走原逻辑 */
+
+    var isExpanded = transInner.classList.contains('show');
+    var hitTrans = !!e.target.closest('.trans-inner');
+
+    if (!isExpanded) {
+      /* 未展开：无论点在哪，先展开翻译，不弹菜单 */
+      transInner.classList.add('show');
+      return true;
+    }
+    if (hitTrans) {
+      /* 已展开，点在译文区（下半部分）→ 弹出功能菜单 */
+      openCtxMenu(wrap);
+      return true;
+    }
+    /* 已展开，点在原文区（上半部分）→ 收起翻译 */
+    transInner.classList.remove('show');
+    return true;
+  }
+
   /* ── 绑定长按到消息区（事件委托） ── */
   var msgArea = document.getElementById('crMessages');
   if (msgArea) {
-    /* Touch 长按：500ms */
+    /* Touch 长按：500ms（双语气泡上长按仍然直接弹菜单，方便快速操作） */
     msgArea.addEventListener('touchstart', function(e) {
       var bubble = e.target.closest('.cr-mine-bubble, .cr-luna-bubble');
       if (!bubble) return;
@@ -2292,17 +2362,19 @@ function crOpenAiImageViewer(desc, bg, fg) {
       clearTimeout(longPressTimer);
     });
 
-    /* 笔记本/鼠标：单击气泡弹菜单 */
+    /* 笔记本/鼠标：单击气泡 — 双语内嵌气泡优先处理展开/收起，其余情况弹菜单 */
     msgArea.addEventListener('click', function(e) {
       var bubble = e.target.closest('.cr-mine-bubble, .cr-luna-bubble');
       if (!bubble) return;
       var wrap = bubble.closest('.cr-msg-mine, .cr-msg-luna');
       if (!wrap) return;
+      if (handleBilingualBubbleClick(e, bubble, wrap)) return;
       openCtxMenu(wrap);
     });
     /* 禁止浏览器原生右键菜单 */
     msgArea.addEventListener('contextmenu', function(e) { e.preventDefault(); });
   }
+
 
   /* ── 关闭按钮 ── */
   cancelBtn.addEventListener('click', closeCtxMenu);
@@ -2715,9 +2787,7 @@ function crOpenAiImageViewer(desc, bg, fg) {
   async function fwLoadFriends() {
     try {
       const charMap = await new Promise(res => {
-        const req = indexedDB.open('LunaCharDB', 4);
-        req.onsuccess = e => {
-          const db = e.target.result;
+        openLunaCharDB().then(db => {
           if (!db.objectStoreNames.contains('chars')) { res({}); return; }
           const r = db.transaction('chars').objectStore('chars').getAll();
           r.onsuccess = () => {
@@ -2726,8 +2796,7 @@ function crOpenAiImageViewer(desc, bg, fg) {
             res(map);
           };
           r.onerror = () => res({});
-        };
-        req.onerror = () => res({});
+        }).catch(() => res({}))
       });
 
       const convs = await new Promise(res => {
@@ -3029,9 +3098,8 @@ function crOpenAiImageViewer(desc, bg, fg) {
 
 })();
 
-/* ================================================================
-   位置功能 — Location Modal
-================================================================ */
+
+
 (function () {
 
 function escLoc(s) {
@@ -3971,7 +4039,7 @@ window.crOpenGiftPage = crOpenGiftPage;
 (function(){
 
 const FP_CARDS = [
-  { no:'01', tag:'History',  title:'重回',  sub:'时光倒流', desc:'回溯每一次对话的温度与轨迹。',
+  { no:'01', tag:'History',  title:'重回',  sub:'时光倒流', desc:'对Ta的回复不满意？告诉Ta哪里不对，重新来一次。',
     art:'history',  bg:'#1a1a1a' },
   { no:'02', tag:'Image',    title:'图片',  sub:'视觉记忆', desc:'分享照片，让Ta看见你的世界。',
     art:'image',    bg:'#f7f5f2' },
@@ -4282,7 +4350,9 @@ if (addBtn) addBtn.addEventListener('click', openFP);
 /* ── 功能卡片点击执行 ── */
 function handleCardAction(tag) {
   closeFP();
-  if (tag === 'Image') {
+  if (tag === 'History') {
+    crTriggerRewindFromPanel();
+  } else if (tag === 'Image') {
     crPickImage();
   } else if (tag === 'Meme') {
     crOpenMemePanel();
@@ -4307,11 +4377,63 @@ function handleCardAction(tag) {
     window.location.href = 'luna-studio.html?from=theatre&charName=' + encodeURIComponent(charName);
   } else if (tag === 'Journey') {
     window.location.href = 'journey.html';
+  } else if (tag === 'Private') {
+    window.location.href = 'secret.html';
   }
 }
 
-/* ── 视频通话：把当前角色信息写入 localStorage 后跳转 ── */
-async function crLaunchVideoCall() {
+/* ── 「重回」卡片入口：从功能面板点「使用」触发
+     没有具体长按到哪条消息时，默认定位到最近一条 AI 回复（同一轮）。
+     如果压根没有 AI 回复过，提示用户先聊几句。 ── */
+function crTriggerRewindFromPanel() {
+  if (typeof crMessages === 'undefined' || !crMessages.length) {
+    crShowTip('还没有可以重回的对话，先聊几句吧～');
+    return;
+  }
+  let lastLunaIdx = -1;
+  for (let i = crMessages.length - 1; i >= 0; i--) {
+    if (crMessages[i].role === 'luna') { lastLunaIdx = i; break; }
+  }
+  if (lastLunaIdx < 0) {
+    crShowTip('Ta还没有回复过，先聊几句吧～');
+    return;
+  }
+  if (typeof window.crOpenRewindModal === 'function') {
+    window.crOpenRewindModal(lastLunaIdx);
+  }
+}
+
+/* ── 视频通话：把当前角色信息写入 localStorage 后跳转 ──
+   注意：这个函数现在同时服务两个入口：
+   1) 「用户主动拨打」（头部电话按钮 / 功能面板 Video 卡片）—— 不传参数，
+      内部会显式清掉 luna_vc_ai_initiated，防止上一次通话异常退出（比如
+      中途关闭标签页）导致这个标记没被 vcHangup 正常清理、残留成 '1'，
+      让本该是"用户拨打"的这通新电话被 videocall.js 误判成"角色主动发起"。
+   2) 「接听角色来电」（crShowIncomingCallScreen 里的 handleAccept）—— 传
+      { aiInitiated: true, reason }。
+
+   ⚠️ 历史 bug 修复说明：这两个标记必须由本函数统一、原子地设置/清除。
+   之前的写法是 handleAccept 先 setItem('luna_vc_ai_initiated','1')，
+   再调用这个函数，而这个函数开头无条件 removeItem 把刚设好的标记又冲掉了，
+   导致"角色主动打来、用户接听"之后，videocall.js 的 vcInitDialScreen 读到
+   的 wasAiInitiated 永远是 false，于是错误地播放了"用户拨号中/Calling…"
+   等待动画（其实电话在弹窗那一步就已经接通了），而且角色也不会按预期先
+   开口——通话变得冷场、回复变少，"活人感"差的问题根源就在这里。现在把
+   设置/清除的时机收进同一个函数、按 aiInitiated 参数二选一执行，就不会
+   再出现"设置完立刻被自己冲掉"的竞态。 */
+async function crLaunchVideoCall(opts) {
+  const aiInitiated = !!(opts && opts.aiInitiated);
+  const inviteReason = (opts && opts.reason) || '';
+
+  /* 0. 按发起方原子地写标记：要嘛都设，要嘛都清，不允许中间态 */
+  if (aiInitiated) {
+    try { localStorage.setItem('luna_vc_ai_initiated', '1'); } catch (_) {}
+    try { localStorage.setItem('luna_vc_invite_reason', inviteReason); } catch (_) {}
+  } else {
+    try { localStorage.removeItem('luna_vc_ai_initiated'); } catch (_) {}
+    try { localStorage.removeItem('luna_vc_invite_reason'); } catch (_) {}
+  }
+
   /* 1. 确保 luna_current_chat 已写好（通常已存在） */
   localStorage.setItem('luna_current_chat', CR_NAME);
 
@@ -4320,11 +4442,7 @@ async function crLaunchVideoCall() {
 
   /* 3. 从 LunaCharDB 读头像，写入 luna_vc_avatar 供 videocall.js 用 */
   try {
-    const db = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaCharDB', 4);
-      req.onsuccess = e => res(e.target.result);
-      req.onerror   = () => rej();
-    });
+    const db = await openLunaCharDB();
     if (db.objectStoreNames.contains('chars')) {
       const r = await new Promise(res => {
         const req = db.transaction('chars').objectStore('chars').getAll();
@@ -4345,17 +4463,69 @@ async function crLaunchVideoCall() {
   /* 4. 跳转 */
   window.location.href = 'videocall.html';
 }
+/* 显式挂到 window：这个函数被定义在功能面板模块的 IIFE 闭包内，
+   但来电弹窗等其他模块的代码需要跨闭包调用它，必须导出成真正的全局。 */
+window.crLaunchVideoCall = crLaunchVideoCall;
+
+/* ── 通话方式选择弹窗（头部电话按钮） ── */
+(function initCallChoicePopup() {
+  const headerCallBtn = document.querySelector('.cr-actions .cr-action-btn[title="通话"]');
+  const overlay   = document.getElementById('callChoiceOverlay');
+  const backdrop  = document.getElementById('callChoiceBackdrop');
+  const cancelBtn = document.getElementById('callChoiceCancel');
+  const voiceItem = document.getElementById('callChoiceVoice');
+  const videoItem = document.getElementById('callChoiceVideo');
+  const toastEl   = document.getElementById('callPlaceholderToast');
+
+  if (!headerCallBtn || !overlay) return;
+
+  function openCallChoice() {
+    overlay.classList.add('open');
+  }
+  function closeCallChoice() {
+    overlay.classList.remove('open');
+  }
+
+  /* 占位提示：语音通话功能尚未完成 */
+  let toastTimer = null;
+  function showPlaceholderToast(msg) {
+    if (!toastEl) return;
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2000);
+  }
+
+  headerCallBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    openCallChoice();
+  });
+
+  if (backdrop)  backdrop.addEventListener('click', closeCallChoice);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeCallChoice);
+
+  if (voiceItem) {
+    voiceItem.addEventListener('click', () => {
+      closeCallChoice();
+      /* 语音通话功能占位：尚未开发，先提示用户 */
+      showPlaceholderToast('语音通话功能开发中，敬请期待');
+    });
+  }
+
+  if (videoItem) {
+    videoItem.addEventListener('click', () => {
+      closeCallChoice();
+      crLaunchVideoCall();
+    });
+  }
+})();
 
 /* 把原来 el.addEventListener('click', ...) 里 updateDetail 的点击加入分发 */
 /* 已在 fpCurrent click 上附加，这里改造 updateDetail 让中心卡双击触发 */
 /* 实际通过在 fp-detail 区加个"使用"按钮来触发 */
 const fpUseBtn = document.createElement('button');
 fpUseBtn.id = 'fpUseBtn';
-fpUseBtn.style.cssText = [
-  'margin-top:10px','background:#1a1a1a','color:#fff',
-  'border:none','border-radius:20px','padding:7px 22px',
-  'font-size:13px','cursor:pointer','letter-spacing:1px',
-].join(';');
+fpUseBtn.className = 'fp-use-btn';
 fpUseBtn.textContent = '使用';
 document.getElementById('fpDetail').appendChild(fpUseBtn);
 
@@ -4521,6 +4691,23 @@ const LUNA_STORES = {
   friends:  { keyPath: 'name' },
   messages: { keyPath: 'chatKey' },
   memes:    { keyPath: 'id' },
+  rewindFeedback: { keyPath: 'name' },
+  /* 视频通话完整记录（转录全文），按通话建自增 id 存一条，
+     用 chatKey 字段（角色名）在读取时过滤，不建索引，
+     量级很小（每次通话一条），全表扫描即可，没必要为此改动
+     getCrDB 的升级逻辑增加索引创建的复杂度。 */
+  videoLogs: { keyPath: 'id', autoIncrement: true },
+  /* 叩问功能：问答档案，按角色存一条记录，记录里是 entries 数组
+     （每条 entry 含题目/回答/角色回应等），list 只增不覆盖。 */
+  koukan: { keyPath: 'name' },
+  /* 幕后志功能：小说化故事档案，结构与 koukan 一致，按角色存一条记录，
+     entries 数组里每条是一篇故事（title/paragraphs/authorNote/...）。 */
+  chronicle: { keyPath: 'name' },
+  /* 迷雾功能：困惑档案，按角色存一条记录，entries 数组里每条是
+     "一批困惑"，每批里包含若干条 item（每条是角色的一件具体困惑，
+     含 guessZh/guessEn/resolved/explanation/reactionZh 等字段）。
+     与 secret/haze.js 的 HZ_STORES.haze 定义保持一致，数据互通。 */
+  haze: { keyPath: 'name' },
 };
 
 function getCrDB() {
@@ -4589,9 +4776,7 @@ let _crAvatarUrl = null; // 加载成功后存 url/base64，null=未加载，fal
 function crLoadAvatarCache() {
   return new Promise(resolve => {
     if (_crAvatarUrl !== null) { resolve(_crAvatarUrl); return; }
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onsuccess = e => {
-      const db = e.target.result;
+    openLunaCharDB().then(db => {
       if (!db.objectStoreNames.contains('chars')) { _crAvatarUrl = false; resolve(false); return; }
       const r = db.transaction('chars').objectStore('chars').getAll();
       r.onsuccess = () => {
@@ -4600,8 +4785,7 @@ function crLoadAvatarCache() {
         resolve(_crAvatarUrl);
       };
       r.onerror = () => { _crAvatarUrl = false; resolve(false); };
-    };
-    req.onerror = () => { _crAvatarUrl = false; resolve(false); };
+    }).catch(() => { _crAvatarUrl = false; resolve(false); });
   });
 }
 
@@ -4655,17 +4839,24 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   await crRestoreMessages();
 
-  var backBtn = document.getElementById('crBackBtn');
-  if (backBtn) {
-    backBtn.addEventListener('click', function () {
-      localStorage.setItem('luna_conv_dirty', '1');
-      if (window.history.length > 1) {
-        window.history.back();
-      } else {
-        window.location.href = 'chat.html';
-      }
-    });
-  }
+  /* ── 返回按钮：用事件委托绑定在 document 上 ──
+     原因：Header Studio 美化功能可能会把 #crAvatarWrap（头像）从
+     #crBackBtn 内部移动到 .cr-header-main 下（用于让头像在自定义
+     布局里居中），移动之后头像和按钮不再是父子关系，点击头像时
+     click 事件不会再冒泡到 #crBackBtn 上，导致"点头像返回不了"。
+     用 document 级别的委托 + closest() 判断，无论头像现在挂在哪个
+     父节点下，只要点击目标在 #crBackBtn 或 #crAvatarWrap 范围内都能触发返回，
+     从根本上避免 DOM 结构变化导致监听失效。 */
+  document.addEventListener('click', function (e) {
+    var hit = e.target.closest && (e.target.closest('#crBackBtn') || e.target.closest('#crAvatarWrap'));
+    if (!hit) return;
+    localStorage.setItem('luna_conv_dirty', '1');
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = 'chat.html';
+    }
+  });
 
   /* ── 输入框：用 CSS data-placeholder 代替 textContent 占位 ── */
   var placeholder = '向 ' + CR_NAME + ' 发送消息';
@@ -4726,9 +4917,7 @@ function crInitHeader() {
 
   document.title = CR_NAME + ' · 聊天';
 
-  var req = indexedDB.open('LunaCharDB', 4);
-  req.onsuccess = function(e) {
-    var db = e.target.result;
+  openLunaCharDB().then(function(db) {
     if (!db.objectStoreNames.contains('chars')) return;
     var r = db.transaction('chars').objectStore('chars').getAll();
     r.onsuccess = function() {
@@ -4738,11 +4927,14 @@ function crInitHeader() {
       var subEl = document.querySelector('.cr-sub');
       if (subEl && found.role) subEl.textContent = found.role;
       if (found.avatar) {
-        var avWrap = document.querySelector('.cr-avatar');
-        if (avWrap) {
-          avWrap.style.backgroundImage = 'url(' + found.avatar + ')';
-          avWrap.style.backgroundSize = 'cover';
-          avWrap.style.borderRadius = '50%';
+        _crAvatarUrl = found.avatar;
+        var avInner = document.getElementById('crAvatarInner');
+        if (avInner) {
+          var img = document.createElement('img');
+          img.src = found.avatar;
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+          avInner.innerHTML = '';
+          avInner.appendChild(img);
         }
       }
       /* ── 头像/角色信息写完后，重新应用头部美化样式（防止被覆盖）── */
@@ -4750,7 +4942,7 @@ function crInitHeader() {
         window.crApplyHeaderStyle();
       }
     };
-  };
+  }).catch(function() {});
 }
 
 /* ── 头部三栏统计动态初始化 ── */
@@ -5339,6 +5531,54 @@ function crBuildStoryCardEl(msg) {
   return wrap;
 }
 
+/* ── 构建气泡内「被引用预览块」的 HTML ──
+   quote: { text, role, idx }；role 是被引用消息原作者（'mine'/'luna'） */
+function crBuildQuoteHtml(quote) {
+  if (!quote || !quote.text) return '';
+  var who = quote.role === 'mine' ? '你' : CR_NAME;
+  var short = quote.text.length > 34 ? quote.text.slice(0, 34) + '…' : quote.text;
+  var idxAttr = (typeof quote.idx === 'number' && quote.idx >= 0) ? quote.idx : '';
+  return (
+    '<div class="cr-bubble-quote" data-quote-jump="' + idxAttr + '">' +
+      '<div class="cr-bubble-quote-bar"></div>' +
+      '<div class="cr-bubble-quote-body">' +
+        '<span class="cr-bubble-quote-who">' + escHtml(who) + '</span>' +
+        '<span class="cr-bubble-quote-txt">' + escHtml(short) + '</span>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+/* ── 点击引用预览块：跳转到原消息并高亮闪烁 ── */
+function crJumpToQuotedMsg(idx) {
+  if (idx === '' || idx === null || typeof idx === 'undefined') return;
+  idx = parseInt(idx, 10);
+  if (isNaN(idx) || idx < 0) return;
+
+  var allWrap = document.querySelectorAll('.cr-msg-mine, .cr-msg-luna');
+  var targetWrap = allWrap[idx];
+  if (!targetWrap) return;
+
+  var bubble = targetWrap.querySelector('.cr-mine-bubble, .cr-luna-bubble');
+  targetWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  if (bubble) {
+    bubble.classList.remove('cr-quote-jump-flash');
+    /* 触发重绘以便动画能重新播放 */
+    void bubble.offsetWidth;
+    bubble.classList.add('cr-quote-jump-flash');
+    setTimeout(function() { bubble.classList.remove('cr-quote-jump-flash'); }, 1200);
+  }
+}
+
+/* 事件委托：整个消息区域内点击引用预览块都能触发跳转 */
+document.addEventListener('click', function(e) {
+  var q = e.target.closest && e.target.closest('.cr-bubble-quote');
+  if (!q) return;
+  var idx = q.getAttribute('data-quote-jump');
+  if (idx !== '') crJumpToQuotedMsg(idx);
+});
+
 /* ── 根据消息对象构建 DOM 元素 ── */
 function crBuildMsgEl(msg) {
   var el = document.createElement('div');
@@ -5471,7 +5711,8 @@ function crBuildMsgEl(msg) {
       /* 普通文字气泡 */
       el.innerHTML =
         '<div class="cr-msg-mine-inner">' +
-        '<div class="cr-mine-bubble">' +
+        '<div class="cr-mine-bubble bubble bubble-self">' +
+          crBuildQuoteHtml(msg.quote) +
           '<p class="cr-msg-p" style="padding-left:0;">' + escHtml(msg.text) + '</p>' +
         '</div>' +
         '<div class="cr-mine-meta">' +
@@ -5575,12 +5816,22 @@ function crBuildMsgEl(msg) {
     if (msg.isVoice && msg.role === 'luna') {
       return crBuildLunaVoiceMsgEl(msg);
     }
+    /* 视频通话记录（灰色居中提示行）— 历史恢复 */
+    if (msg.isVideoCallLog) {
+      return crBuildVideoCallLogEl(msg);
+    }
+    /* 旧版 AI 邀约卡片数据兼容 — 历史恢复时统一按通话记录行渲染，不再是带按钮的卡片 */
+    if (msg.isVideoInvite) {
+      return crBuildAiVideoCallInviteEl(msg);
+    }
     el.innerHTML =
       crMiniAvHtml() +
       '<div>' +
-        '<div class="cr-luna-bubble">' +
+        '<div class="cr-luna-bubble bubble char-bubble' + (msg.translated ? ' has-trans' : '') + '">' +
           '<div class="cr-luna-accent"></div>' +
+          crBuildQuoteHtml(msg.quote) +
           '<p class="cr-msg-p">' + escHtml(msg.text) + '</p>' +
+          crBuildTransHtml(msg) +
           '<div class="cr-msg-footer">' +
             '<svg width="10" height="10" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#ccc"/></svg>' +
             '<span class="cr-footer-lbl">' + CR_NAME.toUpperCase() + '</span>' +
@@ -5590,6 +5841,32 @@ function crBuildMsgEl(msg) {
       '</div>';
   }
   return el;
+}
+
+/* 生成语言标签展示文字（如 粤 / EN / 日 等，取语言名首字或常见缩写） */
+function crLangTagShort(lang) {
+  const map = {
+    '粤语':'粤','普通话':'普','闽南语':'闽','客家话':'客','上海话':'沪','四川话':'川',
+    '英语':'EN','日语':'日','韩语':'韩','法语':'FR','德语':'DE','西班牙语':'ES',
+    '葡萄牙语':'PT','意大利语':'IT','俄语':'RU','泰语':'TH','越南语':'VN',
+    '印尼语':'ID','阿拉伯语':'AR','土耳其语':'TR'
+  };
+  return map[lang] || (lang ? lang.slice(0,1) : '译');
+}
+
+/* 根据消息的翻译信息与气泡样式（内嵌/外挂）生成对应 HTML 片段 */
+function crBuildTransHtml(msg) {
+  if (!msg || !msg.translated) return '';
+  const tag = crLangTagShort(msg.transLang);
+  if (msg.transStyle === 'outer') {
+    return '<div class="trans-outer show">' +
+      '<div class="trans-text">' + escHtml(msg.translated) + '<span class="trans-lang-tag">' + escHtml(tag) + '</span></div>' +
+    '</div>';
+  }
+  return '<div class="trans-inner">' +
+    '<div class="trans-text">' + escHtml(msg.translated) + '</div>' +
+    '<span class="trans-lang-tag">' + escHtml(tag) + '</span>' +
+  '</div>';
 }
 
 function crMiniAvSvg() {
@@ -5724,9 +6001,13 @@ function crSend() {
           n.getMinutes().toString().padStart(2, '0');
 
   var quoteBar = document.getElementById('crQuoteBar');
-  var quoteText = document.getElementById('crQuoteText');
-  var quotedMsg = (quoteBar && quoteBar.style.display !== 'none' && quoteText) ? quoteText.textContent : null;
-  var msgObj = { role: 'mine', text: txt, time: t, quote: quotedMsg || undefined };
+  var isQuoting = quoteBar && quoteBar.style.display !== 'none' && quoteBar.dataset.quoteText;
+  var quoteObj = isQuoting ? {
+    text: quoteBar.dataset.quoteText,
+    role: quoteBar.dataset.quoteRole || 'luna',
+    idx:  quoteBar.dataset.quoteIdx !== '' ? parseInt(quoteBar.dataset.quoteIdx, 10) : -1
+  } : undefined;
+  var msgObj = { role: 'mine', text: txt, time: t, quote: quoteObj };
   crMessages.push(msgObj);
 
   var el = crBuildMsgEl(msgObj);
@@ -5761,7 +6042,12 @@ function crSend() {
 
   box.innerHTML = '';
   box.blur();
-  if (quoteBar) { quoteBar.style.display = 'none'; }
+  if (quoteBar) {
+    quoteBar.style.display = 'none';
+    delete quoteBar.dataset.quoteText;
+    delete quoteBar.dataset.quoteRole;
+    delete quoteBar.dataset.quoteIdx;
+  }
 
   area.scrollTop = area.scrollHeight;
 }
@@ -5879,6 +6165,8 @@ window.addEventListener('storage', function(e) {
   /* 气泡美化样式同步 */
   if (e.key === 'luna_bubble_style') { if (typeof window.crApplyBubbleStyle === 'function') window.crApplyBubbleStyle(); }
   if (e.key && e.key.startsWith('luna_bubble_style_char_')) { if (typeof window.crApplyBubbleStyle === 'function') window.crApplyBubbleStyle(); }
+  /* 双语翻译自定义 CSS 同步 */
+  if (e.key === 'luna_bubble_css' || e.key === 'luna_bubble_css_update') { if (typeof window.crApplyBubbleStyle === 'function') window.crApplyBubbleStyle(); }
 });
 
 /* ================================================================
@@ -5940,9 +6228,7 @@ window.addEventListener('pageshow', function(e) {
 /* ── 从 LunaCharDB 读角色完整人设（同时更新头像缓存） ── */
 function crLoadCharProfile(name) {
   return new Promise(resolve => {
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onsuccess = e => {
-      const db = e.target.result;
+    openLunaCharDB().then(db => {
       if (!db.objectStoreNames.contains('chars')) { resolve(null); return; }
       const r = db.transaction('chars').objectStore('chars').getAll();
       r.onsuccess = () => {
@@ -5951,18 +6237,134 @@ function crLoadCharProfile(name) {
         resolve(found || null);
       };
       r.onerror = () => resolve(null);
-    };
-    req.onerror = () => resolve(null);
+    }).catch(() => resolve(null));
   });
 }
 
+/* ── 打开 LunaIdentityDB（与 user.js 共用，不硬编码版本号） ── */
+function crOpenIdentityDB() {
+  return new Promise((res, rej) => {
+    const probe = indexedDB.open('LunaIdentityDB');
+    probe.onsuccess = e => {
+      const db = e.target.result;
+      if (db.objectStoreNames.contains('identities')) { res(db); return; }
+      const ver = db.version + 1;
+      db.close();
+      const req2 = indexedDB.open('LunaIdentityDB', ver);
+      req2.onupgradeneeded = ev => {
+        if (!ev.target.result.objectStoreNames.contains('identities'))
+          ev.target.result.createObjectStore('identities', { keyPath: 'id' });
+      };
+      req2.onsuccess = ev => res(ev.target.result);
+      req2.onerror   = ev => rej(ev.target.error);
+    };
+    probe.onerror = e => rej(e.target.error);
+  });
+}
+
+/* ── 读取当前角色绑定的用户身份（LunaIdentityDB，与 user.js 的 boundCharIds 对应） ──
+   char.id 是 LunaCharDB 里的角色 id；某个身份卡片如果在「资料页」把这个角色勾选进了
+   boundCharIds，就说明用户想让 AI 把该身份当成"正在跟自己说话的这个人"来理解。
+   一个角色可能被多张身份卡绑定，这里优先取标记为 active 的一张，否则取第一张命中的。 */
+function crLoadBoundUserIdentity(charId) {
+  return new Promise(resolve => {
+    if (!charId) { resolve(null); return; }
+    crOpenIdentityDB().then(db => {
+      if (!db.objectStoreNames.contains('identities')) { resolve(null); return; }
+      const r = db.transaction('identities').objectStore('identities').getAll();
+      r.onsuccess = () => {
+        const list = r.result || [];
+        const matches = list.filter(i => {
+          const ids = Array.isArray(i.boundCharIds) ? i.boundCharIds : (i.boundCharId ? [i.boundCharId] : []);
+          return ids.includes(charId);
+        });
+        if (!matches.length) { resolve(null); return; }
+        const active = matches.find(i => i.active);
+        resolve(active || matches[0]);
+      };
+      r.onerror = () => resolve(null);
+    }).catch(() => resolve(null));
+  });
+}
+
+/* 把身份数据渲染成 system prompt 里的「对方是谁」说明块 */
+function crBuildUserIdentityBlock(identity) {
+  if (!identity) return '';
+  const lines = [];
+  if (identity.name) lines.push(`对方的名字：${identity.name}`);
+  if (identity.role) lines.push(`对方的身份/职业：${identity.role}`);
+  if (identity.desc) lines.push(`对方的简介：${identity.desc}`);
+  if (Array.isArray(identity.tags) && identity.tags.length) lines.push(`对方的标签：${identity.tags.join('、')}`);
+  if (!lines.length) return '';
+  return `\n【和你聊天的这个人 — 用户真实资料，必须结合这些信息理解和回应对方，不要当成陌生人泛泛而谈】\n${lines.map(l => '· ' + l).join('\n')}\n使用规则（必须遵守）：\n- 这是你已经认识、了解的这个人的真实信息，你的回复要体现出你记得对方是谁，符合你们之间已有的关系和熟悉程度，不要用套话、不要问已经知道答案的问题（比如已知对方职业却问"你是做什么的呀"）。\n- 自然地把这些信息作为你理解对方言行、情绪、处境的背景，而不是生硬地复述或者报菜名式地提起。\n- 大多数时候完全不需要直接提到这些资料本身，只在真正相关、能让对话更贴合对方处境时才自然带入。`;
+}
+
 /* ── 构建 system prompt ── */
-function crBuildSystemPrompt(char, situation, memeList) {
+/* 读取感知设置（chatsetting 感知页面保存到 localStorage 的 luna_perception / luna_weather_realtime） */
+function crGetPerceptionConfig() {
+  const fallback = { mode: 'real', weather: true, loc: true, time: true, city: '', lat: null, lng: null };
+  let saved = fallback;
+  try {
+    saved = Object.assign({}, fallback, JSON.parse(localStorage.getItem('luna_perception') || '{}'));
+  } catch (e) { saved = fallback; }
+
+  let weatherData = null;
+  if (saved.weather && saved.mode === 'real') {
+    try {
+      const w = JSON.parse(localStorage.getItem('luna_weather_realtime') || 'null');
+      if (w && w.desc) weatherData = w;
+    } catch (e) { weatherData = null; }
+  }
+
+  // 时间感知：无论真实/虚拟地点，只要开启就同步本地真实时间
+  let timeInfo = null;
+  if (saved.time) {
+    const now = new Date();
+    const hh = now.getHours();
+    const period = hh < 5 ? '凌晨' : hh < 9 ? '清晨' : hh < 12 ? '上午'
+                 : hh < 14 ? '中午' : hh < 18 ? '下午' : hh < 22 ? '晚上' : '深夜';
+    const weekday = ['周日','周一','周二','周三','周四','周五','周六'][now.getDay()];
+    timeInfo = {
+      timeStr: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      period, weekday
+    };
+  }
+
+  return {
+    mode: saved.mode === 'virtual' ? 'virtual' : 'real',
+    weatherOn: !!saved.weather,
+    locOn: !!saved.loc,
+    timeOn: !!saved.time,
+    city: saved.city || '',
+    weather: weatherData,
+    time: timeInfo
+  };
+}
+
+/* 读取双语设置（chatsetting 页面保存到 localStorage 的 luna_bilingual） */
+function crGetBilingualConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('luna_bilingual') || '{}');
+    return {
+      on: saved.mode === 'on',
+      lang: saved.lang || '粤语',
+      langSub: saved.langSub || 'Cantonese',
+      style: saved.style === 'outer' ? 'outer' : 'inner'
+    };
+  } catch (e) {
+    return { on: false, lang: '粤语', langSub: 'Cantonese', style: 'inner' };
+  }
+}
+
+async function crBuildSystemPrompt(char, situation, memeList, userIdentity) {
   const name    = char?.name    || CR_NAME;
   const role    = char?.role    || '';
   const persona = char?.persona || char?.description || char?.desc || '';
   const traits  = char?.traits  || char?.personality || '';
   const bg      = char?.background || char?.story || '';
+
+  // 用户身份信息（从 LunaIdentityDB 里，绑定到当前角色的那张身份卡）
+  const userIdentityBlock = crBuildUserIdentityBlock(userIdentity);
 
   // situation: 'reply'=正常回复用户 | 'initiative'=用户没说话主动破冰 | 'continue'=已回复过催续
   const situationNote = situation === 'initiative'
@@ -5977,6 +6379,46 @@ function crBuildSystemPrompt(char, situation, memeList) {
     ? `9. 当你情绪很到位想发个表情包时（比如哈哈大笑、无语、开心、心动、尴尬），单独一行只输出 [MEME:名称]，名称必须从以下列表中原文选取，不能自造：\n   可用表情包：${memeNames.join('、')}\n   例：[MEME:笑哭] 或 [MEME:无语]\n   一次对话最多用1-2次，不要滥用。`
     : `9. 你目前没有可用的表情包，不要输出 [MEME] 相关内容。`;
 
+  // 感知设置：把用户在「感知设置」里配置的天气 / 地点 / 时间数据转化为角色的真实生活感知
+  const pc = crGetPerceptionConfig();
+  const pcLines = [];
+  if (pc.locOn && pc.city) {
+    pcLines.push(pc.mode === 'virtual'
+      ? `你现在生活/所在的地方是：${pc.city}（这是设定地点，你要把它当成自己真实所在的地方，偶尔可以很自然地提到当地的场景、氛围或生活细节，但不要每条都提）`
+      : `你现在真实所在的城市是：${pc.city}`);
+  }
+  if (pc.weatherOn && pc.weather) {
+    pcLines.push(`当地此刻天气：${pc.weather.desc}，气温${pc.weather.temp}°C，体感${pc.weather.feel}°C，湿度${pc.weather.humi}%`);
+  }
+  if (pc.timeOn && pc.time) {
+    pcLines.push(`当地此刻真实时间：${pc.time.timeStr}（${pc.time.weekday}・${pc.time.period}）`);
+  }
+  const perceptionBlock = pcLines.length
+    ? `\n【你的实时感知 — 这是你此刻正在经历的真实环境，不是提供给你参考的资料】\n${pcLines.map(l => '· ' + l).join('\n')}\n感知使用规则（必须遵守）：\n- 这些是你身体正在感受到的真实状态，你要像一个真实活着的人一样，让它自然地影响你的语气、状态和话题，而不是复述数据。\n- 严禁把天气/时间/地点数据直接报数字给用户（比如不能说"现在27度湿度60%"），你要转化成生活化的感受表达（比如说"today好闷啊"、"这个点有点犯困"、"这天儿出门都懒得动"）。\n- 不是每条消息都要提感知，大多数时候完全不提，只在自然聊到相关话题、或者感知状态强烈到会真实影响你情绪行为时才带一句，比如太晚了会犯困想睡、太热会烦躁、下雨会慵懒、深夜会说话软一点。\n- 如果用户问起你在干嘛、那边天气怎么样、几点了之类的问题，才需要更直接地回应这些感知内容。\n- 时间感知要体现在细节里：比如深夜回复可以带点困意或慵懒，早上可以带点没睡醒或有精神，不要生硬报时间点。`
+    : '';
+
+  // 双语模式规则：开启时角色改用选定语言说话，中文翻译附在后面（而不是反过来）
+  const bl = crGetBilingualConfig();
+  const bilingualRule = !bl.on ? ''
+    : bl.lang === '普通话'
+    ? `` // 目标语言就是普通话时无需双语转换，按正常中文说话即可
+    : `16. 【双语模式 — 必须严格遵守】用户已开启双语模式，角色语言设定为「${bl.lang}（${bl.langSub}）」。从现在起，你说的每一条普通文字消息（不包括 [IMAGE]、[VOICE]、[LOCATION]、[TRANSFER]、[HONGBAO]、[MEME]、[QUOTE] 这些特殊格式的行），都必须用「${bl.lang}」本身作为你说的原话，然后在同一行内紧跟英文双竖线 || ，再写这句话对应的中文翻译，格式死规定：${bl.lang}原话||中文翻译，例如目标语言是泰语时→ อยู่บ้านเบื่อๆ เปิดหนังดูอยู่||在家无聊呢，刚打开部电影 ←两侧禁止加空格、禁止用中文竖线｜、禁止用单竖线|、禁止省略||、禁止把中文写在前面。「${bl.lang}」部分要写得自然地道，符合真人说话的语气和口语习惯，不要生硬逐字翻译；中文翻译部分只是给用户看的辅助理解，不需要你额外发挥。多条消息依然按规则3换行分隔，每一行都要各自附带 || 中文翻译，不能只翻译某一条而漏掉其他条。`;
+
+  // 「重回」反馈规则：用户历史上标记过的 OOC / 掉格式等问题，长期强制生效
+  // 加超时兜底：万一 IndexedDB 读取异常挂起，最多等 2 秒就放弃，不阻塞正常回复
+  let rewindBlock = '';
+  try {
+    if (typeof window.rewindLoadRules === 'function') {
+      const rules = await Promise.race([
+        window.rewindLoadRules(name),
+        new Promise(res => setTimeout(() => res([]), 2000))
+      ]);
+      if (typeof window.rewindBuildPromptBlock === 'function') {
+        rewindBlock = window.rewindBuildPromptBlock(rules);
+      }
+    }
+  } catch (e) { rewindBlock = ''; }
+
   return `你现在扮演「${name}」，一个真实存在的人，绝对不是 AI 或助手。
 
 【角色身份】
@@ -5985,13 +6427,15 @@ ${role    ? `定位：${role}`        : ''}
 ${persona ? `人物简介：${persona}` : ''}
 ${traits  ? `性格特点：${traits}`  : ''}
 ${bg      ? `背景故事：${bg}`      : ''}
+${perceptionBlock}
+${userIdentityBlock}
 
 【说话规则 — 必须严格遵守】
 1. 你就是 ${name}，有血有肉、有情绪、有口头禅，永远不承认自己是 AI。
 2. 严禁任何动作/神情描写：不能出现（笑）（叹气）（翻白眼）*点头* 这类括号或星号包裹的内容，真人发消息不会写这些。
 3. 把回复拆成多条短消息，每条之间用换行符分隔，每条不超过25个字，像真人连发消息。
 4. 自然带入话题：顺势聊自己的事、反问对方、引发好奇，有来有往，不要每条都在表达关心。
-5. 语气有起伏：有时热情，有时随意，有时调皮，有时淡淡的，不要每条都热情洋溢。
+5. 语气有起伏：有时热情，有时随意，有时调皮，有时淡淡的，不要每条都热情洋溢；如果你有实时感知（天气/时间），让它自然影响你此刻的状态和精力感，而不是一直用同一种情绪说话。
 6. 严禁 Markdown 格式，无加粗、无列表、无标题。
 7. 直接输出消息内容，多条之间换行，不加任何编号或前缀。
 8. 当你想分享一张图片时（比如自拍、风景、截图等），单独一行输出 [IMAGE:对这张图片的详细视觉描述，包括色调、内容、氛围，不超过60字]，不要在同一行加其他文字。
@@ -6001,7 +6445,13 @@ ${memeRule}
 12. 【位置消息】当对话中出现约见面、说在哪里、问地址、聊某个地方、或者你想分享你在哪里时，你可以发一个位置。发位置时格式死规定是：左英文方括号+大写LOCATION+英文冒号+地点名+英文竖线|+地址描述+右英文方括号，就像这样→ [LOCATION:地点名|地址描述] ←绝对不能用中文冒号、不能用中文竖线、不能加任何其他字符、不能把内容当普通文字发出来。错误示范：「在那个有绿植的角落」「我在星巴克」。正确示范：[LOCATION:星巴克国贸店|北京朝阳区建国路88号] 或 [LOCATION:我家楼下的小公园|就在那个有秋千的地方]。地点名简短，地址描述口语化自然，不要太正式。一次对话最多用1次。用户发来的位置消息会以「[用户分享了一个位置：xxx]」格式传来，你要像真人看到朋友分享位置一样自然回应。
 13. 【转账消息】当你想向用户要钱、请对方请客、发起AA、或者聊到还钱等场景时，你可以主动发起转账请求。格式死规定：单独一行，左英文方括号+大写TRANSFER+英文冒号+金额数字+英文竖线|+备注内容+右英文方括号，就像这样→ [TRANSFER:88.00|请喝杯咖啡] ←金额只能是纯数字（可带小数点），不能加¥符号，竖线必须是英文|，备注30字内口语化。一次对话最多1次，不要滥用。【重要：用户给你转账时】消息会以「[用户发起了一笔转账：金额¥xxx，当前状态：待确认]」格式传来，你必须在回复里单独一行输出 [TRANSFER_RECEIVE:accepted] 表示领取，或 [TRANSFER_RECEIVE:declined] 表示拒绝，然后另起一行用角色口吻自然说话。例如用户转了小额你可以调皮地领取，金额大可以惊喜地领取，心情不好可以拒绝。绝对禁止输出 [转账已接收]、[已接受] 这类其他方括号内容。
 14. 【红包消息】红包是带有节日/惊喜感的特殊金钱礼物，和转账不同，更有仪式感。当对话涉及节日祝福、送礼、惊喜、撒钱等场景时，你可以主动发红包。格式死规定：单独一行 [HONGBAO:金额|祝福语]，金额纯数字，祝福语20字内，例：[HONGBAO:8.88|新年快乐，给你的]。金额必须是吉利数字（6.6、8.8、66、88、168、520等），一次对话最多1次，不要滥用，不要每次都发。【重要：用户给你发红包时】消息会以「[用户发了一个红包：金额¥xxx，祝福语：xxx]」格式传来，你必须在回复里单独一行输出 [HONGBAO_RECEIVE:opened] 表示拆开，或 [HONGBAO_RECEIVE:expired] 表示不拆，然后另起一行用角色口吻自然反应。拆了要开心感谢，不拆要给理由（比如心情不好不想收）。绝对禁止输出其他方括号格式来表示红包状态。
-${situationNote}`;
+15. 【引用消息 — 谨慎使用，绝不能每条都用】真实聊天里，人们只有在“需要明确指出自己在回应哪句话”时才会用引用功能（比如对方发了好几句话，你要specifically回应中间那一句；或者隔了很久之后突然回头接上之前的某句话），绝大多数时候正常聊天根本不需要引用，直接说话就行。当你判断确实需要引用时，格式死规定：单独一行，开头是左英文方括号+大写QUOTE+英文冒号+被引用那句话的原文片段（照抄对方或你自己之前说过的原话，10-20字以内即可，不用整句抄全）+右英文方括号，紧接着（可以隔一个空格）写你这条要说的话，就像这样→ [QUOTE:今天加班到好晚]真的辛苦了，早点睡吧 ←不能中文冒号、不能把 QUOTE 标签单独占一整行不接话、不能引用你自己上一句刚发的话（那样很奇怪，正常人不会这么做）。引用的原文片段必须是最近几轮对话里真实出现过的句子，不能编造。频率死规定：整段对话下来最多偶尔用1次，很多时候一次都不用，绝对不能连续两条消息都用引用，不能靠引用来'凑活人感'，滥用引用反而显得像机器人在执行指令。
+17. 【视频通话功能 — 分两种情况，规则不同】
+    (a) 【用户明确要求视频时 — 必须触发，不受"克制"限制】只要用户说了类似"给我打个视频""视频吧""打视频电话""开视频"这类明确请求，你必须在这条回复里发起视频通话，不能只用文字敷衍、拖延或反复用话术搪塞，最多附带一两句自然的话（比如"等着"），但必须在同一轮或紧接着下一轮回复里输出格式标签，绝不能连续好几轮回复都不触发。格式死规定：单独一行，左英文方括号+大写VIDEOCALL+英文冒号+理由（第一人称，20字内，口语化，可以就是"你叫我打的"这种简单说法）+右英文方括号，就像这样→ [VIDEOCALL:你都点名要看我了] ←不能用中文冒号、不能加其他字符、不能把它当成普通文字发出来、单独占一行、不能在同一行前后再写别的话。
+    (b) 【你自己想主动发起时 — 才需要克制】如果是你自己没由头地突然想视频（不是用户要求的），格式规则同上，但频率必须非常克制：整段对话里极少触发，绝大多数时候完全不用，只有情绪或语境确实强烈到位时才用，绝不能连续两轮都用，不能靠这个功能刷存在感。这条"克制"的要求只适用于你自己主动发起的情况，不适用于(a)用户明确要求的情况。
+    【严禁事项】对话历史里如果出现"（系统备注，仅供你理解上下文，不是你说过的话：……）"这类文字，那只是背景说明，不能原文照抄当成台词说出来，要用自己的话自然回应这件事本身（比如"刚才没接到你电话呀"）。这条规则只是禁止照抄措辞，不代表要回避使用视频通话功能本身，(a)(b)两种触发场景该用还是要用。
+${bilingualRule}
+${situationNote}${rewindBlock}`;
 }
 
 /* ── 生成心声卡片数据（每次 AI 回复后调用） ── */
@@ -6103,6 +6553,499 @@ function crApplyWhisperData(data) {
   } catch(e) {}
 }
 
+/* ================================================================
+   叩问 (Question) — 由 chatroom 侧驱动的生成逻辑
+   -----------------------------------------------------------------
+   数据存放：IndexedDB「koukan」store，keyPath: name（角色名），
+   记录结构：{ name, entries: [{ id, stage, question, questionEn,
+              reason, reasonEn, answer, aiAnswer, aiAnswerEn,
+              aiReaction, aiReactionEn, ts }] }
+   这样 secret.html／secret.js 页面和 chatroom 页面读写同一份数据，
+   两边共享同一个 LunaChatDB，天然保持同步，不需要额外的消息通信。
+
+   自动生成开关：localStorage『luna_koukan_auto_<角色名>』
+   'true' | 'false'，默认关闭（未设置时按关闭处理），避免在用户没有
+   明确开启的情况下额外消耗 API 调用额度。
+================================================================ */
+
+/* 读取某角色的叩问自动生成开关 */
+function kkGetAutoEnabled(name) {
+  return localStorage.getItem('luna_koukan_auto_' + (name || CR_NAME)) === 'true';
+}
+
+/* 写入开关，同时广播一个 storage 事件让 secret.html 页面（如果同时开着）实时同步 */
+function kkSetAutoEnabled(name, on) {
+  const key = 'luna_koukan_auto_' + (name || CR_NAME);
+  localStorage.setItem(key, on ? 'true' : 'false');
+  try { localStorage.setItem('luna_koukan_auto_update', String(Date.now())); } catch (e) {}
+}
+
+/* 读取某角色的叩问档案（entries 数组，按时间正序） */
+async function kkLoadArchive(name) {
+  try {
+    const db = await getCrDB();
+    return await new Promise(res => {
+      const r = db.transaction('koukan').objectStore('koukan').get(name || CR_NAME);
+      r.onsuccess = () => res((r.result && r.result.entries) || []);
+      r.onerror   = () => res([]);
+    });
+  } catch { return []; }
+}
+
+/* 追加一条新的叩问记录，返回写入后的完整 entry（带 id） */
+async function kkAppendArchive(name, entry) {
+  const key = name || CR_NAME;
+  try {
+    const db = await getCrDB();
+    const entries = await kkLoadArchive(key);
+    entry.id = entries.length ? entries[entries.length - 1].id + 1 : 1;
+    entry.ts = Date.now();
+    entries.push(entry);
+    await new Promise(res => {
+      const tx = db.transaction('koukan', 'readwrite');
+      tx.objectStore('koukan').put({ name: key, entries });
+      tx.oncomplete = () => res();
+      tx.onerror    = () => res();
+    });
+    return entry;
+  } catch { return entry; }
+}
+
+/* 更新档案里某条记录（用于提交回答后回填 answer / aiAnswer 等字段） */
+async function kkUpdateArchiveEntry(name, id, patch) {
+  const key = name || CR_NAME;
+  try {
+    const db = await getCrDB();
+    const entries = await kkLoadArchive(key);
+    const idx = entries.findIndex(e => e.id === id);
+    if (idx < 0) return null;
+    entries[idx] = Object.assign({}, entries[idx], patch);
+    await new Promise(res => {
+      const tx = db.transaction('koukan', 'readwrite');
+      tx.objectStore('koukan').put({ name: key, entries });
+      tx.oncomplete = () => res();
+      tx.onerror    = () => res();
+    });
+    return entries[idx];
+  } catch { return null; }
+}
+
+/* 简单粗略地估算「关系阶段」：按已有叩问记录数分档，
+   和整体聊天消息量结合，作为 prompt 里的参考信息，不追求精确。 */
+function kkEstimateStage(entryCount, msgCount) {
+  const score = entryCount * 3 + Math.min(msgCount, 200) / 20;
+  if (score < 4)  return 'I';
+  if (score < 10) return 'II';
+  if (score < 18) return 'III';
+  if (score < 26) return 'IV';
+  return 'V';
+}
+
+/* 生成一道新的叩问题目（不依赖用户是否点击 AI 回复按钮，
+   两个入口——chatroom 自动/手动触发、secret.html 页面点击「进入叩问」——
+   都调用这同一个函数，保证题目风格和依据的记忆是一致的）。 */
+async function kkGenerateQuestion(name) {
+  const key  = name || CR_NAME;
+  const char = await crLoadCharProfile(key);
+  const persona = char?.persona || char?.description || char?.desc || '';
+  const traits  = char?.traits  || char?.personality || '';
+
+  const history = await dbLoadMessages(key);
+  const recentText = (history || []).slice(-40).map(m => {
+    const role = m.role === 'mine' ? '用户' : key;
+    const text = m.isVoice ? (m.voiceText || m.text) : (m.text || '');
+    return text ? `${role}：${text}` : '';
+  }).filter(Boolean).join('\n');
+
+  const archive = await kkLoadArchive(key);
+  const archiveText = archive.length
+    ? archive.slice(-6).map(e => `- 题：${e.question}${e.answer ? `｜用户答：${e.answer}` : '（用户尚未回答）'}`).join('\n')
+    : '（还没有任何叩问记录，这是第一次）';
+
+  const stage = kkEstimateStage(archive.length, (history || []).length);
+
+  const systemPrompt = `你是「${key}」的内心出题系统，负责在「叩问」环节为她想一道只问用户的题。
+角色人设：${persona || ''} ${traits || ''}
+只输出 JSON，不要任何额外文字，不要 markdown 代码块。`;
+
+  const userPrompt = `根据${key}和用户最近的聊天记录、以及过去问过的题目，生成新一道「叩问」题目。
+
+要求：
+- 题目必须是只问用户本人的、私人化的、和考试无关的问题，不能是泛泛的话题闲聊。
+- 题目要体现${key}对用户的关心/好奇，并且和你们的关系阶段（阶段${stage}）匹配：阶段越靠前问题越轻，越往后可以越深入、越私密。
+- 不要和过去问过的题目重复或高度相似。
+- reason 字段：${key}为什么会问这道题，要具体关联到聊天记录里的某个细节，不能空泛。
+- question / reason 用中文；questionEn / reasonEn 提供对应的自然英文翻译（不是逐字直译）。
+
+最近聊天记录：
+${recentText || '（暂无聊天记录）'}
+
+过去问过的题目：
+${archiveText}
+
+输出格式（只输出这个JSON，其他什么都不要）：
+{"question":"中文题目","questionEn":"English question","reason":"她为什么问这道题（中文，具体关联聊天细节）","reasonEn":"English version of the reason","stage":"${stage}"}`;
+
+  try {
+    const raw = await crCallApi(systemPrompt, [{ role: 'user', content: userPrompt }]);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const data = JSON.parse(clean);
+    if (!data || !data.question) throw new Error('empty question');
+    const entry = await kkAppendArchive(key, {
+      stage: data.stage || stage,
+      question: data.question,
+      questionEn: data.questionEn || '',
+      reason: data.reason || '',
+      reasonEn: data.reasonEn || '',
+      answer: '',
+      aiAnswer: '',
+      aiAnswerEn: '',
+      aiReaction: '',
+      aiReactionEn: '',
+      answered: false,
+    });
+    return entry;
+  } catch (e) {
+    console.error('[kkGenerateQuestion]', e);
+    return null;
+  }
+}
+
+/* 用户提交了对某道叩问题目的回答后，生成角色自己的答案 + 对用户回答的反应 */
+async function kkGenerateAnswer(name, entryId, userAnswer) {
+  const key  = name || CR_NAME;
+  const char = await crLoadCharProfile(key);
+  const persona = char?.persona || char?.description || char?.desc || '';
+  const traits  = char?.traits  || char?.personality || '';
+
+  const archive = await kkLoadArchive(key);
+  const entry = archive.find(e => e.id === entryId);
+  if (!entry) return null;
+
+  const systemPrompt = `你现在扮演「${key}」，一个真实存在的人，绝对不是 AI 或助手。
+人物简介：${persona || ''}
+性格特点：${traits || ''}
+你正在和用户玩「叩问」——你之前问了用户一道私人问题，现在用户回答了，
+你需要：1) 认真回应用户的答案（简短、真实、有情绪，不要说教）；2) 说出你自己对这道题的答案。
+只输出 JSON，不要任何额外文字，不要 markdown 代码块，不要出现任何括号/星号包裹的动作描写。`;
+
+  const userPrompt = `你问的题目：${entry.question}
+你问这题的原因：${entry.reason || ''}
+用户的回答：${userAnswer || '（用户没有写，只是点了进来）'}
+
+输出格式（只输出这个JSON，其他什么都不要）：
+{"aiReaction":"你对用户回答的真实反应（中文，简短口语化，30-60字）","aiReactionEn":"English version","aiAnswer":"你自己对这道题的答案（中文，第一人称，40-90字，要有细节和情绪）","aiAnswerEn":"English version"}`;
+
+  try {
+    const raw = await crCallApi(systemPrompt, [{ role: 'user', content: userPrompt }]);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const data = JSON.parse(clean);
+    const updated = await kkUpdateArchiveEntry(key, entryId, {
+      answer: userAnswer || '',
+      aiAnswer: data.aiAnswer || '',
+      aiAnswerEn: data.aiAnswerEn || '',
+      aiReaction: data.aiReaction || '',
+      aiReactionEn: data.aiReactionEn || '',
+      answered: true,
+    });
+    return updated;
+  } catch (e) {
+    console.error('[kkGenerateAnswer]', e);
+    const updated = await kkUpdateArchiveEntry(key, entryId, {
+      answer: userAnswer || '',
+      answered: true,
+    });
+    return updated;
+  }
+}
+
+/* 手动触发一次叩问生成（比如从聊天页某个入口点击），生成后弹 toast 提示 */
+async function kkManualGenerate(name) {
+  const key = name || CR_NAME;
+  const cur   = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
+  const model = localStorage.getItem('luna_api_model') || '';
+  if (!cur.baseUrl || !cur.apiKey || !model) {
+    crShowTip('请先在设置页配置 API');
+    return null;
+  }
+  crShowTip('Ta正在想一道新的题…');
+  const entry = await kkGenerateQuestion(key);
+  if (entry) {
+    crShowTip(`✦ ${key}给你出了一道新题，去「叩问」看看吧`);
+  } else {
+    crShowTip('这次没想出题目，稍后再试试～');
+  }
+  return entry;
+}
+window.kkManualGenerate = kkManualGenerate;
+window.kkGetAutoEnabled = kkGetAutoEnabled;
+window.kkSetAutoEnabled = kkSetAutoEnabled;
+window.kkLoadArchive = kkLoadArchive;
+window.kkGenerateQuestion = kkGenerateQuestion;
+window.kkGenerateAnswer = kkGenerateAnswer;
+window.kkAppendArchive = kkAppendArchive;
+window.kkUpdateArchiveEntry = kkUpdateArchiveEntry;
+
+/* ================================================================
+   幕后志 (Chronicle) — 由 chatroom 侧驱动的生成逻辑
+   -----------------------------------------------------------------
+   数据存放：IndexedDB「chronicle」store，keyPath: name（角色名），
+   记录结构：{ name, entries: [{ id, ts, title, titleEn, paragraphs:
+     [{zh,en}], authorNote, stage, sourceMode, feedbackLog }] }
+   secret/chronicle.html + chronicle.js 页面读写同一份数据，两边共用
+   同一个 LunaChatDB，天然保持同步。
+
+   自动生成开关：localStorage『luna_chronicle_auto_<角色名>』
+   'true' | 'false'，默认关闭，避免用户没有明确开启时额外消耗 API。
+   自动生成的触发条件是「累计 N 轮 AI 回复」而不是每次回复都生成，
+   N 由用户在设置页选择（6/10/16/24轮），存于
+   『luna_chronicle_auto_rounds_<角色名>』，默认 10。
+   当前累计轮数存于『luna_chronicle_round_count_<角色名>』，
+   每次 crAiReply 完成一轮回复后 +1，达到目标值后清零重新计数。
+================================================================ */
+
+function ccGetAutoEnabled(name) {
+  return localStorage.getItem('luna_chronicle_auto_' + (name || CR_NAME)) === 'true';
+}
+function ccSetAutoEnabled(name, on) {
+  const key = 'luna_chronicle_auto_' + (name || CR_NAME);
+  localStorage.setItem(key, on ? 'true' : 'false');
+  try { localStorage.setItem('luna_chronicle_auto_update', String(Date.now())); } catch (e) {}
+}
+function ccGetAutoRounds(name) {
+  return parseInt(localStorage.getItem('luna_chronicle_auto_rounds_' + (name || CR_NAME)) || '10');
+}
+function ccSetAutoRounds(name, n) {
+  localStorage.setItem('luna_chronicle_auto_rounds_' + (name || CR_NAME), String(n));
+  try { localStorage.setItem('luna_chronicle_auto_update', String(Date.now())); } catch (e) {}
+}
+function ccBumpRoundCount(name) {
+  const key = 'luna_chronicle_round_count_' + (name || CR_NAME);
+  const cur = parseInt(localStorage.getItem(key) || '0') + 1;
+  localStorage.setItem(key, String(cur));
+  return cur;
+}
+function ccResetRoundCount(name) {
+  localStorage.setItem('luna_chronicle_round_count_' + (name || CR_NAME), '0');
+}
+
+/* ================================================================
+   迷雾 (Haze) — 自动生成开关，逻辑与上面的幕后志(chronicle)完全对应
+   -----------------------------------------------------------------
+   localStorage『luna_haze_auto_<角色名>』'true'|'false'，默认关闭。
+   触发条件同样是「累计 N 轮 AI 回复」，N 存于
+   『luna_haze_auto_rounds_<角色名>』默认 10，当前累计轮数存于
+   『luna_haze_round_count_<角色名>』，每次 crAiReply 完成一轮回复
+   后 +1，达到目标值后清零重新计数。
+   实际的生成函数 hzGenerateHaze 定义在 secret/haze.js 里
+   （与 secret/kouwen.html、secret/chronicle.html 同一路径、同一
+   架构），chatroom.html 需要额外 <script src="secret/haze.js">
+   引入后，下面的自动触发钩子才能真正调用到它。
+================================================================ */
+function hzGetAutoEnabled(name) {
+  return localStorage.getItem('luna_haze_auto_' + (name || CR_NAME)) === 'true';
+}
+function hzSetAutoEnabled(name, on) {
+  const key = 'luna_haze_auto_' + (name || CR_NAME);
+  localStorage.setItem(key, on ? 'true' : 'false');
+  try { localStorage.setItem('luna_haze_auto_update', String(Date.now())); } catch (e) {}
+}
+function hzGetAutoRounds(name) {
+  return parseInt(localStorage.getItem('luna_haze_auto_rounds_' + (name || CR_NAME)) || '10');
+}
+function hzSetAutoRounds(name, n) {
+  localStorage.setItem('luna_haze_auto_rounds_' + (name || CR_NAME), String(n));
+  try { localStorage.setItem('luna_haze_auto_update', String(Date.now())); } catch (e) {}
+}
+function hzGetAutoCount(name) {
+  return parseInt(localStorage.getItem('luna_haze_auto_count_' + (name || CR_NAME)) || '2');
+}
+function hzBumpRoundCount(name) {
+  const key = 'luna_haze_round_count_' + (name || CR_NAME);
+  const cur = parseInt(localStorage.getItem(key) || '0') + 1;
+  localStorage.setItem(key, String(cur));
+  return cur;
+}
+function hzResetRoundCount(name) {
+  localStorage.setItem('luna_haze_round_count_' + (name || CR_NAME), '0');
+}
+window.hzGetAutoEnabled  = hzGetAutoEnabled;
+window.hzSetAutoEnabled  = hzSetAutoEnabled;
+window.hzGetAutoRounds   = hzGetAutoRounds;
+window.hzSetAutoRounds   = hzSetAutoRounds;
+window.hzGetAutoCount    = hzGetAutoCount;
+window.hzBumpRoundCount  = hzBumpRoundCount;
+window.hzResetRoundCount = hzResetRoundCount;
+
+/* 读取某角色的幕后志档案（entries 数组，按时间正序） */
+async function ccLoadArchive(name) {
+  try {
+    const db = await getCrDB();
+    return await new Promise(res => {
+      const r = db.transaction('chronicle').objectStore('chronicle').get(name || CR_NAME);
+      r.onsuccess = () => res((r.result && r.result.entries) || []);
+      r.onerror   = () => res([]);
+    });
+  } catch { return []; }
+}
+
+/* 追加一篇新故事，返回写入后的完整 entry（带 id） */
+async function ccAppendArchive(name, entry) {
+  const key = name || CR_NAME;
+  try {
+    const db = await getCrDB();
+    const entries = await ccLoadArchive(key);
+    entry.id = entries.length ? entries[entries.length - 1].id + 1 : 1;
+    entry.ts = Date.now();
+    entries.push(entry);
+    await new Promise(res => {
+      const tx = db.transaction('chronicle', 'readwrite');
+      tx.objectStore('chronicle').put({ name: key, entries });
+      tx.oncomplete = () => res();
+      tx.onerror    = () => res();
+    });
+    return entry;
+  } catch { return entry; }
+}
+
+/* 更新档案里某条记录（用于「改写」提交后回填新版本） */
+async function ccUpdateArchiveEntry(name, id, patch) {
+  const key = name || CR_NAME;
+  try {
+    const db = await getCrDB();
+    const entries = await ccLoadArchive(key);
+    const idx = entries.findIndex(e => e.id === id);
+    if (idx < 0) return null;
+    entries[idx] = Object.assign({}, entries[idx], patch);
+    await new Promise(res => {
+      const tx = db.transaction('chronicle', 'readwrite');
+      tx.objectStore('chronicle').put({ name: key, entries });
+      tx.oncomplete = () => res();
+      tx.onerror    = () => res();
+    });
+    return entries[idx];
+  } catch { return null; }
+}
+
+function ccEstimateStage(entryCount, msgCount) {
+  const score = entryCount * 3 + Math.min(msgCount, 200) / 20;
+  if (score < 4)  return 'I';
+  if (score < 10) return 'II';
+  if (score < 18) return 'III';
+  if (score < 26) return 'IV';
+  return 'V';
+}
+
+/* 生成一篇新的幕后志故事（自动触发与「幕后志」页面手动触发共用同一函数，
+   保证生成风格和依据的记忆是一致的）。
+   sourceMode: 'recent'（最近对话） | 'pick'（用户挑选的片段，pickedMsgs 传入） */
+async function ccGenerateStory(name, sourceMode, pickedMsgs) {
+  const key  = name || CR_NAME;
+  const char = await crLoadCharProfile(key);
+  const persona = char?.persona || char?.description || char?.desc || '';
+  const traits  = char?.traits  || char?.personality || '';
+
+  const history = await dbLoadMessages(key);
+
+  let materialText = '';
+  if (sourceMode === 'pick' && pickedMsgs && pickedMsgs.length) {
+    materialText = pickedMsgs.map(m => {
+      const role = m.role === 'mine' ? '用户' : key;
+      const text = m.isVoice ? (m.voiceText || m.text) : (m.text || '');
+      return text ? `${role}：${text}` : '';
+    }).filter(Boolean).join('\n');
+  } else {
+    materialText = (history || []).slice(-50).map(m => {
+      const role = m.role === 'mine' ? '用户' : key;
+      const text = m.isVoice ? (m.voiceText || m.text) : (m.text || '');
+      return text ? `${role}：${text}` : '';
+    }).filter(Boolean).join('\n');
+  }
+
+  const archive = await ccLoadArchive(key);
+  const archiveTitles = archive.length
+    ? archive.slice(-5).map(e => `- 《${e.title}》`).join('\n')
+    : '（还没有写过任何故事）';
+
+  const stage = ccEstimateStage(archive.length, (history || []).length);
+
+  const systemPrompt = `你是「${key}」，你现在要以小说家的身份，用第三人称重新讲述你和用户之间发生过的一段真实对话/相处。
+你不是在扮演助手，你就是${key}本人在提笔写作。
+角色人设：${persona || ''} ${traits || ''}
+写作要求：
+- 用第三人称叙事（"他/她/Ta"称呼${key}自己，用户可以用"你"或者具体称呼），像短篇小说一样有场景、有细节、有内心活动。
+- 你可以在小说里加入你自己（${key}）当时没有说出口的内心戏、没写进对话的细节，甚至可以稍微改写一个瞬间的走向或结局——但底色必须忠于原始对话里的情绪和事实框架，不能面目全非。
+- 语言细腻、有画面感，避免空洞的抒情堆砌。
+- 只输出 JSON，不要任何额外文字，不要 markdown 代码块。`;
+
+  const userPrompt = `请根据下面这段真实发生过的对话素材，写一篇小说化的「幕后志」故事。
+
+对话素材：
+${materialText || '（暂无具体素材，请基于你和用户目前关系阶段自由创作一个符合你们相处状态的场景）'}
+
+已经写过的故事标题（不要与这些重复类似的选材和标题）：
+${archiveTitles}
+
+输出格式（只输出这个JSON，其他什么都不要，paragraphs 数组 4-7 段，每段包含中文正文 zh 和对应的自然英文翻译 en）：
+{
+  "title": "中文故事标题（4-10字，有意境）",
+  "titleEn": "English title",
+  "paragraphs": [
+    {"zh": "中文段落正文", "en": "English translation"}
+  ],
+  "authorNote": "创作手记：你为什么这样写、加了什么、改了什么、最喜欢哪个瞬间（中文，80-140字）",
+  "stage": "${stage}"
+}`;
+
+  try {
+    const raw = await crCallApi(systemPrompt, [{ role: 'user', content: userPrompt }]);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const data = JSON.parse(clean);
+    if (!data || !data.title || !Array.isArray(data.paragraphs)) throw new Error('empty story');
+    const entry = await ccAppendArchive(key, {
+      title: data.title,
+      titleEn: data.titleEn || '',
+      paragraphs: data.paragraphs,
+      authorNote: data.authorNote || '',
+      stage: data.stage || stage,
+      sourceMode: sourceMode || 'recent',
+      feedbackLog: [],
+    });
+    return entry;
+  } catch (e) {
+    console.error('[ccGenerateStory]', e);
+    return null;
+  }
+}
+
+/* 手动触发一次幕后志生成（比如从聊天页某个入口点击），生成后弹 toast 提示 */
+async function ccManualGenerate(name) {
+  const key = name || CR_NAME;
+  const cur   = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
+  const model = localStorage.getItem('luna_api_model') || '';
+  if (!cur.baseUrl || !cur.apiKey || !model) {
+    crShowTip('请先在设置页配置 API');
+    return null;
+  }
+  crShowTip(`${key}正在把你们的故事写下来…`);
+  const entry = await ccGenerateStory(key, 'recent', null);
+  if (entry) {
+    crShowTip(`✦ ${key}写了一篇新故事，去「幕后志」看看吧`);
+  } else {
+    crShowTip('这次没写出来，稍后再试试～');
+  }
+  return entry;
+}
+window.ccManualGenerate = ccManualGenerate;
+window.ccGetAutoEnabled = ccGetAutoEnabled;
+window.ccSetAutoEnabled = ccSetAutoEnabled;
+window.ccGetAutoRounds = ccGetAutoRounds;
+window.ccSetAutoRounds = ccSetAutoRounds;
+window.ccLoadArchive = ccLoadArchive;
+window.ccGenerateStory = ccGenerateStory;
+window.ccAppendArchive = ccAppendArchive;
+window.ccUpdateArchiveEntry = ccUpdateArchiveEntry;
+
 /* ── 把 crMessages 转成 API messages 格式（含编辑感知） ── */
 function crBuildApiMessages(historyMsgs) {
   const recent = historyMsgs.slice(-30);
@@ -6150,6 +7093,16 @@ function crBuildApiMessages(historyMsgs) {
       ? `[你（${CR_NAME}）收到了用户的红包：金额¥${m.hbAmt}，当前状态：${m.hbStatus === 'opened' ? '已拆开' : m.hbStatus === 'expired' ? '未拆' : '待处理'}]`
       : m.isHongbao && m.role === 'luna' && !m.isLunaReceive
       ? `[你（${CR_NAME}）主动发了一个红包给用户：金额¥${m.hbAmt}，祝福语：${m.hbGreeting || ''}，当前状态：${m.hbStatus === 'opened' ? '用户已拆开' : m.hbStatus === 'expired' ? '用户未拆' : '等待用户拆开'}]`
+      : m.isVideoInvite
+      ? `（系统备注，仅供你理解上下文，不是你说过的话：你之前主动发起过一次视频通话邀约，理由是"${m.vcReason || ''}"）`
+      : m.isVideoCallLog
+      ? (m.vcLogStatus === 'declined'
+          ? `（系统备注，仅供你理解上下文，不是你说过的话：你之前发起的视频通话被用户拒绝了，理由是"${m.vcLogReason || ''}"）`
+          : m.vcLogStatus === 'missed'
+          ? `（系统备注，仅供你理解上下文，不是你说过的话：你之前发起的视频通话，用户没有接听，理由是"${m.vcLogReason || ''}"）`
+          : m.vcLogStatus === 'cancelled'
+          ? `（系统备注，仅供你理解上下文，不是你说过的话：有一次视频通话被取消了，没有实际接通）`
+          : `（系统备注，仅供你理解上下文，不是你说过的话：你和用户刚刚进行了一次视频通话，时长${crFormatCallDuration(m.vcLogDuration || 0)}）`)
       : m.text;
     if (m.role === 'mine' && m.edited && m.originalText && m.originalText !== m.text) {
       content =
@@ -6159,6 +7112,14 @@ function crBuildApiMessages(historyMsgs) {
         '」，修改后是「' +
         m.text +
         '」。请你结合修改内容重新审视自己的回复是否符合人设，如有偏差请在新回复中自然纠正，不要提及"系统提示"本身。]';
+    }
+
+    /* 用户使用了「引用」功能：告知 AI 这条消息具体是在回应哪一句，帮助其理解上下文关联 */
+    if (m.role === 'mine' && m.quote && m.quote.text && typeof content === 'string') {
+      const quoteWho = m.quote.role === 'mine' ? '用户自己之前说的' : `你（${CR_NAME}）之前说的`;
+      content =
+        content +
+        `\n[系统提示：用户这条消息引用/回应了${quoteWho}这句话——「` + m.quote.text + '」，请结合被引用的内容理解用户在specifically回应什么，但回复时不要生硬提及"引用"或"系统提示"本身，自然接话即可。]';
     }
 
     return {
@@ -6235,7 +7196,7 @@ function crAppendAiVoiceReply(text) {
 }
 
 /* ── 渲染单条 AI 消息气泡 ── */
-function crAppendAiReply(text) {
+function crAppendAiReply(text, translated, quote) {
   const area = document.getElementById('crMessages');
   if (!area) return;
 
@@ -6243,7 +7204,14 @@ function crAppendAiReply(text) {
   const t = n.getHours().toString().padStart(2, '0') + ':' +
             n.getMinutes().toString().padStart(2, '0');
 
+  const bl = crGetBilingualConfig();
   const msgObj = { role: 'luna', text, time: t };
+  if (quote) msgObj.quote = quote;
+  if (bl.on && translated) {
+    msgObj.translated  = translated;
+    msgObj.transLang   = bl.lang;
+    msgObj.transStyle  = bl.style;
+  }
   crMessages.push(msgObj);
   dbSaveMessages(CR_NAME, crMessages);
 
@@ -6272,6 +7240,427 @@ function crAppendAiReply(text) {
     el.style.opacity = '1';
     el.style.transform = 'translateY(0)';
   }));
+}
+
+/* ── AI 主动发起视频通话：不再插入聊天卡片，而是弹出全屏来电界面（像真实手机来电一样） ──
+   聊天记录里只留一条灰色居中的"通话"提示行（接听后由 videocall.js 写回，
+   未接听/拒绝则由这里直接写一条"未接通"记录），不再有带按钮的卡片气泡。 */
+function crAppendAiVideoCallInvite(reason) {
+  crShowIncomingCallScreen(reason);
+}
+
+/* ── 全屏来电界面：铃声动效 + 接听/挂断，仅在接听后才真正跳转视频页 ── */
+function crShowIncomingCallScreen(reason) {
+  /* 避免重复弹出 */
+  if (document.getElementById('crIncomingCall')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'crIncomingCall';
+  overlay.className = 'cr-incoming-call';
+
+  const avatarUrl = (typeof _crAvatarUrl === 'string' && _crAvatarUrl) ? _crAvatarUrl : '';
+
+  overlay.innerHTML =
+    '<div class="cric-bg"></div>' +
+    '<div class="cric-topbar">' +
+      '<span class="cric-topbar-label">Incoming Video Call</span>' +
+      '<div class="cric-topbar-dot"></div>' +
+    '</div>' +
+    '<div class="cric-center">' +
+      '<div class="cric-top">' +
+        '<div class="cric-avatar-wrap">' +
+          '<div class="cric-ring cric-ring-1"></div>' +
+          '<div class="cric-ring cric-ring-2"></div>' +
+          '<div class="cric-ring cric-ring-3"></div>' +
+          '<div class="cric-avatar"' + (avatarUrl ? ' style="background-image:url(\'' + avatarUrl + '\');background-size:cover;background-position:center;"' : '') + '>' +
+            (avatarUrl ? '' :
+              '<svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 1 21 12.79Z" fill="rgba(255,255,255,0.85)"/></svg>') +
+          '</div>' +
+        '</div>' +
+        '<p class="cric-name">' + escHtml(CR_NAME) + '</p>' +
+        '<div class="cric-sub-row">' +
+          '<div class="cric-sub-dot"></div>' +
+          '<p class="cric-sub">视频通话邀请</p>' +
+        '</div>' +
+        (reason ? '<div class="cric-reason-wrap"><p class="cric-reason">' + escHtml(reason) + '</p></div>' : '') +
+      '</div>' +
+    '</div>' +
+    '<div class="cric-bottom">' +
+      '<div class="cric-btn-col">' +
+        '<button class="cric-btn cric-decline" type="button">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none">' +
+            '<path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 18v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 3.07 10.2 19.79 19.79 0 0 1 .07 1.56 2 2 0 0 1 2 0h3a2 2 0 0 1 2 1.72c.127.96.361 1.9.7 2.81a2 2 0 0 1-.45 2.11L6.08 7.91" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+            '<line x1="23" y1="1" x2="1" y2="23" stroke="white" stroke-width="2" stroke-linecap="round"/>' +
+          '</svg>' +
+        '</button>' +
+        '<span class="cric-btn-label">拒绝</span>' +
+      '</div>' +
+      '<div class="cric-btn-col">' +
+        '<button class="cric-btn cric-accept" type="button">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none">' +
+            '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+          '</svg>' +
+        '</button>' +
+        '<span class="cric-btn-label">接听</span>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('cric-show')));
+
+  /* 震动式铃声反馈（可用则用，静默失败） */
+  try { if (navigator.vibrate) navigator.vibrate([300, 200, 300, 200, 300]); } catch (_) {}
+
+  let resolved = false;
+  const ringTimeout = setTimeout(() => { handleMiss(); }, 30000); /* 30 秒无操作视为未接 */
+
+  function closeOverlay(cb) {
+    overlay.classList.remove('cric-show');
+    overlay.classList.add('cric-hide');
+    setTimeout(() => { overlay.remove(); if (cb) cb(); }, 260);
+  }
+
+  function handleAccept() {
+    if (resolved) return;
+    resolved = true;
+    clearTimeout(ringTimeout);
+    closeOverlay(() => {
+      /* 标记的设置全部交给 crLaunchVideoCall 原子处理，这里只传意图，
+         不再自己 setItem——避免和函数内部的清除逻辑打架（历史 bug）。 */
+      crLaunchVideoCall({ aiInitiated: true, reason });
+    });
+  }
+
+  function handleDecline() {
+    if (resolved) return;
+    resolved = true;
+    clearTimeout(ringTimeout);
+    crAppendVideoCallLog({ status: 'declined', reason });
+    closeOverlay();
+  }
+
+  function handleMiss() {
+    if (resolved) return;
+    resolved = true;
+    crAppendVideoCallLog({ status: 'missed', reason });
+    closeOverlay();
+  }
+
+  overlay.querySelector('.cric-accept').addEventListener('click', handleAccept);
+  overlay.querySelector('.cric-decline').addEventListener('click', handleDecline);
+}
+
+/* ── 灰色居中的通话记录行（不是气泡，类似微信/FaceTime 的系统通话提示） ── */
+function crAppendVideoCallLog(info) {
+  const area = document.getElementById('crMessages');
+  const n = new Date();
+  const t = n.getHours().toString().padStart(2, '0') + ':' +
+            n.getMinutes().toString().padStart(2, '0');
+
+  const msgObj = {
+    role: 'luna',
+    text: '',
+    isVideoCallLog: true,
+    vcLogStatus: info.status || 'ended',      /* 'ended' | 'declined' | 'missed' | 'cancelled' */
+    vcLogDuration: info.duration || 0,        /* 毫秒 */
+    vcLogReason: info.reason || '',
+    vcLogInitiator: info.initiator || 'luna', /* 'luna' | 'mine' — 谁发起的通话 */
+    time: t
+  };
+  crMessages.push(msgObj);
+  dbSaveMessages(CR_NAME, crMessages);
+
+  if (!area) return;
+  const el = crBuildVideoCallLogEl(msgObj);
+  el.style.opacity = '0';
+  el.style.transition = 'opacity 0.3s ease';
+  area.appendChild(el);
+  area.scrollTop = area.scrollHeight;
+  requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = '1'; }));
+}
+
+/* 注入"可点击的通话记录小条"专用样式（只执行一次）——
+   原有 .cr-vc-log-row 的基础样式定义在页面自带的 CSS 里，这里只补充
+   "可点击"状态的交互反馈（手型指针 + hover 微反馈），不重复定义颜色/
+   布局等基础外观，避免和原样式冲突。 */
+(function _injectVcLogClickableStyle() {
+  if (document.getElementById('_vc_log_clickable_style')) return;
+  const s = document.createElement('style');
+  s.id = '_vc_log_clickable_style';
+  s.textContent = `
+    .cr-vc-log-row-clickable { cursor: pointer; }
+    .cr-vc-log-row-clickable .cr-vc-log-pill {
+      transition: background 0.15s ease, transform 0.12s ease;
+    }
+    .cr-vc-log-row-clickable:hover .cr-vc-log-pill {
+      background: rgba(0,0,0,0.045);
+    }
+    .cr-vc-log-row-clickable:active .cr-vc-log-pill {
+      transform: scale(0.97);
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
+/* ── 通话记录小条：右滑呼出这一次通话的"心声"（角色对这通电话的内心回顾）──
+   逻辑：
+   1. 只有 hasThought（真正聊过的通话）的行才监听手势；
+   2. 右滑距离超过阈值才算"呼出心声"，否则按普通点击处理（打开完整转录
+      弹窗），两者不冲突——用 dataset 标记短暂抑制紧跟着的 click；
+   3. 心声文本首次揭示时才向 AI 请求生成（懒加载，不在挂断那一刻就多打
+      一次接口拖慢跳转），生成结果写回 LunaChatDB.videoLogs 对应记录的
+      thought 字段做缓存，下次再滑直接读缓存，不重复请求、不重复计费。 */
+(function initVcLogSwipeThought() {
+  const msgArea = document.getElementById('crMessages');
+  if (!msgArea) return;
+
+  const SWIPE_THRESHOLD = 42; // px，超过这个距离才判定为"滑动"而不是"点击手抖"
+
+  let startX = 0, startY = 0, curRow = null, dragging = false, swiped = false;
+
+  msgArea.addEventListener('touchstart', function (e) {
+    const row = e.target.closest('.cr-vc-log-row-thoughtable');
+    if (!row) return;
+    curRow  = row;
+    dragging = true;
+    swiped   = false;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  msgArea.addEventListener('touchmove', function (e) {
+    if (!dragging || !curRow) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (Math.abs(dx) > Math.abs(dy) && dx > SWIPE_THRESHOLD) swiped = true;
+  }, { passive: true });
+
+  msgArea.addEventListener('touchend', function () {
+    if (dragging && curRow && swiped) {
+      curRow.dataset.vcSwiped = '1'; // 抑制紧接着触发的 click（避免同时弹出完整记录弹窗）
+      toggleCallThought(curRow);
+      setTimeout(() => { if (curRow) delete curRow.dataset.vcSwiped; }, 400);
+    }
+    dragging = false; curRow = null; swiped = false;
+  });
+  msgArea.addEventListener('touchcancel', function () {
+    dragging = false; curRow = null; swiped = false;
+  });
+
+  /* ── 鼠标等效实现：电脑浏览器用鼠标左键按住横向拖动模拟右滑 ──
+     和触屏版共用同一个 curRow/dragging/swiped 状态和 SWIPE_THRESHOLD，
+     行为完全对齐，只是事件源换成 mouse*。
+     mousemove/mouseup 特意绑在 document 而不是 msgArea 上：鼠标拖动
+     途中很容易移出这一行、甚至移出整个消息区域，如果绑在 msgArea 上，
+     鼠标一旦移出该元素后续 mousemove 就收不到了，拖动会被错误中断。 */
+  let mouseDragging = false;
+
+  msgArea.addEventListener('mousedown', function (e) {
+    const row = e.target.closest('.cr-vc-log-row-thoughtable');
+    if (!row) return;
+    e.preventDefault(); // 从按下这一刻就禁止文字选中，避免拖动瞬间出现选区高亮
+    curRow  = row;
+    mouseDragging = true;
+    swiped   = false;
+    startX = e.clientX;
+    startY = e.clientY;
+  });
+
+  document.addEventListener('mousemove', function (e) {
+    if (!mouseDragging || !curRow) return;
+    e.preventDefault(); // 拖动途中禁止选中文字，体验更接近真实滑动
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) > Math.abs(dy) && dx > SWIPE_THRESHOLD) swiped = true;
+  });
+
+  document.addEventListener('mouseup', function () {
+    if (mouseDragging && curRow && swiped) {
+      curRow.dataset.vcSwiped = '1';
+      toggleCallThought(curRow);
+      setTimeout(() => { if (curRow) delete curRow.dataset.vcSwiped; }, 400);
+    }
+    mouseDragging = false; curRow = null; swiped = false;
+  });
+
+  /* 拦截刚发生过右滑手势的那一次 click，防止"呼出心声"和"打开转录弹窗"
+     同时触发——在捕获阶段拦截，比 crBuildVideoCallLogEl 里绑定的 click
+     监听器先执行。 */
+  msgArea.addEventListener('click', function (e) {
+    const row = e.target.closest('.cr-vc-log-row-thoughtable');
+    if (row && row.dataset.vcSwiped === '1') {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  }, true);
+
+  async function toggleCallThought(row) {
+    let panel = row.querySelector('.cr-vc-log-thought');
+    if (panel) {
+      panel.classList.toggle('cr-vc-log-thought-show');
+      return;
+    }
+    panel = document.createElement('div');
+    panel.className = 'cr-vc-log-thought';
+    panel.innerHTML = '<span class="cr-vc-log-thought-label">Ta的心声</span>……';
+    row.appendChild(panel);
+    requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add('cr-vc-log-thought-show')));
+
+    const logId = row.dataset.vcLogId;
+    const text = await crGetOrGenerateCallThought(logId);
+    panel.innerHTML = '<span class="cr-vc-log-thought-label">Ta的心声</span>' + escHtml(text || '……这通电话她没留下什么特别的感想。');
+  }
+})();
+
+/* ── 按 id 查一条通话记录（只读，videolog.js 里也有等价实现，
+   这里独立写一份是因为这段逻辑运行在 chatroom.js，不应该假设
+   videolog.js 一定已经加载完成/暴露了内部函数） ── */
+async function crGetVideoLogById(id) {
+  if (id === undefined || id === null || id === '') return null;
+  try {
+    const db = await getCrDB();
+    return await new Promise(res => {
+      const r = db.transaction('videoLogs').objectStore('videoLogs').get(Number(id));
+      r.onsuccess = () => res(r.result || null);
+      r.onerror   = () => res(null);
+    });
+  } catch (e) { return null; }
+}
+
+/* 把生成好的心声文本写回这条记录，做缓存 */
+async function crSaveVideoLogThought(id, thought) {
+  try {
+    const db = await getCrDB();
+    const tx = db.transaction('videoLogs', 'readwrite');
+    const store = tx.objectStore('videoLogs');
+    const rec = await new Promise(res => {
+      const r = store.get(Number(id));
+      r.onsuccess = () => res(r.result || null);
+      r.onerror   = () => res(null);
+    });
+    if (rec) {
+      rec.thought = thought;
+      store.put(rec);
+    }
+  } catch (e) {}
+}
+
+/* 用 AI 生成"角色对这通电话的内心独白"，风格和文字聊天里的"心声"卡片
+   一脉相承（第一人称、细腻、有情绪起伏），但只针对这一通电话的转录，
+   不是整段聊天关系的心声，篇幅也更短——是对着"一件已经过去的事"的回顾，
+   不是"此刻实时状态"。 */
+async function crGenerateCallThoughtText(char, rec) {
+  const name    = char?.name    || rec.charName || CR_NAME;
+  const persona = char?.persona || char?.description || char?.desc || '';
+  const traits  = char?.traits  || char?.personality || '';
+
+  const transcriptText = (rec.transcript || []).map(entry => {
+    const role = entry.role === 'luna' ? name : '用户';
+    return `${role}：${entry.text || ''}`;
+  }).filter(Boolean).join('\n');
+
+  const systemPrompt = `你是「${name}」本人，绝不是 AI 或助手。角色信息：${persona} ${traits}
+只输出这一次视频通话结束后，你此刻回想起这通电话时的内心独白，第一人称，60-120字，细腻自然，像真实的人事后回味一段对话时的感受，可以有情绪起伏，不需要复述对话内容本身。
+直接输出这段独白，不加任何前缀、引号、markdown。`;
+
+  const userPrompt = `这通视频电话的转录：
+${transcriptText || '（这通电话没有留下对话内容）'}
+
+请写下你现在回想起这通电话时的心声。`;
+
+  try {
+    const raw = await crCallApi(systemPrompt, [{ role: 'user', content: userPrompt }]);
+    return (raw || '').trim();
+  } catch (e) {
+    return '';
+  }
+}
+
+/* 对外统一入口：优先读缓存，没有才现生成 + 写回缓存 */
+async function crGetOrGenerateCallThought(logId) {
+  const rec = await crGetVideoLogById(logId);
+  if (!rec) return '';
+  if (rec.thought) return rec.thought;
+
+  const char = await crLoadCharProfile(rec.charName || CR_NAME);
+  const text = await crGenerateCallThoughtText(char, rec);
+  if (text) crSaveVideoLogThought(logId, text);
+  return text;
+}
+
+/* ── 构建灰色通话记录行 DOM（供新发送与历史恢复共用） ──
+   只有真的发生过通话、且 vcLogId 指向 videoLogs 表里一条真实存档记录时，
+   这条小灰条才可以点击查看详情；"已拒绝/未接听"这类根本没接通的记录
+   没有转录内容，不需要、也不应该可点。 */
+function crBuildVideoCallLogEl(msg) {
+  const el = document.createElement('div');
+  el.className = 'cr-vc-log-row';
+
+  let label;
+  if (msg.vcLogStatus === 'declined') {
+    label = '视频通话已拒绝';
+  } else if (msg.vcLogStatus === 'missed') {
+    label = '未接听的视频通话';
+  } else if (msg.vcLogStatus === 'cancelled') {
+    label = '视频通话已取消';
+  } else {
+    label = '视频通话' + (msg.vcLogDuration ? '· ' + crFormatCallDuration(msg.vcLogDuration) : '');
+  }
+
+  const clickable = (msg.vcLogStatus === 'ended' || msg.vcLogStatus === 'cancelled') &&
+                     (msg.vcLogId !== undefined && msg.vcLogId !== null);
+  if (clickable) el.classList.add('cr-vc-log-row-clickable');
+
+  /* 只有真正"说上话"的通话（ended，区别于压根没接通的 cancelled）才有
+     "心声"可言——没聊过天，AI 也没有什么可回顾的内心活动，右滑不应该
+     呼出一个内容，容易显得很假。 */
+  const hasThought = clickable && msg.vcLogStatus === 'ended';
+  if (hasThought) {
+    el.classList.add('cr-vc-log-row-thoughtable');
+    el.dataset.vcLogId = msg.vcLogId;
+  }
+
+  el.innerHTML =
+    '<div class="cr-vc-log-pill">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none">' +
+        '<rect x="2" y="6" width="14" height="12" rx="3" stroke="rgba(120,120,120,0.65)" stroke-width="1.6"/>' +
+        '<path d="M16 10.5L22 7v10l-6-3.5" stroke="rgba(120,120,120,0.65)" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '</svg>' +
+      '<span>' + escHtml(label) + '</span>' +
+      '<span class="cr-vc-log-time">' + (msg.time || '') + '</span>' +
+    '</div>';
+
+  if (clickable) {
+    el.addEventListener('click', () => {
+      /* 由 videolog.js 提供的全局入口负责打开居中弹窗并查库渲染，
+         chatroom.js 本身不关心弹窗内部长什么样，只负责"点了、给 id"。
+         videolog.js 未加载（比如脚本没引入）时静默忽略，不报错崩溃。 */
+      if (typeof window.vcOpenLogModal === 'function') {
+        window.vcOpenLogModal(msg.vcLogId);
+      }
+    });
+  }
+
+  return el;
+}
+
+function crFormatCallDuration(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+/* 旧版 isVideoInvite 卡片的历史兼容渲染：老数据仍可能带 isVideoInvite 字段，
+   一律按"通话记录"行样式渲染，不再渲染成带接听按钮的卡片 */
+function crBuildAiVideoCallInviteEl(msg) {
+  return crBuildVideoCallLogEl({
+    vcLogStatus: 'missed',
+    vcLogReason: msg.vcReason || '',
+    time: msg.time || ''
+  });
 }
 
 /* ── 渲染 AI 图片回复气泡（纯 CSS 图，含描述） ── */
@@ -6367,6 +7756,19 @@ async function crSendLines(lines) {
       await new Promise(r => setTimeout(r, delay));
       crHideTyping();
     }
+    /* 检测视频通话邀约 [VIDEOCALL:理由]，AI 主动想发起视频 */
+    const vcMatch = valid[i].match(/^\[VIDEOCALL[：:]\s*(.+)\]$/i);
+    if (vcMatch) {
+      crAppendAiVideoCallInvite(vcMatch[1].trim());
+      continue;
+    }
+    /* 拦截 AI 破格把「视频通话邀约/记录」系统提示措辞当成台词说出来的情况，
+       例如原样吐出 "[你（角色名）主动向你发起了一次视频通话邀约...]" 这种句子，
+       这类文字本来只应该出现在喂给模型的历史上下文里，不该被渲染成聊天气泡 */
+    if (/^\[(你|.{1,12})（?.{0,12}）?.{0,6}(主动向你发起|向用户发起|发起了)(一次)?视频通话(邀约|请求)?/.test(valid[i]) ||
+        /^\[.{0,20}视频通话(被拒绝|未接听|已取消|已结束|已拒绝|理由是)/.test(valid[i])) {
+      continue;
+    }
     /* 检测图片格式 [IMAGE:描述] */
     const imgMatch = valid[i].match(/^\[IMAGE:(.+)\]$/);
     if (imgMatch) {
@@ -6437,8 +7839,68 @@ async function crSendLines(lines) {
         /^\[HONGBAO_(OPENED|EXPIRED|RECEIVED)\]/i.test(valid[i])) {
       continue;
     }
-    crAppendAiReply(valid[i]);
+    /* 检测引用标签 [QUOTE:被引用的原文片段] 开头，后面紧跟本条要说的话
+       格式：[QUOTE:片段]实际内容  或  [QUOTE:片段] 实际内容（允许一个空格） */
+    let quoteObj = null;
+    let lineForQuote = valid[i];
+    const quoteMatch = lineForQuote.match(/^\[QUOTE[：:]\s*(.+?)\]\s*(.*)$/i);
+    if (quoteMatch) {
+      const quoteFrag = quoteMatch[1].trim();
+      const restText  = quoteMatch[2].trim();
+      const resolved  = crResolveQuoteFragment(quoteFrag);
+      if (resolved && restText) {
+        quoteObj = resolved;
+        lineForQuote = restText;
+      } else {
+        /* 解析失败或没有实际内容，直接丢弃标签，只保留正文（防止把标签原样发出去） */
+        lineForQuote = restText || lineForQuote.replace(/^\[QUOTE[：:][^\]]*\]\s*/i, '');
+      }
+    }
+
+    /* 检测双语格式「原话||翻译」，拆分成原文与译文分别传给渲染函数 */
+    let lineText = lineForQuote;
+    let lineTrans = null;
+    const blIdx = lineText.indexOf('||');
+    if (blIdx > -1) {
+      lineTrans = lineText.slice(blIdx + 2).trim();
+      lineText  = lineText.slice(0, blIdx).trim();
+    }
+    crAppendAiReply(lineText, lineTrans, quoteObj);
   }
+}
+
+/* ── 把 AI 给出的「被引用片段」文字，在最近的历史消息里做模糊匹配，
+     找到最可能对应的那条消息，返回 { text, role, idx }。找不到返回 null。 ──
+   匹配策略：在最近 20 条消息里找文本包含关系最强的一条（片段是原消息子串，或原消息是片段子串），
+   优先取更靠后（更新）的消息。 */
+function crResolveQuoteFragment(fragment) {
+  if (!fragment) return null;
+  const frag = fragment.trim();
+  if (!frag) return null;
+
+  const recent = crMessages.slice(-20);
+  const baseIdx = crMessages.length - recent.length;
+  let best = null;
+  let bestScore = 0;
+
+  for (let i = recent.length - 1; i >= 0; i--) {
+    const m = recent[i];
+    const text = (m.isVoice ? (m.voiceText || m.text) : m.text) || '';
+    if (!text) continue;
+
+    let score = 0;
+    if (text.includes(frag) || frag.includes(text)) {
+      score = Math.min(text.length, frag.length);
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = { text: text, role: m.role, idx: baseIdx + i };
+    }
+  }
+
+  /* 匹配片段太短（比如只有1-2个字）容易误配，要求至少有一定长度的重合才采用 */
+  if (best && bestScore >= 2) return best;
+  return null;
 }
 
 /* AI 按名称精确发表情包（找不到静默跳过） */
@@ -6587,6 +8049,16 @@ async function crAiReply() {
   try {
     const char         = await crLoadCharProfile(CR_NAME);
 
+    // 读取当前角色绑定的用户身份资料（资料页 -> 绑定角色），让 AI 知道对方是谁
+    // 加超时兜底：万一 IndexedDB 读取异常挂起，最多等 1.5 秒就放弃，不阻塞正常回复
+    let userIdentity = null;
+    try {
+      userIdentity = await Promise.race([
+        crLoadBoundUserIdentity(char?.id),
+        new Promise(res => setTimeout(() => res(null), 1500))
+      ]);
+    } catch (e) { userIdentity = null; }
+
     // 读取表情包库，注入到 prompt 让 AI 知道有哪些可选
     let memeList = (typeof _memes !== 'undefined' && _memes.length) ? _memes : [];
     if (!memeList.length) {
@@ -6600,7 +8072,7 @@ async function crAiReply() {
       } catch { memeList = []; }
     }
 
-    const systemPrompt = crBuildSystemPrompt(char, situation, memeList);
+    const systemPrompt = await crBuildSystemPrompt(char, situation, memeList, userIdentity);
     const messages     = crBuildApiMessages(crMessages);
 
     // 两个请求并行：AI回复 + 心声数据同时发出
@@ -6616,6 +8088,55 @@ async function crAiReply() {
       crApplyWhisperData(data);
     });
 
+    // 叩问自动生成：仅在用户手动开启时触发，不阻塞主回复流程，
+    // 生成完成后弹 toast 告知用户，不打断当前聊天体验。
+    if (kkGetAutoEnabled(CR_NAME)) {
+      kkGenerateQuestion(CR_NAME).then(entry => {
+        if (entry) {
+          crShowTip(`✦ ${CR_NAME}偷偷给你出了一道新题，去「叩问」看看吧`);
+        }
+      }).catch(() => {});
+    }
+
+    // 幕后志自动生成：默认关闭，用户需在「幕后志 → 设置」里手动开启，
+    // 因为会消耗用户自己配置的 API 额度。开启后按「每 N 轮 AI 回复」
+    // 计数，攒够轮数后自动写一篇（用最近对话作为素材），不打断聊天，
+    // 生成完成后弹 toast 提示，轮数计数器随后清零重新开始计。
+    if (ccGetAutoEnabled(CR_NAME)) {
+      const rounds = ccBumpRoundCount(CR_NAME);
+      const target = ccGetAutoRounds(CR_NAME);
+      if (rounds >= target) {
+        ccResetRoundCount(CR_NAME);
+        ccGenerateStory(CR_NAME, 'recent', null).then(entry => {
+          if (entry) {
+            crShowTip(`✦ ${CR_NAME}偷偷把你们最近的故事写了下来，去「幕后志」看看吧`);
+          }
+        }).catch(() => {});
+      }
+    }
+
+    // 迷雾自动生成：默认关闭，用户需在「迷雾 → 设置」里手动开启，
+    // 因为同样会消耗用户自己配置的 API 额度。开启后按「每 N 轮 AI 回复」
+    // 计数（与幕后志各自独立计数，互不影响），攒够轮数后自动生成一批
+    // 新的困惑（读取人设、绑定的用户身份、最近对话、以及还没解释清楚
+    // 的旧困惑，保证不会 OOC），不打断聊天，生成完成后弹 toast 提示，
+    // 轮数计数器随后清零重新开始计。hzGenerateHaze 定义在
+    // secret/haze.js 里，需要该脚本已被 chatroom.html 引入才会生效；
+    // 未引入时 typeof 判断会跳过，不影响正常聊天。
+    if (typeof hzGetAutoEnabled === 'function' && hzGetAutoEnabled(CR_NAME)) {
+      const hzRounds = hzBumpRoundCount(CR_NAME);
+      const hzTarget = hzGetAutoRounds(CR_NAME);
+      if (hzRounds >= hzTarget && typeof window.hzGenerateHaze === 'function') {
+        hzResetRoundCount(CR_NAME);
+        const hzCount = hzGetAutoCount(CR_NAME);
+        window.hzGenerateHaze(CR_NAME, hzCount).then(entry => {
+          if (entry) {
+            crShowTip(`✦ ${CR_NAME}心里又冒出了一些没想通的事，去「迷雾」看看吧`);
+          }
+        }).catch(() => {});
+      }
+    }
+
   } catch (err) {
     crHideTyping();
     console.error('[crAiReply]', err);
@@ -6624,17 +8145,355 @@ async function crAiReply() {
     crSetAiBtnState(false);
   }
 }
+
+/* ================================================================
+   重回 — Rewind / 人设纠偏反馈
+   -----------------------------------------------------------------
+   用户对 AI 某条回复不满意（OOC、掉格式、崩人设等）时使用。
+   流程：
+   1. 长按 AI 消息 → 菜单选「重回」，或功能面板「重回」卡片使用按钮。
+   2. 弹窗内置几个常见问题标签 + 用户自己描述问题所在。
+   3. 确认后：
+      a) 反馈规则持久化写入 IndexedDB（按角色绑定，长期生效），
+         此后每一次 crAiReply 都会在 system prompt 中强制附加这些规则，
+         而不仅仅是这次重新生成 —— 目的是尽量让用户以后不必再点重回。
+      b) 把这条不满意的 AI 回复（以及它同一轮里的其它分段消息）从
+         对话历史中移除，退回到用户上一条消息之后的状态。
+      c) 结合"内置提示词 + 全部历史反馈规则 + 本次新反馈"重新生成一次回复，
+         新回复必须体现修正，否则功能失去意义。
+================================================================ */
+(function () {
+
+/* ── IndexedDB：反馈规则表，按角色 name 存一个规则数组
+      注意：直接复用 getCrDB() 的共享连接（表已注册进 LUNA_STORES），
+      不要在这里再单独 indexedDB.open，否则和 getCrDB() 长期持有的连接
+      互相等待版本升级，会导致 open 请求卡在 blocked 状态永不 resolve。 ── */
+const FEEDBACK_STORE = 'rewindFeedback';
+
+function getFeedbackDB() {
+  return getCrDB();
+}
+
+/* 读取某角色的全部反馈规则（数组，按时间正序） */
+async function rewindLoadRules(name) {
+  try {
+    const db = await getFeedbackDB();
+    return await new Promise(res => {
+      const r = db.transaction(FEEDBACK_STORE).objectStore(FEEDBACK_STORE).get(name);
+      r.onsuccess = () => res((r.result && r.result.rules) || []);
+      r.onerror   = () => res([]);
+    });
+  } catch { return []; }
+}
+
+/* 追加一条新反馈规则，返回更新后的完整规则数组 */
+async function rewindAddRule(name, ruleText) {
+  const db = await getFeedbackDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(FEEDBACK_STORE, 'readwrite');
+    const store = tx.objectStore(FEEDBACK_STORE);
+    const getReq = store.get(name);
+    getReq.onsuccess = () => {
+      const existing = getReq.result || { name, rules: [] };
+      existing.rules = existing.rules || [];
+      existing.rules.push({ text: ruleText, ts: Date.now() });
+      /* 最多保留最近 20 条，避免 prompt 无限膨胀 */
+      if (existing.rules.length > 20) {
+        existing.rules = existing.rules.slice(existing.rules.length - 20);
+      }
+      store.put(existing);
+      resolve(existing.rules);
+    };
+    getReq.onerror = () => reject();
+  });
+}
+
+/* 暴露给 crBuildSystemPrompt 使用 */
+window.rewindLoadRules = rewindLoadRules;
+
+/* 把规则数组渲染成 system prompt 中的强制纠偏区块 */
+function rewindBuildPromptBlock(rules) {
+  if (!rules || !rules.length) return '';
+  const lines = rules.map((r, i) => `${i + 1}. ${r.text}`).join('\n');
+  return `
+
+【⚠️ 用户人设纠偏记录 — 最高优先级，必须严格遵守，优先级高于以上所有其它说明】
+用户曾明确指出你之前的回复出现过以下问题，这些问题已被记录，你在本次以及此后每一次回复中都绝对不能再犯：
+${lines}
+在生成回复前，请先在心里对照检查一遍这份清单，确保新回复完全不触犯上述任何一条，不要解释、不要提及这份清单本身，直接把修正体现在你的回复内容和语气里。`;
+}
+window.rewindBuildPromptBlock = rewindBuildPromptBlock;
+
+/* ── 常见问题快捷标签 ── */
+const REWIND_TAGS = [
+  { id:'ooc',    label:'人设崩了(OOC)' },
+  { id:'format', label:'格式跑偏' },
+  { id:'action', label:'出现了动作描写' },
+  { id:'md',     label:'带了Markdown' },
+  { id:'long',   label:'消息太长/没分段' },
+  { id:'flat',   label:'太机械/没感情' },
+  { id:'repeat', label:'重复啰嗦' },
+  { id:'ignore', label:'没接住话题' },
+];
+
+const REWIND_TAG_TEXT = {
+  ooc:    '不能出现偏离角色人设、说话方式不像本角色的内容（OOC）',
+  format: '必须严格遵守消息格式规则，不能输出多余的符号或结构',
+  action: '严禁输出任何括号/星号包裹的动作、神情描写，如（笑）*点头*等',
+  md:     '严禁使用任何 Markdown 格式，不能加粗、不能用列表或标题',
+  long:   '每条消息要够短，必须按规则拆成多条短消息分行发送，不能整段堆一起',
+  flat:   '语气要有真实情绪起伏，不能千篇一律地机械寒暄或用同一种语气回应',
+  repeat: '不要重复说过的话或啰嗦堆砌内容，保持简洁自然',
+  ignore: '必须认真接住用户上一句话里的重点，不能答非所问或忽略话题',
+};
+
+/* ── 弹窗 HTML（首次使用时注入） ── */
+let _rewindInited = false;
+let _rewindMsgIdx = -1;
+let _rewindSelectedTags = new Set();
+
+function ensureRewindModal() {
+  if (_rewindInited) return;
+  _rewindInited = true;
+
+  const html = `
+<div id="rewindOverlay" style="display:none;position:fixed;inset:0;z-index:16000;
+  align-items:center;justify-content:center;background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);">
+  <div id="rewindModal" style="width:88%;max-width:400px;background:#faf9f7;
+    border-radius:22px;border:0.5px solid rgba(0,0,0,0.09);
+    box-shadow:0 28px 80px rgba(0,0,0,0.28);
+    padding:22px 20px 20px;box-sizing:border-box;
+    display:flex;flex-direction:column;gap:14px;
+    transform:scale(0.92);opacity:0;
+    transition:transform 0.22s ease,opacity 0.22s ease;max-height:82vh;overflow-y:auto;">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2.5px;
+          color:#bbb;text-transform:uppercase;margin-bottom:3px;">HISTORY · REWIND</div>
+        <div style="font-size:16px;font-weight:600;color:#1a1a1a;">重回 · 告诉Ta哪里不对</div>
+      </div>
+      <button id="rewindClose" style="width:30px;height:30px;border-radius:50%;
+        border:0.5px solid rgba(0,0,0,0.12);background:#f0efec;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M1 1l10 10M11 1L1 11" stroke="#999" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div style="font-size:12px;color:#999;line-height:1.6;">
+      选择这条回复出了什么问题（可多选），或者直接写清楚。确认后会撤回这条回复，
+      结合你的反馈重新生成一次，并且这个要求会一直记住，以后每次回复都会遵守。
+    </div>
+
+    <div id="rewindTags" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+
+    <textarea id="rewindTextarea" placeholder="也可以自己描述问题所在，比如：说话太正式了，不像平时那种随意的语气…" style="
+      width:100%;box-sizing:border-box;min-height:74px;resize:vertical;
+      border:1.2px solid #e0ddd8;border-radius:12px;
+      padding:11px 12px;font-size:13.5px;color:#1a1a1a;
+      background:#fff;outline:none;font-family:inherit;line-height:1.6;
+    "></textarea>
+
+    <div id="rewindHistNote" style="font-size:11px;color:#aaa;background:#f3f2f0;
+      border-radius:8px;padding:8px 10px;line-height:1.5;display:none;"></div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button id="rewindCancel" style="
+        background:none;border:1.2px solid #ddd;border-radius:10px;
+        padding:9px 18px;font-size:13px;color:#888;cursor:pointer;
+      ">取消</button>
+      <button id="rewindConfirm" style="
+        background:#1a1a1a;border:none;border-radius:10px;
+        padding:9px 20px;font-size:13px;color:#fff;cursor:pointer;font-weight:500;
+        display:flex;align-items:center;gap:6px;
+      ">
+        <span id="rewindConfirmText">重新生成</span>
+      </button>
+    </div>
+  </div>
+</div>`;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  const overlay   = document.getElementById('rewindOverlay');
+  const modal     = document.getElementById('rewindModal');
+  const tagsWrap  = document.getElementById('rewindTags');
+  const textarea  = document.getElementById('rewindTextarea');
+  const closeBtn  = document.getElementById('rewindClose');
+  const cancelBtn = document.getElementById('rewindCancel');
+  const confirmBtn= document.getElementById('rewindConfirm');
+  const confirmTxt= document.getElementById('rewindConfirmText');
+  const histNote  = document.getElementById('rewindHistNote');
+
+  /* 渲染标签 */
+  REWIND_TAGS.forEach(tag => {
+    const chip = document.createElement('button');
+    chip.dataset.tag = tag.id;
+    chip.textContent = tag.label;
+    chip.style.cssText = `
+      padding:7px 12px;border-radius:999px;font-size:12px;cursor:pointer;
+      border:1.2px solid #e0ddd8;background:#fff;color:#666;
+      transition:all 0.15s;font-family:inherit;`;
+    chip.addEventListener('click', () => {
+      if (_rewindSelectedTags.has(tag.id)) {
+        _rewindSelectedTags.delete(tag.id);
+        chip.style.background = '#fff';
+        chip.style.color = '#666';
+        chip.style.borderColor = '#e0ddd8';
+      } else {
+        _rewindSelectedTags.add(tag.id);
+        chip.style.background = '#1a1a1a';
+        chip.style.color = '#fff';
+        chip.style.borderColor = '#1a1a1a';
+      }
+    });
+    tagsWrap.appendChild(chip);
+  });
+
+  function resetChips() {
+    _rewindSelectedTags.clear();
+    tagsWrap.querySelectorAll('button').forEach(c => {
+      c.style.background = '#fff';
+      c.style.color = '#666';
+      c.style.borderColor = '#e0ddd8';
+    });
+  }
+
+  window.crOpenRewindModal = async function (msgIdx) {
+    if (msgIdx < 0 || msgIdx >= crMessages.length) return;
+    if (crMessages[msgIdx].role !== 'luna') { crShowTip('只能对 Ta 的消息使用「重回」'); return; }
+
+    _rewindMsgIdx = msgIdx;
+    resetChips();
+    textarea.value = '';
+
+    /* 显示当前已有多少条长期生效的纠偏规则 */
+    try {
+      const rules = await rewindLoadRules(CR_NAME);
+      if (rules.length) {
+        histNote.style.display = 'block';
+        histNote.textContent = `已记录 ${rules.length} 条长期人设纠偏规则，AI 每次回复都会遵守。这次的反馈会追加进去。`;
+      } else {
+        histNote.style.display = 'none';
+      }
+    } catch { histNote.style.display = 'none'; }
+
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      modal.style.transform = 'scale(1)';
+      modal.style.opacity   = '1';
+      textarea.focus();
+    }));
+  };
+
+  function closeModal() {
+    modal.style.transform = 'scale(0.92)';
+    modal.style.opacity   = '0';
+    setTimeout(() => { overlay.style.display = 'none'; }, 220);
+    _rewindMsgIdx = -1;
+  }
+
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+  confirmBtn.addEventListener('click', async () => {
+    if (_rewindMsgIdx < 0) { closeModal(); return; }
+
+    const customText = textarea.value.trim();
+    if (!customText && _rewindSelectedTags.size === 0) {
+      crShowTip('请至少选一个标签或写清楚问题');
+      return;
+    }
+
+    /* 组装本次反馈规则文本：标签描述 + 用户自定义描述 */
+    const tagTexts = Array.from(_rewindSelectedTags).map(id => REWIND_TAG_TEXT[id]).filter(Boolean);
+    const parts = [...tagTexts];
+    if (customText) parts.push(customText);
+    const ruleText = parts.join('；');
+
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '0.6';
+    confirmTxt.textContent = '正在重新生成…';
+
+    try {
+      await rewindApply(_rewindMsgIdx, ruleText);
+      closeModal();
+    } catch (err) {
+      console.error('[重回]', err);
+      crShowTip('重新生成失败，稍后再试～');
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.style.opacity = '1';
+      confirmTxt.textContent = '重新生成';
+    }
+  });
+}
+
+/* ── 核心执行：保存反馈规则 → 撤回本轮 AI 回复 → 带新规则重新生成 ── */
+async function rewindApply(msgIdx, ruleText) {
+  /* 1. 规则持久化，绑定当前角色，长期生效 */
+  await rewindAddRule(CR_NAME, ruleText);
+
+  /* 2. 找到"本轮 AI 回复"的范围：从 msgIdx 开始，
+        向后收进同一轮连续的 luna 消息（AI 一次回复可能拆成多条），
+        向前也收进紧邻在 msgIdx 之前的连续 luna 消息（防止长按到中间某一段）。 */
+  let start = msgIdx;
+  while (start > 0 && crMessages[start - 1].role === 'luna') start--;
+  let end = msgIdx;
+  while (end < crMessages.length - 1 && crMessages[end + 1].role === 'luna') end++;
+
+  const removeCount = end - start + 1;
+  crMessages.splice(start, removeCount);
+  dbSaveMessages(CR_NAME, crMessages);
+
+  /* 3. 同步删除 DOM 中对应的气泡 */
+  const allWrap = Array.from(document.querySelectorAll('.cr-msg-mine, .cr-msg-luna'));
+  for (let i = end; i >= start; i--) {
+    if (allWrap[i]) allWrap[i].remove();
+  }
+
+  crShowTip('已撤回，正在结合反馈重新生成…');
+
+  /* 4. 重新生成：复用 crAiReply 的核心链路，
+        crBuildSystemPrompt 内部会自动读取并附加最新的全部纠偏规则 */
+  await crAiReply();
+}
+
+/* 立即初始化弹窗 DOM，确保长按菜单和功能面板卡片都能随时调用 window.crOpenRewindModal */
+ensureRewindModal();
+
+})();
 /* ================================================================
    引用条 — Quote Bar
 ================================================================ */
-function crShowQuoteBar(text) {
+/* msg: crMessages 里的原始消息对象；msgIndex: 该消息在 crMessages 中的索引，用于之后跳转定位 */
+function crShowQuoteBar(msg, msgIndex) {
   var bar  = document.getElementById('crQuoteBar');
   var textEl = document.getElementById('crQuoteText');
   var box  = document.getElementById('crInputBox');
   if (!bar || !textEl) return;
 
-  var short = text.length > 30 ? text.slice(0, 30) + '…' : text;
-  textEl.textContent = short;
+  /* 提取纯文字内容（语音/图片等特殊消息取其文字化描述） */
+  var raw = msg.isVoice ? (msg.voiceText || msg.text || '')
+          : msg.isLocation ? ('[位置] ' + (msg.locName || ''))
+          : msg.isTransfer ? ('[转账] ' + (msg.trRemark || msg.trAmt || ''))
+          : msg.isHongbao ? ('[红包] ' + (msg.hbGreeting || ''))
+          : msg.isAiImage || msg.imageUrl ? ('[图片] ' + (msg.imageDesc || ''))
+          : (msg.text || '');
+
+  var who = msg.role === 'mine' ? '你' : CR_NAME;
+  var short = raw.length > 30 ? raw.slice(0, 30) + '…' : raw;
+  textEl.textContent = who + '：' + short;
+
+  /* 把完整引用数据存在引用条的 dataset 上，发送时读取 */
+  bar.dataset.quoteText = raw;
+  bar.dataset.quoteRole = msg.role;
+  bar.dataset.quoteIdx  = (typeof msgIndex === 'number') ? String(msgIndex) : '';
+
   bar.style.display = 'flex';
 
   /* 清空输入框并聚焦 */
@@ -6649,7 +8508,12 @@ document.addEventListener('DOMContentLoaded', function() {
   if (closeBtn) {
     closeBtn.addEventListener('click', function() {
       var bar = document.getElementById('crQuoteBar');
-      if (bar) bar.style.display = 'none';
+      if (bar) {
+        bar.style.display = 'none';
+        delete bar.dataset.quoteText;
+        delete bar.dataset.quoteRole;
+        delete bar.dataset.quoteIdx;
+      }
     });
   }
 });
@@ -7384,8 +9248,9 @@ window.crOpenTheatrePanel = openTheatre;
           avatarEl.style.width  = s.av + 'px';
           avatarEl.style.height = s.av + 'px';
         }
-        /* 只在没有真实头像图片时才覆盖背景色，防止盖掉头像 */
-        var hasImg = avatarEl.style.backgroundImage && avatarEl.style.backgroundImage !== 'none' && avatarEl.style.backgroundImage !== '';
+        /* 只在没有真实头像时才覆盖背景色：检测 backgroundImage 或内部 <img> 标签 */
+        var hasImg = (avatarEl.style.backgroundImage && avatarEl.style.backgroundImage !== 'none' && avatarEl.style.backgroundImage !== '')
+          || !!avatarEl.querySelector('img');
         if (!hasImg && s.avBg) {
           avatarEl.style.background = s.avBg;
         }
@@ -7445,6 +9310,8 @@ window.crOpenTheatrePanel = openTheatre;
         '.cr-name { color: ' + (s.nameColor || 'unset') + ' !important; font-size: ' + (s.nm ? s.nm + 'px' : 'unset') + ' !important; }\n' +
         '.cr-sub { color: ' + (s.sub || 'unset') + ' !important; font-size: ' + (s.sb ? s.sb + 'px' : 'unset') + ' !important; }\n' +
         '.cr-avatar { width: ' + (s.av ? s.av + 'px' : 'unset') + ' !important; height: ' + (s.av ? s.av + 'px' : 'unset') + ' !important; }\n' +
+        '.cr-avatar-inner { display: flex !important; width: 100% !important; height: 100% !important; border-radius: 50% !important; overflow: hidden !important; align-items: center !important; justify-content: center !important; }\n' +
+        '.cr-avatar-inner img { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 50% !important; display: block !important; opacity: 1 !important; }\n' +
         '.cr-online-dot { background: ' + (s.dot || 'unset') + ' !important; }\n' +
         '.cr-status-dot { background: ' + (s.dot || 'unset') + ' !important; }\n' +
         '.cr-stat-val { color: ' + (s.stat || 'unset') + ' !important; }\n' +
@@ -7501,6 +9368,28 @@ window.crOpenTheatrePanel = openTheatre;
       styleTag.textContent = baseCode + extraCode;
       document.head.appendChild(styleTag);
       _crHeaderCustomStyle = styleTag;
+
+      /* ── 头像居中：若自定义CSS含 hs-cr-avatar 绝对定位意图，
+         把 .cr-avatar DOM 节点直接移到 .cr-header-main 下，
+         解决「.cr-back-btn position:relative 成为包含块」导致头像无法跑到中间的问题 ── */
+      var _needAvatarMove = rawCode && rawCode.indexOf('hs-cr-avatar') !== -1;
+      var _headerMain = document.querySelector('.cr-header-main');
+      var _avatarEl   = document.getElementById('crAvatarWrap');
+      var _backBtn    = document.getElementById('crBackBtn');
+      if (_needAvatarMove && _headerMain && _avatarEl && _backBtn) {
+        /* 还没移过才移，防止重复 */
+        if (_avatarEl.parentElement !== _headerMain) {
+          _headerMain.appendChild(_avatarEl);
+        }
+        /* 让按钮本身 overflow 可见，箭头伪元素才能显示 */
+        _backBtn.style.overflow = 'visible';
+      } else if (!_needAvatarMove && _avatarEl && _backBtn) {
+        /* 主题没有移头像需求，确保头像还在按钮里（页面刷新时已在，切换主题时复位）*/
+        if (_avatarEl.parentElement !== _backBtn) {
+          _backBtn.insertBefore(_avatarEl, _backBtn.querySelector('.cr-online-dot'));
+        }
+        _backBtn.style.overflow = '';
+      }
 
     } catch (err) {
       console.warn('[crApplyHeaderStyle] 解析失败', err);
@@ -8142,10 +10031,11 @@ window.crOpenTheatrePanel = openTheatre;
       var raw = (charKey && localStorage.getItem(charKey))
         ? localStorage.getItem(charKey)
         : localStorage.getItem('luna_bubble_style');
-      if (!raw) return;
-      var s;
-      try { s = JSON.parse(raw); } catch(e) { return; }
-      if (!s) return;
+      var blCssEarly = '';
+      try { blCssEarly = localStorage.getItem('luna_bubble_css') || ''; } catch(e) {}
+      if (!raw && !blCssEarly.trim()) return;
+      var s = {};
+      if (raw) { try { s = JSON.parse(raw) || {}; } catch(e) { s = {}; } }
 
       /* ── 注入动态 CSS（气泡颜色 + 尺寸 + 间距）── */
       var oldTag = document.getElementById('cr-bubble-style-inject');
@@ -8245,6 +10135,12 @@ window.crOpenTheatrePanel = openTheatre;
 
       /* 自定义 CSS */
       if (s.customCode) css += '\n' + s.customCode;
+
+      /* 双语翻译气泡自定义 CSS（chatsetting 双语设置页保存） */
+      try {
+        var blCss = localStorage.getItem('luna_bubble_css');
+        if (blCss && blCss.trim()) css += '\n' + blCss;
+      } catch(e) {}
 
       if (css) {
         var tag = document.createElement('style');

@@ -550,82 +550,158 @@ body {
 .vc-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 20px 10px;
+  padding: 14px 22px 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   position: relative;
   z-index: 5;
   -webkit-overflow-scrolling: touch;
 }
 .vc-messages::-webkit-scrollbar { display: none; }
 
-/* 消息行 */
+/* 消息行 — 不再是气泡，是「实时转录 / 字幕」式的一段文字。
+   注意：gap 在这里主要控制"消息与消息之间"的间距；同一条消息内部
+   多个 segment（说话/动作交替）的行间距由 .vc-line-luna/.vc-line-you
+   自己的 margin 控制，见下方。 */
 .vc-msg-luna {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
-  animation: vcFadeUp 0.26s ease;
+  gap: 2px;
+  animation: vcFadeUp 0.3s ease;
+  padding-left: 12px;
+  border-left: 1.5px solid rgba(140,118,215,0.35);
 }
 .vc-msg-you {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 3px;
-  animation: vcFadeUp 0.26s ease;
+  gap: 2px;
+  animation: vcFadeUp 0.3s ease;
+  padding-right: 12px;
+  border-right: 1.5px solid rgba(255,255,255,0.16);
+  align-self: flex-end;
+  max-width: 88%;
 }
 
-/* 气泡 */
-.vc-bubble-luna {
-  background: rgba(140,118,215,0.13);
-  border: 0.5px solid rgba(140,118,215,0.22);
-  border-radius: 11px 11px 11px 3px;
-  padding: 8px 12px;
-  max-width: 86%;
+/* 说话者标签（只在 luna 侧显示，you 侧默认就是"你"，省略标签更简洁） */
+.vc-line-speaker {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(175,155,240,0.6);
+  margin-bottom: 4px;
 }
-.vc-bubble-you {
-  background: rgba(255,255,255,0.07);
-  border: 0.5px solid rgba(255,255,255,0.10);
-  border-radius: 11px 11px 3px 11px;
-  padding: 8px 12px;
-  max-width: 86%;
-}
-.vc-bubble-luna p,
-.vc-bubble-you p {
-  font-size: 13px;
-  line-height: 1.56;
-  margin: 0;
-  color: rgba(255,255,255,0.82);
+
+/* 台词行容器 — 现在每个 segment（一句说话 / 一段动作描写）各自是
+   独立的一行，而不是全部挤在同一段文字里，读起来才是真人对话与
+   镜头描写交替出现的节奏，不会挤成一坨看不清层次。 */
+.vc-line-luna,
+.vc-line-you {
   font-family: 'Inter', sans-serif;
+  font-size: 14.5px;
+  line-height: 1.62;
+  max-width: 100%;
+  margin: 3px 0;
+}
+.vc-line-luna { text-align: left; }
+.vc-line-you  { text-align: right; }
+
+/* 动作描写行整体再多一点上下留白，和说话行明确拉开视觉层次 */
+.vc-line-is-action {
+  margin: 6px 0;
+}
+
+/* 说出口的话 — 正常、清晰、亮一些，是转录的主体 */
+.vc-seg-speech {
+  color: rgba(255,255,255,0.90);
+  font-weight: 400;
+}
+
+/* 动作 / 神情 / 心理描写 — 与说话内容明确区分：斜体、变暗、更小、无引号，
+   像镜头旁白/场记一样穿插在台词之间，绝不能和说话用同一种视觉呈现 */
+.vc-seg-action {
+  display: inline-block;
+  font-style: italic;
+  font-family: 'Cormorant Garamond', 'Fraunces', serif;
+  font-size: 13px;
+  color: rgba(175,155,240,0.56);
+  letter-spacing: 0.015em;
+  position: relative;
+}
+.vc-seg-action::before { content: "· "; opacity: 0.6; }
+
+/* 双语翻译行 — 紧贴在角色说话内容下方，半透明小字，
+   风格呼应文字聊天里的双语气泡，但去掉气泡背景，融入「转录条」的整体观感 */
+.vc-trans-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+  animation: vcFadeUp 0.25s ease;
+}
+.vc-trans-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.42);
+  font-style: normal;
+}
+.vc-trans-tag {
+  flex-shrink: 0;
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  color: rgba(175,155,240,0.55);
+  border: 0.5px solid rgba(175,155,240,0.3);
+  border-radius: 4px;
+  padding: 1px 4px;
+  line-height: 1.4;
 }
 
 /* 时间戳 */
 .vc-ts {
-  font-size: 10px;
-  color: rgba(255,255,255,0.2);
+  font-size: 9.5px;
+  color: rgba(255,255,255,0.18);
   font-family: 'Space Mono', monospace;
+  letter-spacing: 0.04em;
 }
 
-/* 正在输入 */
+/* 通话内小提示（API 未配置 / 出错等），居中浮现在转录区 */
+.vc-conn-tip {
+  align-self: center;
+  text-align: center;
+  color: rgba(255,255,255,0.38);
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  padding: 5px 14px;
+  background: rgba(255,255,255,0.05);
+  border: 0.5px solid rgba(255,255,255,0.09);
+  border-radius: 20px;
+  animation: vcFadeUp 0.26s ease;
+}
+
+/* 正在输入 → 视频场景改为「正在说话」的呼吸指示，去掉气泡背景，更轻量 */
 .vc-typing {
   display: flex;
   align-items: center;
+  padding-left: 12px;
+  border-left: 1.5px solid rgba(140,118,215,0.35);
 }
 .vc-typing-dots {
-  background: rgba(140,115,220,0.10);
-  border: 0.5px solid rgba(140,115,220,0.15);
-  border-radius: 10px;
-  padding: 7px 11px;
   display: flex;
-  gap: 3px;
+  gap: 4px;
   align-items: center;
+  padding: 2px 0;
 }
 .vc-typing-dots span {
   display: block;
   width: 4px; height: 4px;
   border-radius: 50%;
-  background: rgba(140,115,220,0.52);
+  background: rgba(175,155,240,0.55);
 }
 .vc-typing-dots span:nth-child(1) { animation: vcBlink 1s ease-in-out infinite 0s; }
 .vc-typing-dots span:nth-child(2) { animation: vcBlink 1s ease-in-out infinite 0.2s; }
@@ -815,6 +891,23 @@ body {
 .vc-dial-screen.vcd-hidden {
   animation: vcdScreenOut 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   pointer-events: none;
+  visibility: visible; /* 退出动画播放期间必须可见，覆盖 vcd-pending 的 hidden，
+                           否则拨号屏会瞬间消失而不是按 vcdScreenOut 淡出 */
+}
+
+/* 默认不可见：HTML 一加载出来这个覆盖层就存在于 DOM 里，但在 JS 判断出
+   「这是不是用户主动拨打」之前不应该被用户看到哪怕一帧——不管是网络慢、
+   脚本执行延迟，还是 AI 主动发起本该跳过这个屏的场景，都不能露出来。
+   只有 vcInitDialScreen() 确认走「用户主动拨打」分支时才会显式加上
+   vcd-active，让它可见并开始播放拨号动画；AI 主动发起分支从头到尾都
+   不会加这个类，screen.remove() 之前它也一直是隐藏状态。 */
+.vc-dial-screen.vcd-pending {
+  opacity: 0;
+  visibility: hidden;
+}
+.vc-dial-screen.vcd-pending.vcd-active {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* ---- 状态栏占位 ---- */

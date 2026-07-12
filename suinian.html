@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>碎念 · SUINIAN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="suinian.css" />
+</head>
+<body>
+
+<div class="sn-app" id="snApp">
+
+  <!-- 状态栏：与主界面 index.html 保持一致 -->
+  <div class="sn-status-bar">
+    <div class="sn-status-time" id="snStatusTime">9:41</div>
+    <div class="sn-status-right">
+      <div class="sn-signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="sn-battery">
+        <span class="sn-bat-pct" id="snBatPct">76</span>
+        <div class="sn-bat-shell">
+          <div class="sn-bat-inner"></div>
+          <div class="sn-bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 顶部导航：首页专用 -->
+  <header class="sn-header" id="snHeader">
+    <div class="sn-logo">
+      <span class="sn-logo-mark">碎</span>
+      <div class="sn-logo-text-wrap">
+        <span class="sn-logo-text">SUINIAN</span>
+        <span class="sn-logo-sub">VLOG · DIARY</span>
+      </div>
+    </div>
+    <div class="sn-header-actions">
+      <button class="sn-icon-btn" aria-label="搜索" id="btnSearch">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="sn-icon-btn" aria-label="通知" id="btnNotif">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6.5H4c.5-1 2-2.5 2-6.5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 18.5a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span class="sn-dot"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 三个页面容器 -->
+  <main class="sn-pages" id="snPages">
+
+    <!-- ============ 首页 ============ -->
+    <section class="sn-page active" id="pageHome">
+
+      <!-- 关注头像故事条 — 同步 characters.js 的角色数据 -->
+      <div class="sn-stories" id="snStories">
+        <div class="sn-story sn-story-add">
+          <div class="sn-story-ring sn-ring-add">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+          <span>上传</span>
+        </div>
+        <!-- 角色环由 JS 动态渲染 -->
+      </div>
+
+      <!-- 世界观入口条：像设置按钮，但用于打开"专属世界观"面板 -->
+      <div class="sn-world-bar">
+        <button class="sn-world-entry" id="btnWorldPanel">
+          <span class="sn-world-entry-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.4 5.1L20 9l-4 3.9.9 5.6L12 15.9 7.1 18.5 8 12.9 4 9l5.6-.9z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="sn-world-entry-text">
+            <span class="sn-world-entry-title" id="worldEntryTitle">专属世界观</span>
+            <span class="sn-world-entry-sub" id="worldEntrySub">点击设定你的叙事宇宙</span>
+          </span>
+          <span class="sn-world-entry-arrow">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+      </div>
+
+      <!-- 生成入口：世界观只定"生存规则/氛围"，这里输入本次要生成的"内容主题"，
+           AI 会围绕这个主题现编多个不同人设的呈现，而不是焊死某一个角色 -->
+      <div class="sn-gen-bar">
+        <input class="sn-gen-input" id="genTopicInput" type="text"
+               placeholder="想生成什么内容？例如：男朋友的一日vlog" />
+        <button class="sn-gen-btn" id="btnGenerate">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M12 3l1.8 4.8L18.5 9.5 13.8 11.3 12 16.1 10.2 11.3 5.5 9.5 10.2 7.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          <span id="btnGenerateText">生成</span>
+        </button>
+        <div class="sn-gen-hint" id="snGenHint"></div>
+      </div>
+
+      <!-- 视频信息流 -->
+      <div class="sn-feed" id="snFeed">
+        <div class="sn-feed-empty" id="snFeedEmpty">
+          <div class="sn-feed-empty-icon">
+            <svg viewBox="0 0 48 48" width="40" height="40" fill="none"><rect x="6" y="12" width="28" height="24" rx="4" stroke="currentColor" stroke-width="1.5" opacity="0.35"/><path d="M34 20l8-5v18l-8-5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" opacity="0.35"/></svg>
+          </div>
+          <div class="sn-feed-empty-title">暂无内容</div>
+          <div class="sn-feed-empty-desc">设定好世界观后，在这里记录你的第一支影像日记吧</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 私信页 ============ -->
+    <section class="sn-page" id="pageDM">
+
+      <div class="sn-dm-toolbar">
+        <h2>私信</h2>
+        <button class="sn-icon-btn" id="btnNewMsg">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="sn-dm-search">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>搜索私信</span>
+      </div>
+
+      <div class="sn-dm-list" id="snDmList">
+
+        <div class="sn-dm-item unread">
+          <div class="sn-dm-avatar sn-ring-1"></div>
+          <div class="sn-dm-text">
+            <div class="sn-dm-row1"><span class="sn-dm-name">Nova</span><span class="sn-dm-time">09:42</span></div>
+            <div class="sn-dm-row2"><span class="sn-dm-preview">当然，等你 🌙 —— 那今晚老地方？</span><span class="sn-dm-badge">2</span></div>
+          </div>
+        </div>
+
+        <div class="sn-dm-item unread">
+          <div class="sn-dm-avatar sn-ring-2"></div>
+          <div class="sn-dm-text">
+            <div class="sn-dm-row1"><span class="sn-dm-name">Mia</span><span class="sn-dm-time">昨天</span></div>
+            <div class="sn-dm-row2"><span class="sn-dm-preview">你新发的那条视频我看了，好治愈</span><span class="sn-dm-badge">1</span></div>
+          </div>
+        </div>
+
+        <div class="sn-dm-item">
+          <div class="sn-dm-avatar sn-ring-3"></div>
+          <div class="sn-dm-text">
+            <div class="sn-dm-row1"><span class="sn-dm-name">Yuki</span><span class="sn-dm-time">周三</span></div>
+            <div class="sn-dm-row2"><span class="sn-dm-preview">下次拍摄地点定在河边怎么样</span></div>
+          </div>
+        </div>
+
+        <div class="sn-dm-item">
+          <div class="sn-dm-avatar sn-ring-4"></div>
+          <div class="sn-dm-text">
+            <div class="sn-dm-row1"><span class="sn-dm-name">Leo</span><span class="sn-dm-time">周一</span></div>
+            <div class="sn-dm-row2"><span class="sn-dm-preview">胶片扫描出来了，发你</span></div>
+          </div>
+        </div>
+
+        <div class="sn-dm-item">
+          <div class="sn-dm-avatar sn-ring-5"></div>
+          <div class="sn-dm-text">
+            <div class="sn-dm-row1"><span class="sn-dm-name">Cael</span><span class="sn-dm-time">上周</span></div>
+            <div class="sn-dm-row2"><span class="sn-dm-preview">好久没聊了，最近在忙什么</span></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 个人中心 ============ -->
+    <section class="sn-page" id="pageProfile">
+
+      <div class="sn-profile-cover">
+        <div class="sn-cover-grid"></div>
+        <span class="sn-cover-watermark">SUINIAN · JOURNAL</span>
+        <button class="sn-icon-btn sn-cover-settings" id="btnSettings">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="sn-profile-main">
+        <div class="sn-avatar-wrap">
+          <div class="sn-profile-avatar"></div>
+        </div>
+        <h2 class="sn-profile-name">Nova</h2>
+        <p class="sn-profile-handle">@nova.vlog · 碎念创作者</p>
+        <p class="sn-profile-bio">living in the moment ✦ 记录碎碎念与日常影像</p>
+
+        <div class="sn-profile-stats">
+          <div class="sn-stat"><b>128</b><span>作品</span></div>
+          <div class="sn-stat-divider"></div>
+          <div class="sn-stat"><b>24.6k</b><span>粉丝</span></div>
+          <div class="sn-stat-divider"></div>
+          <div class="sn-stat"><b>312</b><span>关注</span></div>
+        </div>
+
+        <div class="sn-profile-actions">
+          <button class="sn-btn-primary">编辑资料</button>
+          <button class="sn-btn-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 6l-4-4-4 4M12 2v13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="sn-profile-tabs" id="snProfileTabs">
+        <button class="sn-ptab active" data-ptab="works">作品</button>
+        <button class="sn-ptab" data-ptab="fav">收藏</button>
+        <button class="sn-ptab" data-ptab="likes">赞过</button>
+        <span class="sn-ptab-indicator" id="snPtabIndicator"></span>
+      </div>
+
+      <div class="sn-profile-grid" id="snProfileGrid">
+        <div class="sn-grid-item sn-grid-1"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">12.4k</span></div>
+        <div class="sn-grid-item sn-grid-2"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">8.1k</span></div>
+        <div class="sn-grid-item sn-grid-3"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">21.9k</span></div>
+        <div class="sn-grid-item sn-grid-4"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">15.2k</span></div>
+        <div class="sn-grid-item sn-grid-1"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">6.7k</span></div>
+        <div class="sn-grid-item sn-grid-2"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">3.2k</span></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 底部悬浮导航 -->
+  <nav class="sn-navbar" id="snNavbar">
+    <span class="sn-nav-indicator" id="snNavIndicator"></span>
+    <button class="sn-nav-item active" data-page="pageHome">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 11.5L12 4l8 7.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>首页</span>
+    </button>
+    <button class="sn-nav-item" data-page="pageDM">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>私信</span>
+      <span class="sn-nav-badge">3</span>
+    </button>
+    <button class="sn-nav-item" data-page="pageProfile">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.7"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>我</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- ============================================================
+     世界观面板 — 水平居中弹窗（非底部弹出）
+============================================================ -->
+<div class="wd-overlay" id="wdOverlay"></div>
+
+<div class="wd-modal" id="wdModal" role="dialog" aria-modal="true">
+
+  <!-- 顶部标题栏 -->
+  <div class="wd-modal-top">
+    <div class="wd-modal-top-text">
+      <span class="wd-modal-eyebrow">NARRATIVE UNIVERSE</span>
+      <h2 class="wd-modal-title">专属世界观</h2>
+    </div>
+    <button class="wd-close-btn" id="wdCloseBtn" aria-label="关闭">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <!-- 已存档的世界观列表（横向） -->
+  <div class="wd-saved-row" id="wdSavedRow">
+    <!-- JS 动态渲染存档卡片 -->
+  </div>
+
+  <div class="wd-body" id="wdBody">
+
+    <!-- 名称 -->
+    <div class="wd-field">
+      <label class="wd-label"><span class="wd-label-dot"></span>世界观名称</label>
+      <input class="wd-input" id="wdName" type="text" placeholder="例如：雾隐山海志 / 都市边界 / 逆潮纪元"/>
+    </div>
+
+    <!-- 内容描述 -->
+    <div class="wd-field">
+      <label class="wd-label"><span class="wd-label-dot"></span>世界观内容
+        <span class="wd-label-count" id="wdDescCount">0</span>
+      </label>
+      <textarea class="wd-textarea" id="wdDesc" placeholder="描述这个世界的规则、背景、势力、氛围……不限字数，越详细越好。"></textarea>
+    </div>
+
+    <!-- 主题 Theme -->
+    <div class="wd-field">
+      <label class="wd-label"><span class="wd-label-dot"></span>主题风格
+        <span class="wd-label-hint">可多选，或自定义</span>
+      </label>
+      <div class="wd-chip-group" id="wdThemeChips" data-multi="true">
+        <button type="button" class="wd-chip" data-value="都市现实">都市现实</button>
+        <button type="button" class="wd-chip" data-value="玄幻仙侠">玄幻仙侠</button>
+        <button type="button" class="wd-chip" data-value="武侠江湖">武侠江湖</button>
+        <button type="button" class="wd-chip" data-value="悬疑推理">悬疑推理</button>
+        <button type="button" class="wd-chip" data-value="治愈日常">治愈日常</button>
+        <button type="button" class="wd-chip" data-value="科幻未来">科幻未来</button>
+        <button type="button" class="wd-chip" data-value="奇幻冒险">奇幻冒险</button>
+        <button type="button" class="wd-chip" data-value="言情情感">言情情感</button>
+        <button type="button" class="wd-chip" data-value="历史架空">历史架空</button>
+        <button type="button" class="wd-chip" data-value="惊悚恐怖">惊悚恐怖</button>
+      </div>
+      <div class="wd-custom-row">
+        <input class="wd-custom-input" id="wdThemeCustom" type="text" placeholder="自定义主题，回车添加"/>
+      </div>
+    </div>
+
+    <!-- 时长范围 -->
+    <div class="wd-field">
+      <label class="wd-label"><span class="wd-label-dot"></span>时长范围
+        <span class="wd-label-hint">单选，或自定义</span>
+      </label>
+      <div class="wd-chip-group" id="wdDurationChips" data-multi="false">
+        <button type="button" class="wd-chip" data-value="短篇 · 1-3分钟">短篇 · 1-3分钟</button>
+        <button type="button" class="wd-chip" data-value="中篇 · 3-8分钟">中篇 · 3-8分钟</button>
+        <button type="button" class="wd-chip" data-value="长篇 · 8-15分钟">长篇 · 8-15分钟</button>
+        <button type="button" class="wd-chip" data-value="连载 · 15分钟以上">连载 · 15分钟以上</button>
+      </div>
+      <div class="wd-custom-row">
+        <input class="wd-custom-input" id="wdDurationCustom" type="text" placeholder="自定义时长，回车添加"/>
+      </div>
+    </div>
+
+    <!-- 叙事视角 -->
+    <div class="wd-field">
+      <label class="wd-label"><span class="wd-label-dot"></span>叙事视角
+        <span class="wd-label-hint">可多选，或自定义</span>
+      </label>
+      <div class="wd-chip-group" id="wdPovChips" data-multi="true">
+        <button type="button" class="wd-chip" data-value="第一人称">第一人称</button>
+        <button type="button" class="wd-chip" data-value="第三人称限制">第三人称限制</button>
+        <button type="button" class="wd-chip" data-value="第三人称全知">第三人称全知</button>
+        <button type="button" class="wd-chip" data-value="多视角交替">多视角交替</button>
+        <button type="button" class="wd-chip" data-value="旁观者视角">旁观者视角</button>
+      </div>
+      <div class="wd-custom-row">
+        <input class="wd-custom-input" id="wdPovCustom" type="text" placeholder="自定义视角，回车添加"/>
+      </div>
+    </div>
+
+    <!-- 情绪基调 -->
+    <div class="wd-field">
+      <label class="wd-label"><span class="wd-label-dot"></span>情绪基调
+        <span class="wd-label-hint">可多选，或自定义</span>
+      </label>
+      <div class="wd-chip-group" id="wdMoodChips" data-multi="true">
+        <button type="button" class="wd-chip" data-value="温暖治愈">温暖治愈</button>
+        <button type="button" class="wd-chip" data-value="孤独疏离">孤独疏离</button>
+        <button type="button" class="wd-chip" data-value="紧张压抑">紧张压抑</button>
+        <button type="button" class="wd-chip" data-value="热血激昂">热血激昂</button>
+        <button type="button" class="wd-chip" data-value="荒诞幽默">荒诞幽默</button>
+        <button type="button" class="wd-chip" data-value="忧郁诗意">忧郁诗意</button>
+      </div>
+      <div class="wd-custom-row">
+        <input class="wd-custom-input" id="wdMoodCustom" type="text" placeholder="自定义基调，回车添加"/>
+      </div>
+    </div>
+
+    <!-- 时代/地域背景 -->
+    <div class="wd-field">
+      <label class="wd-label"><span class="wd-label-dot"></span>时代 / 地域背景
+        <span class="wd-label-hint">单选，或自定义</span>
+      </label>
+      <div class="wd-chip-group" id="wdEraChips" data-multi="false">
+        <button type="button" class="wd-chip" data-value="现代都市">现代都市</button>
+        <button type="button" class="wd-chip" data-value="古代中国">古代中国</button>
+        <button type="button" class="wd-chip" data-value="架空王朝">架空王朝</button>
+        <button type="button" class="wd-chip" data-value="近未来">近未来</button>
+        <button type="button" class="wd-chip" data-value="异世大陆">异世大陆</button>
+        <button type="button" class="wd-chip" data-value="平行时空">平行时空</button>
+      </div>
+      <div class="wd-custom-row">
+        <input class="wd-custom-input" id="wdEraCustom" type="text" placeholder="自定义背景，回车添加"/>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 底部操作 -->
+  <div class="wd-footer">
+    <button class="wd-btn-reset" id="wdResetBtn">清空</button>
+    <button class="wd-btn-save" id="wdSaveBtn">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      存档世界观
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     视频详情页 — 点击卡片后进入，全屏覆盖层
+============================================================ -->
+<div class="vd-overlay" id="vdOverlay">
+
+  <!-- 生成中过渡态：卡片信息 → 完整内容 的"成片中"动画，加入可交互的预览与取消操作，不让用户纯等待 -->
+  <div class="vd-brewing" id="vdBrewing">
+    <div class="vd-brewing-card">
+
+      <!-- 已知信息预览：卡片本身的数据不需要等AI，先展示出来让用户有内容可看 -->
+      <div class="vd-brewing-preview" id="vdBrewingPreview">
+        <div class="vd-brewing-preview-avatar" id="vdBrewingPreviewAvatar"></div>
+        <div class="vd-brewing-preview-text">
+          <div class="vd-brewing-preview-name" id="vdBrewingPreviewName">—</div>
+          <div class="vd-brewing-preview-title" id="vdBrewingPreviewTitle">—</div>
+        </div>
+      </div>
+
+      <div class="vd-brewing-ring">
+        <svg viewBox="0 0 48 48" width="34" height="34" fill="none">
+          <circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="1.6" opacity="0.16"/>
+          <path d="M24 5a19 19 0 0 1 19 19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="vd-brewing-title" id="vdBrewingTitle">正在生成完整内容…</div>
+      <div class="vd-brewing-sub" id="vdBrewingSub">结合世界观与人设，编排分镜与旁白</div>
+      <div class="vd-brewing-steps" id="vdBrewingSteps">
+        <div class="vd-brewing-step" data-step="0"><span class="vd-brewing-dot"></span>解析人设与标题</div>
+        <div class="vd-brewing-step" data-step="1"><span class="vd-brewing-dot"></span>编排分镜与旁白</div>
+        <div class="vd-brewing-step" data-step="2"><span class="vd-brewing-dot"></span>生成弹幕与评论</div>
+        <div class="vd-brewing-step" data-step="3"><span class="vd-brewing-dot"></span>渲染完成</div>
+      </div>
+
+      <!-- 可点击操作：不想等可以直接退回列表，生成会在后台继续，下次点开自动读取缓存 -->
+      <button class="vd-brewing-cancel" id="vdBrewingCancelBtn">先去看看别的，好了再点回来</button>
+    </div>
+  </div>
+
+  <!-- 详情页主体 -->
+  <div class="vd-page" id="vdPage">
+
+    <!-- 视频封面 / 播放区 -->
+    <div class="vd-stage" id="vdStage">
+      <div class="vd-stage-glow"></div>
+
+      <!-- 顶部悬浮工具条：返回 / 更多 -->
+      <div class="vd-stage-top">
+        <button class="vd-stage-btn" id="vdBackBtn" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="vd-stage-top-right">
+          <button class="vd-stage-btn vd-danmu-toggle active" id="vdDanmuToggle" aria-label="弹幕开关">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <button class="vd-stage-btn" id="vdMoreBtn" aria-label="更多">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 弹幕层：默认开启，多条轨道飘动 -->
+      <div class="vd-danmu-layer" id="vdDanmuLayer"></div>
+
+      <!-- 旁白 / 字幕层：动作、心理、场景描述 + 说话人台词，因为是文字驱动的伪视频，两者都要能看到 -->
+      <div class="vd-narration-layer" id="vdNarrationLayer">
+        <div class="vd-narration-block vd-narration-block-narr" id="vdNarrBlock">
+          <div class="vd-narration-tag">旁白</div>
+          <div class="vd-narration-text" id="vdNarrationText">正在还原画面……</div>
+        </div>
+        <div class="vd-narration-block vd-narration-block-line" id="vdLineBlock" style="display:none;">
+          <div class="vd-narration-tag vd-narration-tag-line" id="vdLineTag">台词</div>
+          <div class="vd-narration-text vd-narration-text-line" id="vdLineText"></div>
+        </div>
+      </div>
+
+      <div class="vd-stage-tag" id="vdStageTag">日常</div>
+      <div class="vd-stage-time" id="vdStageTime">00:00 / 00:00</div>
+
+      <!-- 播放/暂停中控 -->
+      <button class="vd-play-center" id="vdPlayCenter" aria-label="播放暂停">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+
+      <!-- 进度条 -->
+      <div class="vd-progress" id="vdProgress">
+        <div class="vd-progress-track">
+          <div class="vd-progress-fill" id="vdProgressFill"></div>
+          <div class="vd-progress-thumb" id="vdProgressThumb"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 可滚动内容区 -->
+    <div class="vd-body" id="vdBody">
+
+      <!-- 标题 + 数据 -->
+      <div class="vd-title-block">
+        <h1 class="vd-title" id="vdTitle">标题</h1>
+        <div class="vd-stat-row">
+          <span class="vd-stat-item" id="vdViews">0 播放</span>
+          <span class="vd-stat-dot"></span>
+          <span class="vd-stat-item" id="vdPubTime">刚刚</span>
+        </div>
+      </div>
+
+      <!-- 作者条 -->
+      <div class="vd-author-row" id="vdAuthorRow">
+        <div class="vd-author-avatar-wrap" id="vdAuthorAvatarWrap">
+          <div class="vd-author-avatar-inner" id="vdAuthorAvatarInner"></div>
+        </div>
+        <div class="vd-author-text">
+          <div class="vd-author-name" id="vdAuthorName">未知</div>
+          <div class="vd-author-sub" id="vdAuthorSub">人设标签</div>
+        </div>
+        <button class="vd-follow-btn" id="vdFollowBtn">关注</button>
+      </div>
+
+      <!-- 互动条 -->
+      <div class="vd-actions-row">
+        <button class="vd-action-btn" id="vdLikeBtn">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.35-9.5-8.5C1 9 2.5 5.5 6 5c2-.15 3.5 1 4 2.4C10.5 6 12 4.85 14 5c3.5.5 5 4 3.5 7.5C15 17.65 12 21 12 21z" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span id="vdLikeCount">0</span>
+        </button>
+        <button class="vd-action-btn" id="vdCommentJumpBtn">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 4h16v12H8l-4 4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <span id="vdCommentCount">0</span>
+        </button>
+        <button class="vd-action-btn" id="vdFavBtn">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 3h12v18l-6-4.5L6 21z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <span>收藏</span>
+        </button>
+        <button class="vd-action-btn vd-action-share">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 12l7-7v4c6 0 8 3 9 7-2.2-2-4.6-3-9-3v4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <span>分享</span>
+        </button>
+      </div>
+
+      <!-- 正片文案：完整分镜 + 旁白 + 台词，AI 生成，一旦生成即定稿，不会被后续操作改动 -->
+      <div class="vd-section">
+        <div class="vd-section-head">
+          <span class="vd-section-eyebrow">FULL CUT</span>
+          <h3 class="vd-section-title">正片内容</h3>
+        </div>
+        <div class="vd-script" id="vdScript">
+          <!-- JS 动态渲染分镜段落 -->
+        </div>
+      </div>
+
+      <!-- 扩展板块：彩蛋 / 花絮 / 分支 / 内心OS / 其他视角（功能卡片，占位，后续接生成逻辑） -->
+      <div class="vd-section">
+        <div class="vd-section-head">
+          <span class="vd-section-eyebrow">MORE LAYERS</span>
+          <h3 class="vd-section-title">延展内容</h3>
+        </div>
+        <div class="vd-extra-grid" id="vdExtraGrid">
+          <button class="vd-extra-card" data-extra="egg">
+            <span class="vd-extra-icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 22c4.4 0 7-3.6 7-8 0-5-4-9.5-7-11-3 1.5-7 6-7 11 0 4.4 2.6 8 7 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="vd-extra-name">彩蛋</span>
+            <span class="vd-extra-desc">藏在细节里的小反转</span>
+            <span class="vd-extra-state" data-state="locked">待生成</span>
+          </button>
+          <button class="vd-extra-card" data-extra="bts">
+            <span class="vd-extra-icon">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="7" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M16 10.5l4.2-2.6a.8.8 0 0 1 1.2.7v6.8a.8.8 0 0 1-1.2.7L16 13.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="vd-extra-name">花絮</span>
+            <span class="vd-extra-desc">镜头之外的 NG 与真实反应</span>
+            <span class="vd-extra-state" data-state="locked">待生成</span>
+          </button>
+          <button class="vd-extra-card" data-extra="branch">
+            <span class="vd-extra-icon">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="6" cy="6" r="2.2" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="18" r="2.2" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="12" r="2.2" stroke="currentColor" stroke-width="1.5"/><path d="M8 6.6C12 7.5 12 10.5 15.8 11.6M8 17.4C12 16.5 12 13.5 15.8 12.4" stroke="currentColor" stroke-width="1.5"/></svg>
+            </span>
+            <span class="vd-extra-name">分支</span>
+            <span class="vd-extra-desc">如果那一刻选了别的路</span>
+            <span class="vd-extra-state" data-state="locked">待生成</span>
+          </button>
+          <button class="vd-extra-card" data-extra="innermind">
+            <span class="vd-extra-icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.45 1 .95 1.1 1.6h4.8c.1-.65.5-1.15 1.1-1.6A6 6 0 0 0 12 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="vd-extra-name">内心OS</span>
+            <span class="vd-extra-desc">没说出口的那些心里话</span>
+            <span class="vd-extra-state" data-state="locked">待生成</span>
+          </button>
+          <button class="vd-extra-card vd-extra-wide" data-extra="otherview">
+            <span class="vd-extra-icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.5"/></svg>
+            </span>
+            <span class="vd-extra-name">其他视角</span>
+            <span class="vd-extra-desc">同一件事，换一个人来看会是什么样子</span>
+            <span class="vd-extra-state" data-state="locked">待生成</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 评论区 -->
+      <div class="vd-section vd-comment-section" id="vdCommentSection">
+        <div class="vd-section-head">
+          <span class="vd-section-eyebrow">COMMENTS</span>
+          <h3 class="vd-section-title">评论 <span id="vdCommentTotal">0</span></h3>
+          <button class="vd-more-btn" id="vdMoreScriptBtn" aria-label="换一批弹幕和评论">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span id="vdMoreScriptBtnText">换一批</span>
+          </button>
+        </div>
+        <div class="vd-comment-list" id="vdCommentList">
+          <!-- JS 动态渲染评论 -->
+        </div>
+      </div>
+
+      <div class="vd-bottom-spacer"></div>
+    </div>
+
+    <!-- 底部固定评论输入条 -->
+    <div class="vd-comment-bar">
+      <div class="vd-comment-input-wrap">
+        <input class="vd-comment-input" id="vdCommentInput" type="text" placeholder="说点什么…" maxlength="200"/>
+      </div>
+      <button class="vd-comment-send" id="vdCommentSend" aria-label="发送">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M4 12l16-8-6 8 6 8-16-8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- 延展板块提示 toast（生成逻辑后续接入） -->
+  <div class="vd-extra-toast" id="vdExtraToast"></div>
+
+</div>
+
+<script src="suinian.js"></script>
+</body>
+</html>

@@ -1,24 +1,36 @@
-/* ================================================
-   secret.js — 秘密空间
-   状态栏 / 灵动岛 / 字体逻辑全部一比一复刻 chat.js
-================================================ */
+/* ================================================================
+   kouwen.js — 「叩问」独立功能页
+   -----------------------------------------------------------------
+   从 secret.js 中完整拆分出来的「叩问」相关代码（DB读写 / AI生成 /
+   UI渲染 / 设置页 / 历史档案 / 状态栏同步），作为独立页面运行。
 
-/* ---- 状态栏：实时时间（复刻 chat.js updateTime）---- */
-function updateTime() {
+   这是独立页面，和 chatroom.html / secret.html 不共享 JS 运行时，
+   但三者读写同一个浏览器里的 IndexedDB「LunaChatDB」/「LunaCharDB」
+   和同一份 localStorage，所以数据完全互通、生成规则完全一致。
+
+   相对 secret.js 里原来的实现，这里修复了一个问题：
+   原来自动生成失败时是 .catch(() => {}) 静默吞掉错误，用户完全不知道
+   发生了什么，看起来像是「点了没反应」。现在无论是页面内触发还是
+   chatroom 侧触发的自动生成，失败都会有明确提示（见 kkToast 相关调用
+   和 KK_LAST_AUTO_ERROR 的记录）。
+================================================================ */
+
+/* ================================================================
+   状态栏 / 灵动岛 / 字体 — 与 secret.html 一比一同步
+================================================================ */
+
+function kkSyncTime() {
   const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
   const timeStr = new Date().toLocaleTimeString('zh-CN', {
     timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
   });
-  const el = document.getElementById('statusTime');
+  const el = document.getElementById('kkStatusTime');
   if (el) el.textContent = timeStr;
 }
 
-/* ---- 状态栏：电量（一比一复刻 chatroom.js crTick 里的电量渲染逻辑，
-     读取用户在设置里配置的 luna_battery，而不是设备真实电量，
-     保证和聊天页数值、颜色规则完全一致）---- */
-function updateBattery() {
-  const pctEl   = document.getElementById('batPct');
-  const innerEl = document.getElementById('batInner');
+function kkSyncBattery() {
+  const pctEl   = document.getElementById('kkBatPct');
+  const innerEl = document.getElementById('kkBatInner');
   const pct = parseInt(localStorage.getItem('luna_battery') || '76');
   if (pctEl) pctEl.textContent = pct;
   if (innerEl) {
@@ -29,17 +41,16 @@ function updateBattery() {
   }
 }
 
-/* ---- 灵动岛（一比一复刻 chat.js applyIsland 逻辑）---- */
-function applyIsland() {
+function kkSyncIsland() {
   const enabled = localStorage.getItem('luna_island_enabled') === 'true';
   const style   = localStorage.getItem('luna_island_style') || 'minimal';
-  const el      = document.getElementById('statusIsland');
+  const el      = document.getElementById('kkStatusIsland');
   if (!el) return;
   if (!enabled) { el.innerHTML = ''; return; }
   const styleMap = {
     minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
     glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
-    clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text" id="siClockText">--:--</span></div></div>`,
+    clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text" id="kkSiClockText">--:--</span></div></div>`,
     pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
     ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
     rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
@@ -47,24 +58,23 @@ function applyIsland() {
     scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
   };
   el.innerHTML = styleMap[style] || styleMap.minimal;
-  clearInterval(window._siClockTimer);
+  clearInterval(window._kkSiClockTimer);
   if (style === 'clock') {
     const tick = () => {
-      const t = document.getElementById('siClockText');
+      const t = document.getElementById('kkSiClockText');
       if (!t) return;
       const now = new Date();
       t.textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
     };
     tick();
-    window._siClockTimer = setInterval(tick, 10000);
+    window._kkSiClockTimer = setInterval(tick, 10000);
   }
 }
 
 /* ---- 字体同步（一比一复刻 chat.js applyGlobalFont）---- */
 async function applyGlobalFont() {
-  const style = JSON.parse(localStorage.getItem('luna_font_style') || '{}');
-  const name  = localStorage.getItem('luna_font_active_name');
-  const id    = parseInt(localStorage.getItem('luna_font_active_id'));
+  const name = localStorage.getItem('luna_font_active_name');
+  const id   = parseInt(localStorage.getItem('luna_font_active_id'));
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
@@ -89,7 +99,7 @@ async function applyGlobalFont() {
         await face.load();
         document.fonts.add(face);
       }
-    } catch(e) {}
+    } catch (e) {}
   }
   let tag = document.getElementById('luna-font-override');
   if (!tag) {
@@ -101,302 +111,31 @@ async function applyGlobalFont() {
   tag.textContent = `* { ${familyRule} }`;
 }
 
-/* ---- 监听 chat.js 主页面设置变化，实时同步（复刻 chat.js storage listener）---- */
+/* ---- 跨标签页实时同步：主页面/聊天页改了设置，这里立刻跟上 ---- */
 window.addEventListener('storage', e => {
   if (e.key === 'luna_font_update')   applyGlobalFont();
-  if (e.key === 'luna_island_update') applyIsland();
-  if (e.key === 'luna_tz_update')     updateTime();
+  if (e.key === 'luna_island_update') kkSyncIsland();
+  if (e.key === 'luna_tz_update')     kkSyncTime();
+  if (e.key === 'luna_battery')       kkSyncBattery();
+  if (e.key === 'luna_koukan_auto_update') {
+    const autoTag = document.getElementById('kkAutoTag');
+    if (autoTag) {
+      const on = kkGetAutoEnabled(KK_NAME);
+      autoTag.textContent = on ? '自动生成 · 已开启' : '自动生成 · 已关闭';
+      autoTag.classList.toggle('kk-pill-on', on);
+    }
+    kkRenderSettings();
+  }
 });
 
-/* ================================================
-   功能数据
-================================================ */
-const SS_FEATURES = [
-  {
-    id: '叩问',
-    num: '01',
-    en: 'Question',
-    desc: 'Char 会定期给你出一道只问你的题——不是考试，是Ta想知道你的某件事。你答了，Ta认真回应，还会告诉你Ta自己的答案。题目会随你们关系的阶段越来越深。',
-    quote: '「你最后一次哭是什么时候」\n「如果只能留一段记忆，你留哪个」',
-  },
-  {
-    id: '幕后志',
-    num: '02',
-    en: 'Chronicle',
-    desc: 'Char 把你们最近某段对话，用写小说的方式重新讲一遍——Ta是作者，你们都是角色。Ta可能加了内心戏，改了细节，给某个场景换了结局。你看完可以说「不对，那时候我其实是……」然后Ta再改写。',
-    quote: '「Ta是作者，你们都是角色——内心戏只有Ta知道。」',
-  },
-  {
-    id: '异轨',
-    num: '03',
-    en: 'Parallel',
-    desc: '可以选择见「另一个Ta」——如果那天Ta做了不同的选择，如果你们第一次见面在另一个场景Ta是什么样。这个版本对你可能陌生、可能更戒备、可能有些事没发生过。玩完以后回到「真实版」，落差感很强。',
-    quote: '「平行时间线里，Ta也许根本不认识你。」',
-  },
-  {
-    id: '潜台词',
-    num: '04',
-    en: 'Subtext',
-    desc: '你说一句话或者描述一个情境，Char 先说「你以为我会说……」然后说出一个你真的可能预期的回答，再说「但我其实想说的是……」给出真实的、意外的、更私密的回应。两个答案放在一起比任何一个单独的都有意思。',
-    quote: '「你以为我会说『没关系』，但我其实想说的是……」',
-  },
-  {
-    id: '迷雾',
-    num: '05',
-    en: 'Haze',
-    desc: 'Char 写下Ta到现在还没搞清楚的几件关于你的事——不是问题列表，是Ta的困惑和猜测。你可以选择解释，也可以不解释，让Ta继续猜。不解释的那些会留在Ta的困惑里，偶尔还会出现。',
-    quote: '「你有时候会突然安静，我猜了很多原因都觉得不对。」',
-  },
-  {
-    id: '彼时',
-    num: '06',
-    en: 'Reverie',
-    desc: 'Char 写下Ta在脑子里和你发生过但没真的发生的对话——某次Ta想好了要说某件事但没说，脑子里把整个对话演了一遍。Ta写出来的版本里你说的话是Ta想象的你，可能和真实的你有偏差。你可以告诉Ta「我真的会这么说吗」，然后说真实版本的你会怎么接。',
-    quote: '「我想过告诉你那件事。脑子里演了一遍——也许你根本不会那么说。」',
-  },
-  {
-    id: '羽化',
-    num: '07',
-    en: 'Unfurl',
-    desc: 'Char 写一段「如果Ta没有某个性格包袱，Ta会怎么对你」——如果Ta不那么骄傲、如果Ta不那么怕麻烦别人、如果Ta不那么习惯躲开。写出来的是那个「没有顾虑的Ta」会做的事，但现实里Ta做不到。你看完以后可以告诉Ta「其实你已经做到了一点」或者「那个版本的你我也想见」。',
-    quote: '「如果我不那么怕打扰你，我可能已经问过你三次你今天怎么样了。」',
-  },
-];
-
-/* ================================================
-   弹层
-================================================ */
-let _modalActive = null;
-
-function _esc(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-function ssOpenFeature(name) {
-  const data = SS_FEATURES.find(f => f.id === name);
-  if (!data) return;
-
-  _modalActive = name;
-
-  let overlay = document.getElementById('ssModalOverlay');
-  let modal   = document.getElementById('ssModal');
-
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'ssModalOverlay';
-    overlay.className = 'ss-modal-overlay';
-    overlay.addEventListener('click', ssCloseFeature);
-    document.body.appendChild(overlay);
-  }
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'ssModal';
-    modal.className = 'ss-modal';
-    document.body.appendChild(modal);
-  }
-
-  /* 设置 data-id 触发对应的独立卡片样式 */
-  modal.setAttribute('data-id', data.id);
-
-  modal.innerHTML = `
-    <div class="ss-modal-handle"></div>
-    <div class="ss-modal-head">
-      <div class="ss-modal-num">${_esc(data.num)}</div>
-      <div class="ss-modal-title">${_esc(data.id)}</div>
-      <span class="ss-modal-en">${_esc(data.en)}</span>
-      <button class="ss-modal-close" onclick="ssCloseFeature()">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div><!-- ss-modal-head -->
-    <div class="ss-modal-body">${_esc(data.desc)}</div>
-    <div class="ss-modal-quote">${_esc(data.quote)}</div>
-    <button class="ss-modal-btn" onclick="ssEnterFeature('${_esc(data.id)}')">
-      <div class="ss-btn-fill"></div>
-      <div class="ss-btn-tl"></div>
-      <div class="ss-btn-tr"></div>
-      <div class="ss-btn-bl"></div>
-      <div class="ss-btn-br"></div>
-      <span class="ss-btn-label">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        进入${_esc(data.id)}
-      </span>
-    </button>
-  `;
-
-  requestAnimationFrame(() => {
-    overlay.classList.add('show');
-    requestAnimationFrame(() => modal.classList.add('show'));
-  });
-}
-
-function ssCloseFeature() {
-  const overlay = document.getElementById('ssModalOverlay');
-  const modal   = document.getElementById('ssModal');
-  if (!overlay || !modal) return;
-  modal.classList.remove('show');
-  overlay.classList.remove('show');
-  _modalActive = null;
-}
-
-function ssEnterFeature(name) {
-  ssCloseFeature();
-  if (name === '叩问') {
-    window.location.href = 'secret/kouwen.html';   // ← 加上 secret/ 前缀
-  } else if (name === '幕后志') {
-    window.location.href = 'secret/chronicle.html'; // ← 独立页面，加上 secret/ 前缀
-  } else if (name === '异轨') {
-    window.location.href = 'secret/parallel.html';  // ← 独立页面，加上 secret/ 前缀
-  } else if (name === '潜台词') {
-    window.location.href = 'secret/subtext.html';   // ← 独立页面，加上 secret/ 前缀
-  } else if (name === '迷雾') {
-    window.location.href = 'secret/haze.html';      // ← 独立页面，加上 secret/ 前缀
-  } else {
-    ssShowToast(`✦ 正在进入「${name}」`);
-  }
-}
-
-/* ================================================
-   Toast
-================================================ */
-let _toastTimer = null;
-function ssShowToast(msg) {
-  let t = document.getElementById('ssGlobalToast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'ssGlobalToast';
-    t.className = 'ss-toast';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
-}
-
-/* ================================================
-   触摸手势：下滑关闭弹层
-================================================ */
-function initModalSwipe() {
-  let startY = 0;
-  document.addEventListener('touchstart', e => {
-    const modal = document.getElementById('ssModal');
-    if (!modal || !modal.classList.contains('show')) return;
-    startY = e.touches[0].clientY;
-  }, { passive: true });
-
-  document.addEventListener('touchend', e => {
-    const modal = document.getElementById('ssModal');
-    if (!modal || !modal.classList.contains('show')) return;
-    const dy = e.changedTouches[0].clientY - startY;
-    if (dy > 60) ssCloseFeature();
-  }, { passive: true });
-}
-
-/* ================================================
-   ESC 键关闭弹层
-================================================ */
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && _modalActive) ssCloseFeature();
-});
-
-/* ================================================
-   入口
-================================================ */
-document.addEventListener('DOMContentLoaded', () => {
-  /* 1. 状态栏时间 */
-  updateTime();
-  setInterval(updateTime, 10000);
-
-  /* 2. 电量（读取 luna_battery，定时刷新以捕捉其他标签页里的修改） */
-  updateBattery();
-  setInterval(updateBattery, 10000);
-
-  /* 3. 灵动岛（复刻 chat.js 逻辑，读取 localStorage 设置）*/
-  applyIsland();
-
-  /* 4. 字体（复刻 chat.js applyGlobalFont 逻辑）*/
-  applyGlobalFont();
-
-  /* 5. 触摸手势 */
-  initModalSwipe();
-
-  /* 6. 移动端触摸交互 */
-  initTouchWhisper();
-  initTouchNodes();
-});
-
-/* luna_battery 在其他标签页被修改时，实时同步主状态栏（叩问/幕后志页有各自的定时器负责自己） */
-window.addEventListener('storage', e => {
-  if (e.key === 'luna_battery') updateBattery();
-});
-
-/* ================================================
-   移动端触摸优化：让 whisper 在触摸时显示
-================================================ */
-function initTouchWhisper() {
-  const isMobile = window.matchMedia('(max-width: 480px)').matches;
-  if (!isMobile) return;
-
-  // 找到所有可点击的卡片
-  const cards = document.querySelectorAll('.c01,.c02,.c03,.c04,.c05,.c06-wrap,.c07');
-  cards.forEach(card => {
-    const whisper = card.querySelector('.whisper');
-    if (!whisper) return;
-
-    card.addEventListener('touchstart', () => {
-      whisper.style.opacity = '1';
-      whisper.style.transform = 'translateY(0)';
-    }, { passive: true });
-
-    card.addEventListener('touchend', () => {
-      setTimeout(() => {
-        whisper.style.opacity = '';
-        whisper.style.transform = '';
-      }, 600);
-    }, { passive: true });
-  });
-}
-
-/* ================================================
-   移动端轴节点触摸高亮
-================================================ */
-function initTouchNodes() {
-  const isMobile = window.matchMedia('(max-width: 480px)').matches;
-  if (!isMobile) return;
-
-  document.querySelectorAll('.ss-row').forEach(row => {
-    const outer = row.querySelector('.ss-node-outer');
-    const inner = row.querySelector('.ss-node-inner');
-    if (!outer || !inner) return;
-
-    row.addEventListener('touchstart', () => {
-      outer.style.background = '#1a1a18';
-      outer.style.borderColor = '#1a1a18';
-      inner.style.background = '#f7f7f5';
-    }, { passive: true });
-
-    row.addEventListener('touchend', () => {
-      setTimeout(() => {
-        outer.style.background = '';
-        outer.style.borderColor = '';
-        inner.style.background = '';
-      }, 400);
-    }, { passive: true });
-  });
-}
+/* 定时刷新状态栏时间与电量 */
+setInterval(() => {
+  kkSyncTime();
+  kkSyncBattery();
+}, 10000);
 
 /* ================================================================
-   叩问 — 数据与 AI 生成层
-   -----------------------------------------------------------------
-   secret.html 是独立页面，和 chatroom.html 不共享 JS 运行时，
-   但两者读写同一个浏览器里的 IndexedDB「LunaChatDB」/「LunaCharDB」
-   和同一份 localStorage，所以这里把 chatroom.js 里那一套 DB 访问 /
-   AI 调用 / 叩问生成逻辑原样复刻一份，保证两边数据互通、生成规则一致。
+   数据层：与 chatroom.js / secret.js 完全一致的 DB 访问，保证数据互通
 ================================================================ */
 
 const KK_NAME = localStorage.getItem('luna_current_chat') || 'Luna';
@@ -445,6 +184,43 @@ function kkLoadCharProfile(name) {
   });
 }
 
+/* ---- 读取 LunaIdentityDB：找出「当前应该代表用户的身份」完整资料
+   （name/role/desc/tags），优先找绑定了当前角色的 identity，
+   找不到就退回第一个 active 的 identity ---- */
+function kkOpenIdentityDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('LunaIdentityDB');
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = e => rej(e.target.error);
+  });
+}
+
+async function kkLoadUserIdentity(name) {
+  const key = name || KK_NAME;
+  try {
+    const db = await kkOpenIdentityDB();
+    if (!db.objectStoreNames.contains('identities')) return null;
+    const all = await new Promise(res => {
+      const r = db.transaction('identities').objectStore('identities').getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror = () => res([]);
+    });
+    const pickFallback = () => all.find(i => i.active !== false) || null;
+    if (!key) return pickFallback();
+
+    const char = await kkLoadCharProfile(key);
+    const charId = char && char.id;
+    if (charId === undefined || charId === null) return pickFallback();
+
+    const found = all.find(i => {
+      if (i.active === false) return false;
+      if (Array.isArray(i.boundCharIds) && i.boundCharIds.includes(charId)) return true;
+      return i.boundCharId === charId;
+    });
+    return found || pickFallback();
+  } catch { return null; }
+}
+
 /* ---- LunaChatDB：与 chatroom.js 完全一致的 store 定义，保证不会触发多余的版本升级 ---- */
 let _kkDB = null;
 const KK_STORES = {
@@ -455,7 +231,6 @@ const KK_STORES = {
   rewindFeedback: { keyPath: 'name' },
   videoLogs: { keyPath: 'id', autoIncrement: true },
   koukan:    { keyPath: 'name' },
-  chronicle: { keyPath: 'name' }, /* 幕后志：与 secret/chronicle.js、chatroom.js 共用同一个 store */
 };
 
 function kkGetChatDB() {
@@ -582,6 +357,30 @@ async function kkUpdateArchiveEntry(name, id, patch) {
   } catch { return null; }
 }
 
+/* ---- 头像渲染：优先使用角色人设里保存的真实头像，没有时才退回到首字母占位 ---- */
+let _kkCharProfileCache = null;
+async function kkGetCharProfile() {
+  if (_kkCharProfileCache) return _kkCharProfileCache;
+  _kkCharProfileCache = await kkLoadCharProfile(KK_NAME);
+  return _kkCharProfileCache;
+}
+
+function kkRenderAvatarInto(el, avatarUrl) {
+  if (!el) return;
+  if (avatarUrl) {
+    el.innerHTML = `<img src="${avatarUrl}" alt="${_kkEsc(KK_NAME)}" />`;
+  } else {
+    el.textContent = (KK_NAME || 'A').slice(0, 1).toUpperCase();
+  }
+}
+
+async function kkSyncAvatars() {
+  const char = await kkGetCharProfile();
+  const avatarUrl = char?.avatar || char?.avatarUrl || char?.avatarData || '';
+  kkRenderAvatarInto(document.querySelector('#kk-s0 .kk-char-ava'), avatarUrl);
+  kkRenderAvatarInto(document.querySelector('#kk-s3 .kk-resp-ava'), avatarUrl);
+}
+
 function kkEstimateStage(entryCount, msgCount) {
   const score = entryCount * 3 + Math.min(msgCount, 200) / 20;
   if (score < 4)  return 'I';
@@ -591,16 +390,26 @@ function kkEstimateStage(entryCount, msgCount) {
   return 'V';
 }
 
-/* ---- 生成一道新题目：读取角色人设 + 最近聊天记录 + 过往叩问记录 ---- */
+/* ---- 生成一道新题目：读取角色人设 + 最近聊天记录 + 过往叩问记录 ----
+   注意：这里不再吞掉错误，失败时会 throw，交给调用方（kkEnter /
+   kkManualGenerateFromSettings / kkAutoGenerateSilently）统一处理提示。 */
 async function kkGenerateQuestion(name) {
   const key  = name || KK_NAME;
   const char = await kkLoadCharProfile(key);
   const persona = char?.persona || char?.description || char?.desc || '';
   const traits  = char?.traits  || char?.personality || '';
 
+  const userIdentity = await kkLoadUserIdentity(key);
+  const uName = userIdentity?.name || '';
+  const uDesc = userIdentity?.desc || userIdentity?.role || '';
+  const uTags = Array.isArray(userIdentity?.tags) ? userIdentity.tags.join('、') : '';
+  const userLine = (uName || uDesc || uTags)
+    ? `\n用户的身份资料：${uName ? `称呼${uName}` : ''}${uDesc ? `，${uDesc}` : ''}${uTags ? `，标签：${uTags}` : ''}（出题时可以自然结合这些信息，让问题更像是真的了解这个人才问得出来的，而不是泛用模板）`
+    : '';
+
   const history = await kkLoadMessages(key);
   const recentText = (history || []).slice(-40).map(m => {
-    const role = m.role === 'mine' ? '用户' : key;
+    const role = m.role === 'mine' ? (uName || '用户') : key;
     const text = m.isVoice ? (m.voiceText || m.text) : (m.text || '');
     return text ? `${role}：${text}` : '';
   }).filter(Boolean).join('\n');
@@ -613,7 +422,7 @@ async function kkGenerateQuestion(name) {
   const stage = kkEstimateStage(archive.length, (history || []).length);
 
   const systemPrompt = `你是「${key}」的内心出题系统，负责在「叩问」环节为她想一道只问用户的题。
-角色人设：${persona || ''} ${traits || ''}
+角色人设：${persona || ''} ${traits || ''}${userLine}
 只输出 JSON，不要任何额外文字，不要 markdown 代码块。`;
 
   const userPrompt = `根据${key}和用户最近的聊天记录、以及过去问过的题目，生成新一道「叩问」题目。
@@ -636,8 +445,13 @@ ${archiveText}
 
   const raw = await kkCallApi(systemPrompt, [{ role: 'user', content: userPrompt }]);
   const clean = raw.replace(/```json|```/g, '').trim();
-  const data = JSON.parse(clean);
-  if (!data || !data.question) throw new Error('empty question');
+  let data;
+  try {
+    data = JSON.parse(clean);
+  } catch (e) {
+    throw new Error('AI 返回格式异常，未能解析出题目');
+  }
+  if (!data || !data.question) throw new Error('AI 没有给出有效题目');
   const entry = await kkAppendArchive(key, {
     stage: data.stage || stage,
     question: data.question,
@@ -661,13 +475,20 @@ async function kkGenerateAnswer(name, entryId, userAnswer) {
   const persona = char?.persona || char?.description || char?.desc || '';
   const traits  = char?.traits  || char?.personality || '';
 
+  const userIdentity = await kkLoadUserIdentity(key);
+  const uName = userIdentity?.name || '';
+  const uDesc = userIdentity?.desc || userIdentity?.role || '';
+  const userLine = (uName || uDesc)
+    ? `\n正在回答你的人：${uName || '（未命名）'}${uDesc ? `，${uDesc}` : ''}`
+    : '';
+
   const archive = await kkLoadArchive(key);
   const entry = archive.find(e => e.id === entryId);
   if (!entry) return null;
 
   const systemPrompt = `你现在扮演「${key}」，一个真实存在的人，绝对不是 AI 或助手。
 人物简介：${persona || ''}
-性格特点：${traits || ''}
+性格特点：${traits || ''}${userLine}
 你正在和用户玩「叩问」——你之前问了用户一道私人问题，现在用户回答了，
 你需要：1) 认真回应用户的答案（简短、真实、有情绪，不要说教）；2) 说出你自己对这道题的答案。
 只输出 JSON，不要任何额外文字，不要 markdown 代码块，不要出现任何括号/星号包裹的动作描写。`;
@@ -681,7 +502,12 @@ async function kkGenerateAnswer(name, entryId, userAnswer) {
 
   const raw = await kkCallApi(systemPrompt, [{ role: 'user', content: userPrompt }]);
   const clean = raw.replace(/```json|```/g, '').trim();
-  const data = JSON.parse(clean);
+  let data;
+  try {
+    data = JSON.parse(clean);
+  } catch (e) {
+    throw new Error('AI 返回格式异常，未能解析出回应');
+  }
   return await kkUpdateArchiveEntry(key, entryId, {
     answer: userAnswer || '',
     aiAnswer: data.aiAnswer || '',
@@ -703,36 +529,31 @@ function kkSetAutoEnabled(name, on) {
 }
 
 /* ================================================================
-   叩问页面 UI 逻辑
+   页面 UI 逻辑（独立页面版：不再是「打开/关闭浮层」，而是
+   页面加载即初始化，返回按钮跳回 secret.html）
 ================================================================ */
 
 let _kkCurrentEntry = null;   /* 当前正在作答/展示的题目 entry */
 let _kkPendingEntry  = null;  /* 首页展示的"待作答"题目（如果有） */
 
-/* 打开叩问页：从 ssEnterFeature 调用 */
-function kkOpen() {
+/* 页面初始化：从 DOMContentLoaded 调用 */
+function kkInit() {
   const page = document.getElementById('koukan-page');
-  if (!page) return;
-  page.classList.add('kk-open');
-  /* 同步状态栏时间 */
-  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
-  const t = new Date().toLocaleTimeString('zh-CN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
-  const el = document.getElementById('kkStatusTime');
-  if (el) el.textContent = t;
-  /* 同步电量 */
+  if (page) page.classList.add('kk-open');
+
+  kkSyncTime();
   kkSyncBattery();
-  /* 同步灵动岛 */
   kkSyncIsland();
-  /* 同步字体（复用 applyGlobalFont，但作用范围是 #koukan-page） */
+  kkSyncAvatars();
   applyGlobalFont();
-  /* 重置到首屏并刷新首页数据 */
+
   kkGo(0);
   kkRefreshHome();
 }
 
+/* 返回：独立页面场景下，跳回 secret.html（秘密空间首页） */
 function kkClose() {
-  const page = document.getElementById('koukan-page');
-  if (page) page.classList.remove('kk-open');
+  window.location.href = '../secret.html';   // ← 加上 ../ 前缀
 }
 
 /* 屏幕切换 */
@@ -748,8 +569,8 @@ function kkGo(n) {
 async function kkRefreshHome() {
   const nameEl = document.querySelector('#kk-s0 .kk-char-name');
   if (nameEl) nameEl.textContent = KK_NAME;
-  const avaEl = document.querySelector('#kk-s0 .kk-char-ava');
-  if (avaEl) avaEl.textContent = (KK_NAME || 'A').slice(0, 1).toUpperCase();
+  _kkCharProfileCache = null; /* 强制重新读取，保证和角色设置页最新头像一致 */
+  kkSyncAvatars();
 
   const archive = await kkLoadArchive(KK_NAME);
   const history = await kkLoadMessages(KK_NAME);
@@ -772,7 +593,7 @@ async function kkRefreshHome() {
 
   const enterBtn = document.querySelector('#kk-s0 .kk-enter-btn span:first-child');
   if (enterBtn) {
-    enterBtn.textContent = _kkPendingEntry ? 'ENTER · 查看待答题目' : 'ENTER · 进入叩问';
+    enterBtn.textContent = _kkPendingEntry ? 'ENTER · 还有一道题等你回答' : 'ENTER · 进入叩问';
   }
 
   /* 自动生成开关状态同步到首页小标签 */
@@ -784,7 +605,9 @@ async function kkRefreshHome() {
   }
 }
 
-/* 点击「进入叩问」：有待答题目直接展示，没有则生成新题 */
+/* 点击「进入叩问」：有待答题目直接展示，没有则生成新题
+   —— 修复点：原来出错时只弹一句通用提示，现在把具体错误原因带出来，
+   避免用户以为「点了没反应」。*/
 async function kkEnter() {
   if (!kkHasApiConfig()) {
     kkToast('请先在设置页配置 API 才能使用叩问');
@@ -805,7 +628,7 @@ async function kkEnter() {
     }
   } catch (e) {
     console.error('[kkEnter]', e);
-    kkToast(e && e.message === 'NO_API_CONFIG' ? '请先在设置页配置 API' : '生成题目失败，稍后再试～');
+    kkToast(kkFormatError(e, '生成题目失败'));
     kkGo(0);
   }
 }
@@ -826,11 +649,11 @@ function kkShowQuestion(entry) {
   if (qTextCn) qTextCn.textContent = entry.question || '';
 
   const tag = document.querySelector('#kk-s2 .kk-q-tag');
-  if (tag) tag.textContent = `阶段 ${entry.stage || ''} · personal · 与你相关`;
+  if (tag) tag.textContent = `阶段 ${entry.stage || ''} · personal · 只问你一个人`;
 
   const reasonEl = document.getElementById('kkQReason');
   if (reasonEl) {
-    reasonEl.innerHTML = `Ta问这题是因为——<br>${_esc(entry.reason || '')}<br><span class="kk-q-reason-sub">${_esc(entry.reasonEn || '')}</span>`;
+    reasonEl.innerHTML = `Ta问这题是因为——<br>${_kkEsc(entry.reason || '')}<br><span class="kk-q-reason-sub">${_kkEsc(entry.reasonEn || '')}</span>`;
   }
 
   const input = document.getElementById('kkAnswerInput');
@@ -846,7 +669,7 @@ async function kkSubmit() {
   if (!_kkCurrentEntry) { kkGo(0); return; }
 
   const display = document.getElementById('kkYourAnsDisplay');
-  if (display) display.textContent = val || '（你没有写，但Ta记住了你来过）';
+  if (display) display.textContent = val || '（你没写答案，但Ta记得你来过）';
 
   const submitBtn = document.querySelector('#kk-s2 .kk-submit-btn');
   if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '.5'; submitBtn.textContent = '正在等待回应…'; }
@@ -861,7 +684,7 @@ async function kkSubmit() {
     }
   } catch (e) {
     console.error('[kkSubmit]', e);
-    kkToast(e && e.message === 'NO_API_CONFIG' ? '请先在设置页配置 API' : '回应生成失败，稍后再试～');
+    kkToast(kkFormatError(e, '回应生成失败'));
   } finally {
     if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = ''; submitBtn.textContent = 'SUBMIT · 提交回答 →'; }
   }
@@ -869,25 +692,24 @@ async function kkSubmit() {
 
 /* 渲染屏3：角色的回应 + Ta自己的答案 */
 function kkShowResponse(entry) {
-  const ava = document.querySelector('#kk-s3 .kk-resp-ava');
-  if (ava) ava.textContent = (KK_NAME || 'A').slice(0, 1);
+  kkSyncAvatars();
   const nameEl = document.querySelector('#kk-s3 .kk-resp-name');
   if (nameEl) nameEl.textContent = KK_NAME.toUpperCase();
 
   const yourAns = document.getElementById('kkYourAnsDisplay');
-  if (yourAns) yourAns.textContent = entry.answer || '（你没有写，但Ta记住了你来过）';
+  if (yourAns) yourAns.textContent = entry.answer || '（你没写答案，但Ta记得你来过）';
 
   const aiText = document.getElementById('kkAiText');
   if (aiText) {
-    aiText.innerHTML = `${_esc(entry.aiAnswer || '')}<br><br><span style="color:#888;font-size:11px;">${_esc(entry.aiAnswerEn || '')}</span>`;
+    aiText.innerHTML = `${_kkEsc(entry.aiAnswer || '')}<br><br><span style="color:#888;font-size:11px;">${_kkEsc(entry.aiAnswerEn || '')}</span>`;
   }
   const aiReaction = document.getElementById('kkAiReaction');
   if (aiReaction) {
-    aiReaction.innerHTML = `${_esc(entry.aiReaction || '')}<br><span style="font-size:10.5px;color:#bbb;">${_esc(entry.aiReactionEn || '')}</span>`;
+    aiReaction.innerHTML = `${_kkEsc(entry.aiReaction || '')}<br><span style="font-size:10.5px;color:#bbb;">${_kkEsc(entry.aiReactionEn || '')}</span>`;
   }
   const archText = document.getElementById('kkArchivedText');
   if (archText) {
-    archText.innerHTML = `已存入问答档案 · <strong>Archive #${String(entry.id).padStart(2,'0')}</strong><br><span style="color:#bbb;">will shape her next question · 影响下一道题</span>`;
+    archText.innerHTML = `已存入问答档案 · <strong>Archive #${String(entry.id).padStart(2,'0')}</strong><br><span style="color:#bbb;">will shape what she asks next · 会影响Ta下一道题怎么问</span>`;
   }
 
   kkGo(3);
@@ -903,7 +725,7 @@ async function kkRenderArchive() {
   if (!list) return;
 
   if (!archive.length) {
-    list.innerHTML = `<div style="text-align:center;padding:2rem 0;color:#bbb;font-size:11.5px;">还没有任何记录<br><span style="font-size:9.5px;color:#ccc;font-style:italic;">no entries yet · 去「叩问」问一道题吧</span></div>`;
+    list.innerHTML = `<div style="text-align:center;padding:2rem 0;color:#bbb;font-size:11.5px;">还没有任何记录<br><span style="font-size:9.5px;color:#ccc;font-style:italic;">no entries yet · 回首页开始第一道叩问吧</span></div>`;
     return;
   }
 
@@ -913,9 +735,9 @@ async function kkRenderArchive() {
     return `
       <div class="kk-arch-item" style="${isLatest ? 'border-color:#1a1a18' : ''}; cursor:pointer" onclick="kkOpenArchiveEntry(${e.id})">
         ${isLatest ? `<div style="font-size:9px;letter-spacing:.1em;color:#888;margin-bottom:5px;font-family:'Josefin Sans',sans-serif;text-transform:uppercase;">LATEST · 最新</div>` : ''}
-        <div class="kk-arch-item-q">${_esc(e.question)}<br><span class="kk-arch-item-q-sub">${_esc(e.questionEn || '')}</span></div>
+        <div class="kk-arch-item-q">${_kkEsc(e.question)}<br><span class="kk-arch-item-q-sub">${_kkEsc(e.questionEn || '')}</span></div>
         <div class="kk-arch-item-meta">
-          <div class="kk-arch-item-ans">${e.answered ? _esc(e.answer ? (e.answer.length > 12 ? e.answer.slice(0,12)+'…' : e.answer) : '（未作答）') : '待作答'}</div>
+          <div class="kk-arch-item-ans">${e.answered ? _kkEsc(e.answer ? (e.answer.length > 12 ? e.answer.slice(0,12)+'…' : e.answer) : '（未作答）') : '待作答'}</div>
           <div class="kk-arch-item-date">Stage ${e.stage || ''} · #${String(e.id).padStart(2,'0')}</div>
         </div>
       </div>`;
@@ -959,31 +781,59 @@ function kkToggleAuto() {
 }
 window.kkToggleAuto = kkToggleAuto;
 
-/* 手动点击「立即生成一道新题」（设置页里提供，不消耗 - 用户自己触发） */
+/* 手动点击「立即生成一道新题」（设置页里提供）
+   —— 和首页「ENTER · 进入叩问」走完全相同的流程：
+   先进入加载屏，生成成功后直接进入题目作答屏；如果已经有一道
+   待作答的题目，则直接展示那道题，不重复生成。*/
 async function kkManualGenerateFromSettings() {
   if (!kkHasApiConfig()) {
     kkToast('请先在设置页配置 API');
     return;
   }
+  await kkRefreshHome(); /* 确保 _kkPendingEntry 是最新的 */
+  if (_kkPendingEntry) {
+    kkShowQuestion(_kkPendingEntry);
+    return;
+  }
   const btn = document.getElementById('kkManualGenBtn');
   if (btn) { btn.disabled = true; btn.style.opacity = '.5'; btn.textContent = '正在生成…'; }
+  kkGo(1); /* 加载屏，和 kkEnter 一致 */
   try {
     const entry = await kkGenerateQuestion(KK_NAME);
     if (entry) {
-      kkToast('✦ 新题目已生成，回首页查看');
-      kkRefreshHome();
+      kkShowQuestion(entry);
     } else {
-      kkToast('生成失败，稍后再试～');
+      kkToast('这次没想出题目，稍后再试试～');
+      kkGo(5);
     }
   } catch (e) {
-    kkToast(e && e.message === 'NO_API_CONFIG' ? '请先在设置页配置 API' : '生成失败，稍后再试～');
+    console.error('[kkManualGenerateFromSettings]', e);
+    kkToast(kkFormatError(e, '生成失败'));
+    kkGo(5);
   } finally {
     if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '⟳ 立即生成一道新题'; }
   }
 }
 window.kkManualGenerateFromSettings = kkManualGenerateFromSettings;
 
-/* ---- 叩问页面内的小 Toast（独立于 ssShowToast，避免层级冲突） ---- */
+/* ---- 统一的错误信息格式化：把 kkCallApi / JSON.parse 抛出的具体原因
+   转成用户能看懂的一句话，而不是笼统的"失败了"。 ---- */
+function kkFormatError(e, prefix) {
+  const msg = e && e.message;
+  if (msg === 'NO_API_CONFIG') return '请先在设置页配置 API';
+  if (msg) return `${prefix}：${msg}`;
+  return `${prefix}，稍后再试～`;
+}
+
+/* ---- 转义 ---- */
+function _kkEsc(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/* ---- 叩问页面内的小 Toast ---- */
 let _kkToastTimer = null;
 function kkToast(msg) {
   let t = document.getElementById('kkToast');
@@ -991,7 +841,7 @@ function kkToast(msg) {
     t = document.createElement('div');
     t.id = 'kkToast';
     t.className = 'ss-toast';
-    document.getElementById('koukan-page').appendChild(t);
+    document.body.appendChild(t);
   }
   t.textContent = msg;
   t.classList.add('show');
@@ -999,89 +849,7 @@ function kkToast(msg) {
   _kkToastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-/* 监听自动生成开关的跨页同步（比如聊天页也开着并改了设置） */
-window.addEventListener('storage', e => {
-  if (e.key === 'luna_koukan_auto_update') {
-    const autoTag = document.getElementById('kkAutoTag');
-    if (autoTag) {
-      const on = kkGetAutoEnabled(KK_NAME);
-      autoTag.textContent = on ? '自动生成 · 已开启' : '自动生成 · 已关闭';
-      autoTag.classList.toggle('kk-pill-on', on);
-    }
-    kkRenderSettings();
-  }
-});
-
-/* 同步电量到叩问状态栏（与 chatroom.js crTick 电量渲染规则一致） */
-function kkSyncBattery() {
-  const pctEl   = document.getElementById('kkBatPct');
-  const innerEl = document.getElementById('kkBatInner');
-  const pct = parseInt(localStorage.getItem('luna_battery') || '76');
-  if (pctEl) pctEl.textContent = pct;
-  if (innerEl) {
-    innerEl.style.width = pct + '%';
-    innerEl.style.background = pct <= 20
-      ? 'linear-gradient(90deg, #f87171, #ef4444)'
-      : '#1a1a1a';
-  }
-}
-
-/* 同步灵动岛到叩问状态栏（一比一复用 applyIsland 逻辑） */
-function kkSyncIsland() {
-  const enabled = localStorage.getItem('luna_island_enabled') === 'true';
-  const style   = localStorage.getItem('luna_island_style') || 'minimal';
-  const el      = document.getElementById('kkStatusIsland');
-  if (!el) return;
-  if (!enabled) { el.innerHTML = ''; return; }
-  const styleMap = {
-    minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
-    glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
-    clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text" id="kkSiClockText">--:--</span></div></div>`,
-    pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
-    ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
-    rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
-    music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
-    scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
-  };
-  el.innerHTML = styleMap[style] || styleMap.minimal;
-  if (style === 'clock') {
-    const tick = () => {
-      const t = document.getElementById('kkSiClockText');
-      if (!t) return;
-      const now = new Date();
-      t.textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
-    };
-    tick();
-  }
-}
-
-/* storage 变化时叩问页同步（补充到已有的 storage listener） */
-window.addEventListener('storage', e => {
-  if (!document.getElementById('koukan-page')?.classList.contains('kk-open')) return;
-  if (e.key === 'luna_island_update') kkSyncIsland();
-  if (e.key === 'luna_tz_update') {
-    const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
-    const t = new Date().toLocaleTimeString('zh-CN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
-    const el = document.getElementById('kkStatusTime');
-    if (el) el.textContent = t;
-  }
-});
-
-/* 定时刷新叩问状态栏时间与电量（和主页面保持一致） */
-setInterval(() => {
-  if (!document.getElementById('koukan-page')?.classList.contains('kk-open')) return;
-  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
-  const t = new Date().toLocaleTimeString('zh-CN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
-  const el = document.getElementById('kkStatusTime');
-  if (el) el.textContent = t;
-  kkSyncBattery();
-}, 10000);
-/* ================================================
-   幕后志 (Chronicle)
-   -----------------------------------------------------------------
-   已迁移为独立页面 secret/chronicle.html + chronicle.css + chronicle.js
-   （和 secret/kouwen.html 同一路径、同一架构），不再使用本页内嵌的
-   ch- 弹层原型。入口见上方 ssEnterFeature：点击后直接跳转到
-   secret/chronicle.html。旧的 chWrap DOM 容器仍保留在 secret.html
-   中作为历史草稿/视觉参考，不再由 JS 驱动，可以随时安全删除。
-================================================ */
+/* ================================================================
+   入口
+================================================================ */
+document.addEventListener('DOMContentLoaded', kkInit);

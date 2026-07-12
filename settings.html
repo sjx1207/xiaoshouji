@@ -98,6 +98,26 @@
       </div>
     </div>
 
+    <!-- 消息横幅设置 -->
+    <div class="st-row" onclick="openBannerPage()">
+      <div class="st-icon" style="background: linear-gradient(135deg,#c9a06a,#8f6f42);">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <rect x="4" y="7" width="16" height="6" rx="3" fill="#fff" opacity="0.92"/>
+          <circle cx="8" cy="10" r="1.4" fill="#8f6f42"/>
+          <path d="M11.2 9.3h6M11.2 10.9h4" stroke="#8f6f42" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">消息横幅</div>
+        <div class="st-row-sub">锁屏 · 顶部推送样式</div>
+      </div>
+      <div class="st-row-right">
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -207,6 +227,47 @@
       <div class="st-row-text">
         <div class="st-row-title">AI 模型</div>
         <div class="st-row-sub" id="apiCurrentSub">未配置</div>
+      </div>
+      <div class="st-row-right">
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 语音模型设置 -->
+    <div class="st-row" onclick="openVoicePage()">
+      <div class="st-icon" style="background: linear-gradient(135deg,#0ea5a0,#0b7d78);">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M6 11v1a6 6 0 0 0 12 0v-1" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="12" y1="18" x2="12" y2="21" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="9" y1="21" x2="15" y2="21" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">语音模型</div>
+        <div class="st-row-sub" id="voiceCurrentSub">未配置</div>
+      </div>
+      <div class="st-row-right">
+        <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 生图模型设置 -->
+    <div class="st-row" onclick="openImagePage()">
+      <div class="st-icon" style="background: linear-gradient(135deg,#ec4899,#a855f7);">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+          <rect x="3" y="4" width="18" height="16" rx="3" stroke="#fff" stroke-width="1.6"/>
+          <circle cx="8.5" cy="9.5" r="1.6" fill="#fff"/>
+          <path d="M21 15.5l-5.5-5.5-9.5 9.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="st-row-text">
+        <div class="st-row-title">生图模型</div>
+        <div class="st-row-sub" id="imageCurrentSub">未配置</div>
       </div>
       <div class="st-row-right">
         <svg class="st-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none">
@@ -577,6 +638,100 @@
   </div>
 </div>
 
+<!-- 消息横幅子页面 -->
+<div class="font-page" id="bannerPage">
+  <div class="font-page-header">
+    <button class="font-back" onclick="closeBannerPage()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="font-page-title">消息横幅</div>
+  </div>
+
+  <div class="font-scroll">
+
+    <!-- 开关 -->
+    <div class="font-section">
+      <div class="font-group" style="padding:16px;">
+        <div class="di-toggle-row">
+          <div class="di-toggle-info">
+            <div class="di-toggle-title">启用消息横幅</div>
+            <div class="di-toggle-sub">锁屏与顶部推送时显示横幅</div>
+          </div>
+          <label class="di-switch">
+            <input type="checkbox" id="bannerToggle" onchange="onBannerToggle(this.checked)"/>
+            <span class="di-switch-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 预览（透明背景，仅展示选中样式本身） -->
+    <div class="font-section" id="bannerPreviewSection" style="display:none">
+      <div class="font-section-label">预览</div>
+      <div class="bn-preview-wrap">
+        <div class="bn-preview-stage">
+          <div class="bn-preview-checker"></div>
+          <div class="bn-banner" id="bannerPreviewEl">
+            <div class="bn-icon" id="bnPvIcon"><i></i></div>
+            <div class="bn-body">
+              <div class="bn-top">
+                <span class="bn-app" id="bnPvApp">信使</span>
+                <span class="bn-time" id="bnPvTime">现在</span>
+              </div>
+              <div class="bn-title" id="bnPvTitle">周末的邀约</div>
+              <div class="bn-msg" id="bnPvMsg">晚上七点，老地方见，别迟到了</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 样式选择 -->
+    <div class="font-section" id="bannerStyleSection" style="display:none">
+      <div class="font-section-label">样式</div>
+
+      <div class="di-style-card" data-bstyle="champagne" onclick="selectBannerStyle('champagne')">
+        <div class="di-style-preview bn-sp-stage bn-sp-champagne"><div class="bn-sp bn-sp-champagne-pill"></div></div>
+        <div class="di-style-info"><div class="di-style-name">香槟金</div><div class="di-style-desc">温润奢华，衬线标题点缀</div></div>
+        <div class="di-style-check" id="bcheck-champagne"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-bstyle="sage" onclick="selectBannerStyle('sage')">
+        <div class="di-style-preview bn-sp-stage bn-sp-sage"><div class="bn-sp bn-sp-sage-pill"></div></div>
+        <div class="di-style-info"><div class="di-style-name">鼠尾草绿</div><div class="di-style-desc">清雅极简，圆点替代图标</div></div>
+        <div class="di-style-check" id="bcheck-sage"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-bstyle="midnight" onclick="selectBannerStyle('midnight')">
+        <div class="di-style-preview bn-sp-stage bn-sp-midnight"><div class="bn-sp bn-sp-midnight-pill"></div></div>
+        <div class="di-style-info"><div class="di-style-name">深夜墨调</div><div class="di-style-desc">高对比奢华，金线描边</div></div>
+        <div class="di-style-check" id="bcheck-midnight"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-bstyle="rose" onclick="selectBannerStyle('rose')">
+        <div class="di-style-preview bn-sp-stage bn-sp-rose"><div class="bn-sp bn-sp-rose-pill"></div></div>
+        <div class="di-style-info"><div class="di-style-name">玫瑰灰调</div><div class="di-style-desc">柔美气质，圆形头像</div></div>
+        <div class="di-style-check" id="bcheck-rose"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-bstyle="oat" onclick="selectBannerStyle('oat')">
+        <div class="di-style-preview bn-sp-stage bn-sp-oat"><div class="bn-sp bn-sp-oat-pill"></div></div>
+        <div class="di-style-info"><div class="di-style-name">燕麦棕</div><div class="di-style-desc">温润哑光，侧边细线</div></div>
+        <div class="di-style-check" id="bcheck-oat"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="di-style-card" data-bstyle="mist" onclick="selectBannerStyle('mist')">
+        <div class="di-style-preview bn-sp-stage bn-sp-mist"><div class="bn-sp bn-sp-mist-pill"></div></div>
+        <div class="di-style-info"><div class="di-style-name">雾松灰绿</div><div class="di-style-desc">冷静高级，圆角图标块</div></div>
+        <div class="di-style-check" id="bcheck-mist"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polyline points="20 6 9 17 4 12" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- AI 模型子页面 -->
 <div class="font-page" id="apiPage">
   <div class="font-page-header">
@@ -731,6 +886,480 @@
     <div class="luna-modal-actions">
       <button class="luna-modal-cancel" onclick="closeDeleteApiModal()">取消</button>
       <button class="luna-modal-confirm danger" onclick="confirmDeleteApi()">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 语音模型子页面 -->
+<div class="font-page" id="voicePage">
+  <div class="font-page-header">
+    <button class="font-back" onclick="closeVoicePage()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="font-page-title">语音模型</div>
+  </div>
+
+  <div class="font-scroll">
+
+    <!-- Step 1: 服务版本 -->
+    <div class="font-section">
+      <div class="font-section-label">服务版本</div>
+      <div class="font-group" style="padding:5px;">
+        <div class="voice-region-switch">
+          <button class="voice-region-btn active" id="voiceRegionCn" onclick="switchVoiceRegion('cn')">
+            中国版
+            <span class="voice-region-sub">api.minimaxi.com</span>
+          </button>
+          <button class="voice-region-btn" id="voiceRegionGlobal" onclick="switchVoiceRegion('global')">
+            国际版
+            <span class="voice-region-sub">api.minimax.io</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: 接入配置 -->
+    <div class="font-section">
+      <div class="font-section-label">接入配置</div>
+      <div class="font-group" style="padding:16px;gap:12px;display:flex;flex-direction:column;">
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">Group ID</div>
+          <input class="api-input" id="voiceGroupId" type="text"
+            placeholder="在账户管理 > 基本信息 中查看"
+            oninput="onVoiceConfigInput()" />
+        </div>
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">API 密钥</div>
+          <div class="api-key-wrap">
+            <input class="api-input" id="voiceApiKey" type="password"
+              placeholder="在账户管理 > 接口密钥 中查看"
+              oninput="onVoiceConfigInput()" />
+            <button class="api-eye-btn" onclick="toggleVoiceKeyVisible()" id="voiceEyeBtn">
+              <svg id="voiceEyeIcon" viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">语音模型</div>
+          <div class="voice-model-grid" id="voiceModelGrid">
+            <button class="voice-model-chip active" data-model="speech-2.8-hd" onclick="selectVoiceModel('speech-2.8-hd', this)">
+              <span class="voice-model-chip-name">speech-2.8-hd</span>
+              <span class="voice-model-chip-desc">高清质感 · 情感最丰富</span>
+            </button>
+            <button class="voice-model-chip" data-model="speech-2.8-turbo" onclick="selectVoiceModel('speech-2.8-turbo', this)">
+              <span class="voice-model-chip-name">speech-2.8-turbo</span>
+              <span class="voice-model-chip-desc">低延迟 · 实时对话</span>
+            </button>
+            <button class="voice-model-chip" data-model="speech-2.6-hd" onclick="selectVoiceModel('speech-2.6-hd', this)">
+              <span class="voice-model-chip-name">speech-2.6-hd</span>
+              <span class="voice-model-chip-desc">高清质感 · 稳定版</span>
+            </button>
+            <button class="voice-model-chip" data-model="speech-2.6-turbo" onclick="selectVoiceModel('speech-2.6-turbo', this)">
+              <span class="voice-model-chip-name">speech-2.6-turbo</span>
+              <span class="voice-model-chip-desc">低延迟 · 稳定版</span>
+            </button>
+            <button class="voice-model-chip" data-model="speech-02-hd" onclick="selectVoiceModel('speech-02-hd', this)">
+              <span class="voice-model-chip-name">speech-02-hd</span>
+              <span class="voice-model-chip-desc">经典高清音质</span>
+            </button>
+            <button class="voice-model-chip" data-model="speech-02-turbo" onclick="selectVoiceModel('speech-02-turbo', this)">
+              <span class="voice-model-chip-name">speech-02-turbo</span>
+              <span class="voice-model-chip-desc">经典低延迟</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Step 3: 音色选择 -->
+    <div class="font-section">
+      <div class="font-section-label">音色选择</div>
+      <div class="font-group" style="padding:16px;gap:12px;display:flex;flex-direction:column;">
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">Voice ID</div>
+          <input class="api-input" id="voiceVoiceId" type="text"
+            placeholder="如：male-qn-qingse，或粘贴克隆 / 设计音色 ID"
+            oninput="onVoiceVoiceIdInput()" />
+        </div>
+
+        <button class="api-fetch-btn" id="voiceFetchBtn" onclick="fetchVoiceList()" disabled>
+          获取账号内音色列表
+        </button>
+
+        <div id="voiceListSection" style="display:none;">
+          <div class="voice-list-tabs">
+            <button class="voice-list-tab active" data-type="system" onclick="switchVoiceListTab('system', this)">系统音色</button>
+            <button class="voice-list-tab" data-type="voice_cloning" onclick="switchVoiceListTab('voice_cloning', this)">克隆音色</button>
+            <button class="voice-list-tab" data-type="voice_generation" onclick="switchVoiceListTab('voice_generation', this)">捏声音色</button>
+          </div>
+          <div class="api-model-loading" id="voiceListLoading" style="display:none">
+            <div class="api-spinner"></div>
+            <span>正在获取音色列表...</span>
+          </div>
+          <div id="voiceListContent" class="api-model-list"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Step 4: 捏声音（音色设计） -->
+    <div class="font-section">
+      <div class="font-section-label">捏声音 · 音色设计</div>
+      <div class="font-group" style="padding:16px;gap:12px;display:flex;flex-direction:column;">
+
+        <div class="voice-design-hint">用一段文字描述你想要的声音特质，AI 会为你生成一个专属新音色，可直接用于合成</div>
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">声音描述</div>
+          <textarea class="api-input voice-textarea" id="voiceDesignPrompt" rows="2"
+            placeholder="如：讲述悬疑故事的播音员，声音低沉富有磁性，语速时快时慢，营造紧张神秘的氛围"
+            oninput="onVoiceDesignInput()"></textarea>
+        </div>
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">试听文本</div>
+          <textarea class="api-input voice-textarea" id="voiceDesignPreview" rows="2"
+            placeholder="用于试听新音色效果的一段文字，例如一段旁白或对话"
+            oninput="onVoiceDesignInput()"></textarea>
+        </div>
+
+        <button class="api-fetch-btn" id="voiceDesignBtn" onclick="runVoiceDesign()" disabled>
+          生成专属音色
+        </button>
+
+        <div id="voiceDesignResult" style="display:none;">
+          <div class="voice-design-result-card">
+            <div class="voice-design-result-head">
+              <div class="voice-design-result-id" id="voiceDesignVoiceId">—</div>
+              <button class="voice-design-use-btn" onclick="useDesignedVoice()">采用此音色</button>
+            </div>
+            <audio id="voiceDesignAudio" controls style="width:100%;margin-top:8px;"></audio>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Step 5: 试听测试 -->
+    <div class="font-section" id="voiceTestSection">
+      <div class="font-section-label">合成试听</div>
+      <div class="font-group" style="padding:16px;gap:12px;display:flex;flex-direction:column;">
+
+        <textarea class="api-input voice-textarea" id="voiceTestInput" rows="2"
+          placeholder="输入一段文字，试听当前配置的语音效果"></textarea>
+
+        <button class="api-send-btn-full" id="voiceTestBtn" onclick="sendVoiceTest()">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+            <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M6 11v1a6 6 0 0 0 12 0v-1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          合成并播放
+        </button>
+
+        <div id="voiceTestOutput" class="api-test-output" style="display:none;">
+          <audio id="voiceTestAudio" controls style="width:100%;"></audio>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Step 6: 保存预设 -->
+    <div class="font-section">
+      <div class="font-section-label">保存预设</div>
+      <div class="font-group" style="padding:16px;">
+        <button class="font-save-btn" onclick="openSaveVoiceModal()">保存当前配置</button>
+      </div>
+    </div>
+
+    <!-- 已保存预设列表 -->
+    <div class="font-section">
+      <div class="font-section-label">已保存预设 · 随时切换</div>
+      <div class="font-group" id="voicePresetList" style="padding:4px 0;">
+        <div class="font-empty" id="voicePresetEmpty">还没有保存的预设</div>
+      </div>
+    </div>
+
+    <!-- 使用说明 -->
+    <div class="font-section">
+      <div class="font-section-label">使用说明</div>
+      <div class="api-guide-wrap">
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">服务版本</div>
+          <div class="api-guide-desc">中国版（minimaxi.com）与国际版（minimax.io）的账号与密钥互相独立，请选择与你注册账号一致的版本，否则会返回 401。</div>
+        </div>
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">Group ID 与 API 密钥</div>
+          <div class="api-guide-desc">均可在 MiniMax 开放平台「账户管理」中查看，仅保存在本机浏览器内，不会上传至任何服务器。</div>
+        </div>
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">捏声音（音色设计）</div>
+          <div class="api-guide-desc">生成的新音色为临时音色，需在 168 小时内于任意语音合成接口调用一次才能永久保留，超时未使用会被自动清除。</div>
+        </div>
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">常见错误</div>
+          <div class="api-guide-desc">
+            <div class="api-error-row"><span class="api-error-code">401</span><span>Group ID 或密钥无效，或版本选错（中国版/国际版不互通）</span></div>
+            <div class="api-error-row"><span class="api-error-code">1004</span><span>账号鉴权失败，请检查密钥是否过期</span></div>
+            <div class="api-error-row"><span class="api-error-code">1039</span><span>触发限流，请求过于频繁</span></div>
+            <div class="api-error-row"><span class="api-error-code">2013</span><span>参数错误，请检查文本长度或音色 ID</span></div>
+            <div class="api-error-row"><span class="api-error-code">CORS</span><span>浏览器直连跨域限制，生产环境建议经服务端转发</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="height:32px;"></div>
+
+  </div>
+</div>
+
+<!-- 保存语音预设弹窗 -->
+<div class="luna-modal-mask" id="voiceSaveMask">
+  <div class="luna-modal-box">
+    <div class="luna-modal-title">保存预设</div>
+    <div class="luna-modal-desc">为这个语音配置起一个名字，方便以后快速调用</div>
+    <input class="luna-modal-input" id="voicePresetNameInput" type="text" placeholder="如：悬疑播客 · 磁性男声" />
+    <div class="luna-modal-actions">
+      <button class="luna-modal-cancel" onclick="closeSaveVoiceModal()">取消</button>
+      <button class="luna-modal-confirm" onclick="confirmSaveVoice()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除语音预设确认弹窗 -->
+<div class="luna-modal-mask" id="voiceDeleteMask">
+  <div class="luna-modal-box">
+    <div class="luna-modal-title">删除预设</div>
+    <div class="luna-modal-desc" id="voiceDeleteDesc">确定要删除这个预设吗？</div>
+    <div class="luna-modal-actions">
+      <button class="luna-modal-cancel" onclick="closeDeleteVoiceModal()">取消</button>
+      <button class="luna-modal-confirm danger" onclick="confirmDeleteVoice()">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 生图模型子页面 -->
+<div class="font-page" id="imagePage">
+  <div class="font-page-header">
+    <button class="font-back" onclick="closeImagePage()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="font-page-title">生图模型</div>
+  </div>
+
+  <div class="font-scroll">
+
+    <!-- Step 1: 服务商 -->
+    <div class="font-section">
+      <div class="font-section-label">服务商</div>
+      <div class="font-group" style="padding:5px;">
+        <div class="image-provider-switch" id="imageProviderSwitch">
+          <button class="image-provider-btn active" data-provider="gpt-image-2" onclick="switchImageProvider('gpt-image-2')">
+            GPT Image 2
+            <span class="image-provider-sub">OpenAI 兼容</span>
+          </button>
+          <button class="image-provider-btn" data-provider="nano-banana-pro" onclick="switchImageProvider('nano-banana-pro')">
+            Nano Banana Pro
+            <span class="image-provider-sub">Gemini 兼容</span>
+          </button>
+          <button class="image-provider-btn" data-provider="seedream" onclick="switchImageProvider('seedream')">
+            Seedream
+            <span class="image-provider-sub">火山方舟</span>
+          </button>
+          <button class="image-provider-btn" data-provider="custom" onclick="switchImageProvider('custom')">
+            自定义
+            <span class="image-provider-sub">任意反代</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: 接入配置 -->
+    <div class="font-section">
+      <div class="font-section-label">接入配置</div>
+      <div class="font-group" style="padding:16px;gap:12px;display:flex;flex-direction:column;">
+
+        <!-- 自定义反代地址（仅自定义服务商显示） -->
+        <div class="api-field-wrap" id="imageCustomUrlWrap" style="display:none;">
+          <div class="api-field-label">反代地址</div>
+          <input class="api-input" id="imageCustomUrl" type="text"
+            placeholder="https://your-proxy.com/v1"
+            oninput="onImageConfigInput()" />
+        </div>
+
+        <!-- 自定义模型名（仅自定义服务商显示） -->
+        <div class="api-field-wrap" id="imageCustomModelWrap" style="display:none;">
+          <div class="api-field-label">模型名称</div>
+          <input class="api-input" id="imageCustomModel" type="text"
+            placeholder="如：dall-e-3、flux-pro 等，需与反代支持的模型名一致"
+            oninput="onImageConfigInput()" />
+        </div>
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">API 密钥</div>
+          <div class="api-key-wrap">
+            <input class="api-input" id="imageApiKey" type="password"
+              placeholder="sk-..."
+              oninput="onImageConfigInput()" />
+            <button class="api-eye-btn" onclick="toggleImageKeyVisible()" id="imageEyeBtn">
+              <svg id="imageEyeIcon" viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="api-field-wrap" id="imageEndpointHintWrap">
+          <div class="api-endpoint-hint" id="imageEndpointHint">https://api.openai.com/v1/images/generations</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Step 3: 生成参数 -->
+    <div class="font-section">
+      <div class="font-section-label">生成参数</div>
+      <div class="font-group" style="padding:16px;gap:14px;display:flex;flex-direction:column;">
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">画面比例</div>
+          <div class="image-chip-grid" id="imageSizeGrid"></div>
+        </div>
+
+        <div class="api-field-wrap" id="imageQualityWrap">
+          <div class="api-field-label">画质</div>
+          <div class="image-chip-grid" id="imageQualityGrid"></div>
+        </div>
+
+        <div class="api-field-wrap">
+          <div class="api-field-label">生成数量</div>
+          <div class="image-chip-grid image-chip-grid-4" id="imageCountGrid">
+            <button class="image-chip active" data-count="1" onclick="selectImageCount(1, this)">1 张</button>
+            <button class="image-chip" data-count="2" onclick="selectImageCount(2, this)">2 张</button>
+            <button class="image-chip" data-count="4" onclick="selectImageCount(4, this)">4 张</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Step 4: 生成测试 -->
+    <div class="font-section" id="imageTestSection">
+      <div class="font-section-label">生成测试</div>
+      <div class="font-group" style="padding:16px;gap:12px;display:flex;flex-direction:column;">
+
+        <textarea class="api-input voice-textarea" id="imageTestPrompt" rows="2"
+          placeholder="输入一段描述文字，测试当前配置的生图效果，如：一只坐在窗台上看雨的橘猫，水彩风格"></textarea>
+
+        <button class="api-send-btn-full" id="imageTestBtn" onclick="sendImageTest()">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+            <rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.6"/>
+            <circle cx="8.5" cy="9.5" r="1.6" fill="currentColor"/>
+            <path d="M21 15.5l-5.5-5.5-9.5 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          生成并预览
+        </button>
+
+        <div id="imageTestOutput" class="image-test-output" style="display:none;"></div>
+
+      </div>
+    </div>
+
+    <!-- Step 5: 保存预设 -->
+    <div class="font-section">
+      <div class="font-section-label">保存预设</div>
+      <div class="font-group" style="padding:16px;">
+        <button class="font-save-btn" onclick="openSaveImageModal()">保存当前配置</button>
+      </div>
+    </div>
+
+    <!-- 已保存预设列表 -->
+    <div class="font-section">
+      <div class="font-section-label">已保存预设 · 随时切换</div>
+      <div class="font-group" id="imagePresetList" style="padding:4px 0;">
+        <div class="font-empty" id="imagePresetEmpty">还没有保存的预设</div>
+      </div>
+    </div>
+
+    <!-- 使用说明 -->
+    <div class="font-section">
+      <div class="font-section-label">使用说明</div>
+      <div class="api-guide-wrap">
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">内置服务商</div>
+          <div class="api-guide-desc">GPT Image 2、Nano Banana Pro、Seedream 均为预配置官方 / 主流反代端点，只需填入你自己的 API 密钥即可使用，无需手动输入地址。</div>
+        </div>
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">自定义反代</div>
+          <div class="api-guide-desc">若使用其他生图模型或私有反代服务，选择「自定义」并填写反代地址（OpenAI images 接口兼容格式）、模型名称与密钥，三者均需自行提供且保存在本机。</div>
+        </div>
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">API 密钥</div>
+          <div class="api-guide-desc">密钥仅存储在本机浏览器内，不会上传至任何服务器；切换服务商时密钥不会自动共享，请分别填写。</div>
+        </div>
+
+        <div class="api-guide-item">
+          <div class="api-guide-title">常见错误</div>
+          <div class="api-guide-desc">
+            <div class="api-error-row"><span class="api-error-code">401</span><span>密钥无效或已过期，请重新检查</span></div>
+            <div class="api-error-row"><span class="api-error-code">403</span><span>无权限访问，请确认账户状态或地区限制</span></div>
+            <div class="api-error-row"><span class="api-error-code">404</span><span>反代地址或模型名错误，确认端点路径正确</span></div>
+            <div class="api-error-row"><span class="api-error-code">429</span><span>请求过于频繁或余额不足，稍后再试</span></div>
+            <div class="api-error-row"><span class="api-error-code">content_policy</span><span>提示词触发内容审核，请调整描述</span></div>
+            <div class="api-error-row"><span class="api-error-code">CORS</span><span>浏览器跨域限制，生产环境建议经服务端转发</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="height:32px;"></div>
+
+  </div>
+</div>
+
+<!-- 保存生图预设弹窗 -->
+<div class="luna-modal-mask" id="imageSaveMask">
+  <div class="luna-modal-box">
+    <div class="luna-modal-title">保存预设</div>
+    <div class="luna-modal-desc">为这个生图配置起一个名字，方便以后快速调用</div>
+    <input class="luna-modal-input" id="imagePresetNameInput" type="text" placeholder="如：GPT Image 2 · 头像专用" />
+    <div class="luna-modal-actions">
+      <button class="luna-modal-cancel" onclick="closeSaveImageModal()">取消</button>
+      <button class="luna-modal-confirm" onclick="confirmSaveImage()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除生图预设确认弹窗 -->
+<div class="luna-modal-mask" id="imageDeleteMask">
+  <div class="luna-modal-box">
+    <div class="luna-modal-title">删除预设</div>
+    <div class="luna-modal-desc" id="imageDeleteDesc">确定要删除这个预设吗？</div>
+    <div class="luna-modal-actions">
+      <button class="luna-modal-cancel" onclick="closeDeleteImageModal()">取消</button>
+      <button class="luna-modal-confirm danger" onclick="confirmDeleteImage()">删除</button>
     </div>
   </div>
 </div>
@@ -906,6 +1535,7 @@
     <div style="height:32px;"></div>
   </div>
 </div>
+
 <script src="settings.js"></script>
 </body>
 </html>
