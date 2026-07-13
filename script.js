@@ -1626,6 +1626,7 @@ function openApp(name) {
     'sms': 'messages.html',
     'user': 'user.html',
     'dialognovel': 'dialognovel.html',
+    'findphone': 'charphone.html',
   }
 
   const url = routes[name];

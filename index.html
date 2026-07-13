@@ -1521,6 +1521,65 @@
   </div>
 </div>
 
+<!-- ===================== 电话App 覆盖层 ===================== -->
+<div id="phoneAppOverlay" style="
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 9999;
+  display: none;
+  opacity: 0;
+  transform: translateY(100%);
+  transition: transform 0.42s cubic-bezier(0.32,0.72,0,1), opacity 0.42s ease;
+  pointer-events: none;
+">
+  <iframe
+    id="phoneAppFrame"
+    src="phone.html"
+    style="
+      width: 100%; height: 100%;
+      border: none;
+      border-radius: 0;
+      display: block;
+    "
+    scrolling="no"
+  ></iframe>
+</div>
+
 <script src="script.js"></script>
+<script>
+/* ===== 电话App 打开 / 关闭 ===== */
+function openPhoneApp() {
+  const overlay = document.getElementById('phoneAppOverlay');
+  overlay.style.display = 'block';
+  overlay.style.pointerEvents = 'auto';
+  // 触发动画（下一帧）
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      overlay.style.opacity = '1';
+      overlay.style.transform = 'translateY(0)';
+    });
+  });
+}
+
+function closePhoneApp() {
+  const overlay = document.getElementById('phoneAppOverlay');
+  overlay.style.opacity = '0';
+  overlay.style.transform = 'translateY(100%)';
+  overlay.style.pointerEvents = 'none';
+  setTimeout(() => { overlay.style.display = 'none'; }, 420);
+}
+
+/* 绑定电话图标点击 */
+document.addEventListener('DOMContentLoaded', () => {
+  const phoneIcon = document.querySelector('[data-app="phone"]');
+  if (phoneIcon) {
+    phoneIcon.style.cursor = 'pointer';
+    phoneIcon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openPhoneApp();
+    });
+  }
+});
+</script>
 </body>
 </html>
