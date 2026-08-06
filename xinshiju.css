@@ -1,0 +1,1452 @@
+/* ============================================================
+   心事局 · xinshiju.css
+   深海梦境 · Deep Sea Reverie
+   色系：#020810 深渊墨蓝 / #051826 层海蓝 / #6fd6ff 磷光青
+        / #9fb8ff 梦蓝紫 / #eaf6ff 月光白 / #1a3a52 潮线灰蓝
+============================================================ */
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  width:100%; height:100%;
+  background:#010509;
+  overflow:hidden;
+  font-family:'Noto Serif SC', 'Cormorant Garamond', serif;
+}
+
+::selection { background:rgba(111,214,255,0.28); color:#eaf6ff; }
+::-webkit-scrollbar { width:0; height:0; }
+
+button { font-family:inherit; cursor:pointer; background:none; border:none; }
+
+.xj-defs { position:absolute; width:0; height:0; overflow:hidden; }
+
+.xj-wrap {
+  position:relative;
+  width:100%; height:100vh; height:100dvh;
+  max-width:560px;
+  margin:0 auto;
+  background:#010509;
+  color:#eaf6ff;
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+
+/* ============================================================
+   深海层叠背景
+============================================================ */
+.xj-deepsea { position:absolute; inset:0; z-index:0; overflow:hidden; }
+
+.xj-sea-gradient {
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -8%, #0c3a56 0%, transparent 60%),
+    radial-gradient(ellipse 130% 70% at 20% 115%, #041826 0%, transparent 65%),
+    radial-gradient(ellipse 100% 60% at 85% 65%, #082238 0%, transparent 55%),
+    linear-gradient(190deg, #041220 0%, #010a12 42%, #01060c 75%, #000306 100%);
+}
+
+/* 光束层：从水面斜射入深海的天光 */
+.xj-sea-rays {
+  position:absolute; inset:-10% -10% -10% -10%; opacity:0.5;
+  background:
+    linear-gradient(115deg, transparent 30%, rgba(120,205,255,0.05) 38%, transparent 46%),
+    linear-gradient(122deg, transparent 48%, rgba(120,205,255,0.035) 55%, transparent 63%),
+    linear-gradient(108deg, transparent 12%, rgba(159,184,255,0.04) 20%, transparent 30%);
+  animation:raysDrift 16s ease-in-out infinite alternate;
+  mix-blend-mode:screen;
+}
+@keyframes raysDrift {
+  0%   { transform:translateX(-2%) rotate(0deg); opacity:0.4; }
+  100% { transform:translateX(3%) rotate(0.6deg); opacity:0.65; }
+}
+
+/* 焦散水纹：模拟水面折射光斑，用滤镜使其扭动 */
+.xj-sea-caustics {
+  position:absolute; inset:-15%;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(111,214,255,0.10) 0%, transparent 9%),
+    radial-gradient(circle at 60% 15%, rgba(111,214,255,0.07) 0%, transparent 7%),
+    radial-gradient(circle at 80% 55%, rgba(159,184,255,0.08) 0%, transparent 10%),
+    radial-gradient(circle at 35% 70%, rgba(111,214,255,0.06) 0%, transparent 8%),
+    radial-gradient(circle at 10% 85%, rgba(159,184,255,0.05) 0%, transparent 9%),
+    radial-gradient(circle at 90% 90%, rgba(111,214,255,0.06) 0%, transparent 7%);
+  filter:url(#xjWaterWarp);
+  opacity:0.55;
+  animation:causticsFloat 26s ease-in-out infinite;
+}
+.xj-sea-caustics--b {
+  animation-duration:34s;
+  animation-direction:reverse;
+  opacity:0.35;
+  transform:scale(1.15) rotate(4deg);
+}
+@keyframes causticsFloat {
+  0%,100% { transform:translate(0,0) scale(1); }
+  50%     { transform:translate(1.5%,-2%) scale(1.03); }
+}
+
+/* 海底剪影：远景礁石与珊瑚轮廓，固定在画面底部，增加纵深与"落地感" */
+.xj-seabed {
+  position:absolute; left:0; right:0; bottom:0; height:34%;
+  pointer-events:none;
+  background-repeat:no-repeat;
+  background-position:bottom center;
+  background-size:cover;
+  opacity:0.6;
+  -webkit-mask-image:linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.9) 100%);
+  mask-image:linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.9) 100%);
+}
+.xj-seabed::before, .xj-seabed::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:100%;
+  background-repeat:no-repeat; background-position:bottom center; background-size:100% auto;
+}
+.xj-seabed::before {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200' preserveAspectRatio='none'%3E%3Cpath d='M0 200 L0 150 Q40 120 70 145 Q90 100 120 140 Q150 110 175 148 Q210 105 240 150 Q270 122 300 148 Q335 115 365 150 Q385 135 400 150 L400 200 Z' fill='%23041420'/%3E%3C/svg%3E");
+  opacity:0.85;
+}
+.xj-seabed::after {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200' preserveAspectRatio='none'%3E%3Cpath d='M0 200 L0 175 Q30 155 55 174 Q75 150 100 172 Q130 152 155 173 Q185 148 210 172 Q245 155 270 173 Q305 150 330 172 Q360 158 400 172 L400 200 Z' fill='%23020a12'/%3E%3C/svg%3E");
+  opacity:0.95;
+}
+
+/* 珊瑚 / 水草剪影：随水流轻轻摇曳 */
+.xj-kelp { position:absolute; bottom:0; transform-origin:bottom center; opacity:0.55; pointer-events:none; }
+.xj-kelp svg { display:block; }
+.xj-kelp--sway { animation:kelpSway ease-in-out infinite; }
+@keyframes kelpSway {
+  0%,100% { transform:rotate(-3deg); }
+  50%     { transform:rotate(3deg); }
+}
+
+/* 游鱼群：细小暗色剪影，缓慢穿行，制造生命感与深度 */
+.xj-fishes { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.xj-fish {
+  position:absolute; opacity:0;
+  animation:fishSwim linear infinite;
+}
+.xj-fish svg { display:block; filter:drop-shadow(0 0 3px rgba(111,214,255,0.15)); }
+@keyframes fishSwim {
+  0%   { opacity:0; transform:translateX(-40px) translateY(0); }
+  6%   { opacity:var(--fo,0.4); }
+  50%  { transform:translateX(calc(50vw)) translateY(var(--fdip,-10px)); }
+  94%  { opacity:var(--fo,0.4); }
+  100% { opacity:0; transform:translateX(calc(100vw + 40px)) translateY(0); }
+}
+.xj-fish--rev { animation-name:fishSwimRev; }
+@keyframes fishSwimRev {
+  0%   { opacity:0; transform:translateX(40px) scaleX(-1) translateY(0); }
+  6%   { opacity:var(--fo,0.4); }
+  50%  { transform:translateX(calc(-50vw)) scaleX(-1) translateY(var(--fdip,-10px)); }
+  94%  { opacity:var(--fo,0.4); }
+  100% { opacity:0; transform:translateX(calc(-100vw - 40px)) scaleX(-1) translateY(0); }
+}
+
+/* 上升气泡：从底部缓缓升起，晃动、渐隐 */
+.xj-bubbles { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.xj-bubble {
+  position:absolute; bottom:-6%; border-radius:50%;
+  border:1px solid rgba(180,225,255,0.35);
+  background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.28), rgba(111,214,255,0.05) 60%, transparent 100%);
+  animation:bubbleRise linear infinite;
+}
+@keyframes bubbleRise {
+  0%   { transform:translateY(0) translateX(0); opacity:0; }
+  6%   { opacity:var(--bo,0.55); }
+  50%  { transform:translateY(-55vh) translateX(var(--bsway,10px)); }
+  90%  { opacity:var(--bo,0.55); }
+  100% { transform:translateY(-112vh) translateX(0); opacity:0; }
+}
+
+.xj-sea-vignette {
+  position:absolute; inset:0;
+  box-shadow: inset 0 0 160px 50px rgba(0,1,3,0.75);
+  background:radial-gradient(ellipse 70% 60% at 50% 50%, transparent 55%, rgba(0,2,5,0.55) 100%);
+}
+
+.xj-sea-grain {
+  position:absolute; inset:0; opacity:0.045; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grainShift 9s steps(8) infinite;
+}
+@keyframes grainShift { 0%{transform:translate(0,0);} 25%{transform:translate(-1%,1%);} 50%{transform:translate(1%,-1%);} 75%{transform:translate(-1%,-1%);} 100%{transform:translate(0,0);} }
+
+/* 漂浮微粒 · 浮游发光尘埃 */
+.xj-motes { position:absolute; inset:0; overflow:hidden; }
+.xj-mote {
+  position:absolute; border-radius:50%;
+  background:radial-gradient(circle, rgba(234,246,255,0.9), rgba(111,214,255,0.15) 60%, transparent 100%);
+  animation:moteRise linear infinite, moteSway ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes moteRise {
+  0%   { transform:translateY(8vh); opacity:0; }
+  8%   { opacity:var(--mo,0.7); }
+  92%  { opacity:var(--mo,0.7); }
+  100% { transform:translateY(-108vh); opacity:0; }
+}
+@keyframes moteSway {
+  0%,100% { margin-left:0; }
+  50%     { margin-left:var(--sway,14px); }
+}
+
+/* 远景水母：柔光轮廓，慢速漂浮 */
+.xj-jellies { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.xj-jelly {
+  position:absolute; opacity:0.5;
+  animation:jellyFloat ease-in-out infinite, jellyBob ease-in-out infinite;
+  filter:url(#xjSoftGlow);
+}
+.xj-jelly svg { display:block; width:100%; height:100%; }
+.xj-jelly-pulse {
+  animation:jellyPulse ease-in-out infinite;
+  transform-origin:50% 35%;
+}
+@keyframes jellyPulse {
+  0%,100% { transform:scaleY(1) scaleX(1); }
+  50%     { transform:scaleY(0.88) scaleX(1.06); }
+}
+@keyframes jellyFloat {
+  0%,100% { transform:translateX(0); }
+  50%     { transform:translateX(var(--jx,18px)); }
+}
+@keyframes jellyBob {
+  0%,100% { transform:translateY(0) scale(1); }
+  50%     { transform:translateY(var(--jy,-12px)) scale(1.03); }
+}
+
+/* ============================================================
+   状态栏
+============================================================ */
+.status-bar {
+  position:relative; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 26px 6px;
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  color:#eaf6ff;
+}
+.status-time { font-size:15px; font-weight:700; letter-spacing:0.5px; min-width:42px; }
+.status-island { flex:1; display:flex; justify-content:center; }
+.status-right { display:flex; align-items:center; gap:6px; }
+
+.signal { display:flex; align-items:flex-end; gap:2px; height:11px; }
+.signal i { display:block; width:3px; background:#eaf6ff; border-radius:1px; }
+.signal i:nth-child(1){ height:4px; }
+.signal i:nth-child(2){ height:6px; }
+.signal i:nth-child(3){ height:8.5px; }
+.signal i:nth-child(4){ height:11px; }
+
+.battery { display:flex; align-items:center; gap:5px; }
+.bat-pct { font-size:12px; opacity:0.75; }
+.bat-shell {
+  position:relative; width:23px; height:12px;
+  border:1.3px solid rgba(234,246,255,0.75); border-radius:3.5px;
+  padding:1.5px;
+}
+.bat-nub { position:absolute; right:-4px; top:50%; transform:translateY(-50%); width:2.5px; height:5px; background:rgba(234,246,255,0.75); border-radius:0 2px 2px 0; }
+.bat-inner { height:100%; border-radius:1.5px; background:linear-gradient(90deg,#6ee7b7,#34d399); width:76%; transition:width .4s ease; }
+
+/* 灵动岛样式（沿用 index 命名，配色调整为磷光青） */
+.si-minimal .si-capsule, .si-glow .si-capsule, .si-clock .si-capsule,
+.si-pulse .si-capsule, .si-ripple .si-capsule, .si-rainbow .si-capsule,
+.si-music .si-capsule, .si-scan .si-capsule {
+  background:#000; border-radius:20px; height:26px; min-width:80px;
+  display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;
+}
+.si-glow .si-capsule { box-shadow:0 0 12px 2px rgba(111,214,255,0.35); }
+.si-clock-text { font-family:'Space Mono',monospace; font-size:11px; color:#6fd6ff; }
+.si-dot { width:5px; height:5px; border-radius:50%; background:#6fd6ff; margin:0 2px; animation:siPulse 1.2s ease-in-out infinite; }
+.si-dot-r { animation-delay:.3s; }
+@keyframes siPulse { 0%,100%{opacity:.3;transform:scale(.8);} 50%{opacity:1;transform:scale(1.1);} }
+.si-ring { width:10px; height:10px; border-radius:50%; border:1.5px solid #6fd6ff; animation:siRipple 1.6s ease-out infinite; }
+@keyframes siRipple { 0%{transform:scale(.4);opacity:1;} 100%{transform:scale(2.2);opacity:0;} }
+.si-rainbow .si-capsule { background:linear-gradient(90deg,#6fd6ff,#9fb8ff,#6fd6ff); background-size:200% 100%; animation:siRainbow 3s linear infinite; }
+@keyframes siRainbow { to{ background-position:200% 0; } }
+.si-bar { width:2.5px; height:6px; background:#6fd6ff; margin:0 1.3px; border-radius:1px; animation:siMusic 0.9s ease-in-out infinite; }
+.si-bar:nth-child(2){animation-delay:.1s;} .si-bar:nth-child(3){animation-delay:.2s;} .si-bar:nth-child(4){animation-delay:.3s;} .si-bar:nth-child(5){animation-delay:.4s;}
+@keyframes siMusic { 0%,100%{height:4px;} 50%{height:12px;} }
+.si-scanline { position:absolute; left:0; top:0; width:2px; height:100%; background:linear-gradient(180deg,transparent,#6fd6ff,transparent); animation:siScan 1.8s linear infinite; }
+@keyframes siScan { 0%{left:0;} 100%{left:100%;} }
+
+/* ============================================================
+   深潜对象条 · 顶部人物切换入口
+============================================================ */
+.xj-diver-bar {
+  position:relative; z-index:10; align-self:center;
+  display:flex; align-items:center; gap:9px;
+  margin:0 24px 14px; padding:7px 14px 7px 7px;
+  border-radius:999px; border:1px solid rgba(111,214,255,0.2);
+  background:rgba(111,214,255,0.05);
+  backdrop-filter:blur(6px);
+  transition:background .2s ease, transform .2s ease;
+}
+.xj-diver-bar:active { transform:scale(0.97); background:rgba(111,214,255,0.1); }
+.xj-diver-seal {
+  width:26px; height:26px; border-radius:50%; flex-shrink:0;
+  background-size:cover; background-position:center;
+  background:linear-gradient(160deg,#8fd8ff,#4a7fa8);
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color:#010509;
+  box-shadow:0 0 10px rgba(111,214,255,0.35);
+}
+.xj-diver-text { display:flex; flex-direction:column; align-items:flex-start; line-height:1.3; }
+.xj-diver-label { font-size:8.5px; letter-spacing:2px; color:rgba(111,214,255,0.55); font-family:'Space Mono',monospace; }
+.xj-diver-name { font-size:12.5px; letter-spacing:1px; color:#eaf6ff; }
+.xj-diver-caret { color:rgba(111,214,255,0.5); flex-shrink:0; }
+
+.xj-diver-mask {
+  position:fixed; inset:0; z-index:250;
+  background:rgba(0,3,6,0.65);
+  opacity:0; pointer-events:none; transition:opacity .3s ease;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.xj-diver-mask.show { opacity:1; pointer-events:all; }
+.xj-diver-panel {
+  width:100%; max-width:560px; max-height:74vh;
+  background:linear-gradient(180deg, #06141f, #010509);
+  border-radius:24px 24px 0 0;
+  border:1px solid rgba(111,214,255,0.18); border-bottom:none;
+  display:flex; flex-direction:column;
+  transform:translateY(100%); transition:transform .38s cubic-bezier(.2,.9,.25,1);
+  box-shadow:0 -20px 60px rgba(0,0,0,0.6);
+  padding-bottom:20px;
+}
+.xj-diver-mask.show .xj-diver-panel { transform:translateY(0); }
+.xj-diver-header { padding:6px 22px 14px; border-bottom:1px solid rgba(111,214,255,0.1); }
+.xj-diver-grid {
+  overflow-y:auto; padding:16px 18px 8px;
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:14px;
+}
+.xj-diver-card {
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+  padding:12px 6px; border-radius:14px;
+  border:1px solid rgba(111,214,255,0.1); background:rgba(111,214,255,0.03);
+  transition:all .2s ease;
+}
+.xj-diver-card:active { transform:scale(0.95); }
+.xj-diver-card.active { border-color:rgba(111,214,255,0.55); background:rgba(111,214,255,0.1); box-shadow:0 0 18px rgba(111,214,255,0.15); }
+.xj-diver-card-seal {
+  width:46px; height:46px; border-radius:50%;
+  background-size:cover; background-position:center;
+  background:linear-gradient(160deg,#8fd8ff,#4a7fa8);
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; font-weight:700; color:#010509;
+}
+.xj-diver-card-name { font-size:11px; color:rgba(234,246,255,0.75); text-align:center; letter-spacing:0.5px; line-height:1.3; }
+.xj-diver-empty { grid-column:1/-1; text-align:center; padding:40px 20px; color:rgba(234,246,255,0.3); font-size:12.5px; letter-spacing:1px; }
+
+/* ============================================================
+   头部题头
+============================================================ */
+.xj-header {
+  position:relative; z-index:10;
+  display:flex; align-items:flex-start; gap:14px;
+  padding:14px 24px 18px;
+  flex-shrink:0;
+}
+.xj-back {
+  width:36px; height:36px; border-radius:50%;
+  border:1px solid rgba(111,214,255,0.22);
+  background:rgba(111,214,255,0.05);
+  display:flex; align-items:center; justify-content:center;
+  color:#8fd8ff; flex-shrink:0;
+  transition:all .25s ease;
+}
+.xj-back:active { transform:scale(0.9); background:rgba(111,214,255,0.14); }
+
+.xj-title-block { flex:1; min-width:0; }
+.xj-eyebrow {
+  display:flex; align-items:center; gap:7px;
+  font-family:'Space Mono', monospace; font-size:10.5px;
+  letter-spacing:2px; color:rgba(111,214,255,0.6);
+  text-transform:uppercase; margin-bottom:6px;
+}
+.xj-eyebrow-mark { width:14px; height:1px; background:linear-gradient(90deg, transparent, #6fd6ff); }
+
+.xj-title {
+  font-size:29px; font-weight:700; letter-spacing:8px;
+  background:linear-gradient(180deg, #eaf6ff 0%, #8fd8ff 50%, #4a7fa8 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow:0 0 34px rgba(111,214,255,0.22);
+  line-height:1.15;
+  position:relative;
+}
+.xj-subtitle {
+  margin-top:5px; font-size:11.5px; letter-spacing:2px;
+  color:rgba(234,246,255,0.4); font-family:'Cormorant Garamond', serif; font-style:italic;
+}
+
+.xj-archive-btn {
+  position:relative; width:38px; height:38px; border-radius:10px;
+  border:1px solid rgba(111,214,255,0.22);
+  background:rgba(111,214,255,0.05);
+  display:flex; align-items:center; justify-content:center;
+  color:#8fd8ff; flex-shrink:0; margin-top:2px;
+  transition:all .25s ease;
+}
+.xj-archive-btn:active { transform:scale(0.92); }
+.xj-archive-dot {
+  position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:50%;
+  background:#6fd6ff; box-shadow:0 0 6px rgba(111,214,255,0.8); border:1.5px solid #010509;
+  animation:archiveDotPulse 2s ease-in-out infinite;
+}
+@keyframes archiveDotPulse { 0%,100%{ box-shadow:0 0 6px rgba(111,214,255,0.8);} 50%{ box-shadow:0 0 12px rgba(111,214,255,1);} }
+
+/* ============================================================
+   主舞台
+============================================================ */
+.xj-stage {
+  flex:1; position:relative; z-index:5;
+  overflow:hidden;
+  display:flex; flex-direction:column;
+}
+
+/* ---- 待命态：发光核心 · 点击唤醒 ---- */
+.xj-idle {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  position:relative;
+  transition:opacity .5s ease, transform .5s ease, filter .5s ease;
+}
+.xj-stage.awake .xj-idle {
+  opacity:0; transform:scale(0.92); filter:blur(6px);
+  pointer-events:none;
+  position:absolute; inset:0;
+}
+
+.xj-orb-field {
+  position:relative; width:260px; height:260px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+
+.xj-orb-ring {
+  position:absolute; border-radius:50%;
+  border:1px solid rgba(111,214,255,0.18);
+}
+.xj-orb-ring--1 { width:150px; height:150px; animation:orbRingPulse 4.5s ease-in-out infinite; }
+.xj-orb-ring--2 { width:190px; height:190px; animation:orbRingPulse 4.5s ease-in-out infinite 0.7s; border-color:rgba(159,184,255,0.14); }
+.xj-orb-ring--3 { width:232px; height:232px; animation:orbRingPulse 4.5s ease-in-out infinite 1.4s; border-color:rgba(111,214,255,0.09); }
+@keyframes orbRingPulse {
+  0%   { transform:scale(0.82); opacity:0; }
+  30%  { opacity:0.9; }
+  100% { transform:scale(1.08); opacity:0; }
+}
+
+.xj-orb {
+  position:relative; width:104px; height:104px; border-radius:50%;
+  border:none; outline:none;
+  background:
+    radial-gradient(circle at 38% 32%, rgba(255,255,255,0.85), rgba(111,214,255,0.55) 32%, rgba(66,150,210,0.35) 62%, rgba(20,60,90,0.15) 100%);
+  box-shadow:
+    0 0 50px 8px rgba(111,214,255,0.35),
+    0 0 100px 30px rgba(111,214,255,0.15),
+    inset 0 0 24px rgba(255,255,255,0.35);
+  animation:orbBreathe 3.6s ease-in-out infinite;
+  transition:transform .5s cubic-bezier(.2,.9,.25,1);
+}
+@keyframes orbBreathe {
+  0%,100% { transform:scale(1); box-shadow:0 0 50px 8px rgba(111,214,255,0.32), 0 0 100px 30px rgba(111,214,255,0.13), inset 0 0 24px rgba(255,255,255,0.32); }
+  50%     { transform:scale(1.055); box-shadow:0 0 62px 14px rgba(111,214,255,0.45), 0 0 120px 40px rgba(111,214,255,0.2), inset 0 0 30px rgba(255,255,255,0.4); }
+}
+.xj-orb:active { transform:scale(0.9); }
+.xj-orb.opening { animation:orbOpen 0.9s cubic-bezier(.2,.9,.2,1) forwards; }
+@keyframes orbOpen {
+  0%   { transform:scale(1); opacity:1; }
+  45%  { transform:scale(1.5); opacity:1; }
+  100% { transform:scale(6); opacity:0; }
+}
+
+.xj-orb-core {
+  position:absolute; inset:26%; border-radius:50%;
+  background:radial-gradient(circle, #ffffff 0%, rgba(255,255,255,0.4) 60%, transparent 100%);
+  filter:blur(1px);
+  animation:coreFlicker 2.4s ease-in-out infinite;
+}
+@keyframes coreFlicker { 0%,100%{ opacity:0.85; } 50%{ opacity:1; } }
+.xj-orb-inner-glow {
+  position:absolute; inset:-14%; border-radius:50%;
+  background:radial-gradient(circle, rgba(111,214,255,0.25), transparent 70%);
+  animation:innerGlowPulse 3.6s ease-in-out infinite;
+}
+@keyframes innerGlowPulse { 0%,100%{ opacity:0.5; } 50%{ opacity:0.9; } }
+
+/* 光球表面高光：模拟液态光泽的移动反光 */
+.xj-orb-highlight {
+  position:absolute; top:14%; left:20%; width:36%; height:26%; border-radius:50%;
+  background:radial-gradient(ellipse, rgba(255,255,255,0.75), transparent 72%);
+  filter:blur(1px);
+  animation:highlightDrift 5.2s ease-in-out infinite;
+}
+@keyframes highlightDrift {
+  0%,100% { transform:translate(0,0) scale(1); opacity:0.8; }
+  50%     { transform:translate(3%,4%) scale(1.12); opacity:0.55; }
+}
+
+/* 环绕光球公转的微粒轨道：三枚光点各自不同半径与速度 */
+.xj-orb-orbit { position:absolute; inset:0; pointer-events:none; }
+.xj-orb-orbit::before, .xj-orb-orbit::after, .xj-orb-orbit span {
+  content:''; position:absolute; top:50%; left:50%; border-radius:50%;
+}
+.xj-orb-orbit::before {
+  width:5px; height:5px; margin:-2.5px;
+  background:#eaf6ff; box-shadow:0 0 8px 2px rgba(111,214,255,0.85);
+  animation:orbitSpin 7s linear infinite;
+  transform-origin:2.5px 2.5px;
+}
+.xj-orb-orbit::after {
+  width:3.5px; height:3.5px; margin:-1.75px;
+  background:#9fb8ff; box-shadow:0 0 6px 1.5px rgba(159,184,255,0.8);
+  animation:orbitSpinRev 10.5s linear infinite;
+  transform-origin:1.75px 1.75px;
+}
+@keyframes orbitSpin {
+  from { transform:rotate(0deg) translateX(78px) rotate(0deg); }
+  to   { transform:rotate(360deg) translateX(78px) rotate(-360deg); }
+}
+@keyframes orbitSpinRev {
+  from { transform:rotate(0deg) translateX(64px) rotate(0deg); }
+  to   { transform:rotate(-360deg) translateX(64px) rotate(360deg); }
+}
+
+.xj-orb-sparks { position:absolute; inset:0; pointer-events:none; }
+.xj-orb-spark {
+  position:absolute; width:4px; height:4px; border-radius:50%;
+  background:#eaf6ff; box-shadow:0 0 8px 2px rgba(111,214,255,0.9);
+  animation:sparkBurst 0.85s cubic-bezier(.2,.85,.3,1) forwards;
+}
+@keyframes sparkBurst {
+  0%   { transform:translate(0,0) scale(1); opacity:1; }
+  100% { transform:translate(var(--sx), var(--sy)) scale(0.2); opacity:0; }
+}
+
+.xj-orb-caption {
+  margin-top:40px;
+  display:flex; align-items:center; justify-content:center; gap:14px;
+  animation:captionFloat 3.6s ease-in-out infinite;
+}
+@keyframes captionFloat { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-4px); } }
+.xj-orb-caption-line {
+  display:block; width:22px; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(111,214,255,0.5));
+  animation:captionLinePulse 3.6s ease-in-out infinite;
+}
+.xj-orb-caption-line--r { transform:scaleX(-1); }
+@keyframes captionLinePulse { 0%,100%{ opacity:0.4; width:16px; } 50%{ opacity:0.9; width:26px; } }
+.xj-orb-caption-text { text-align:center; }
+.xj-orb-caption-main {
+  font-size:14px; letter-spacing:6px; color:rgba(234,246,255,0.82);
+  font-family:'Cormorant Garamond', serif; font-style:italic;
+}
+.xj-orb-caption-sub {
+  margin-top:7px; font-family:'Space Mono',monospace; font-size:9px;
+  letter-spacing:4px; color:rgba(111,214,255,0.4);
+}
+
+/* ============================================================
+   唤醒态 · 深处书写空间
+============================================================ */
+.xj-abyss {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  opacity:0; pointer-events:none;
+  transition:opacity .6s ease;
+}
+.xj-stage.awake .xj-abyss { opacity:1; pointer-events:all; }
+
+/* 提交后，书写空间整体飘散退场（内容随之碎散入海，而非折叠为输入条） */
+.xj-abyss.dissolving { animation:abyssDissolve .9s cubic-bezier(.4,0,.6,1) forwards; pointer-events:none; }
+@keyframes abyssDissolve {
+  0%   { opacity:1; filter:blur(0); }
+  100% { opacity:0; filter:blur(10px); }
+}
+
+.xj-abyss-return {
+  padding:8px 22px 4px; flex-shrink:0;
+  opacity:0; transform:translateY(-8px);
+  transition:opacity .5s ease .35s, transform .5s ease .35s;
+}
+.xj-stage.awake .xj-abyss-return { opacity:1; transform:translateY(0); }
+.xj-abyss-close {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 14px 7px 10px; border-radius:999px;
+  border:1px solid rgba(111,214,255,0.2);
+  background:rgba(111,214,255,0.05);
+  color:rgba(234,246,255,0.6);
+  font-size:11px; letter-spacing:1.5px;
+}
+.xj-abyss-close:active { transform:scale(0.95); background:rgba(111,214,255,0.12); }
+
+.xj-abyss-content {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:20px 34px 40px; text-align:center; gap:0;
+  opacity:0; transform:translateY(18px) scale(0.97);
+  transition:opacity .7s cubic-bezier(.2,.85,.25,1) .15s, transform .7s cubic-bezier(.2,.85,.25,1) .15s;
+}
+.xj-stage.awake .xj-abyss-content { opacity:1; transform:translateY(0) scale(1); }
+
+.xj-abyss-mark {
+  font-size:15px; color:rgba(111,214,255,0.45);
+  font-family:'Cormorant Garamond', serif;
+  margin-bottom:18px;
+  animation:markSpin 12s linear infinite;
+  display:inline-block;
+}
+@keyframes markSpin { to { transform:rotate(360deg); } }
+
+.xj-abyss-prompt {
+  font-size:20px; font-weight:400; letter-spacing:3px;
+  color:#eaf6ff;
+  line-height:1.6;
+}
+.xj-abyss-hint {
+  margin-top:10px; font-size:12px; letter-spacing:2px;
+  color:rgba(234,246,255,0.38);
+  font-family:'Cormorant Garamond', serif; font-style:italic;
+  margin-bottom:44px;
+}
+
+.xj-abyss-field {
+  position:relative; width:100%; max-width:380px;
+}
+.xj-abyss-textarea {
+  width:100%; resize:none; border:none; outline:none; background:transparent;
+  color:#eaf6ff; font-family:'Noto Serif SC', serif; font-size:16px; line-height:1.8;
+  text-align:center;
+  max-height:140px; padding:6px 4px 14px;
+  letter-spacing:0.5px;
+}
+.xj-abyss-textarea::placeholder { color:rgba(234,246,255,0.28); font-style:italic; }
+.xj-abyss-field-line {
+  position:relative; height:1px; width:100%;
+  background:linear-gradient(90deg, transparent, rgba(111,214,255,0.35), transparent);
+  overflow:visible;
+}
+.xj-abyss-field-line::after {
+  content:''; position:absolute; left:50%; top:-1px; transform:translateX(-50%);
+  width:0; height:2px; border-radius:2px;
+  background:linear-gradient(90deg, transparent, #6fd6ff, transparent);
+  transition:width .4s ease;
+  box-shadow:0 0 8px rgba(111,214,255,0.6);
+}
+.xj-abyss-field:focus-within .xj-abyss-field-line::after { width:100%; }
+
+.xj-abyss-foot {
+  margin-top:26px;
+  display:flex; align-items:center; gap:22px;
+}
+.xj-input-count { font-family:'Space Mono',monospace; font-size:9.5px; color:rgba(234,246,255,0.3); }
+
+.xj-abyss-send {
+  position:relative; overflow:hidden;
+  padding:12px 30px; border-radius:999px;
+  border:1px solid rgba(111,214,255,0.4);
+  background:linear-gradient(135deg, rgba(111,214,255,0.16), rgba(159,184,255,0.06));
+  color:#eaf6ff; font-size:12.5px; letter-spacing:3px;
+  box-shadow:0 4px 22px rgba(111,214,255,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
+  transition:transform .25s cubic-bezier(.2,.9,.3,1), box-shadow .25s ease;
+}
+.xj-abyss-send:active { transform:scale(0.94); }
+.xj-abyss-send-label { position:relative; z-index:1; }
+.xj-abyss-send-ripple {
+  position:absolute; inset:0; border-radius:999px;
+  background:radial-gradient(circle, rgba(111,214,255,0.4), transparent 70%);
+  opacity:0; transform:scale(0.6);
+}
+.xj-abyss-send.sending .xj-abyss-send-ripple { animation:sendRipple 1s ease-out infinite; }
+@keyframes sendRipple { 0%{ opacity:0.7; transform:scale(0.5);} 100%{ opacity:0; transform:scale(1.8);} }
+.xj-abyss-send.sending .xj-abyss-send-label { opacity:0.5; }
+.xj-abyss-send:disabled { opacity:0.35; pointer-events:none; }
+
+/* ============================================================
+   深海回响舞台 · 沉浸式呈现（非对话、非气泡）
+   —— 用户原文以碎散方式没入深海
+   —— AI 正文以 AI 自定的"运动指令"逐句显影，铺陈于画布不同位置
+   —— 心声默认潜藏，点击锚点词才浮现，可再次收起
+============================================================ */
+.xj-echo-stage {
+  position:absolute; inset:0; z-index:8;
+  opacity:0; pointer-events:none;
+  transition:opacity .5s ease;
+  display:flex; flex-direction:column;
+}
+.xj-stage.reading .xj-echo-stage { opacity:1; pointer-events:all; }
+.xj-stage.reading .xj-idle,
+.xj-stage.reading .xj-abyss { opacity:0 !important; pointer-events:none; }
+
+.xj-echo-surface {
+  align-self:center; margin:10px 0 2px; flex-shrink:0;
+  display:inline-flex; align-items:center; gap:7px;
+  padding:8px 18px 8px 14px; border-radius:999px;
+  border:1px solid rgba(111,214,255,0.22);
+  background:rgba(4,14,22,0.55); backdrop-filter:blur(8px);
+  color:rgba(234,246,255,0.6); font-size:11px; letter-spacing:1.5px;
+  opacity:0; transform:translateY(-8px);
+  animation:surfaceBtnIn .5s ease .3s forwards;
+  z-index:2;
+}
+@keyframes surfaceBtnIn { to { opacity:1; transform:translateY(0); } }
+.xj-echo-surface:active { transform:scale(0.95); background:rgba(111,214,255,0.12); }
+
+.xj-echo-canvas {
+  position:relative; flex:1; width:100%;
+  overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain;
+  padding:8px 8px 60px;
+  -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 24px, #000 calc(100% - 14px), transparent 100%);
+  mask-image:linear-gradient(180deg, transparent 0, #000 24px, #000 calc(100% - 14px), transparent 100%);
+}
+
+/* ---------------------------------------------------------
+   用户原文飘散入海：不作为气泡展示，而是文字拆散、
+   逐字带不同的漂移方向与速度沉入深处，最终完全消散
+--------------------------------------------------------- */
+.xj-scatter-layer {
+  position:fixed; inset:0; z-index:15; pointer-events:none;
+  display:flex; align-items:center; justify-content:center;
+  flex-wrap:wrap; padding:0 15%;
+}
+.xj-scatter-glyph {
+  display:inline-block;
+  font-family:'Noto Serif SC', serif; font-size:16px; color:rgba(234,246,255,0.85);
+  text-shadow:0 0 12px rgba(111,214,255,0.4);
+  animation:scatterSink var(--sdur,2.6s) cubic-bezier(.3,0,.7,1) forwards;
+  animation-delay:var(--sdelay,0s);
+  opacity:0;
+}
+@keyframes scatterSink {
+  0%   { opacity:0; transform:translate(0,0) rotate(0deg) scale(1); filter:blur(0); }
+  8%   { opacity:0.9; }
+  100% {
+    opacity:0;
+    transform:
+      translate(var(--sx,0px), var(--sy,140px))
+      rotate(var(--srot,25deg))
+      scale(var(--sscale,0.5));
+    filter:blur(3px);
+  }
+}
+
+/* ---------------------------------------------------------
+   生成中态：沉浸画布中央的凝神动画（承接自旧版，尺寸略放大）
+--------------------------------------------------------- */
+.xj-summon-wrap {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:60vh; gap:0;
+}
+.xj-echo-summon {
+  position:relative; width:100%; height:150px;
+  display:flex; align-items:center; justify-content:center;
+}
+.xj-summon-core {
+  position:relative; width:36px; height:36px; border-radius:50%;
+  background:radial-gradient(circle at 38% 32%, #fff, rgba(111,214,255,0.7) 40%, rgba(66,150,210,0.25) 75%, transparent 100%);
+  box-shadow:0 0 34px 8px rgba(111,214,255,0.38);
+  animation:summonBreathe 2.2s ease-in-out infinite;
+}
+@keyframes summonBreathe {
+  0%,100% { transform:scale(1); opacity:0.85; }
+  50%     { transform:scale(1.32); opacity:1; }
+}
+.xj-summon-ring {
+  position:absolute; left:50%; top:50%; border-radius:50%;
+  border:1px solid rgba(111,214,255,0.3);
+  transform:translate(-50%,-50%);
+  animation:summonRingOut 2.6s cubic-bezier(.2,.7,.3,1) infinite;
+}
+.xj-summon-ring:nth-child(2) { animation-delay:0.7s; }
+.xj-summon-ring:nth-child(3) { animation-delay:1.4s; }
+@keyframes summonRingOut {
+  0%   { width:36px; height:36px; opacity:0.7; border-color:rgba(111,214,255,0.5); }
+  100% { width:160px; height:160px; opacity:0; border-color:rgba(111,214,255,0); }
+}
+.xj-summon-threads { position:absolute; inset:0; pointer-events:none; }
+.xj-summon-thread {
+  position:absolute; left:50%; top:50%; width:1px; height:50px;
+  background:linear-gradient(180deg, rgba(111,214,255,0.55), transparent);
+  transform-origin:top center;
+  animation:threadWave 1.8s ease-in-out infinite;
+  opacity:0.5;
+}
+@keyframes threadWave {
+  0%,100% { transform:rotate(var(--ta,0deg)) scaleY(0.7); opacity:0.25; }
+  50%     { transform:rotate(var(--ta,0deg)) scaleY(1.15); opacity:0.6; }
+}
+.xj-echo-summon-label {
+  margin-top:6px;
+  font-family:'Cormorant Garamond', serif; font-style:italic; font-size:12px;
+  letter-spacing:3px; color:rgba(234,246,255,0.42); text-align:center;
+  animation:summonLabelFade 2.4s ease-in-out infinite;
+}
+@keyframes summonLabelFade { 0%,100%{ opacity:0.35; } 50%{ opacity:0.75; } }
+
+/* ---------------------------------------------------------
+   正文容器：由 AI 情绪基调决定的整体氛围类
+--------------------------------------------------------- */
+.xj-echo-field {
+  position:relative; min-height:calc(100vh - 220px);
+  display:flex; flex-direction:column; justify-content:center;
+  padding:20px 22px 40px;
+}
+.xj-echo-field[data-mood="沉郁"] { --mood-tint:159,184,255; }
+.xj-echo-field[data-mood="温柔"] { --mood-tint:180,225,255; }
+.xj-echo-field[data-mood="眷恋"] { --mood-tint:200,190,255; }
+.xj-echo-field[data-mood="释然"] { --mood-tint:150,220,210; }
+.xj-echo-field[data-mood="孤独"] { --mood-tint:120,160,210; }
+.xj-echo-field[data-mood="欣喜"] { --mood-tint:255,214,170; }
+.xj-echo-field { --mood-tint:111,214,255; }
+
+.xj-echo-meta {
+  display:flex; align-items:center; gap:9px; margin-bottom:26px;
+  opacity:0; animation:echoMetaIn .6s ease forwards;
+}
+@keyframes echoMetaIn { to { opacity:1; } }
+.xj-echo-seal-mini {
+  width:27px; height:27px; border-radius:50%; flex-shrink:0;
+  background-size:cover; background-position:center;
+  background:linear-gradient(160deg,#8fd8ff,#4a7fa8);
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color:#010509;
+  box-shadow:0 0 12px rgba(var(--mood-tint),0.4);
+}
+.xj-echo-name { font-size:12px; letter-spacing:1.5px; color:#8fd8ff; }
+.xj-echo-time { margin-left:auto; font-family:'Space Mono',monospace; font-size:9.5px; color:rgba(234,246,255,0.32); }
+
+/* 正文本体：句块以行内块形式流式排布，每句携带独立入场方式与轻微错位，
+   营造"诗行聚散"感而非规整的从上到下堆砌 */
+.xj-echo-paper {
+  font-size:16px; line-height:2.3; letter-spacing:0.4px;
+  color:rgba(234,246,255,0.94);
+}
+.xj-echo-line {
+  display:inline; position:relative;
+  opacity:0;
+}
+.xj-echo-line.in { opacity:1; }
+.xj-echo-line.done-static { opacity:1; }
+
+/* 心声提示：告诉读者字里有可点触的微光词，避免完全找不到入口 */
+.xj-detail-heart-hint {
+  display:flex; align-items:center; gap:7px; margin-top:26px; padding-top:16px;
+  border-top:1px solid rgba(111,214,255,0.1);
+  font-size:11px; letter-spacing:0.5px; color:rgba(234,246,255,0.4); line-height:1.6;
+  opacity:0; transform:translateY(4px); transition:opacity .6s ease, transform .6s ease;
+}
+.xj-detail-heart-hint.in { opacity:1; transform:translateY(0); }
+.xj-detail-heart-hint-dot {
+  flex-shrink:0; width:6px; height:6px; border-radius:50%;
+  background:rgba(111,214,255,0.8); box-shadow:0 0 8px rgba(111,214,255,0.7);
+  animation:anchorBreathe 3.4s ease-in-out infinite;
+}
+
+/* ===== 运动指令词典：AI 输出的关键词 → 对应入场动画 ===== */
+
+/* 泡沫上浮：由下而上升起并轻微破碎感的模糊收束 */
+.xj-motion-bubble-rise {
+  animation:motionBubbleRise 1.3s cubic-bezier(.16,.85,.3,1) forwards;
+  display:inline-block; filter:blur(6px);
+}
+@keyframes motionBubbleRise {
+  0%   { opacity:0; transform:translateY(26px) scale(0.9); filter:blur(6px); }
+  60%  { opacity:1; filter:blur(1px); }
+  100% { opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
+}
+
+/* 潮水涌入：整句从一侧水平推入，带轻微超调回弹 */
+.xj-motion-tide-in {
+  animation:motionTideIn 1.05s cubic-bezier(.22,.9,.2,1) forwards;
+  display:inline-block;
+}
+@keyframes motionTideIn {
+  0%   { opacity:0; transform:translateX(var(--tidefrom,-46px)); }
+  70%  { opacity:1; transform:translateX(6px); }
+  100% { opacity:1; transform:translateX(0); }
+}
+
+/* 碎裂消散反转：文字先以碎片状聚拢成形（反向使用消散关键帧） */
+.xj-motion-shatter-form {
+  animation:motionShatterForm 1.5s cubic-bezier(.2,.8,.25,1) forwards;
+  display:inline-block;
+}
+@keyframes motionShatterForm {
+  0%   { opacity:0; transform:translate(var(--shx,18px), var(--shy,-14px)) rotate(var(--shrot,12deg)) scale(1.4); filter:blur(5px); }
+  100% { opacity:1; transform:translate(0,0) rotate(0deg) scale(1); filter:blur(0); }
+}
+
+/* 缓缓沉降：从上方缓慢落定，比泡沫上浮更沉重迟缓 */
+.xj-motion-slow-sink {
+  animation:motionSlowSink 1.7s cubic-bezier(.25,.6,.3,1) forwards;
+  display:inline-block;
+}
+@keyframes motionSlowSink {
+  0%   { opacity:0; transform:translateY(-18px); filter:blur(4px); }
+  100% { opacity:1; transform:translateY(0); filter:blur(0); }
+}
+
+/* 光丝聚拢：从周围极小的光点汇聚成文字（配合较强的初始模糊与轻微缩放） */
+.xj-motion-light-gather {
+  animation:motionLightGather 1.4s cubic-bezier(.16,.9,.25,1) forwards;
+  display:inline-block;
+}
+@keyframes motionLightGather {
+  0%   { opacity:0; filter:blur(9px) brightness(2.4); transform:scale(1.15); text-shadow:0 0 26px rgba(var(--mood-tint),0.9); }
+  60%  { opacity:1; filter:blur(2px) brightness(1.4); }
+  100% { opacity:1; filter:blur(0) brightness(1); transform:scale(1); text-shadow:0 0 0 transparent; }
+}
+
+/* 漩涡卷入：带轻微旋转位移的螺旋式浮现 */
+.xj-motion-whirl-in {
+  animation:motionWhirlIn 1.4s cubic-bezier(.2,.85,.25,1) forwards;
+  display:inline-block;
+}
+@keyframes motionWhirlIn {
+  0%   { opacity:0; transform:rotate(var(--wrot,-40deg)) translate(var(--wx,-20px), var(--wy,10px)) scale(0.7); }
+  100% { opacity:1; transform:rotate(0) translate(0,0) scale(1); }
+}
+
+/* 默认兜底动效（AI 未给出可识别关键词时使用）：轻柔浮现 */
+.xj-motion-default {
+  animation:motionDefaultIn 1.1s cubic-bezier(.2,.85,.25,1) forwards;
+  display:inline-block; filter:blur(4px);
+}
+@keyframes motionDefaultIn {
+  0%   { opacity:0; filter:blur(4px); transform:translateY(10px); }
+  100% { opacity:1; filter:blur(0); transform:translateY(0); }
+}
+
+/* 段落间的呼吸留白 */
+.xj-echo-parabreak { display:block; height:22px; }
+
+/* ---------------------------------------------------------
+   心声锚点词：默认低调呼吸高光，点击后触发心声浮现
+--------------------------------------------------------- */
+.xj-anchor {
+  position:relative; cursor:pointer;
+  color:rgba(234,246,255,0.94);
+  text-shadow:0 0 0 rgba(var(--mood-tint),0);
+  animation:anchorBreathe 3.4s ease-in-out infinite;
+  padding:0 1px; border-radius:3px;
+  transition:background .3s ease;
+}
+@keyframes anchorBreathe {
+  0%,100% { text-shadow:0 0 0 rgba(var(--mood-tint),0); }
+  50%     { text-shadow:0 0 9px rgba(var(--mood-tint),0.55); }
+}
+.xj-anchor::after {
+  content:''; position:absolute; left:2px; right:2px; bottom:-2px; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(var(--mood-tint),0.5), transparent);
+  opacity:0; animation:anchorLineFade 3.4s ease-in-out infinite;
+}
+@keyframes anchorLineFade { 0%,100%{ opacity:0.15; } 50%{ opacity:0.55; } }
+.xj-anchor.opened { background:rgba(var(--mood-tint),0.1); }
+.xj-anchor:active { transform:scale(0.96); }
+
+/* 心声浮现层：从锚点词旁展开，独立于正文的运动方式（飘散状漂浮，而非聚焦显形） */
+.xj-heart-pop {
+  display:block; margin:10px 0 4px; max-width:100%;
+  padding:11px 16px 11px 15px;
+  border-left:2px solid rgba(var(--mood-tint),0.45);
+  background:linear-gradient(90deg, rgba(var(--mood-tint),0.08), transparent 75%);
+  border-radius:2px 12px 12px 2px;
+  font-family:'Cormorant Garamond', serif; font-style:italic;
+  font-size:13.5px; letter-spacing:0.5px; line-height:1.75;
+  color:rgba(var(--mood-tint),0.92);
+  opacity:1;
+  position:relative; overflow:visible;
+}
+.xj-heart-pop-tag {
+  display:inline-block; margin-right:7px;
+  font-family:'Space Mono',monospace; font-size:8.5px; letter-spacing:2px;
+  color:rgba(var(--mood-tint),0.6); font-style:normal; vertical-align:1px;
+  opacity:0; animation:heartTagIn .4s ease forwards; animation-delay:.15s;
+}
+@keyframes heartTagIn { to { opacity:1; } }
+/* 心声内漂浮微粒：呼应"飘散"的运动语言 */
+.xj-heart-pop .xj-heart-drift {
+  position:absolute; width:3px; height:3px; border-radius:50%;
+  background:rgba(var(--mood-tint),0.7);
+  animation:heartDrift 2.4s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes heartDrift {
+  0%,100% { transform:translate(0,0); opacity:0.3; }
+  50%     { transform:translate(var(--hdx,6px), var(--hdy,-8px)); opacity:0.8; }
+}
+
+/* -----------------------------------------------------------
+   心声：散落汇聚显影 —— 每个字独立从四周碎粒状飘来，聚成一句
+----------------------------------------------------------- */
+.xj-heart-body { display:inline; }
+.xj-heart-glyph {
+  display:inline-block; white-space:pre;
+  opacity:0; filter:blur(5px);
+  transform:
+    translate(var(--hgx,0px), var(--hgy,0px))
+    rotate(var(--hgrot,0deg))
+    scale(var(--hgscale,1.6));
+  animation:heartGlyphGather var(--hgdur,.62s) cubic-bezier(.16,.85,.28,1) forwards;
+  animation-delay:var(--hgdelay,0s);
+}
+@keyframes heartGlyphGather {
+  0%   { opacity:0; filter:blur(5px); }
+  55%  { opacity:1; filter:blur(1.4px); }
+  100% { opacity:1; filter:blur(0); transform:translate(0,0) rotate(0deg) scale(1); }
+}
+
+/* 心声收起：文字重新碎散，向下潜入深海（与用户原文入海动作呼应） */
+.xj-heart-pop.sinking { pointer-events:none; }
+.xj-heart-pop.sinking .xj-heart-pop-tag {
+  transition:opacity .5s ease; opacity:0;
+}
+.xj-heart-pop.sinking .xj-heart-glyph {
+  animation:heartGlyphSink var(--hsdur,.85s) cubic-bezier(.3,0,.7,1) forwards !important;
+  animation-delay:var(--hsdelay,0s) !important;
+}
+@keyframes heartGlyphSink {
+  0%   { opacity:1; filter:blur(0); transform:translate(0,0) rotate(0deg) scale(1); }
+  15%  { opacity:1; }
+  100% {
+    opacity:0; filter:blur(4px);
+    transform:
+      translate(var(--hsx,0px), var(--hsy,70px))
+      rotate(var(--hsrot,20deg))
+      scale(var(--hsscale,0.55));
+  }
+}
+.xj-heart-pop.sinking {
+  transition:border-color .6s ease, background .6s ease;
+  border-left-color:rgba(var(--mood-tint),0.08);
+  background:transparent;
+}
+
+/* ---------------------------------------------------------
+   长驻漂浮层：用户碎字在生成完成前持续于深海中漂浮，
+   不消失，直到 AI 回应抵达才引导它们聚拢 / 沉没退场
+--------------------------------------------------------- */
+.xj-drift-layer {
+  position:fixed; inset:0; z-index:14; pointer-events:none;
+  overflow:hidden;
+}
+.xj-drift-glyph {
+  position:absolute;
+  font-family:'Noto Serif SC', serif; font-size:14px; color:rgba(159,184,255,0.55);
+  text-shadow:0 0 10px rgba(111,214,255,0.3);
+  opacity:0;
+  animation:driftIn .9s ease forwards, driftFloat var(--dfdur,7s) ease-in-out infinite;
+  animation-delay:var(--dfdelay,0s), var(--dfdelay,0s);
+  will-change:transform, opacity;
+}
+@keyframes driftIn { to { opacity:var(--dfop,0.5); } }
+@keyframes driftFloat {
+  0%,100% { transform:translate(0,0) rotate(0deg); }
+  50%     { transform:translate(var(--dfx,10px), var(--dfy,-16px)) rotate(var(--dfrot,6deg)); }
+}
+.xj-drift-glyph.dismiss {
+  animation:driftDismiss .9s cubic-bezier(.3,0,.7,1) forwards !important;
+}
+@keyframes driftDismiss {
+  0%   { opacity:var(--dfop,0.5); filter:blur(0); }
+  100% {
+    opacity:0; filter:blur(5px);
+    transform:
+      translate(var(--ddx,0px), var(--ddy,90px))
+      rotate(var(--ddrot,20deg))
+      scale(0.5);
+  }
+}
+
+/* ---------------------------------------------------------
+   隐藏交互：长按"回响已沉入水面之下"落款，触发全篇消散归档
+   —— 非常规操作点，按住蓄力后整段文字化为光尘沉入海底
+--------------------------------------------------------- */
+.xj-echo-close-progress {
+  position:absolute; left:0; bottom:-8px; height:1px; width:0%;
+  background:linear-gradient(90deg, rgba(var(--mood-tint),0.9), rgba(var(--mood-tint),0.1));
+  transition:width linear;
+  pointer-events:none;
+}
+.xj-echo-close.charging .xj-echo-close-mark {
+  animation:closeMarkCharge 1.1s ease-in-out infinite;
+}
+@keyframes closeMarkCharge {
+  0%,100% { opacity:0.6; box-shadow:0 0 10px 3px rgba(var(--mood-tint),0.7); }
+  50%     { opacity:1; box-shadow:0 0 18px 7px rgba(var(--mood-tint),0.95); transform:scale(1.4); }
+}
+.xj-echo-close.charging .xj-echo-close-text { color:rgba(234,246,255,0.65); }
+
+/* 全篇归档消散：整个回响区域的每一行独立碎散、沉向海底后移除 */
+.xj-echo-field.archiving .xj-echo-line,
+.xj-echo-field.archiving .xj-heart-pop,
+.xj-echo-field.archiving .xj-echo-meta {
+  animation:fieldLineSink var(--flsdur,1.1s) cubic-bezier(.3,0,.7,1) forwards !important;
+  animation-delay:var(--flsdelay,0s) !important;
+  pointer-events:none;
+}
+@keyframes fieldLineSink {
+  0%   { opacity:1; filter:blur(0); transform:translate(0,0) rotate(0deg); }
+  100% {
+    opacity:0; filter:blur(6px);
+    transform:
+      translate(var(--flsx,0px), var(--flsy,120px))
+      rotate(var(--flsrot,14deg));
+  }
+}
+.xj-echo-field.archiving::after {
+  content:'';
+  position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse at 50% 100%, rgba(111,214,255,0.14), transparent 70%);
+  opacity:0; animation:archiveGlowPulse 1.4s ease forwards;
+}
+@keyframes archiveGlowPulse {
+  0%   { opacity:0; }
+  40%  { opacity:1; }
+  100% { opacity:0; }
+}
+.xj-archive-confirm-toast {
+  position:absolute; left:50%; bottom:6px; transform:translateX(-50%) translateY(6px);
+  font-family:'Cormorant Garamond', serif; font-style:italic; font-size:12px;
+  letter-spacing:2.5px; color:rgba(111,214,255,0.85);
+  opacity:0; white-space:nowrap;
+  animation:archiveToastIn .6s ease forwards;
+  animation-delay:.7s;
+}
+@keyframes archiveToastIn { to { opacity:1; transform:translateX(-50%) translateY(0); } }
+
+/* 收尾落款 */
+.xj-echo-close {
+  margin-top:30px; display:flex; align-items:center; gap:10px;
+  opacity:0; animation:echoCloseIn .7s ease forwards;
+  cursor:pointer; -webkit-user-select:none; user-select:none;
+  position:relative;
+}
+@keyframes echoCloseIn { to { opacity:1; } }
+.xj-echo-close-mark {
+  width:7px; height:7px; border-radius:50%;
+  background:rgb(var(--mood-tint)); box-shadow:0 0 10px 3px rgba(var(--mood-tint),0.7);
+  animation:closeMarkPulse 2s ease-in-out infinite;
+}
+@keyframes closeMarkPulse { 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
+.xj-echo-close-text {
+  font-family:'Cormorant Garamond', serif; font-style:italic; font-size:11.5px;
+  letter-spacing:2px; color:rgba(234,246,255,0.35);
+}
+
+/* 深处光尘：正文浮现期间纸面背景随机上升的细小光点 */
+.xj-echo-motes-layer { position:absolute; inset:0; overflow:visible; pointer-events:none; z-index:-1; }
+.xj-echo-mote-p {
+  position:absolute; bottom:0; border-radius:50%;
+  background:radial-gradient(circle, rgba(234,246,255,0.9), rgba(var(--mood-tint),0.15) 70%, transparent);
+  animation:echoMoteUp linear forwards;
+}
+@keyframes echoMoteUp {
+  0%   { transform:translateY(0); opacity:0; }
+  10%  { opacity:0.8; }
+  100% { transform:translateY(-130px); opacity:0; }
+}
+
+/* 生成失败态 */
+.xj-echo-error {
+  padding:14px 18px; border-radius:12px; margin:0 22px;
+  border:1px solid rgba(255,120,120,0.25); background:rgba(255,80,80,0.06);
+  color:rgba(255,180,180,0.9); font-size:13px; line-height:1.7;
+  opacity:0; animation:echoMetaIn .4s ease forwards;
+}
+
+/* ============================================================
+   信匣抽屉（沿用命名，配色调整为深海）
+============================================================ */
+/* ============================================================
+   信匣 · 深海漂浮档案
+   —— 不再是浮层卡片列表：整座信匣本身就是一片深海，
+      每一函心事都以碎散的文字漂浮其中，深浅错落，明灭不定；
+      点触其中一簇文字，便令它们循光汇聚成句，随后沉入信函详情。
+============================================================ */
+.xj-archive-mask {
+  position:fixed; inset:0; z-index:200;
+  background:#010509;
+  opacity:0; pointer-events:none; transition:opacity .4s ease;
+}
+.xj-archive-mask.show { opacity:1; pointer-events:all; }
+
+.xj-archive-panel {
+  position:relative; width:100%; height:100%; max-width:560px; margin:0 auto;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+
+/* 面板自身承载一层完整的深海背景（与主舞台同构：光束、水母、游鱼、气泡、微粒全部同步） */
+.xj-archive-seascape { position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.xj-archive-seascape .xj-sea-gradient,
+.xj-archive-seascape .xj-sea-vignette,
+.xj-archive-seascape .xj-sea-grain { position:absolute; inset:0; }
+.xj-archive-seascape .xj-sea-gradient {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -8%, #0a3048 0%, transparent 60%),
+    radial-gradient(ellipse 130% 70% at 20% 115%, #031420 0%, transparent 65%),
+    linear-gradient(190deg, #030e18 0%, #01080e 42%, #010609 75%, #000305 100%);
+}
+
+.xj-archive-handle { position:relative; z-index:2; width:38px; height:4px; border-radius:2px; background:rgba(111,214,255,0.28); margin:calc(10px + env(safe-area-inset-top)) auto 4px; flex-shrink:0; }
+.xj-archive-header {
+  position:relative; z-index:2;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 24px 14px; flex-shrink:0;
+}
+.xj-archive-title { font-size:18px; font-weight:700; letter-spacing:4px; color:#eaf6ff; }
+.xj-archive-sub { font-size:10.5px; color:rgba(234,246,255,0.38); margin-top:4px; letter-spacing:1.5px; }
+.xj-archive-close {
+  width:32px; height:32px; border-radius:50%; border:1px solid rgba(111,214,255,0.22);
+  background:rgba(111,214,255,0.05); color:#8fd8ff; display:flex; align-items:center; justify-content:center;
+}
+
+/* 漂浮档案的主水域：每一函以一簇碎字漂浮，深度用 opacity/blur/scale 模拟 */
+.xj-archive-sea {
+  position:relative; z-index:1; flex:1; overflow-y:auto; overflow-x:hidden;
+  -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 16px), transparent 100%);
+  mask-image:linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 16px), transparent 100%);
+}
+.xj-archive-empty {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  text-align:center; padding:60px 20px; color:rgba(234,246,255,0.3); font-size:13px; letter-spacing:1.5px;
+}
+
+/* 单函：一行漂浮的碎字，字距略松、逐字明灭不定，不再自由环绕折行，
+   避免多字交叠——更像"隔着浑浊海水看一行字若隐若现"，而非乱堆的碎片 */
+.xj-archive-drift-entry {
+  position:relative; min-height:64px; padding:14px 16px 14px 58px;
+  display:flex; align-items:center;
+  cursor:pointer;
+}
+.xj-archive-drift-glyphs {
+  position:relative; width:100%;
+  display:flex; flex-wrap:nowrap; align-items:baseline; overflow:hidden;
+  white-space:nowrap;
+}
+.xj-archive-glyph {
+  display:inline-block; flex:0 0 auto; font-family:'Noto Serif SC', serif; font-size:14px;
+  color:rgba(234,246,255,var(--ago,0.55));
+  text-shadow:0 0 8px rgba(111,214,255,calc(var(--ago,0.55) * 0.5));
+  filter:blur(var(--ablur,0px));
+  opacity:var(--ago,0.55);
+  transform:translateY(var(--ady,0px));
+  animation:archiveGlyphFloat var(--afdur,4s) ease-in-out infinite;
+  animation-delay:var(--afdelay,0s);
+  transition:color .5s ease, text-shadow .5s ease, opacity .5s ease;
+}
+@keyframes archiveGlyphFloat {
+  0%,100% { transform:translateY(0); }
+  50%     { transform:translateY(-2.5px); }
+}
+
+/* 落款：角色印记 + 时间，固定于每函最左侧，作为深度锚点 */
+.xj-archive-drift-meta {
+  position:absolute; left:14px; top:50%; transform:translateY(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  opacity:0.75; z-index:1;
+}
+.xj-archive-drift-seal {
+  width:28px; height:28px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700;
+  background:linear-gradient(160deg,#8fd8ff,#3f6f96); color:#010509;
+  background-size:cover; background-position:center;
+  box-shadow:0 0 10px rgba(111,214,255,0.25);
+}
+.xj-archive-drift-time {
+  font-family:'Space Mono',monospace; font-size:8.5px; letter-spacing:0.5px;
+  color:rgba(234,246,255,0.32);
+}
+
+/* 分隔：极淡的潮线，标示每函之间的深度差 */
+.xj-archive-drift-entry::after {
+  content:''; position:absolute; left:58px; right:16px; bottom:0; height:1px;
+  background:linear-gradient(90deg, rgba(111,214,255,0.14), transparent 80%);
+}
+.xj-archive-drift-entry:last-child::after { display:none; }
+
+/* 汇聚中：文字停止漂浮明灭，转为清晰、稳定、可读 */
+.xj-archive-drift-entry.gathering .xj-archive-glyph {
+  animation:none !important;
+  transition:color .45s ease, text-shadow .45s ease, opacity .45s ease, filter .45s ease, transform .45s ease;
+  transform:translateY(0) !important;
+  filter:blur(0) !important;
+  opacity:1 !important;
+  color:#eaf6ff;
+  text-shadow:0 0 12px rgba(111,214,255,0.55);
+}
+.xj-archive-drift-entry.gathering { pointer-events:none; }
+.xj-archive-drift-entry.gathering .xj-archive-drift-meta { opacity:1; transition:opacity .4s ease; }
+
+/* 汇聚完成后：整行微微上浮、发光淡出，随后过渡到详情 */
+.xj-archive-drift-entry.risen .xj-archive-drift-glyphs {
+  animation:archiveEntryRise .5s ease forwards;
+}
+@keyframes archiveEntryRise {
+  to { transform:translateY(-6px) scale(1.02); opacity:0; filter:blur(2px); }
+}
+
+/* ============================================================
+   信函详情 —— 全屏深海，问句先如原文般碎散浮现、汇聚成形，
+   而后回响以与主舞台完全相同的方式静置显影（此处为静态即时显影）
+============================================================ */
+.xj-detail-mask {
+  position:fixed; inset:0; z-index:300;
+  background:#010509; opacity:0; pointer-events:none; transition:opacity .35s ease;
+}
+.xj-detail-mask.show { opacity:1; pointer-events:all; }
+.xj-detail-panel { position:relative; width:100%; height:100%; display:flex; flex-direction:column; max-width:560px; margin:0 auto; overflow:hidden; }
+.xj-detail-seascape { position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.xj-detail-seascape .xj-sea-gradient,
+.xj-detail-seascape .xj-sea-vignette,
+.xj-detail-seascape .xj-sea-grain { position:absolute; inset:0; }
+.xj-detail-seascape .xj-sea-gradient {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -8%, #0a3048 0%, transparent 60%),
+    radial-gradient(ellipse 130% 70% at 20% 115%, #031420 0%, transparent 65%),
+    linear-gradient(190deg, #030e18 0%, #01080e 42%, #010609 75%, #000305 100%);
+}
+.xj-detail-header {
+  position:relative; z-index:2;
+  display:flex; align-items:center; gap:14px; padding:calc(18px + env(safe-area-inset-top)) 20px 16px;
+  flex-shrink:0;
+}
+.xj-detail-back, .xj-detail-del {
+  width:34px; height:34px; border-radius:50%; border:1px solid rgba(111,214,255,0.22);
+  background:rgba(111,214,255,0.05); color:#8fd8ff; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.xj-detail-title { flex:1; font-size:14px; letter-spacing:2px; color:#eaf6ff; }
+.xj-detail-body { position:relative; z-index:1; flex:1; overflow-y:auto; padding:6px 8px 60px; display:flex; flex-direction:column; gap:0;
+  -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 20px, #000 calc(100% - 10px), transparent 100%);
+  mask-image:linear-gradient(180deg, transparent 0, #000 20px, #000 calc(100% - 10px), transparent 100%);
+}
+
+/* 问句：以原文散字被逐一"拾回"后拼合而成的一段引句，样式区别于回响正文 */
+.xj-detail-question-wrap { padding:18px 22px 8px; }
+
+/* 拾字玩法提示语：常驻于问句上方，直到全部拾回后淡出 */
+.xj-detail-question-hint {
+  font-size:11px; letter-spacing:1.5px; color:rgba(159,196,255,0.55);
+  text-align:center; padding:2px 6px 12px;
+  opacity:0; transform:translateY(-4px);
+  animation:detailHintIn .6s ease forwards; animation-delay:.15s;
+  transition:opacity .5s ease;
+}
+.xj-detail-question-hint.done { opacity:0; }
+@keyframes detailHintIn { to { opacity:1; transform:translateY(0); } }
+
+.xj-detail-question {
+  position:relative; padding:14px 18px; border-radius:3px 16px 16px 16px;
+  background:rgba(111,214,255,0.05); border:1px solid rgba(111,214,255,0.14);
+  color:rgba(234,246,255,0.8); font-size:13.5px; line-height:1.8;
+  white-space:pre-wrap; word-break:break-word;
+  opacity:0; filter:blur(4px); transform:translateY(6px);
+  min-height:26px;
+}
+.xj-detail-question.in {
+  animation:detailQuestionIn .7s cubic-bezier(.2,.8,.25,1) forwards;
+}
+/* 拼装进行中：容器本体先以边框微光呈现"待填"的空壳状态 */
+.xj-detail-question.in.assembling {
+  border-color:rgba(111,214,255,0.28);
+  box-shadow:0 0 0 1px rgba(111,214,255,0.06) inset, 0 0 22px rgba(111,214,255,0.08);
+}
+@keyframes detailQuestionIn {
+  to { opacity:1; filter:blur(0); transform:translateY(0); }
+}
+
+/* 引句内的每个占位字：未拾回前完全隐形（仅占据精确的排版位置，
+   供拾字层计算目标坐标），拾回落定的瞬间才轻轻显影 */
+.xj-qslot {
+  display:inline;
+  opacity:0;
+}
+.xj-qslot.settled {
+  opacity:0; /* 由 JS 触发 settle 动画，避免与拾取瞬间的坐标计算冲突 */
+  animation:qslotSettle .5s cubic-bezier(.2,.8,.25,1) forwards;
+}
+.xj-qslot-br { display:block; height:0; }
+@keyframes qslotSettle {
+  0%   { opacity:0; filter:blur(3px); }
+  60%  { opacity:1; filter:blur(0); text-shadow:0 0 10px rgba(151,214,255,0.55); }
+  100% { opacity:1; filter:blur(0); text-shadow:none; }
+}
+
+/* 拾字漂浮层：铺满详情页画面，散字持续缓慢漂荡，直到被逐一点触收起 */
+.xj-detail-scatter-layer--float {
+  position:fixed; inset:0; z-index:360; pointer-events:none;
+}
+.xj-qfloat-glyph {
+  position:fixed; z-index:361;
+  display:inline-flex; align-items:center; justify-content:center;
+  width:30px; height:30px; margin-left:-15px; margin-top:-15px;
+  font-family:'Noto Serif SC', serif; font-size:15px; color:rgba(200,232,255,0.92);
+  text-shadow:0 0 10px rgba(111,214,255,0.55), 0 0 22px rgba(111,214,255,0.22);
+  background:radial-gradient(circle, rgba(111,214,255,0.1) 0%, transparent 70%);
+  border-radius:50%;
+  cursor:pointer; pointer-events:auto;
+  opacity:0;
+  transition:opacity .5s ease;
+  transform:translate(var(--qfx,0px), var(--qfy,0px)) rotate(var(--qfrot,0deg));
+}
+.xj-qfloat-glyph.drift-in {
+  opacity:1;
+  animation:qfloatDrift var(--qfdur,6s) ease-in-out infinite alternate;
+}
+.xj-qfloat-glyph.drift-in:active {
+  transform:scale(0.82);
+}
+@keyframes qfloatDrift {
+  0%   { transform:translate(calc(var(--qfx,0px) * -1), calc(var(--qfy,0px) * -1)) rotate(calc(var(--qfrot,0deg) * -1)); }
+  100% { transform:translate(var(--qfx,0px), var(--qfy,0px)) rotate(var(--qfrot,0deg)); }
+}
+/* 点触收起：飞向该字在引句中的目标坐标并放大发亮，随后连同占位字一起淡出 */
+.xj-qfloat-glyph.flying {
+  animation:none !important;
+  transition:transform .42s cubic-bezier(.2,.85,.25,1), opacity .34s ease .2s;
+  transform:translate(var(--fdx,0px), var(--fdy,0px)) scale(1.15);
+  opacity:0;
+  text-shadow:0 0 16px rgba(151,214,255,0.9);
+}
+
+.xj-echo-line.done-static,
+.xj-echo-line.done-static * { opacity:1 !important; filter:none !important; transform:none !important; animation:none !important; }
+
+/* ============================================================
+   Toast
+============================================================ */
+.xj-toast {
+  position:fixed; left:50%; bottom:60px; transform:translateX(-50%) translateY(10px);
+  background:rgba(6,20,31,0.95); border:1px solid rgba(111,214,255,0.25);
+  color:#eaf6ff; font-size:12.5px; letter-spacing:1px;
+  padding:11px 20px; border-radius:22px; z-index:500;
+  opacity:0; pointer-events:none; transition:all .3s cubic-bezier(.2,.9,.3,1);
+  max-width:80%; text-align:center;
+}
+.xj-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ============================================================
+   响应式
+============================================================ */
+@media (max-width:380px) {
+  .xj-title { font-size:25px; letter-spacing:6px; }
+  .xj-header { padding:14px 18px 16px; }
+  .xj-orb-field { width:220px; height:220px; }
+  .xj-orb { width:88px; height:88px; }
+  .xj-orb-ring--1 { width:128px; height:128px; }
+  .xj-orb-ring--2 { width:162px; height:162px; }
+  .xj-orb-ring--3 { width:198px; height:198px; }
+  .xj-orb-orbit::before { animation-name:orbitSpinSmall; }
+  .xj-orb-orbit::after { animation-name:orbitSpinRevSmall; }
+  @keyframes orbitSpinSmall {
+    from { transform:rotate(0deg) translateX(66px) rotate(0deg); }
+    to   { transform:rotate(360deg) translateX(66px) rotate(-360deg); }
+  }
+  @keyframes orbitSpinRevSmall {
+    from { transform:rotate(0deg) translateX(54px) rotate(0deg); }
+    to   { transform:rotate(-360deg) translateX(54px) rotate(360deg); }
+  }
+  .xj-abyss-content { padding:20px 24px 32px; }
+  .xj-abyss-prompt { font-size:17px; }
+  .xj-diver-grid { grid-template-columns:repeat(3, 1fr); gap:10px; }
+  .xj-echo-paper { font-size:14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+}

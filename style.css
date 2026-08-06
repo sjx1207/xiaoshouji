@@ -47,13 +47,241 @@ body {
   border-radius: 0;
   position: relative;
   overflow: hidden;
+  /* 静态基底：比之前更有层次的浅灰渐变——顶部珍珠白、底部收到中灰，
+     给上面的动态光斑留出足够的明暗反差舞台，不然光斑颜色和底色太接近，
+     视觉上等于"没有效果"。 */
   background:
-    radial-gradient(ellipse at 10% 12%, rgba(255,255,255,1) 0%, transparent 40%),
-    radial-gradient(ellipse at 90% 10%, rgba(180,180,180,0.8) 0%, transparent 42%),
-    radial-gradient(ellipse at 20% 90%, rgba(200,200,200,0.7) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 85%, rgba(140,140,140,0.5) 0%, transparent 40%),
-    linear-gradient(155deg, #c8c8c8 0%, #e8e8e8 50%, #d4d4d4 100%);
+    radial-gradient(ellipse 75% 60% at 15% 6%, #ffffff 0%, transparent 58%),
+    radial-gradient(ellipse 70% 55% at 90% 96%, #b8b9be 0%, transparent 58%),
+    linear-gradient(160deg, #f6f6f7 0%, #dcdce0 48%, #c4c5ca 100%);
 }
+
+/* ---- 华丽壁纸：两层缓慢漂移的柔光 + 一层极慢旋转的丝绸光环 ----
+   性能约束（移动端不发烫的关键）：
+   1) 只对 background-position 和 transform 做动画——这两者是浏览器唯一能
+      交给合成器（GPU）处理、不触发布局/重绘的属性，CPU 几乎零占用。
+   2) 绝不对 filter / box-shadow / backdrop-filter 做逐帧动画——这几个
+      属性即使只改一点点也会强制整层重新栅格化，是手机发烫卡顿的头号原因；
+      本壁纸里唯一的 filter:blur() 是静态值，只计算一次。
+   3) 动画时长拉长到 22~40 秒一个周期，且用 ease-in-out 而不是 linear，
+      运动本身看起来仍然"华丽流动"，但每秒实际变化幅度很小，帧间差异小，
+      对省电模式/低端设备也更友好。
+   4) 图层数量克制在 3 层以内，每层都用大面积柔光（大半径、低对比度），
+      避免小而多的高频动画元素（这类是安卓/iOS 上最容易导致 GPU 占用飙升的写法）。
+*/
+.luna-wallpaper-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.luna-wallpaper-fx::before,
+.luna-wallpaper-fx::after {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  will-change: background-position;
+}
+/* 图层一：亮白高光斑，在浅灰底上形成清晰可辨的"珍珠光泽"移动感，
+   这次故意加大不透明度并保留清晰核心（不再整体过度模糊发灰）。 */
+.luna-wallpaper-fx::before {
+  background:
+    radial-gradient(ellipse 40% 32% at 20% 25%, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.3) 45%, transparent 68%),
+    radial-gradient(ellipse 44% 36% at 78% 70%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.2) 45%, transparent 66%);
+  background-size: 150% 150%, 160% 160%;
+  animation: lunaWpDriftA 30s ease-in-out infinite alternate;
+  filter: blur(10px);
+  opacity: 1;
+}
+/* 图层二：明显更深的炭灰光斑，制造真实的明暗层次交错——
+   这是让整个壁纸"看起来在动"的关键层，去掉了 multiply 混合（之前会把它压得
+   几乎看不见），改成 normal 混合 + 更高不透明度，直接、清晰地叠出流动的暗部。 */
+.luna-wallpaper-fx::after {
+  background:
+    radial-gradient(ellipse 46% 38% at 84% 16%, rgba(120,122,130,0.65) 0%, transparent 62%),
+    radial-gradient(ellipse 42% 34% at 10% 84%, rgba(100,102,112,0.55) 0%, transparent 60%);
+  background-size: 155% 155%, 165% 165%;
+  animation: lunaWpDriftB 36s ease-in-out infinite alternate;
+  filter: blur(14px);
+  opacity: 1;
+}
+@keyframes lunaWpDriftA {
+  0%   { background-position: 0% 10%, 100% 90%; }
+  50%  { background-position: 35% 45%, 65% 55%; }
+  100% { background-position: 70% 15%, 30% 85%; }
+}
+@keyframes lunaWpDriftB {
+  0%   { background-position: 100% 0%, 0% 100%; }
+  50%  { background-position: 55% 40%, 45% 60%; }
+  100% { background-position: 5% 85%, 95% 15%; }
+}
+
+/* 图层三：丝绸光环——用 conic-gradient 做一圈缓慢转动的高光带，
+   只靠 transform:rotate 驱动（合成器专属属性，成本最低），
+   转速放慢在一圈 46 秒，比之前更明显但依然不刺眼，
+   是"华丽感"里流动光泽的主要来源之一。 */
+.luna-wallpaper-sheen {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200vmax;
+  height: 200vmax;
+  margin-left: -100vmax;
+  margin-top: -100vmax;
+  z-index: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(255,255,255,0.16) 35deg,
+    transparent 85deg,
+    rgba(140,142,150,0.14) 165deg,
+    transparent 225deg,
+    rgba(255,255,255,0.13) 295deg,
+    transparent 360deg
+  );
+  animation: lunaWpSheenSpin 46s linear infinite;
+  will-change: transform;
+}
+@keyframes lunaWpSheenSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* 极低性能设备 / 用户开启"减少动态效果"时：完全关闭动画，只留静态渐变，
+   避免在这些设备上仍然强行播放动画造成负担。 */
+@media (prefers-reduced-motion: reduce) {
+  .luna-wallpaper-fx::before,
+  .luna-wallpaper-fx::after,
+  .luna-wallpaper-sheen,
+  .luna-wp-moon,
+  .luna-wp-orbit,
+  .luna-wp-star,
+  .luna-wp-constellation-line {
+    animation: none !important;
+  }
+}
+
+/* ================================
+   Luna 主题元素层：呼应开机动画的月牙造型 + 星群 + 轨道环
+   —— 这是让壁纸真正"有内容"而不只是抽象光斑的关键部分。
+   动画依旧只碰 transform / opacity，性能开销和上面的柔光层同一量级。
+================================ */
+.luna-wp-elements {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ---- 大幅月牙水印：和开机动画同一条 SVG 轮廓，放大铺在屏幕右上角，
+   半透明描边 + 极慢的呼吸缩放，是整个壁纸的视觉主角、也是"Luna"
+   这个主题最直接的呼应。呼吸动画只用 transform:scale + opacity，成本极低。 ---- */
+.luna-wp-moon {
+  position: absolute;
+  top: -6%;
+  right: -10%;
+  width: 68%;
+  max-width: 340px;
+  aspect-ratio: 1 / 1;
+  opacity: 0.85;
+  animation: lunaWpMoonBreathe 12s ease-in-out infinite;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 0 26px rgba(255,255,255,0.5));
+}
+.luna-wp-moon svg { width: 100%; height: 100%; display: block; }
+@keyframes lunaWpMoonBreathe {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.78; }
+  50%      { transform: scale(1.035) rotate(1.2deg); opacity: 0.92; }
+}
+
+/* 月牙内部的微光核心，呼应开机动画里的 core-glow，
+   给月牙一个"发光源"而不是一条空描边。 */
+.luna-wp-moon-core {
+  position: absolute;
+  top: 26%;
+  left: 22%;
+  width: 40%;
+  height: 40%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.08) 55%, transparent 75%);
+  animation: lunaWpCoreGlow 8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes lunaWpCoreGlow {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  50%      { transform: scale(1.22); opacity: 0.85; }
+}
+
+/* ---- 轨道环：一圈极细的虚线圆环围绕月牙缓慢公转，
+   呼应"卫星轨道"意象，只用 transform:rotate 驱动。 ---- */
+.luna-wp-orbit {
+  position: absolute;
+  top: -14%;
+  right: -22%;
+  width: 92%;
+  max-width: 460px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  border: 1px dashed rgba(90,90,100,0.22);
+  animation: lunaWpOrbitSpin 90s linear infinite;
+  will-change: transform;
+}
+.luna-wp-orbit::before {
+  /* 轨道上的一颗"卫星"光点，随环一起转动 */
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, rgba(255,255,255,0.3) 70%, transparent 100%);
+  box-shadow: 0 0 10px 2px rgba(255,255,255,0.55);
+}
+@keyframes lunaWpOrbitSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ---- 星群：大小不一、明暗错落的星点，各自独立的呼吸闪烁节奏，
+   分布在屏幕中下段（避开月牙区域和图标区），填补"纯背景没有细节"的空白。
+   每颗星只用 opacity + scale 做动画，单个元素成本极小，
+   数量克制在个位数，避免"满屏粒子"式的高频重绘写法。 ---- */
+.luna-wp-star {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, rgba(255,255,255,0.35) 60%, transparent 100%);
+  will-change: opacity, transform;
+}
+.luna-wp-star-1 { width: 4px;   height: 4px;   top: 16%; left: 22%; box-shadow: 0 0 8px rgba(255,255,255,0.7);  animation: lunaWpTwinkle 4.2s ease-in-out infinite; }
+.luna-wp-star-2 { width: 2.4px; height: 2.4px; top: 30%; left: 68%; box-shadow: 0 0 6px rgba(255,255,255,0.6);  animation: lunaWpTwinkle 3.4s ease-in-out infinite; animation-delay: 0.6s; }
+.luna-wp-star-3 { width: 3px;   height: 3px;   top: 48%; left: 12%; box-shadow: 0 0 7px rgba(255,255,255,0.6);  animation: lunaWpTwinkle 5s ease-in-out infinite; animation-delay: 1.4s; }
+.luna-wp-star-4 { width: 2px;   height: 2px;   top: 58%; left: 82%; box-shadow: 0 0 5px rgba(255,255,255,0.55); animation: lunaWpTwinkle 3.8s ease-in-out infinite; animation-delay: 2.1s; }
+.luna-wp-star-5 { width: 3.6px; height: 3.6px; top: 68%; left: 40%; box-shadow: 0 0 8px rgba(255,255,255,0.65); animation: lunaWpTwinkle 4.6s ease-in-out infinite; animation-delay: 0.9s; }
+.luna-wp-star-6 { width: 2.2px; height: 2.2px; top: 78%; left: 70%; box-shadow: 0 0 6px rgba(255,255,255,0.6);  animation: lunaWpTwinkle 3.6s ease-in-out infinite; animation-delay: 1.8s; }
+.luna-wp-star-7 { width: 2.6px; height: 2.6px; top: 40%; left: 90%; box-shadow: 0 0 6px rgba(255,255,255,0.55); animation: lunaWpTwinkle 4.4s ease-in-out infinite; animation-delay: 2.6s; }
+.luna-wp-star-8 { width: 3.2px; height: 3.2px; top: 86%; left: 20%; box-shadow: 0 0 7px rgba(255,255,255,0.6);  animation: lunaWpTwinkle 5.2s ease-in-out infinite; animation-delay: 0.3s; }
+@keyframes lunaWpTwinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.75); }
+  50%      { opacity: 1;    transform: scale(1.15); }
+}
+
+/* ---- 星座连线：两组极细的连接线，把部分星点串成"星座"的意象，
+   静态不参与动画（连线本身跟着星星的呼吸节奏已经足够有生气，
+   再对线条本身做动画会增加不必要的重绘成本，性价比不高，故意省略）。 ---- */
+.luna-wp-constellation-line {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(120,120,130,0.28), transparent);
+  transform-origin: 0 0;
+}
+.luna-wp-constellation-line-1 { top: 30%; left: 22%; width: 27%;  transform: rotate(9deg); }
+.luna-wp-constellation-line-2 { top: 48%; left: 12%; width: 30.5%; transform: rotate(14deg); }
+.luna-wp-constellation-line-3 { top: 68%; left: 40%; width: 29%;  transform: rotate(-8deg); }
 
 #appTransMask {
   position: fixed;
@@ -125,6 +353,10 @@ body {
 
 /* ================================
    pages-wrap
+   宽度不再写死百分比——页面数量现在是动态的（用户可新增/删除页面），
+   固定 300% 只够 3 页，会把第 4 页及以后的页面挤压变形。
+   改为由 home-edit.js 按实际页数以像素动态设置 width / 每页宽度，
+   这里只保留基础布局属性。
 ================================ */
 .pages-wrap {
   position: absolute;
@@ -132,17 +364,17 @@ body {
   bottom: var(--content-bottom-pad);
   left: 0;
   display: flex;
-  width: 300%;
   transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 5;
 }
 
 /* ================================
    App 网格 — 通用
+   width 同理交给 JS 按帧宽动态设置（每页 = 100% 帧宽），
+   不再依赖固定百分比。
 ================================ */
 .app-grid {
   position: relative;
-  width: 33.333%;
   flex-shrink: 0;
   height: 100%;
   align-self: stretch;
@@ -191,6 +423,25 @@ body {
 ================================ */
 .app-grid.page-3 {
 grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  align-content: stretch;
+  overflow: hidden;
+  padding: 10px 12px;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+/* ================================
+   page-4
+   之前这里完全没有定义，page-4 会退回去用最上面那条
+   笼统的 .app-grid 规则（grid-auto-rows 自动高度、不是固定 6 行），
+   这就是 page-4 图标比例和拖拽越往下越出问题的根本原因——
+   它的网格行数其实不是真正的 6 行，第 6 行/甚至第 5 行往下
+   已经超出了实际存在的行轨道，越往下拖当然会拖不动/顶住。
+   现在补齐，和 page-1/2/3 保持完全一致的 6 行 4 列比例。
+================================ */
+.app-grid.page-4 {
+  grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(6, 1fr);
   align-content: stretch;
   overflow: hidden;
@@ -735,7 +986,7 @@ grid-template-columns: repeat(4, 1fr);
 }
 
 .app-grid.page-1 .app .app-label {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
   color: rgba(38,38,60,0.82);
 }
@@ -1553,6 +1804,38 @@ grid-template-columns: repeat(4, 1fr);
 }
 
 .app-grid.page-3 .app .app-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(38,38,60,0.82);
+}
+
+/* ================================
+   page-4：与 page-2/page-3 完全统一的图标规格
+   （68px 图标 + 12px 文字），不再各页各写一套。
+================================ */
+.app-grid.page-4 .app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.app-grid.page-4 .app .app-face {
+  width: 68px;
+  height: 68px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.28);
+  border: 1px solid rgba(255,255,255,0.78);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.92),
+    0 8px 32px rgba(140,150,200,0.18),
+    0 2px 8px rgba(140,150,200,0.12);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+}
+
+.app-grid.page-4 .app .app-label {
   font-size: 12px;
   font-weight: 600;
   color: rgba(38,38,60,0.82);

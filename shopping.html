@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Shopping · Luna OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="shopping.css" />
+</head>
+<body>
+
+<div class="luna-wrap">
+  <div class="luna-frame">
+
+    <!-- 背景静置光晕层，呼应系统主屏风格 -->
+    <div class="bg-glow"></div>
+    <div class="bg-grain"></div>
+
+    <!-- ===================== 状态栏（与 Luna OS 主屏同步）===================== -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal">
+          <i></i><i></i><i></i><i></i>
+        </div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 顶部页面标题栏 ===================== -->
+    <header class="app-topbar">
+      <div class="topbar-row">
+        <div class="brand-mark">
+          <span class="brand-glyph"></span>
+          <span class="brand-text">SHOP<i>—</i>LUNA</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn" data-action="image-source" id="imageSourceBtn" aria-label="图片来源设置">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="8.3" cy="10" r="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 15.8L9 11.6a1.4 1.4 0 0 1 1.9 0l2 1.9M14.5 12.6l1-1a1.4 1.4 0 0 1 1.9 0l3.1 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn" data-action="back-home" id="topbarBackBtn" aria-label="返回">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="section-title-row" id="sectionTitleRow">
+        <h1 class="section-title" id="sectionTitle">商城</h1>
+        <span class="section-sub" id="sectionSub">Curated Marketplace</span>
+      </div>
+    </header>
+
+    <!-- ===================== 内容区（六大板块占位）===================== -->
+    <main class="app-content" id="appContent">
+
+      <section class="view-panel is-active mall-panel" data-view="mall">
+
+        <!-- AI 搜索输入区：固定于板块顶部，不随商品列表滚动 -->
+        <div class="mall-search-dock">
+          <div class="mall-search-bar" id="mallSearchBar">
+            <span class="mall-search-glyph">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.6"/><path d="M20 20L15.2 15.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </span>
+            <input
+              id="mallSearchInput"
+              class="mall-search-input"
+              type="text"
+              placeholder="描述你想要的商品，例如「复古帆布托特包」"
+              maxlength="60"
+              autocomplete="off"
+            />
+            <button class="mall-search-clear" id="mallSearchClear" aria-label="清空">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <button class="mall-generate-btn" id="mallGenerateBtn">
+            <span class="mall-generate-label">生成商品</span>
+            <span class="mall-generate-spinner" id="mallGenerateSpinner"></span>
+          </button>
+        </div>
+
+        <!-- 快捷灵感词：辅助用户快速起步 -->
+        <div class="mall-hint-row" id="mallHintRow">
+          <button class="mall-hint-chip" data-hint="羊毛开衫">羊毛开衫</button>
+          <button class="mall-hint-chip" data-hint="陶瓷马克杯">陶瓷马克杯</button>
+          <button class="mall-hint-chip" data-hint="桌面香薰">桌面香薰</button>
+          <button class="mall-hint-chip" data-hint="帆布运动鞋">帆布运动鞋</button>
+          <button class="mall-hint-chip" data-hint="极简手表">极简手表</button>
+        </div>
+
+        <!-- 最近搜索：命中缓存则直接秒开，不重新调用模型，避免重复消耗 token -->
+        <div class="mall-history-row is-empty" id="mallHistoryRow">
+          <span class="mall-history-label">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.5"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            最近
+          </span>
+          <div class="mall-history-list" id="mallHistoryList" style="display:contents;"></div>
+        </div>
+
+        <!-- 商品滚动区 -->
+        <div class="mall-scroll" id="mallScroll">
+
+          <!-- 状态一：空态（默认引导，文案根据当前配置程度动态调整） -->
+          <div class="mall-state mall-state--empty" id="mallEmptyState">
+            <div class="mall-state-icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 8L5.6 4.5A1.6 1.6 0 0 1 7.06 3.6h9.88a1.6 1.6 0 0 1 1.46.9L20 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="8" width="16" height="12.4" rx="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M9 12a3 3 0 0 0 6 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+            <p class="mall-state-title">在上方输入你想要的商品</p>
+            <p class="mall-state-desc">AI 将为你构思一组商品并生成对应图片</p>
+          </div>
+
+          <!-- 状态二：错误提示 -->
+          <div class="mall-state mall-state--error" id="mallErrorState">
+            <div class="mall-state-icon">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.4"/><path d="M12 7.5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1" fill="currentColor"/></svg>
+            </div>
+            <p class="mall-state-title">生成失败</p>
+            <p class="mall-state-desc" id="mallErrorDesc">请求未能完成，请检查网络或服务配置</p>
+            <button class="mall-state-action mall-state-action--ghost" id="mallRetryBtn">重试</button>
+          </div>
+
+          <!-- 商品网格 -->
+          <div class="mall-grid" id="mallGrid"></div>
+
+        </div>
+
+        <!-- 加入购物车轻提示 -->
+        <div class="mall-toast" id="mallToast">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5l5 5L20 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="mallToastText">已加入购物车</span>
+        </div>
+      </section>
+
+      <section class="view-panel dv-panel" data-view="delivery">
+        <div class="dv-root">
+
+          <!-- AI 搜索输入区：固定于板块顶部，与商城同构但视觉语言完全独立 -->
+          <div class="dv-search-dock">
+            <div class="dv-search-bar" id="dvSearchBar">
+              <span class="dv-search-glyph">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M20 20L15.2 15.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </span>
+              <input
+                id="dvSearchInput"
+                class="dv-search-input"
+                type="text"
+                placeholder="想吃点什么，例如「日式拉面」"
+                maxlength="60"
+                autocomplete="off"
+              />
+              <button class="dv-search-clear" id="dvSearchClear" aria-label="清空">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+            <button class="dv-generate-btn" id="dvGenerateBtn">
+              <span class="dv-generate-label">寻店</span>
+              <span class="dv-generate-spinner" id="dvGenerateSpinner"></span>
+            </button>
+          </div>
+
+          <!-- 快捷灵感词 -->
+          <div class="dv-hint-row" id="dvHintRow">
+            <button class="dv-hint-chip" data-hint="日式拉面">日式拉面</button>
+            <button class="dv-hint-chip" data-hint="法式甜品">法式甜品</button>
+            <button class="dv-hint-chip" data-hint="韩式炸鸡">韩式炸鸡</button>
+            <button class="dv-hint-chip" data-hint="现磨咖啡">现磨咖啡</button>
+            <button class="dv-hint-chip" data-hint="轻食沙拉">轻食沙拉</button>
+          </div>
+
+          <!-- 最近搜索：命中缓存直接秒开，不重新调用模型 -->
+          <div class="dv-history-row is-empty" id="dvHistoryRow">
+            <span class="dv-history-label">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.4"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              最近
+            </span>
+            <div class="dv-history-list" id="dvHistoryList" style="display:contents;"></div>
+          </div>
+
+          <!-- 店铺滚动区 -->
+          <div class="dv-scroll" id="dvScroll">
+
+            <!-- 状态一：空态 -->
+            <div class="dv-state dv-state--empty" id="dvEmptyState">
+              <div class="dv-state-icon">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M3 13.5V7a1 1 0 0 1 1-1h9.5v7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.5 9.5H18l3 3.4V17a1 1 0 0 1-1 1h-1.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 13.5V17a1 1 0 0 0 1 1h1.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8.3" cy="18" r="1.8" stroke="currentColor" stroke-width="1.3"/><circle cx="16.9" cy="18" r="1.8" stroke="currentColor" stroke-width="1.3"/></svg>
+              </div>
+              <p class="dv-state-title">在上方输入你想吃的味道</p>
+              <p class="dv-state-desc">AI 将为你构思一组餐厅并生成对应门店图</p>
+            </div>
+
+            <!-- 状态二：错误提示 -->
+            <div class="dv-state dv-state--error" id="dvErrorState">
+              <div class="dv-state-icon">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.3"/><path d="M12 7.5v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1" fill="currentColor"/></svg>
+              </div>
+              <p class="dv-state-title">生成失败</p>
+              <p class="dv-state-desc" id="dvErrorDesc">请求未能完成，请检查网络或服务配置</p>
+              <button class="dv-state-action dv-state-action--ghost" id="dvRetryBtn">重试</button>
+            </div>
+
+            <!-- 餐厅列表 -->
+            <div class="dv-list" id="dvList"></div>
+
+          </div>
+
+          <!-- 线上餐厅入口：占位，后续完善 -->
+          <button class="dv-onlinerest-entry" id="dvOnlineRestEntry" type="button">
+            <span class="dv-onlinerest-text">
+              <span class="dv-onlinerest-title">线上餐厅</span>
+              <span class="dv-onlinerest-sub">Virtual Dining · 敬请期待</span>
+            </span>
+            <span class="dv-onlinerest-arrow">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </button>
+
+          <!-- 加入购物车轻提示 -->
+          <div class="dv-toast" id="dvToast">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5l5 5L20 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span id="dvToastText">已加入购物车</span>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ===================== 线上餐厅占位面板（后续版本完善） ===================== -->
+      <div class="onl-mask" id="onlMask">
+        <div class="onl-sheet" id="onlSheet">
+          <div class="onl-statusbar">
+            <div class="status-time" id="onlStatusTime">9:41</div>
+            <div class="status-right">
+              <div class="signal"><i></i><i></i><i></i><i></i></div>
+              <div class="battery">
+                <span class="bat-pct" id="onlBatPct">76</span>
+                <div class="bat-shell"><div class="bat-inner" id="onlBatInner"></div><div class="bat-nub"></div></div>
+              </div>
+            </div>
+          </div>
+          <header class="onl-head">
+            <button class="onl-back" id="onlBackBtn" aria-label="返回">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="onl-head-title">线上餐厅</span>
+            <span class="onl-head-spacer"></span>
+          </header>
+          <div class="onl-body">
+            <div class="onl-icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M6.5 3v8.5M4.2 3v5.4a2.3 2.3 0 0 0 4.6 0V3M6.5 11.5V21M17.5 21V14c2-.6 3-2.4 3-4.6 0-2.7-1.3-6.4-3-6.4s-3 3.7-3 6.4c0 2.2 1 4 3 4.6Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <p class="onl-title">线上餐厅建设中</p>
+            <p class="onl-desc">Virtual Dining · 沉浸式点餐体验将在后续版本更新接入</p>
+          </div>
+        </div>
+      </div>
+
+      <section class="view-panel" data-view="logistics">
+        <div class="placeholder-card">
+          <div class="ph-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 2.6l7.6 4.2v9.4L12 21.4l-7.6-5V6.8L12 2.6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4.6 7l7.4 4.4L19.4 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11.4V21" stroke="currentColor" stroke-width="1.4"/></svg>
+          </div>
+          <p class="ph-title">物流内容建设中</p>
+          <p class="ph-desc">Logistics · 页面主体内容将在后续版本更新接入</p>
+        </div>
+      </section>
+
+      <section class="view-panel cart-panel" data-view="cart">
+        <div class="cart-root">
+
+          <!-- 顶部统计条：件数与勾选态编辑入口 -->
+          <div class="cart-stat-bar">
+            <div class="cart-stat-left">
+              <p class="cart-stat-count">共 <b id="cartStatCount">0</b> 件精选好物</p>
+              <span class="cart-stat-sub">Your Selections</span>
+            </div>
+            <button class="cart-clear-btn" id="cartEditBtn">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <span id="cartEditBtnText">管理</span>
+            </button>
+          </div>
+
+          <!-- 商品列表滚动区 -->
+          <div class="cart-scroll" id="cartScroll">
+
+            <!-- 空态 -->
+            <div class="cart-empty" id="cartEmpty">
+              <div class="cart-empty-icon">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M3.5 4.5h2l1.6 10.2a1.8 1.8 0 0 0 1.78 1.5h8.4a1.8 1.8 0 0 0 1.77-1.46l1.25-6.74H6.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.6" cy="20" r="1.3" stroke="currentColor" stroke-width="1.3"/><circle cx="17" cy="20" r="1.3" stroke="currentColor" stroke-width="1.3"/></svg>
+              </div>
+              <p class="cart-empty-title">购物车空空如也</p>
+              <p class="cart-empty-desc">去商城逛逛，把心仪的好物加入购物车吧</p>
+              <button class="cart-empty-action" id="cartGoMallBtn">去逛逛</button>
+            </div>
+
+            <!-- 商品分组列表，由 JS 动态渲染 -->
+            <div id="cartGroupList"></div>
+
+          </div>
+
+          <!-- 底部悬浮结算条 -->
+          <div class="cart-settle-bar" id="cartSettleBar" style="display:none;">
+            <button class="cart-settle-all" id="cartSelectAllBtn">
+              <span class="cart-item-check" id="cartSelectAllCheck">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5l5 5L20 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="cart-settle-all-label">全选</span>
+            </button>
+            <div class="cart-settle-total">
+              <span class="cart-settle-total-label">合计</span>
+              <span class="cart-settle-total-num"><i>¥</i><b id="cartSettleTotal">0</b></span>
+            </div>
+            <button class="cart-settle-btn" id="cartSettleBtn" disabled>结算</button>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="view-panel msg-panel" data-view="messages">
+        <div class="msg-root">
+
+          <!-- 顶部统计条：呼应购物车板块的统计条视觉语言 -->
+          <div class="msg-stat-bar">
+            <div class="msg-stat-left">
+              <p class="msg-stat-count">共 <b id="msgStatCount">0</b> 条会话</p>
+              <span class="msg-stat-sub">Conversations</span>
+            </div>
+            <button class="msg-edit-btn" id="msgEditBtn" aria-label="搜索会话">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.6"/><path d="M20 20L15.2 15.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+
+          <div class="msg-scroll" id="msgScroll">
+
+            <!-- Luna 系统助手：置顶专属条目，与普通联系人做视觉区隔 -->
+            <button class="msg-row msg-row--system" id="msgLunaRow" data-conv="luna-system">
+              <span class="msg-avatar msg-avatar--system">
+                <span class="msg-avatar-glyph">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.2c1.4 2.7 1.4 5.9 0 8.4-1.4-2.5-1.4-5.7 0-8.4Z" fill="currentColor"/><path d="M12 12.4c1.4 2.7 1.4 5.9 0 8.4-1.4-2.5-1.4-5.7 0-8.4Z" fill="currentColor"/><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.1" opacity="0.5"/></svg>
+                </span>
+                <span class="msg-avatar-ring"></span>
+              </span>
+              <span class="msg-row-body">
+                <span class="msg-row-top">
+                  <span class="msg-row-name">Luna<i class="msg-sys-tag">SYSTEM</i></span>
+                  <span class="msg-row-time" id="msgLunaTime">刚刚</span>
+                </span>
+                <span class="msg-row-preview" id="msgLunaPreview">你好，我是 Luna，你的专属购物助手 —— 有任何选品、订单或搭配上的问题，随时找我。</span>
+              </span>
+              <span class="msg-row-unread" id="msgLunaUnread">1</span>
+            </button>
+
+            <div class="msg-divider"><span>联系人</span></div>
+
+            <!-- 普通联系人列表，由 JS 动态渲染 -->
+            <div id="msgContactList"></div>
+
+            <!-- 空态（无普通联系人时展示） -->
+            <div class="msg-empty" id="msgContactEmpty">
+              <p class="msg-empty-title">暂无更多会话</p>
+              <p class="msg-empty-desc">与商家或好友的对话将会显示在这里</p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <section class="view-panel" data-view="profile">
+        <div class="placeholder-card">
+          <div class="ph-icon">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.2" r="3.4" stroke="currentColor" stroke-width="1.4"/><path d="M4.8 20c1-3.6 4-5.6 7.2-5.6s6.2 2 7.2 5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <p class="ph-title">个人中心建设中</p>
+          <p class="ph-desc">Profile · 页面主体内容将在后续版本更新接入</p>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ===================== 华丽导航栏 ===================== -->
+    <nav class="orbit-nav" id="orbitNav">
+      <div class="nav-halo"></div>
+      <div class="nav-glass">
+        <div class="nav-liquid" id="navLiquid"></div>
+
+        <button class="nav-item" data-view="mall" aria-label="商城">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 8L5.6 4.5A1.6 1.6 0 0 1 7.06 3.6h9.88a1.6 1.6 0 0 1 1.46.9L20 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="8" width="16" height="12.4" rx="1.6" stroke="currentColor" stroke-width="1.5"/><path d="M9 12a3 3 0 0 0 6 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-label">商城</span>
+        </button>
+
+        <button class="nav-item" data-view="delivery" aria-label="外卖">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 13.5V7a1 1 0 0 1 1-1h9.5v7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.5 9.5H18l3 3.4V17a1 1 0 0 1-1 1h-1.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 13.5V17a1 1 0 0 0 1 1h1.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8.3" cy="18" r="1.9" stroke="currentColor" stroke-width="1.5"/><circle cx="16.9" cy="18" r="1.9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+          <span class="nav-label">外卖</span>
+        </button>
+
+        <button class="nav-item nav-item--core" data-view="cart" aria-label="购物车">
+          <span class="nav-core-ring"></span>
+          <span class="nav-icon nav-icon--core">
+            <svg viewBox="2.7 3.7 18.4 18.4" fill="none"><path d="M3.5 4.5h2l1.6 10.2a1.8 1.8 0 0 0 1.78 1.5h8.4a1.8 1.8 0 0 0 1.77-1.46l1.25-6.74H6.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.6" cy="20" r="1.3" stroke="currentColor" stroke-width="1.4"/><circle cx="17" cy="20" r="1.3" stroke="currentColor" stroke-width="1.4"/></svg>
+          </span>
+          <span class="nav-badge" id="cartBadge">3</span>
+        </button>
+
+        <button class="nav-item" data-view="messages" aria-label="私信">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5h16a1 1 0 0 1 1 1v10.4a1 1 0 0 1-1 1H9.4L5 21v-3.1H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 10h8M8 13.2h5.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-label">私信</span>
+          <span class="nav-dot" id="msgDot"></span>
+        </button>
+
+        <button class="nav-item" data-view="profile" aria-label="我的">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.2" r="3.4" stroke="currentColor" stroke-width="1.5"/><path d="M4.8 20c1-3.6 4-5.6 7.2-5.6s6.2 2 7.2 5.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-label">我的</span>
+        </button>
+      </div>
+
+      <!-- 物流：以侧翼浮起按钮呈现，避免六项平铺破坏留白节奏 -->
+      <button class="nav-wing" id="logisticsWing" data-view="logistics" aria-label="物流">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2.6l7.6 4.2v9.4L12 21.4l-7.6-5V6.8L12 2.6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4.6 7l7.4 4.4L19.4 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11.4V21" stroke="currentColor" stroke-width="1.4"/></svg>
+        </span>
+        <span class="nav-wing-label">物流</span>
+      </button>
+    </nav>
+
+    <!-- ===================== 图片来源设置弹层 ===================== -->
+    <!-- 独立于 settings.html 的轻量配置面板，专门管理「图片搜索」这一路兜底来源，
+         与生图模型使用同一套黑白玻璃视觉语言。落地 key: luna_search_current -->
+    <div class="img-src-mask" id="imgSrcMask">
+      <div class="img-src-sheet">
+        <div class="img-src-head">
+          <p class="img-src-title">图片来源</p>
+          <button class="img-src-close" id="imgSrcClose" aria-label="关闭">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <p class="img-src-desc">配置真实图片搜索服务，作为 AI 生图之外的备用来源。未配置生图模型时，商品图将优先取自这里的搜索结果。</p>
+
+        <div class="img-src-field">
+          <label class="img-src-label">服务商</label>
+          <div class="img-src-provider-row">
+            <button class="img-src-provider active" data-provider="pexels">Pexels</button>
+          </div>
+        </div>
+
+        <div class="img-src-field">
+          <label class="img-src-label">API Key</label>
+          <div class="img-src-input-row">
+            <input id="searchApiKey" class="img-src-input" type="password" placeholder="粘贴你的 Pexels API Key" autocomplete="off" />
+            <button class="img-src-eye" id="searchKeyToggle" aria-label="显示/隐藏">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.4"/></svg>
+            </button>
+          </div>
+          <p class="img-src-hint">在 <span class="img-src-hint-link">pexels.com/api</span> 免费注册后获取，用于按关键词检索真实商品图</p>
+        </div>
+
+        <div class="img-src-field" id="searchTestWrap" style="display:none;">
+          <label class="img-src-label">测试搜索</label>
+          <div class="img-src-input-row">
+            <input id="searchTestKeyword" class="img-src-input" type="text" placeholder="例如 minimalist ceramic mug" autocomplete="off" />
+            <button class="img-src-test-btn" id="searchTestBtn">测试</button>
+          </div>
+          <div class="img-src-test-output" id="searchTestOutput"></div>
+        </div>
+
+        <button class="img-src-save" id="searchSaveBtn" disabled>保存配置</button>
+        <p class="img-src-status" id="imgSrcStatus"></p>
+      </div>
+    </div>
+
+    <!-- ===================== 商品详情页（全屏覆盖层） ===================== -->
+    <div class="pd-mask" id="pdMask">
+      <div class="pd-sheet" id="pdSheet">
+
+        <!-- 详情页专属状态栏（与主状态栏数值保持一致，随内容滚动始终悬浮） -->
+        <div class="pd-statusbar">
+          <div class="status-time" id="pdStatusTime">9:41</div>
+          <div class="status-right">
+            <div class="signal"><i></i><i></i><i></i><i></i></div>
+            <div class="battery">
+              <span class="bat-pct" id="pdBatPct">76</span>
+              <div class="bat-shell"><div class="bat-inner" id="pdBatInner"></div><div class="bat-nub"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 悬浮返回 / 分享 / 购物车 -->
+        <div class="pd-float-bar">
+          <button class="pd-float-btn" id="pdBackBtn" aria-label="返回">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="pd-float-right">
+            <button class="pd-float-btn" id="pdShareBtn" aria-label="分享">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="18" cy="6" r="2.3" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="12" r="2.3" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="18" r="2.3" stroke="currentColor" stroke-width="1.6"/><path d="M8.1 10.8L15.9 7.2M8.1 13.2l7.8 3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+            <button class="pd-float-btn" id="pdCartBtn" aria-label="购物车">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M3.5 4.5h2l1.6 10.2a1.8 1.8 0 0 0 1.78 1.5h8.4a1.8 1.8 0 0 0 1.77-1.46l1.25-6.74H6.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.6" cy="20" r="1.3" stroke="currentColor" stroke-width="1.3"/><circle cx="17" cy="20" r="1.3" stroke="currentColor" stroke-width="1.3"/></svg>
+              <span class="pd-float-badge" id="pdFloatBadge">3</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 可滚动主体 -->
+        <div class="pd-scroll" id="pdScroll">
+
+          <!-- 图册（多图轮播，来自图片搜索 / 生图 / 占位，逐一严格贴合商品语义） -->
+          <div class="pd-gallery" id="pdGallery">
+            <div class="pd-gallery-track" id="pdGalleryTrack"></div>
+            <div class="pd-gallery-dots" id="pdGalleryDots"></div>
+            <span class="pd-gallery-tag" id="pdGalleryTag"></span>
+          </div>
+
+          <div class="pd-body">
+
+            <!-- 价格与标题区 -->
+            <div class="pd-price-row">
+              <div class="pd-price-main">
+                <span class="pd-price-num" id="pdPrice">0</span>
+                <span class="pd-price-original" id="pdPriceOriginal"></span>
+              </div>
+              <div class="pd-price-badges" id="pdPriceBadges"></div>
+            </div>
+            <h2 class="pd-title" id="pdTitle">商品名称</h2>
+            <p class="pd-subtitle" id="pdSubtitle"></p>
+
+            <div class="pd-meta-row">
+              <span class="pd-meta-item"><b id="pdRate">98%</b>好评</span>
+              <span class="pd-meta-sep"></span>
+              <span class="pd-meta-item" id="pdSales">1.2k+已拼</span>
+              <span class="pd-meta-sep"></span>
+              <span class="pd-meta-item" id="pdReviewCount">评价 128</span>
+            </div>
+
+            <!-- 服务承诺条 -->
+            <div class="pd-service-strip">
+              <span class="pd-service-item">正品保障</span>
+              <span class="pd-service-item">7天无理由退换</span>
+              <span class="pd-service-item">顺丰发货</span>
+            </div>
+
+            <!-- 尺码 / 规格选择（AI 判定该商品是否为服装品类后动态渲染） -->
+            <section class="pd-block" id="pdSizeBlock" style="display:none;">
+              <div class="pd-block-head">
+                <span class="pd-block-title">选择尺码</span>
+                <button class="pd-block-link" id="pdSizeGuideBtn">尺码指南</button>
+              </div>
+              <div class="pd-size-row" id="pdSizeRow"></div>
+              <p class="pd-size-hint" id="pdSizeHint"></p>
+            </section>
+
+            <!-- 颜色 / 款式选择 -->
+            <section class="pd-block" id="pdColorBlock" style="display:none;">
+              <div class="pd-block-head"><span class="pd-block-title">选择款式</span></div>
+              <div class="pd-color-row" id="pdColorRow"></div>
+            </section>
+
+            <!-- AI 生成的商品详情长文案 -->
+            <section class="pd-block pd-desc-block">
+              <div class="pd-block-head"><span class="pd-block-title">商品详情</span></div>
+              <div class="pd-desc-text" id="pdDescText">
+                <div class="pd-skel-line"></div>
+                <div class="pd-skel-line"></div>
+                <div class="pd-skel-line short"></div>
+              </div>
+              <!-- 材质 / 工艺信息条 -->
+              <div class="pd-spec-grid" id="pdSpecGrid"></div>
+              <!-- 详情大图（若为服装类，展示细节图，均来自搜索/生图） -->
+              <div class="pd-detail-imgs" id="pdDetailImgs"></div>
+            </section>
+
+            <!-- 尺码表（服装类专属，AI 生成具体数值） -->
+            <section class="pd-block" id="pdSizeTableBlock" style="display:none;">
+              <div class="pd-block-head"><span class="pd-block-title">尺码对照表</span></div>
+              <div class="pd-size-table-wrap">
+                <table class="pd-size-table" id="pdSizeTable"></table>
+              </div>
+              <p class="pd-size-note" id="pdSizeNote"></p>
+            </section>
+
+            <!-- 评价区 -->
+            <section class="pd-block" id="pdReviewBlock">
+              <div class="pd-block-head">
+                <span class="pd-block-title">用户评价</span>
+                <span class="pd-block-sub" id="pdReviewSummary"></span>
+              </div>
+              <div class="pd-review-tags" id="pdReviewTags"></div>
+              <div class="pd-review-list" id="pdReviewList"></div>
+            </section>
+
+            <!-- 推荐商品 -->
+            <section class="pd-block pd-reco-block">
+              <div class="pd-block-head"><span class="pd-block-title">猜你还喜欢</span></div>
+              <div class="pd-reco-grid" id="pdRecoGrid"></div>
+            </section>
+
+            <div class="pd-bottom-spacer"></div>
+          </div>
+        </div>
+
+        <!-- 底部操作栏：客服 / 收藏 / 加购 / 立即购买 -->
+        <div class="pd-action-bar">
+          <button class="pd-action-icon" id="pdCsBtn" aria-label="客服">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5h16a1 1 0 0 1 1 1v10.4a1 1 0 0 1-1 1H9.4L5 21v-3.1H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            <span>客服</span>
+          </button>
+          <button class="pd-action-icon" id="pdFavBtn" aria-label="收藏">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.4-4.6-9.6-9A5.4 5.4 0 0 1 12 6.4a5.4 5.4 0 0 1 9.6 4.8c-2.2 4.4-9.6 9-9.6 9Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            <span id="pdFavLabel">收藏</span>
+          </button>
+          <button class="pd-action-secondary" id="pdAddCartBtn">加入购物车</button>
+          <button class="pd-action-primary" id="pdBuyBtn">立即购买</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===================== 聊天页面（全屏覆盖层） ===================== -->
+    <div class="msgc-mask" id="msgcMask">
+      <div class="msgc-sheet" id="msgcSheet">
+
+        <!-- 聊天页专属状态栏 -->
+        <div class="msgc-statusbar">
+          <div class="status-time" id="msgcStatusTime">9:41</div>
+          <div class="status-right">
+            <div class="signal"><i></i><i></i><i></i><i></i></div>
+            <div class="battery">
+              <span class="bat-pct" id="msgcBatPct">76</span>
+              <div class="bat-shell"><div class="bat-inner" id="msgcBatInner"></div><div class="bat-nub"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 聊天头部：返回 / 头像 / 名称与在线状态 / 更多 -->
+        <header class="msgc-head">
+          <button class="msgc-back" id="msgcBackBtn" aria-label="返回">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="msgc-head-id" id="msgcHeadId">
+            <span class="msgc-head-avatar" id="msgcHeadAvatar"></span>
+            <span class="msgc-head-text">
+              <span class="msgc-head-name" id="msgcHeadName">Luna</span>
+              <span class="msgc-head-status" id="msgcHeadStatus">在线 · 即时回复</span>
+            </span>
+          </div>
+          <button class="msgc-more" id="msgcMoreBtn" aria-label="更多">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5.2" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="18.8" r="1.5" fill="currentColor"/></svg>
+          </button>
+        </header>
+
+        <!-- 消息滚动区 -->
+        <div class="msgc-scroll" id="msgcScroll">
+          <div class="msgc-day-tag"><span>今天</span></div>
+          <div class="msgc-list" id="msgcList"></div>
+          <!-- AI 正在输入指示（占位，后续接入真实生成状态） -->
+          <div class="msgc-typing" id="msgcTyping" style="display:none;">
+            <span class="msgc-typing-avatar" id="msgcTypingAvatar"></span>
+            <span class="msgc-typing-dots"><i></i><i></i><i></i></span>
+          </div>
+        </div>
+
+        <!-- 输入区：AI 回复占位按钮 + 文本输入 + 发送 -->
+        <div class="msgc-dock">
+          <div class="msgc-dock-row">
+            <button class="msgc-ai-btn" id="msgcAiReplyBtn" type="button">
+              <span class="msgc-ai-btn-icon">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.2c1.4 2.7 1.4 5.9 0 8.4-1.4-2.5-1.4-5.7 0-8.4Z" fill="currentColor"/><path d="M12 12.4c1.4 2.7 1.4 5.9 0 8.4-1.4-2.5-1.4-5.7 0-8.4Z" fill="currentColor"/></svg>
+              </span>
+              <span>AI 回复</span>
+            </button>
+            <div class="msgc-input-wrap">
+              <textarea class="msgc-input" id="msgcInput" rows="1" placeholder="发送消息…" maxlength="500"></textarea>
+            </div>
+            <button class="msgc-send-btn" id="msgcSendBtn" aria-label="发送" disabled>
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4l-6.5 16-2.6-7-6.9-1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===================== 购买 / 赠送 结算弹层 ===================== -->
+    <div class="chk-mask" id="chkMask">
+      <div class="chk-sheet" id="chkSheet">
+        <div class="chk-handle"></div>
+        <div class="chk-head">
+          <p class="chk-title" id="chkTitle">确认订单</p>
+          <button class="chk-close" id="chkCloseBtn" aria-label="关闭">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div class="chk-scroll">
+
+          <!-- 商品摘要 -->
+          <div class="chk-product-row">
+            <div class="chk-product-img" id="chkProductImg"></div>
+            <div class="chk-product-info">
+              <p class="chk-product-name" id="chkProductName"></p>
+              <p class="chk-product-spec" id="chkProductSpec"></p>
+            </div>
+            <div class="chk-product-price" id="chkProductPrice"></div>
+          </div>
+
+          <!-- 购买方式：自己购买 / 送给角色 -->
+          <div class="chk-section">
+            <p class="chk-section-title">购买方式</p>
+            <div class="chk-mode-row" id="chkModeRow">
+              <button class="chk-mode-btn is-active" data-mode="self">自己购买</button>
+              <button class="chk-mode-btn" data-mode="gift">赠送给角色</button>
+            </div>
+          </div>
+
+          <!-- 赠送对象：从「角色」库中选取，仅在 gift 模式下展开 -->
+          <div class="chk-section" id="chkGiftSection" style="display:none;">
+            <p class="chk-section-title">选择赠送对象</p>
+            <div class="chk-gift-list" id="chkGiftList"></div>
+            <textarea class="chk-gift-note" id="chkGiftNote" placeholder="附言（可选），例如「生日快乐」" maxlength="60"></textarea>
+          </div>
+
+          <!-- 付款方：本人支付 / 对方（角色）代付 -->
+          <div class="chk-section">
+            <p class="chk-section-title">付款方</p>
+            <div class="chk-payer-row" id="chkPayerRow">
+              <button class="chk-payer-btn is-active" data-payer="me">本人支付</button>
+              <button class="chk-payer-btn" data-payer="other" id="chkPayerOtherBtn">对方代付</button>
+            </div>
+            <p class="chk-payer-hint" id="chkPayerHint">从钱包余额中扣除，将生成一笔支出记录</p>
+          </div>
+
+          <!-- 数量 -->
+          <div class="chk-section chk-qty-row">
+            <p class="chk-section-title">数量</p>
+            <div class="chk-qty-ctrl">
+              <button class="chk-qty-btn" id="chkQtyMinus">－</button>
+              <span class="chk-qty-num" id="chkQtyNum">1</span>
+              <button class="chk-qty-btn" id="chkQtyPlus">＋</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="chk-foot">
+          <div class="chk-total">
+            <span class="chk-total-label">合计</span>
+            <span class="chk-total-num"><i>¥</i><b id="chkTotalNum">0</b></span>
+          </div>
+          <button class="chk-submit-btn" id="chkSubmitBtn">确认支付</button>
+        </div>
+
+        <!-- 支付结果反馈 -->
+        <div class="chk-result" id="chkResult">
+          <div class="chk-result-icon" id="chkResultIcon"></div>
+          <p class="chk-result-title" id="chkResultTitle"></p>
+          <p class="chk-result-desc" id="chkResultDesc"></p>
+          <button class="chk-result-btn" id="chkResultBtn">完成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 外卖 · 餐厅点餐页（全屏覆盖层） ===================== -->
+    <div class="dvd-mask" id="dvdMask">
+      <div class="dvd-sheet" id="dvdSheet">
+
+        <div class="dvd-statusbar">
+          <div class="status-time" id="dvdStatusTime">9:41</div>
+          <div class="status-right">
+            <div class="signal"><i></i><i></i><i></i><i></i></div>
+            <div class="battery">
+              <span class="bat-pct" id="dvdBatPct">76</span>
+              <div class="bat-shell"><div class="bat-inner" id="dvdBatInner"></div><div class="bat-nub"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 悬浮返回 / 购物车 -->
+        <div class="dvd-float-bar">
+          <button class="dvd-float-btn" id="dvdBackBtn" aria-label="返回">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="dvd-float-btn" id="dvdCartBtn" aria-label="购物车">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3.5 4.5h2l1.6 10.2a1.8 1.8 0 0 0 1.78 1.5h8.4a1.8 1.8 0 0 0 1.77-1.46l1.25-6.74H6.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.6" cy="20" r="1.3" stroke="currentColor" stroke-width="1.3"/><circle cx="17" cy="20" r="1.3" stroke="currentColor" stroke-width="1.3"/></svg>
+            <span class="dvd-float-badge" id="dvdFloatBadge">0</span>
+          </button>
+        </div>
+
+        <div class="dvd-scroll" id="dvdScroll">
+
+          <!-- 门店头图 -->
+          <div class="dvd-hero" id="dvdHero">
+            <img class="dvd-hero-img" id="dvdHeroImg" alt="" />
+            <div class="dvd-hero-veil"></div>
+          </div>
+
+          <div class="dvd-body">
+            <div class="dvd-title-row">
+              <h2 class="dvd-title" id="dvdTitle">餐厅名称</h2>
+              <span class="dvd-cuisine" id="dvdCuisine"></span>
+            </div>
+            <div class="dvd-meta-row">
+              <span class="dvd-meta-item"><b id="dvdRate">4.8</b>分</span>
+              <span class="dvd-meta-sep"></span>
+              <span class="dvd-meta-item" id="dvdMonthlySales">月售 500+</span>
+              <span class="dvd-meta-sep"></span>
+              <span class="dvd-meta-item" id="dvdDistance">1.2km</span>
+              <span class="dvd-meta-sep"></span>
+              <span class="dvd-meta-item" id="dvdEta">30分钟送达</span>
+            </div>
+            <div class="dvd-fee-strip">
+              <span class="dvd-fee-item" id="dvdDeliveryFee">配送费 ¥3</span>
+              <span class="dvd-fee-item" id="dvdMinOrder">起送 ¥20</span>
+              <span class="dvd-fee-item">Luna 认证商家</span>
+            </div>
+
+            <!-- 商家公告 -->
+            <div class="dvd-notice" id="dvdNotice" style="display:none;">
+              <span class="dvd-notice-glyph">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5v3a2 2 0 0 0 2 2h1.2l3.4 3.2c.6.6 1.7.16 1.7-.7v-11.4c0-.86-1.1-1.3-1.7-.7L7.2 9.1a2 2 0 0 1-1.4.5H6a2 2 0 0 0-2 2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M17 9.2a4.2 4.2 0 0 1 0 5.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              </span>
+              <span class="dvd-notice-text" id="dvdNoticeText"></span>
+            </div>
+
+            <!-- 菜单 -->
+            <section class="dvd-menu-block">
+              <div class="dvd-menu-head">
+                <span class="dvd-menu-title">菜单</span>
+                <span class="dvd-menu-sub">Menu</span>
+              </div>
+              <div class="dvd-menu-list" id="dvdMenuList">
+                <div class="dvd-skel-row"></div>
+                <div class="dvd-skel-row"></div>
+                <div class="dvd-skel-row"></div>
+              </div>
+            </section>
+
+            <!-- 用户评价 -->
+            <section class="dvd-review-block" id="dvdReviewBlock">
+              <div class="dvd-block-head">
+                <span class="dvd-block-title">用户评价</span>
+                <span class="dvd-block-sub" id="dvdReviewSummary"></span>
+              </div>
+              <div class="dvd-review-tags" id="dvdReviewTags"></div>
+              <div class="dvd-review-list" id="dvdReviewList"></div>
+            </section>
+
+            <!-- 猜你喜欢：本店人气推荐菜品 -->
+            <section class="dvd-reco-block" id="dvdRecoBlock">
+              <div class="dvd-block-head">
+                <span class="dvd-block-title">猜你喜欢</span>
+                <span class="dvd-block-sub">本店人气推荐</span>
+              </div>
+              <div class="dvd-reco-scroll" id="dvdRecoScroll"></div>
+            </section>
+
+            <div class="dvd-bottom-spacer"></div>
+          </div>
+        </div>
+
+        <!-- 底部结算条 -->
+        <div class="dvd-settle-bar" id="dvdSettleBar">
+          <div class="dvd-settle-info">
+            <span class="dvd-settle-total"><i>¥</i><b id="dvdSettleTotal">0</b></span>
+            <span class="dvd-settle-hint" id="dvdSettleHint">未满起送金额</span>
+          </div>
+          <button class="dvd-settle-btn" id="dvdSettleBtn" disabled>去结算</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="shopping.js"></script>
+</body>
+</html>

@@ -5,31 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>世界书</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif+SC:wght@400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="worldbook.css"/>
 </head>
 <body>
 
 <div class="wb-wrap">
 
-  <!-- 状态栏 -->
-  <div class="status-bar">
-    <div class="status-time" id="statusTime">9:41</div>
-    <div class="status-island" id="statusIsland"></div>
-    <div class="status-right">
-      <div class="signal"><i></i><i></i><i></i><i></i></div>
-      <div class="battery">
-        <span class="bat-pct" id="batPct">76</span>
-        <div class="bat-shell">
-          <div class="bat-inner" id="batInner"></div>
-          <div class="bat-nub"></div>
+  <!-- 固定顶栏：状态栏 + 导航行（不随内容滚动） -->
+  <div class="wb-fixed-top">
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- 头部 -->
-  <div class="wb-header">
     <!-- 导航行 -->
     <div class="wb-nav-row">
       <button class="wb-back" onclick="goBack()">
@@ -44,27 +44,27 @@
         </svg>
       </button>
     </div>
+  </div>
 
+  <!-- 头部 -->
+  <div class="wb-header">
     <!-- Hero -->
     <div class="wb-hero">
-      <!-- 装饰纹理 -->
-      <div style="position:absolute;top:12px;right:18px;opacity:0.06;pointer-events:none;">
-        <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
-          <circle cx="35" cy="35" r="32" stroke="#4a9fd4" stroke-width="1.5" stroke-dasharray="4 6"/>
-          <circle cx="35" cy="35" r="20" stroke="#4a9fd4" stroke-width="1" stroke-dasharray="3 5"/>
-          <circle cx="35" cy="35" r="8" fill="#4a9fd4"/>
+      <div class="wb-hero-corner">
+        <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+          <circle cx="26" cy="26" r="24" stroke="#17181a" stroke-width="1" stroke-dasharray="1 5" opacity="0.5"/>
+          <path d="M26 12v28M12 26h28" stroke="#17181a" stroke-width="0.7" opacity="0.3"/>
+          <circle cx="26" cy="26" r="3" fill="#a89268" opacity="0.7"/>
         </svg>
       </div>
 
       <div class="wb-hero-top">
-        <div>
-          <div class="wb-hero-label">
-            <div class="wb-hero-dot"></div>
-            <div class="wb-hero-kicker">Lore · Design</div>
-          </div>
-          <div class="wb-hero-title">世界<em>书</em></div>
-          <div class="wb-hero-desc">构建故事世界观<br>与背景设定</div>
+        <div class="wb-hero-label">
+          <div class="wb-hero-dot"></div>
+          <div class="wb-hero-kicker">Lore · Persona · Guard</div>
         </div>
+        <div class="wb-hero-title">世界<em>书</em></div>
+        <div class="wb-hero-desc">世界观 · 人物设定 · 行为准则<br>让 AI 稳定扮演角色、不掉格式不OOC</div>
       </div>
 
       <div class="wb-stats">
@@ -80,7 +80,28 @@
           <div class="wb-stat-num" id="statEnabled">00</div>
           <div class="wb-stat-lbl">Active</div>
         </div>
+        <div class="wb-stat-chip">
+          <div class="wb-stat-num" id="statConst">00</div>
+          <div class="wb-stat-lbl">Constant</div>
+        </div>
       </div>
+    </div>
+
+    <!-- 工具条：导入 / 导出 / 模板 -->
+    <div class="wb-toolbar">
+      <button class="wb-tool-btn" onclick="document.getElementById('wbImportInput').click()">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        导入存档
+      </button>
+      <button class="wb-tool-btn" onclick="exportEntries()">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M12 15V3m0 0l-4 4m4-4l4 4M5 21h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        导出存档
+      </button>
+      <button class="wb-tool-btn" onclick="openTemplateMenu()">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg>
+        条目模板
+      </button>
+      <input type="file" id="wbImportInput" class="wb-tool-input" accept="application/json" onchange="importEntries(this)"/>
     </div>
 
     <!-- 搜索栏 -->
@@ -97,10 +118,13 @@
     <!-- 分类筛选 -->
     <div class="wb-filter-row" id="wbFilterRow">
       <button class="wb-filter-btn active" data-cat="all" onclick="filterBy(this)">全部</button>
+      <button class="wb-filter-btn" data-cat="人物" onclick="filterBy(this)">人物</button>
       <button class="wb-filter-btn" data-cat="地点" onclick="filterBy(this)">地点</button>
       <button class="wb-filter-btn" data-cat="势力" onclick="filterBy(this)">势力</button>
       <button class="wb-filter-btn" data-cat="事件" onclick="filterBy(this)">事件</button>
-      <button class="wb-filter-btn" data-cat="规则" onclick="filterBy(this)">规则</button>
+      <button class="wb-filter-btn" data-cat="关系" onclick="filterBy(this)">关系</button>
+      <button class="wb-filter-btn" data-cat="物品" onclick="filterBy(this)">物品/概念</button>
+      <button class="wb-filter-btn" data-cat="规则" onclick="filterBy(this)">规则/OOC</button>
       <button class="wb-filter-btn" data-cat="其他" onclick="filterBy(this)">其他</button>
     </div>
   </div>
@@ -134,7 +158,7 @@
       <div class="wb-preview-bg" id="wbPreviewBg"></div>
       <div class="wb-preview-overlay"></div>
       <div class="wb-preview-content">
-        <div class="wb-preview-cat" id="previewCat">地点</div>
+        <div class="wb-preview-cat" id="previewCat">人物</div>
         <div class="wb-preview-title" id="previewTitle">条目名称</div>
         <div class="wb-preview-sub" id="previewSub">简短描述</div>
       </div>
@@ -152,26 +176,51 @@
 
   <!-- 表单 -->
   <div class="wb-form">
+
+    <!-- 基础信息 -->
+    <div class="wb-form-section-title">基础信息</div>
+
     <!-- 名称 + 分类 -->
     <div class="wb-form-row">
       <div class="wb-form-group" style="flex:1.6">
         <label class="wb-form-label">
           <span class="wb-form-label-dot"></span>条目名称
         </label>
-        <input class="wb-form-input" id="formTitle" type="text" placeholder="银月城"
+        <input class="wb-form-input" id="formTitle" type="text" placeholder="银月 / 银月城 / 家族禁忌"
           oninput="document.getElementById('previewTitle').textContent = this.value || '条目名称'"/>
       </div>
       <div class="wb-form-group">
         <label class="wb-form-label">
           <span class="wb-form-label-dot"></span>分类
         </label>
-        <select class="wb-form-select" id="formCat" onchange="onCatChange(this)">
-          <option value="地点">地点</option>
-          <option value="势力">势力</option>
-          <option value="事件">事件</option>
-          <option value="规则">规则</option>
-          <option value="其他">其他</option>
-        </select>
+        <div class="wb-select" id="formCatSelect">
+          <select id="formCat" onchange="onCatChange(this)" tabindex="-1" aria-hidden="true">
+            <option value="人物">人物设定</option>
+            <option value="地点">地点</option>
+            <option value="势力">势力</option>
+            <option value="事件">事件</option>
+            <option value="关系">关系网</option>
+            <option value="物品">物品/概念</option>
+            <option value="规则">规则/OOC防护</option>
+            <option value="其他">其他</option>
+          </select>
+          <button type="button" class="wb-select-trigger" id="formCatTrigger" onclick="toggleCatDropdown()">
+            <span class="wb-select-trigger-text" id="formCatTriggerText">人物设定</span>
+            <svg class="wb-select-caret" viewBox="0 0 12 8" width="12" height="8" fill="none">
+              <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="wb-select-panel" id="formCatPanel">
+            <div class="wb-select-opt" data-value="人物" onclick="pickCatOption(this)">人物设定</div>
+            <div class="wb-select-opt" data-value="地点" onclick="pickCatOption(this)">地点</div>
+            <div class="wb-select-opt" data-value="势力" onclick="pickCatOption(this)">势力</div>
+            <div class="wb-select-opt" data-value="事件" onclick="pickCatOption(this)">事件</div>
+            <div class="wb-select-opt" data-value="关系" onclick="pickCatOption(this)">关系网</div>
+            <div class="wb-select-opt" data-value="物品" onclick="pickCatOption(this)">物品/概念</div>
+            <div class="wb-select-opt" data-value="规则" onclick="pickCatOption(this)">规则/OOC防护</div>
+            <div class="wb-select-opt" data-value="其他" onclick="pickCatOption(this)">其他</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -179,9 +228,9 @@
     <div class="wb-form-group">
       <label class="wb-form-label">
         <span class="wb-form-label-dot"></span>简短描述
-        <span class="wb-form-label-hint">显示在卡片上</span>
+        <span class="wb-form-label-hint">显示在卡片上，一句话概括</span>
       </label>
-      <input class="wb-form-input" id="formSub" type="text" placeholder="帝国边境的神秘港口城市"
+      <input class="wb-form-input" id="formSub" type="text" placeholder="帝国边境的神秘港口城市 / 冷淡表面下藏着温柔的副官"
         oninput="document.getElementById('previewSub').textContent = this.value || '简短描述'"/>
     </div>
 
@@ -196,36 +245,139 @@
       </div>
     </div>
 
-    <!-- 关键词 -->
+    <!-- 触发机制 -->
+    <div class="wb-form-section-title">触发机制</div>
+
+    <!-- 常驻 / 触发模式 -->
     <div class="wb-form-group">
       <label class="wb-form-label">
-        <span class="wb-form-label-dot"></span>触发关键词
-        <span class="wb-form-label-hint">逗号分隔</span>
+        <span class="wb-form-label-dot"></span>激活方式
+      </label>
+      <div class="wb-mode-row">
+        <button class="wb-mode-btn active" data-mode="keyword" onclick="selectMode(this)">关键词触发</button>
+        <button class="wb-mode-btn" data-mode="constant" onclick="selectMode(this)">常驻注入</button>
+      </div>
+      <div class="wb-mode-hint" id="wbModeHint">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span id="wbModeHintText">对话中出现关键词才会注入，节省 Token；适合地点、物品、次要角色等。</span>
+      </div>
+    </div>
+
+    <!-- 主关键词 -->
+    <div class="wb-form-group" id="wbKeywordGroup">
+      <label class="wb-form-label">
+        <span class="wb-form-label-dot"></span>主要关键词
+        <span class="wb-form-label-hint">逗号分隔 · 任一命中即触发</span>
       </label>
       <input class="wb-form-input" id="formKeywords" type="text" placeholder="银月, 港口, 边境"/>
     </div>
 
+    <!-- 次关键词 -->
+    <div class="wb-form-group" id="wbKeywordSecGroup">
+      <label class="wb-form-label">
+        <span class="wb-form-label-dot"></span>次要关键词
+        <span class="wb-form-label-hint">选填 · 与主关键词同时命中才触发(AND逻辑)</span>
+      </label>
+      <input class="wb-form-input" id="formKeywordsSec" type="text" placeholder="例：主词命中「他」时需同时命中「弟弟」才精确指向该角色"/>
+    </div>
+
     <!-- 详细设定 -->
+    <div class="wb-form-section-title">内容主体</div>
+
     <div class="wb-form-group">
       <label class="wb-form-label">
         <span class="wb-form-label-dot"></span>详细设定
         <span class="wb-form-label-count" id="detailCount">0</span>
       </label>
       <textarea class="wb-form-textarea" id="formDetail"
-        placeholder="在这里描述这个条目的完整世界观设定，历史背景、规则细节、氛围描述等..."
+        placeholder="人物设定示例：外貌特征、性格底色、说话方式与口癖、绝不会做的事、常见反应模式、与用户的关系锚点……&#10;&#10;规则/OOC防护示例：禁止使用「作为AI」等表述；对话中不得跳出角色视角进行解说；每次回复保持在150字以内；禁止出现markdown加粗符号……"
         oninput="document.getElementById('detailCount').textContent = this.value.length"></textarea>
     </div>
 
-    <!-- 插入位置 -->
-    <div class="wb-form-group">
-      <label class="wb-form-label">
-        <span class="wb-form-label-dot"></span>插入位置
-      </label>
-      <div class="wb-position-row">
-        <button class="wb-pos-btn active" data-pos="before" onclick="selectPos(this)">对话前</button>
-        <button class="wb-pos-btn" data-pos="after" onclick="selectPos(this)">对话后</button>
-        <button class="wb-pos-btn" data-pos="system" onclick="selectPos(this)">系统层</button>
+    <!-- 高级设置折叠 -->
+    <div class="wb-advanced-toggle" id="wbAdvToggle" onclick="toggleAdvanced()">
+      <span>高级注入控制（优先级 · 概率 · 扫描深度 · 递归）</span>
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="wb-advanced-body" id="wbAdvBody">
+
+      <!-- 插入位置 -->
+      <div class="wb-form-group">
+        <label class="wb-form-label">
+          <span class="wb-form-label-dot"></span>插入位置
+          <span class="wb-form-label-hint">决定这段设定出现在提示词的哪个层级</span>
+        </label>
+        <div class="wb-position-row">
+          <button class="wb-pos-btn active" data-pos="before" onclick="selectPos(this)">对话前</button>
+          <button class="wb-pos-btn" data-pos="after" onclick="selectPos(this)">对话后</button>
+          <button class="wb-pos-btn" data-pos="system" onclick="selectPos(this)">系统层</button>
+        </div>
       </div>
+
+      <!-- 优先级 -->
+      <div class="wb-form-group">
+        <label class="wb-form-label">
+          <span class="wb-form-label-dot"></span>优先级
+          <span class="wb-form-label-hint">Token 预算不足时，优先保留高优先级条目</span>
+        </label>
+        <div class="wb-slider-group">
+          <div class="wb-slider-row">
+            <input type="range" class="wb-slider" id="formPriority" min="0" max="10" value="5" oninput="document.getElementById('priorityVal').textContent = this.value"/>
+            <div class="wb-slider-val" id="priorityVal">5</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 触发概率 -->
+      <div class="wb-form-group">
+        <label class="wb-form-label">
+          <span class="wb-form-label-dot"></span>触发概率
+          <span class="wb-form-label-hint">命中关键词后仍按概率决定是否注入</span>
+        </label>
+        <div class="wb-slider-group">
+          <div class="wb-slider-row">
+            <input type="range" class="wb-slider" id="formProbability" min="0" max="100" value="100" oninput="document.getElementById('probabilityVal').textContent = this.value + '%'"/>
+            <div class="wb-slider-val" id="probabilityVal">100%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 扫描深度 -->
+      <div class="wb-form-group">
+        <label class="wb-form-label">
+          <span class="wb-form-label-dot"></span>扫描深度
+          <span class="wb-form-label-hint">向前检查最近几条消息来匹配关键词</span>
+        </label>
+        <div class="wb-slider-group">
+          <div class="wb-slider-row">
+            <input type="range" class="wb-slider" id="formScanDepth" min="1" max="20" value="4" oninput="document.getElementById('scanDepthVal').textContent = this.value"/>
+            <div class="wb-slider-val" id="scanDepthVal">4</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 递归 -->
+      <div class="wb-form-group wb-form-toggle-row">
+        <div>
+          <div class="wb-form-label" style="margin-bottom:2px"><span class="wb-form-label-dot"></span>允许递归触发</div>
+          <div class="wb-form-toggle-sub">开启后，本条目内容中若含其他条目关键词，会继续联动展开</div>
+        </div>
+        <label class="wb-toggle">
+          <input type="checkbox" id="formRecursion"/>
+          <span class="wb-toggle-track"></span>
+        </label>
+      </div>
+
+      <!-- 排它组 -->
+      <div class="wb-form-group">
+        <label class="wb-form-label">
+          <span class="wb-form-label-dot"></span>互斥分组
+          <span class="wb-form-label-hint">选填 · 同组内只会命中优先级最高的一条，用于版本/分支设定</span>
+        </label>
+        <input class="wb-form-input" id="formGroup" type="text" placeholder="例：人格分支、时间线A/B"/>
+      </div>
+
     </div>
 
     <!-- 启用开关 -->
@@ -234,7 +386,7 @@
         <div class="wb-form-label" style="margin-bottom:2px">
           <span class="wb-form-label-dot"></span>启用此条目
         </div>
-        <div style="font-size:11px;color:rgba(26,37,53,0.38);padding-left:0;margin-top:2px">关闭后不会注入到对话中</div>
+        <div class="wb-form-toggle-sub">关闭后不会注入到对话中，但保留存档</div>
       </div>
       <label class="wb-toggle">
         <input type="checkbox" id="formEnabled" checked/>
@@ -261,6 +413,40 @@
 </div>
 
 <!-- ================================
+   模板选择菜单
+================================ -->
+<div class="wv-menu-overlay" id="wbTplOverlay" onclick="closeTemplateMenu()"></div>
+<div class="wv-menu" id="wbTplMenu">
+  <div class="wv-menu-handle"></div>
+  <div style="padding:0 24px 4px">
+    <div class="wb-modal-eyebrow">Quick Start</div>
+    <div class="wb-modal-title" style="margin-bottom:4px">选择条目模板</div>
+    <div style="font-size:12px;color:var(--ink2);line-height:1.6;margin-bottom:4px">预填结构与提示文字，帮你快速搭建对应类型的设定</div>
+  </div>
+  <div class="wv-menu-item" onclick="createFromTemplate('人物')">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    人物设定 — 外貌 · 性格 · 口癖 · 底线
+  </div>
+  <div class="wv-menu-item" onclick="createFromTemplate('关系')">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><circle cx="7" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M10 12h4" stroke="currentColor" stroke-width="1.6"/></svg>
+    关系网 — 人物之间的立场与情感锚点
+  </div>
+  <div class="wv-menu-item" onclick="createFromTemplate('规则')">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    规则/OOC防护 — 常驻注入，防止掉人设与格式
+  </div>
+  <div class="wv-menu-item" onclick="createFromTemplate('地点')">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="1.6"/></svg>
+    地点 — 场景氛围与空间细节
+  </div>
+  <div class="wv-menu-item" onclick="createFromTemplate('事件')">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M4 7h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect x="4" y="7" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/></svg>
+    事件/时间线 — 已发生的关键剧情节点
+  </div>
+  <div class="wv-menu-cancel" onclick="closeTemplateMenu()">取消</div>
+</div>
+
+<!-- ================================
    详情页
 ================================ -->
 <div class="wv-page" id="wvPage">
@@ -269,7 +455,6 @@
     <div class="wv-hero-bg" id="wvHeroBg"></div>
     <div class="wv-hero-overlay"></div>
 
-    <!-- 状态栏（详情页大图上） -->
     <div class="status-bar wv-status-bar">
       <div class="status-time" id="wvStatusTime">9:41</div>
       <div class="status-island" id="wvStatusIsland"></div>
@@ -302,7 +487,7 @@
     </div>
 
     <div class="wv-hero-bottom">
-      <div class="wv-cat-badge" id="wvCatBadge">地点</div>
+      <div class="wv-cat-badge" id="wvCatBadge">人物</div>
       <div class="wv-hero-title" id="wvTitle">—</div>
       <div class="wv-hero-sub" id="wvSub">—</div>
       <div class="wv-status-pill" id="wvStatusPill">启用中</div>
@@ -323,8 +508,8 @@
         <div class="wv-info-val" id="wvPos">—</div>
       </div>
       <div class="wv-info-cell">
-        <div class="wv-info-key">状态</div>
-        <div class="wv-info-val" id="wvEnabled">启用</div>
+        <div class="wv-info-key">激活</div>
+        <div class="wv-info-val" id="wvModeVal">—</div>
       </div>
     </div>
 
@@ -344,6 +529,32 @@
         Keywords
       </div>
       <div class="wv-kw-row" id="wvKwRow"></div>
+    </div>
+
+    <!-- 高级参数 -->
+    <div class="wv-section" id="wvAdvSection">
+      <div class="wv-section-label">
+        <span class="wv-section-bar"></span>
+        Injection Params
+      </div>
+      <div class="wv-meta-grid">
+        <div class="wv-meta-cell">
+          <div class="wv-meta-cell-label">优先级</div>
+          <div class="wv-meta-cell-val" id="wvPriority">—</div>
+        </div>
+        <div class="wv-meta-cell">
+          <div class="wv-meta-cell-label">触发概率</div>
+          <div class="wv-meta-cell-val" id="wvProbability">—</div>
+        </div>
+        <div class="wv-meta-cell">
+          <div class="wv-meta-cell-label">扫描深度</div>
+          <div class="wv-meta-cell-val" id="wvScanDepth">—</div>
+        </div>
+        <div class="wv-meta-cell">
+          <div class="wv-meta-cell-label">递归触发</div>
+          <div class="wv-meta-cell-val" id="wvRecursion">—</div>
+        </div>
+      </div>
     </div>
 
     <!-- 详细设定 -->
@@ -375,6 +586,10 @@
           </svg>
           编辑
         </button>
+        <button class="wv-act-dup" onclick="duplicateFromView()">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          复制
+        </button>
         <button class="wv-act-delete" onclick="openDeleteConfirm()">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
             <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -387,6 +602,25 @@
 
     <div style="height:50px"></div>
   </div>
+</div>
+
+<!-- 更多菜单 -->
+<div class="wv-menu-overlay" id="wvMenuOverlay" onclick="closeMoreMenu()"></div>
+<div class="wv-menu" id="wvMenu">
+  <div class="wv-menu-handle"></div>
+  <div class="wv-menu-item" onclick="closeMoreMenu(); openEditFromView()">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    编辑条目
+  </div>
+  <div class="wv-menu-item" onclick="closeMoreMenu(); duplicateFromView()">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    复制条目
+  </div>
+  <div class="wv-menu-item danger" onclick="closeMoreMenu(); openDeleteConfirm()">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    删除条目
+  </div>
+  <div class="wv-menu-cancel" onclick="closeMoreMenu()">取消</div>
 </div>
 
 <!-- 删除确认 -->
@@ -406,6 +640,9 @@
     <button class="wv-confirm-ok" onclick="confirmDelete()">确认删除</button>
   </div>
 </div>
+
+<!-- Toast -->
+<div class="wb-toast" id="wbToast"></div>
 
 <script src="worldbook.js"></script>
 </body>

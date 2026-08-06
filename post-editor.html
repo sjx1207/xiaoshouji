@@ -1,0 +1,157 @@
+<!-- ══════════════════════════════════════════════════════
+     发布动态 · Post Editor 全屏页
+     黑白灰高级韩系风格，与 Moments 页面视觉统一
+══════════════════════════════════════════════════════ -->
+<div class="pe-overlay" id="peOverlay" onclick="peRequestClose()"></div>
+
+<div class="pe-page" id="peaPage">
+
+  <!-- 固定头部：状态栏 + 导航 -->
+  <div class="pe-fixed-head">
+    <div class="status-bar">
+      <div class="status-time" id="peStatusTime">9:41</div>
+      <div class="status-island" id="peStatusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="peBatPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="peBatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pe-nav">
+      <div class="pe-nav-cancel" onclick="peRequestClose()">取消</div>
+      <div class="pe-nav-center">
+        <div class="pe-nav-sub">LUNA · MOMENTS</div>
+        <div class="pe-nav-title">发布动态</div>
+      </div>
+      <button class="pe-nav-publish" id="pePublishBtn" onclick="pePublish()">发布</button>
+    </div>
+  </div>
+
+  <!-- 可滚动内容区 -->
+  <div class="pe-scroll-body" id="peScrollBody">
+
+    <!-- 作者行 -->
+    <div class="pe-author-row">
+      <div class="pe-author-av" id="peAuthorAv">我</div>
+      <div class="pe-author-info">
+        <div class="pe-author-name" id="peAuthorName">Luna</div>
+        <div class="pe-audience-pill" onclick="peOpenAudience()">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span id="peAudienceLabel">公开可见</span>
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文本输入 -->
+    <div class="pe-text-zone">
+      <textarea
+        class="pe-textarea"
+        id="peTextarea"
+        placeholder="此刻的想法…"
+        maxlength="500"
+        oninput="peOnTextInput()"
+      ></textarea>
+    </div>
+    <div class="pe-char-count" id="peCharCount">0 / 500</div>
+
+    <!-- 图片九宫格 -->
+    <div class="pe-media-zone" id="peMediaZone" style="display:none;">
+      <div class="pe-media-grid count-0" id="peMediaGrid"></div>
+    </div>
+
+    <!-- 已选元信息（位置 / 心情） -->
+    <div class="pe-meta-chips" id="peMetaChips" style="display:none;"></div>
+
+    <div class="pe-divider-row"></div>
+
+    <!-- 工具列表 -->
+    <div class="pe-tool-list">
+      <div class="pe-tool-item" onclick="peOpenLocation()">
+        <div class="pe-tool-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="pe-tool-label">所在位置</div>
+        <div class="pe-tool-value" id="peLocValue">添加位置</div>
+        <svg class="pe-tool-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+
+      <div class="pe-tool-item" onclick="peOpenMood()">
+        <div class="pe-tool-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.5 2 3.5 2 3.5-2 3.5-2"/><path d="M9 9.5h.01M15 9.5h.01"/></svg>
+        </div>
+        <div class="pe-tool-label">此刻心情</div>
+        <div class="pe-tool-value" id="peMoodValue">添加心情</div>
+        <svg class="pe-tool-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+
+      <div class="pe-tool-item" onclick="peOpenAudience()">
+        <div class="pe-tool-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="pe-tool-label">谁可以看</div>
+        <div class="pe-tool-value" id="peAudienceValue2">公开可见</div>
+        <svg class="pe-tool-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 隐藏文件输入 -->
+  <input type="file" id="peFileInput" class="pe-file-input" accept="image/*" multiple onchange="peHandleFiles(event)" />
+
+  <!-- 底部快捷工具条 -->
+  <div class="pe-quickbar">
+    <div class="pe-qb-btn" onclick="document.getElementById('peFileInput').click()" title="添加图片">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    </div>
+    <div class="pe-qb-btn" onclick="peOpenLocation()" title="位置">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    </div>
+    <div class="pe-qb-btn" onclick="peOpenMood()" title="心情">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.5 2 3.5 2 3.5-2 3.5-2"/><path d="M9 9.5h.01M15 9.5h.01"/></svg>
+    </div>
+    <div class="pe-qb-spacer"></div>
+    <div class="pe-qb-count" id="peImgCount"></div>
+  </div>
+
+</div><!-- /peaPage -->
+
+<!-- ===== 位置选择 弹层 ===== -->
+<div class="pe-sheet-overlay" id="peLocOverlay" onclick="peCloseLocation()"></div>
+<div class="pe-sheet" id="peLocSheet">
+  <div class="pe-sheet-handle"></div>
+  <div class="pe-sheet-title">所在位置</div>
+  <input class="pe-loc-search" id="peLocSearch" type="text" placeholder="搜索地点…" oninput="peFilterLocations()" />
+  <div class="pe-sheet-body" id="peLocList"></div>
+</div>
+
+<!-- ===== 心情选择 弹层 ===== -->
+<div class="pe-sheet-overlay" id="peMoodOverlay" onclick="peCloseMood()"></div>
+<div class="pe-sheet" id="peMoodSheet">
+  <div class="pe-sheet-handle"></div>
+  <div class="pe-sheet-title">此刻心情</div>
+  <div class="pe-sheet-body" id="peMoodList"></div>
+</div>
+
+<!-- ===== 可见范围 弹层 ===== -->
+<div class="pe-sheet-overlay" id="peAudOverlay" onclick="peCloseAudience()"></div>
+<div class="pe-sheet" id="peAudSheet">
+  <div class="pe-sheet-handle"></div>
+  <div class="pe-sheet-title">谁可以看</div>
+  <div class="pe-sheet-body" id="peAudList"></div>
+</div>
+
+<!-- ===== 发布中遮罩 ===== -->
+<div class="pe-publishing-overlay" id="pePublishingOverlay">
+  <div class="pe-pub-ring"></div>
+  <div class="pe-pub-label">正在发布…</div>
+</div>
+
+<!-- ===== 轻提示 ===== -->
+<div class="pe-toast" id="peToast"></div>

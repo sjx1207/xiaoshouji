@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>行程 · Luna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Space+Mono:wght@400;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="travel.css" />
+</head>
+<body>
+
+<div class="luna-frame tab-mine">
+
+  <!-- 背景层：青春糖果玻璃基底 + 漂浮光斑 -->
+  <div class="bg-base"></div>
+  <div class="bg-mesh-line"></div>
+  <div class="bg-orb orb-a"></div>
+  <div class="bg-orb orb-b"></div>
+  <div class="bg-orb orb-c"></div>
+  <div class="bg-grain"></div>
+
+  <!-- 用户自定义背景层（图片/视频），默认隐藏，选中自定义背景后显示并盖住上面的渐变基底 -->
+  <div class="bg-custom-layer" id="bgCustomLayer">
+    <img class="bg-custom-media" id="bgCustomImg" alt="" />
+    <video class="bg-custom-media" id="bgCustomVideo" autoplay muted loop playsinline></video>
+    <div class="bg-custom-scrim"></div>
+  </div>
+
+  <!-- 状态栏（与 index.html 同步样式） -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 顶部页头：高级 ins 韩系风格，随视图层级变化 -->
+  <header class="app-header" id="appHeader">
+    <div class="header-top-row">
+      <div class="header-text-block">
+        <div class="header-eyebrow" id="headerEyebrow">Itinerary Book</div>
+        <h1 class="header-title" id="headerTitle">我的行程</h1>
+      </div>
+      <button class="header-back-btn" id="headerBackBtn" type="button" aria-label="返回">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="header-home-btn" id="headerHomeBtn" type="button" aria-label="返回首页">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 11.5L12 4l8 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 10v8.2c0 .72.58 1.3 1.3 1.3H16.2c.72 0 1.3-.58 1.3-1.3V10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="header-stat-cluster" id="headerStatCluster">
+        <button class="header-theme-btn" id="headerThemeBtn" type="button" aria-label="更换背景">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 3a9 9 0 0 1 0 18 4.5 4.5 0 0 1-1.2-8.84A2.25 2.25 0 1 0 9 8.6 9 9 0 0 1 12 3Z" fill="currentColor" opacity="0.85"/></svg>
+        </button>
+        <div class="stat-chip">
+          <span class="stat-num" id="statTripCount">0</span>
+          <span class="stat-word">行程</span>
+        </div>
+        <div class="stat-chip-divider"></div>
+        <div class="stat-chip">
+          <span class="stat-num" id="statDayCount">0</span>
+          <span class="stat-word">待办</span>
+        </div>
+      </div>
+    </div>
+    <p class="header-sub" id="headerSub">记录每一段旅途的心动瞬间</p>
+    <div class="header-rule"></div>
+
+    <!-- 行程详情页的次级信息条：日期范围 + 倒计时/进行中标签 -->
+    <div class="header-trip-meta" id="headerTripMeta">
+      <span class="trip-meta-range" id="tripMetaRange">—</span>
+      <span class="trip-meta-badge" id="tripMetaBadge">筹备中</span>
+    </div>
+  </header>
+
+  <!-- Char 系统专属状态栏：与主屏状态栏样式呼应，随层级显隐，不再"消失不同步" -->
+  <div class="cf-status-bar" id="cfStatusBar">
+    <div class="status-time" id="cfStatusTime">9:41</div>
+    <div class="status-island"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="cfBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="cfBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Char 档案详情页 专属页头（白色 ins 编辑风，与主页头完全区隔，仅在该层级显示） -->
+  <header class="cf-header" id="cfHeader">
+    <div class="cf-header-row">
+      <button class="cf-back-btn" id="cfBackBtn" type="button" aria-label="返回">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="cf-header-eyebrow">Character File</span>
+      <button class="cf-bg-btn" id="cfBgBtn" type="button" aria-label="更换该角色背景">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 3a9 9 0 0 1 0 18 4.5 4.5 0 0 1-1.2-8.84A2.25 2.25 0 1 0 9 8.6 9 9 0 0 1 12 3Z" fill="currentColor" opacity="0.85"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 内容区：三层结构 —— 行程列表 / 行程详情(日看板+日历) / Char 行程 -->
+  <main class="content-stage">
+
+    <!-- ========== 面板一：我的行程（列表总览） ========== -->
+    <section class="panel is-active panel-scroll" data-panel="mine">
+      <div class="mine-view" id="mineView">
+
+        <!-- 视图切换：卡片列表 ⇄ 月历总览 -->
+        <div class="view-switcher">
+          <button class="vs-btn is-active" data-view="list" type="button">行程列表</button>
+          <button class="vs-btn" data-view="calendar" type="button">全览日历</button>
+        </div>
+
+        <!-- 卡片列表视图 -->
+        <div class="mine-sub-view is-active" data-subview="list">
+          <div class="trip-card-list" id="tripCardList"><!-- JS 渲染 --></div>
+
+          <button class="add-trip-btn" id="addTripBtn" type="button">
+            <span class="add-trip-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            </span>
+            <span>新建一段行程</span>
+          </button>
+        </div>
+
+        <!-- 全览日历视图 -->
+        <div class="mine-sub-view" data-subview="calendar">
+          <div class="cal-nav">
+            <button class="cal-nav-btn" id="calPrevBtn" type="button" aria-label="上个月">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="cal-nav-label" id="calNavLabel">2026年8月</span>
+            <button class="cal-nav-btn" id="calNextBtn" type="button" aria-label="下个月">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="cal-weekday-row">
+            <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+          </div>
+          <div class="cal-grid" id="calGrid"><!-- JS 渲染 --></div>
+
+          <div class="cal-day-detail" id="calDayDetail">
+            <p class="cal-day-detail-empty">点击日期查看当天安排</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 面板二：行程详情（日看板） ========== -->
+    <section class="panel panel-scroll" data-panel="detail">
+      <div class="detail-view" id="detailView">
+
+        <!-- 视图切换：单日看板 ⇄ 周览 ⇄ 月览 -->
+        <div class="detail-view-switcher" id="detailViewSwitcher">
+          <button class="dvs-btn is-active" data-dview="day" type="button">单日</button>
+          <button class="dvs-btn" data-dview="week" type="button">周览</button>
+          <button class="dvs-btn" data-dview="month" type="button">月览</button>
+        </div>
+
+        <!-- 日期横向标签条（仅"单日"视图显示） -->
+        <div class="day-tab-row" id="dayTabRow"><!-- JS 渲染 --></div>
+
+        <!-- 当日看板：时间轴卡片 + 待办清单 -->
+        <div class="day-board" id="dayBoard">
+
+          <div class="board-section">
+            <div class="board-section-head">
+              <span class="board-section-title">今日安排</span>
+              <button class="board-add-btn" id="addItemBtn" type="button">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+                添加安排
+              </button>
+            </div>
+            <div class="timeline-list" id="timelineList"><!-- JS 渲染 --></div>
+          </div>
+
+          <div class="board-section">
+            <div class="board-section-head">
+              <span class="board-section-title">待办清单</span>
+              <span class="board-section-count" id="todoCount">0/0</span>
+            </div>
+            <div class="todo-list" id="todoList"><!-- JS 渲染 --></div>
+            <button class="todo-add-row" id="addTodoBtn" type="button">
+              <span class="todo-add-plus">+</span>
+              <span>添加一条待办</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- 周览：以周为单位的横向卡片，一次看清一整周的安排概要 -->
+        <div class="week-board" id="weekBoard"><!-- JS 渲染 --></div>
+
+        <!-- 月览：日历网格，每格显示当日安排条数，点击可跳转查看当天详情 -->
+        <div class="month-board" id="monthBoard">
+          <div class="mb-nav">
+            <button class="mb-nav-btn" id="mbPrevBtn" type="button" aria-label="上个月">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="mb-nav-label" id="mbNavLabel">—</span>
+            <button class="mb-nav-btn" id="mbNextBtn" type="button" aria-label="下个月">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="mb-weekday-row">
+            <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+          </div>
+          <div class="mb-grid" id="mbGrid"><!-- JS 渲染 --></div>
+          <div class="mb-day-detail" id="mbDayDetail"><!-- JS 渲染 --></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 面板三：Char 行程 —— 角色档案墙（白色 ins 编辑风，独立设计） ========== -->
+    <section class="panel panel-scroll" data-panel="char">
+      <div class="cf-wall" id="cfWall">
+
+        <div class="cf-wall-head">
+          <span class="cf-wall-kicker">CHARACTER ITINERARIES</span>
+          <h2 class="cf-wall-title">角色行程档案</h2>
+          <p class="cf-wall-sub">为每一位角色，独立规划一段旅途</p>
+        </div>
+
+        <div class="cf-roster-grid" id="cfRosterGrid"><!-- JS 渲染：角色档案卡 --></div>
+
+      </div>
+    </section>
+
+    <!-- ========== 面板四：单个角色的行程列表（该角色独立背景 + 独立行程集合） ========== -->
+    <section class="panel panel-scroll" data-panel="charTrips">
+      <div class="cf-profile" id="cfProfile">
+
+        <!-- 独立背景层：每个角色各自持久化，互不影响 -->
+        <div class="cf-profile-bg" id="cfProfileBg"></div>
+        <div class="cf-profile-bg-scrim"></div>
+
+        <!-- 角色身份条 -->
+        <div class="cf-profile-id" id="cfProfileId"><!-- JS 渲染：头像/名字/标签/简介 --></div>
+
+        <!-- 即将出发 聚焦卡：把最近一段行程单独摘出来做视觉焦点 -->
+        <div class="cf-spotlight" id="cfSpotlight" style="display:none;">
+          <div class="cf-spotlight-inner">
+            <span class="cf-spotlight-kicker">NEXT DEPARTURE</span>
+            <div class="cf-spotlight-name" id="cfSpotlightName">—</div>
+            <div class="cf-spotlight-meta">
+              <span id="cfSpotlightDates">—</span>
+              <span class="cf-spotlight-meta-dot"></span>
+              <span class="cf-spotlight-countdown" id="cfSpotlightCountdown">—</span>
+            </div>
+            <div class="cf-spotlight-progress"><div class="cf-spotlight-progress-fill" id="cfSpotlightProgress" style="width:0%;"></div></div>
+            <span class="cf-spotlight-cta">
+              查看行程
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+        </div>
+
+        <!-- AI 生成行程 入口卡 -->
+        <button class="cf-ai-entry" id="cfAiEntryBtn" type="button">
+          <span class="cf-ai-entry-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3L13.9 9.1L20 11L13.9 12.9L12 19L10.1 12.9L4 11L10.1 9.1L12 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M19 15.5L19.7 17.6L21.8 18.3L19.7 19L19 21.1L18.3 19L16.2 18.3L18.3 17.6L19 15.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="cf-ai-entry-text">
+            <span class="cf-ai-entry-title">AI 为角色生成行程</span>
+            <span class="cf-ai-entry-sub">根据人设自动规划一天 / 一周 / 一月</span>
+          </span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="cf-ai-entry-arrow"><path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
+        <div class="cf-profile-list-head">
+          <span class="cf-profile-list-title">行程列表</span>
+          <button class="cf-profile-add-btn" id="cfAddTripBtn" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+            手动新建
+          </button>
+        </div>
+
+        <!-- 快速筛选：全部 / 未开始 / 进行中 / 已完成 -->
+        <div class="cf-filter-row" id="cfFilterRow">
+          <button class="cf-filter-chip is-active" data-filter="all" type="button">全部</button>
+          <button class="cf-filter-chip" data-filter="upcoming" type="button">未开始</button>
+          <button class="cf-filter-chip" data-filter="ongoing" type="button">进行中</button>
+          <button class="cf-filter-chip" data-filter="done" type="button">已完成</button>
+        </div>
+
+        <div class="cf-trip-list" id="cfTripList"><!-- JS 渲染 --></div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ 底部导航栏 ============ -->
+  <nav class="ins-nav" id="insNav">
+    <div class="ins-nav-glass">
+      <div class="ins-nav-pill" id="navPill"></div>
+
+      <button class="ins-nav-item is-active" data-target="mine" type="button">
+        <span class="ins-icon-wrap">
+          <svg class="ins-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M4 19.5V6.2c0-.9.62-1.68 1.5-1.9L11 3v18l-5.6-1.4A1.96 1.96 0 0 1 4 17.7V19.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M20 19.5V6.2c0-.9-.62-1.68-1.5-1.9L13 3v18l5.6-1.4c.86-.22 1.4-1 1.4-1.9V19.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M11 3v18M13 3v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="ins-label">我的行程</span>
+        <span class="ins-nav-sparkle" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+        </span>
+      </button>
+
+      <button class="ins-nav-item" data-target="char" type="button">
+        <span class="ins-icon-wrap">
+          <svg class="ins-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8.2" r="3.4" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M5.3 19.2c.7-3.6 3.5-5.7 6.7-5.7s6 2.1 6.7 5.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="ins-label">Char 行程</span>
+        <span class="ins-nav-sparkle" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+        </span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============ 底部弹层：新建/编辑 通用表单容器 ============ -->
+  <div class="sheet-mask" id="sheetMask">
+    <div class="sheet-panel" id="sheetPanel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="sheet-title" id="sheetTitle">新建行程</span>
+        <button class="sheet-close" id="sheetCloseBtn" type="button" aria-label="关闭">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="sheet-body" id="sheetBody"><!-- JS 渲染表单内容 --></div>
+      <div class="sheet-actions">
+        <button class="sheet-btn sheet-btn-ghost" id="sheetDeleteBtn" type="button">删除</button>
+        <button class="sheet-btn sheet-btn-primary" id="sheetSaveBtn" type="button">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 背景主题弹层 ============ -->
+  <div class="sheet-mask" id="themeSheetMask">
+    <div class="sheet-panel theme-sheet-panel" id="themeSheetPanel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="sheet-title">更换背景</span>
+        <button class="sheet-close" id="themeSheetCloseBtn" type="button" aria-label="关闭">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <p class="theme-sheet-hint">选一款喜欢的配色，全局背景会立即换新</p>
+
+      <button class="theme-upload-btn" id="themeUploadBtn" type="button">
+        <span class="theme-upload-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7 9M12 4L17 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span>上传我的背景（图片 / 视频）</span>
+      </button>
+      <input type="file" id="themeUploadInput" accept="image/*,video/*" hidden />
+      <p class="theme-upload-hint" id="themeUploadHint"></p>
+
+      <div class="theme-swatch-grid" id="themeSwatchGrid"><!-- JS 渲染 --></div>
+    </div>
+  </div>
+
+  <!-- ============ 角色专属背景弹层（每个角色独立，与全局主题弹层分开） ============ -->
+  <div class="sheet-mask" id="cfBgSheetMask">
+    <div class="sheet-panel theme-sheet-panel" id="cfBgSheetPanel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="sheet-title">更换 <span id="cfBgSheetCharName">该角色</span> 的背景</span>
+        <button class="sheet-close" id="cfBgSheetCloseBtn" type="button" aria-label="关闭">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <p class="theme-sheet-hint">这个背景只属于这一位角色，不会影响其他角色或"我的行程"</p>
+
+      <button class="theme-upload-btn" id="cfBgUploadBtn" type="button">
+        <span class="theme-upload-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7 9M12 4L17 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span>上传专属背景（图片 / 视频）</span>
+      </button>
+      <input type="file" id="cfBgUploadInput" accept="image/*,video/*" hidden />
+      <p class="theme-upload-hint" id="cfBgUploadHint"></p>
+
+      <div class="theme-swatch-grid" id="cfBgSwatchGrid"><!-- JS 渲染：素雅色卡，白色 ins 系专属配色 --></div>
+    </div>
+  </div>
+
+  <!-- ============ AI 生成行程 弹层 ============ -->
+  <div class="sheet-mask" id="aiSheetMask">
+    <div class="sheet-panel cf-ai-sheet-panel" id="aiSheetPanel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="sheet-title">AI 生成 <span id="aiSheetCharName">角色</span> 的行程</span>
+        <button class="sheet-close" id="aiSheetCloseBtn" type="button" aria-label="关闭">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="sheet-body" id="aiSheetBody">
+
+        <div class="cf-ai-step" id="aiStepConfig">
+          <div class="field-group">
+            <span class="field-label">生成时长</span>
+            <div class="cf-ai-duration-row" id="aiDurationRow">
+              <button type="button" class="cf-ai-duration-btn is-selected" data-dur="day">
+                <span class="cf-ai-duration-num">1</span><span class="cf-ai-duration-unit">天</span>
+              </button>
+              <button type="button" class="cf-ai-duration-btn" data-dur="week">
+                <span class="cf-ai-duration-num">7</span><span class="cf-ai-duration-unit">天 · 一周</span>
+              </button>
+              <button type="button" class="cf-ai-duration-btn" data-dur="month">
+                <span class="cf-ai-duration-num">30</span><span class="cf-ai-duration-unit">天 · 一月</span>
+              </button>
+            </div>
+            <p class="cf-ai-duration-hint">一年行程消耗 token 过多，暂不支持，可分多次生成多段一月行程来拼接</p>
+          </div>
+
+          <div class="field-group">
+            <span class="field-label">开始日期</span>
+            <button type="button" class="field-date-btn" id="aiStartDateBtn" data-value="">
+              <span class="field-date-btn-text"></span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="16" rx="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 9.5H20.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 3V6.5M16 3V6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+
+          <div class="field-group">
+            <span class="field-label">行程主题 / 目的地（可选）</span>
+            <input class="field-input" id="aiThemeInput" type="text" placeholder="例如：东京自由行、居家日常、工作出差…留空则由 AI 自由发挥" />
+          </div>
+
+          <div class="field-group">
+            <span class="field-label">补充要求（可选）</span>
+            <textarea class="field-textarea" id="aiExtraInput" placeholder="例如：多安排美食、节奏舒缓一些、加入雨天备选…"></textarea>
+          </div>
+
+          <div class="cf-ai-api-hint" id="aiApiHint"></div>
+        </div>
+
+        <div class="cf-ai-step cf-ai-loading" id="aiStepLoading">
+          <div class="cf-ai-loading-orb"><span></span><span></span><span></span></div>
+          <p class="cf-ai-loading-text" id="aiLoadingText">正在为角色构思这段行程…</p>
+          <p class="cf-ai-loading-sub">AI 会依据角色人设、性格与说话习惯生成专属安排</p>
+        </div>
+
+        <div class="cf-ai-step" id="aiStepError">
+          <div class="cf-ai-error-box">
+            <p class="cf-ai-error-title">生成失败</p>
+            <p class="cf-ai-error-msg" id="aiErrorMsg">请检查 API 配置后重试</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="sheet-actions">
+        <button class="sheet-btn sheet-btn-ghost" id="aiCancelBtn" type="button">取消</button>
+        <button class="sheet-btn sheet-btn-primary" id="aiGenerateBtn" type="button">开始生成</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="travel.js"></script>
+</body>
+</html>

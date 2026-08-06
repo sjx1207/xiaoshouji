@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>AI 生成好友 — Luna</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="npc-generator.css"/>
+</head>
+<body>
+
+<div class="npcg-wrap">
+
+  <!-- 状态栏 — 与其他页面同款逻辑独立同步 -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 顶部导航 -->
+  <div class="npcg-header">
+    <div class="npcg-nav-row">
+      <button class="npcg-back" onclick="goBack()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="npcg-nav-label">IDENTITY SYNTHESIS</div>
+      <div class="npcg-nav-spacer"></div>
+    </div>
+
+    <div class="npcg-hero">
+      <div class="npcg-hero-eyebrow"><span class="npcg-kicker-dot"></span>AI FRIEND GENERATOR</div>
+      <h1 class="npcg-hero-title">遇见<em>新的人</em></h1>
+      <p class="npcg-hero-sub">选择一种方式，交给 AI 生成一段全新的关系；<br>生成完成后会得到一张专属好友码，可在「聊天」里输入添加。</p>
+    </div>
+
+    <div class="npcg-header-rule">
+      <div class="npcg-rule-line"></div>
+      <div class="npcg-rule-tag">GENERATE · 2026</div>
+      <div class="npcg-rule-line"></div>
+    </div>
+  </div>
+
+  <div class="npcg-stage">
+
+    <!-- ══ 步骤一：模式选择 + 输入 ══ -->
+    <div class="npcg-panel show" id="npcgPanelSetup">
+
+      <div class="npcg-mode-list">
+        <button class="npcg-mode-card active" id="npcgModeRandom" onclick="npcgSwitchMode('random')">
+          <div class="npcg-mode-no">01</div>
+          <div class="npcg-mode-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>
+              <circle cx="12" cy="12" r="3.4"/>
+            </svg>
+          </div>
+          <div class="npcg-mode-body">
+            <div class="npcg-mode-name">随机生成</div>
+            <div class="npcg-mode-desc">AI 自由发挥，主角气质、反差感拉满的意外相遇</div>
+          </div>
+          <div class="npcg-mode-arrow">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+          </div>
+        </button>
+
+        <button class="npcg-mode-card" id="npcgModeSeed" onclick="npcgSwitchMode('seed')">
+          <div class="npcg-mode-no">02</div>
+          <div class="npcg-mode-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 20l4.5-1.2L19 8.3a2 2 0 0 0 0-2.8l-.5-.5a2 2 0 0 0-2.8 0L5.2 15.5 4 20z"/>
+              <path d="M13.5 6.5l3 3"/>
+            </svg>
+          </div>
+          <div class="npcg-mode-body">
+            <div class="npcg-mode-name">描述生成</div>
+            <div class="npcg-mode-desc">给一个关键词或一句话，AI 补全完整人设</div>
+          </div>
+          <div class="npcg-mode-arrow">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+          </div>
+        </button>
+
+        <button class="npcg-mode-card" id="npcgModeLinked" onclick="npcgSwitchMode('linked')">
+          <div class="npcg-mode-no">03</div>
+          <div class="npcg-mode-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="9" r="3"/>
+              <circle cx="17" cy="15" r="3"/>
+              <path d="M10.3 10.6l4.4 3.8"/>
+            </svg>
+          </div>
+          <div class="npcg-mode-body">
+            <div class="npcg-mode-name">关联生成</div>
+            <div class="npcg-mode-desc">基于已有角色，生成与 TA 有关系的新面孔</div>
+          </div>
+          <div class="npcg-mode-arrow">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+          </div>
+        </button>
+      </div>
+
+      <!-- 描述输入区（mode=seed 时展开） -->
+      <div class="npcg-input-block" id="npcgSeedBlock" style="display:none;">
+        <div class="npcg-input-label">描述</div>
+        <textarea class="npcg-textarea" id="npcgSeedInput" maxlength="200"
+          placeholder="例如：高冷的学长 / 开小卖部的老奶奶 / 总在深夜出现的邻居…"
+          oninput="document.getElementById('npcgSeedCounter').textContent = this.value.length + ' / 200'"></textarea>
+        <div class="npcg-input-counter" id="npcgSeedCounter">0 / 200</div>
+      </div>
+
+      <!-- 锚点角色选择区（mode=linked 时展开） -->
+      <div class="npcg-input-block" id="npcgLinkedBlock" style="display:none;">
+        <div class="npcg-input-label">选择锚点角色</div>
+        <div class="npcg-anchor-list" id="npcgAnchorList">
+          <div class="npcg-anchor-empty">加载中…</div>
+        </div>
+      </div>
+
+      <button class="npcg-generate-btn" id="npcgGenerateBtn" onclick="npcgStartGenerate()">
+        <span>开始生成</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+
+      <div class="npcg-inline-error" id="npcgSetupError" style="display:none;"></div>
+    </div>
+
+    <!-- ══ 步骤二：搜索连接动画 ══ -->
+    <div class="npcg-panel npcg-scan-panel" id="npcgPanelScan">
+      <div class="npcg-fragments" id="npcgFragments"></div>
+      <div class="npcg-radar">
+        <div class="npcg-radar-ring"></div>
+        <div class="npcg-radar-ring"></div>
+        <div class="npcg-radar-ring"></div>
+        <div class="npcg-radar-sweep"></div>
+        <div class="npcg-radar-core"></div>
+      </div>
+      <div class="npcg-scan-label"><span id="npcgScanLabel">正在搜索附近的人</span></div>
+      <button class="npcg-scan-cancel" onclick="npcgCancelScan()">取消</button>
+    </div>
+
+    <!-- ══ 步骤三：专属 ID 卡片（模糊 → 揭晓 → 翻转） ══ -->
+    <div class="npcg-panel npcg-card-panel" id="npcgPanelCard">
+      <div class="npcg-card-stage">
+        <div class="npcg-card" id="npcgCard">
+
+          <!-- 正面 -->
+          <div class="npcg-face npcg-face-front">
+            <!-- 装饰层：全息光泽 / 印刷纹理 / 角标 -->
+            <div class="npcg-foil-sheen" aria-hidden="true"></div>
+            <div class="npcg-card-noise" aria-hidden="true"></div>
+            <div class="npcg-corner-mark npcg-corner-tl" aria-hidden="true"></div>
+            <div class="npcg-corner-mark npcg-corner-br" aria-hidden="true"></div>
+            <div class="npcg-guilloche" aria-hidden="true">
+              <svg viewBox="0 0 320 500" preserveAspectRatio="none">
+                <path d="M-20 60 C 60 20, 100 100, 180 60 S 300 20, 340 60" stroke="currentColor" stroke-width="0.6" fill="none"/>
+                <path d="M-20 90 C 60 50, 100 130, 180 90 S 300 50, 340 90" stroke="currentColor" stroke-width="0.6" fill="none"/>
+                <path d="M-20 440 C 60 400, 100 480, 180 440 S 300 400, 340 440" stroke="currentColor" stroke-width="0.6" fill="none"/>
+                <path d="M-20 470 C 60 430, 100 510, 180 470 S 300 430, 340 470" stroke="currentColor" stroke-width="0.6" fill="none"/>
+              </svg>
+            </div>
+
+            <div class="npcg-card-issuer">
+              <span class="npcg-issuer-mark">LUNA</span>
+              <span class="npcg-issuer-sub">IDENTITY CARD</span>
+            </div>
+
+            <div class="npcg-success-badge" id="npcgSuccessBadge">
+              <span class="npcg-dot"></span>已添加好友
+            </div>
+
+            <div class="npcg-front-hero">
+              <div class="npcg-avatar-ring">
+                <div class="npcg-avatar" id="npcgAvatar">?</div>
+                <svg class="npcg-avatar-orbit" viewBox="0 0 120 120" aria-hidden="true">
+                  <circle cx="60" cy="60" r="57" fill="none" stroke="currentColor" stroke-width="0.6" stroke-dasharray="1 5"/>
+                </svg>
+              </div>
+              <div class="npcg-id-tag" id="npcgIdTag">#----</div>
+              <div class="npcg-name" id="npcgName"></div>
+              <div class="npcg-relation-pill" id="npcgRelationPill"></div>
+              <div class="npcg-signature" id="npcgSignature"></div>
+            </div>
+
+            <div class="npcg-card-footer">
+              <div class="npcg-barcode" id="npcgBarcode" aria-hidden="true"></div>
+              <div class="npcg-flip-hint" id="npcgFlipHint">轻触卡片查看详情</div>
+            </div>
+
+            <div class="npcg-front-actions">
+              <button class="npcg-btn npcg-btn-ghost" id="npcgRegenBtn" onclick="npcgRegenerate()">重新生成</button>
+              <button class="npcg-btn npcg-btn-primary" id="npcgAddBtn" onclick="npcgFlipToBack()" disabled>添加</button>
+            </div>
+          </div>
+
+          <!-- 背面 -->
+          <div class="npcg-face npcg-face-back">
+            <div class="npcg-back-inner">
+              <div class="npcg-back-header">
+                <div class="npcg-back-title">详细资料</div>
+                <div class="npcg-back-flip-btn" onclick="npcgFlipToFront()">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+                </div>
+              </div>
+              <div class="npcg-back-scroll" id="npcgBackScroll"></div>
+            </div>
+            <div class="npcg-back-actions">
+              <button class="npcg-btn npcg-btn-ghost" onclick="npcgFlipToFront()">取消</button>
+              <button class="npcg-btn npcg-btn-primary" id="npcgConfirmBtn" onclick="npcgConfirmSave()">确认保存</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="npcg-toast" id="npcgToast"></div>
+
+</div>
+
+<script src="npc-generator.js"></script>
+</body>
+</html>

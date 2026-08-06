@@ -3,32 +3,78 @@
    桌面交互逻辑
 ================================ */
 /* ================================
-   页面左右滑动
+   页面左右滑动（页面数量动态：支持后续新增/删除页面）
 ================================ */
 (function() {
   let startX = 0, startY = 0, curPage = 0, dragging = false;
-  const totalPages = 3;
   const wrap = document.getElementById('pagesWrap');
-  const dots = document.querySelectorAll('.dot');
+  let dotsWrap = document.querySelector('.page-dots');
   let wheelTimer = null;
+
+  function pageEls() {
+    return Array.from(wrap.children).filter(el => el.classList.contains('app-grid'));
+  }
+  function totalPages() {
+    return pageEls().length;
+  }
 
   function getFrameW() {
     return wrap.parentElement ? wrap.parentElement.offsetWidth : window.innerWidth;
   }
 
+  // 按当前实际页数、当前帧宽，用 px 动态设置每页宽度和整条 wrap 的宽度。
+  // 不再用固定的 "33.333% / 300%" 百分比——那只适用于恰好 3 页的情况，
+  // 页面数量变化（新增/删除页面）后必须重新计算，否则布局会挤压变形。
+  function layoutPages() {
+    const frameW = getFrameW();
+    const pages = pageEls();
+    wrap.style.width = (frameW * pages.length) + 'px';
+    pages.forEach(p => { p.style.width = frameW + 'px'; });
+  }
+
+  // 动态生成/同步页面指示点
+  function ensureDotsWrap() {
+    if (dotsWrap) return dotsWrap;
+    dotsWrap = document.createElement('div');
+    dotsWrap.className = 'page-dots';
+    const host = document.querySelector('.luna-frame') || wrap.parentElement || document.body;
+    host.appendChild(dotsWrap);
+    return dotsWrap;
+  }
+  function renderDots() {
+    ensureDotsWrap();
+    const n = totalPages();
+    dotsWrap.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i === curPage ? ' on' : '');
+      d.addEventListener('click', () => goTo(i));
+      dotsWrap.appendChild(d);
+    }
+  }
+
   function goTo(page) {
-    curPage = Math.max(0, Math.min(totalPages - 1, page));
+    curPage = Math.max(0, Math.min(totalPages() - 1, page));
     wrap.style.transform = `translateX(${-curPage * getFrameW()}px)`;
-    dots.forEach((d, i) => d.classList.toggle('on', i === curPage));
+    Array.from(dotsWrap ? dotsWrap.children : []).forEach((d, i) => d.classList.toggle('on', i === curPage));
+  }
+
+  // 只有"正在拖拽某个图标/组件"时才需要暂时屏蔽翻页手势——
+  // 长按进入编辑模式后如果还没开始拖动某一项，用户应当仍然可以左右划动切换页面
+  // （和真实手机桌面一样：编辑状态≠不能翻页，只有手指正按着图标移动的那一刻才不能翻页）。
+  function isItemDragActive() {
+    return !!(window.LunaHomeEdit && window.LunaHomeEdit.isDragging && window.LunaHomeEdit.isDragging());
   }
 
   // ── 触摸滑动 ──
   wrap.addEventListener('touchstart', e => {
+    if (isItemDragActive()) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
 
   wrap.addEventListener('touchend', e => {
+    if (isItemDragActive()) return;
     const dx = e.changedTouches[0].clientX - startX;
     const dy = e.changedTouches[0].clientY - startY;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
@@ -38,6 +84,12 @@
 
   // ── 鼠标拖拽（用 document 监听 mouseup，防止拖出边界后松手没响应）──
   wrap.addEventListener('mousedown', e => {
+    if (isItemDragActive()) return; // 正在拖动图标/组件时交给拖拽逻辑处理
+    if (e.target.closest('.app, .home-widget, [class^="widget-"]') && window.LunaHomeEdit && window.LunaHomeEdit.isEditing()) {
+      // 编辑模式下，按在图标/组件上按下的这一下不应该被当成翻页拖拽的起点，
+      // 让 home-edit.js 的 pointerdown 去判断是否要开始拖拽该项。
+      return;
+    }
     startX = e.clientX;
     dragging = true;
     e.preventDefault();
@@ -54,6 +106,7 @@
 
   // ── 触控板双指滑动（节流：每次滑动只触发一次翻页）──
   wrap.addEventListener('wheel', (e) => {
+    if (isItemDragActive()) return;
     e.preventDefault();
     if (wheelTimer) return;           // 节流：忽略连续事件
     const absX = Math.abs(e.deltaX);
@@ -64,10 +117,21 @@
     }
   }, { passive: false });
 
-  // 窗口resize时重新计算位置
-  window.addEventListener('resize', () => goTo(curPage));
+  // 窗口resize时重新计算宽度和位置
+  window.addEventListener('resize', () => { layoutPages(); goTo(curPage); });
 
-  document.addEventListener('DOMContentLoaded', () => goTo(0));
+  document.addEventListener('DOMContentLoaded', () => { layoutPages(); renderDots(); goTo(0); });
+  // 若 DOMContentLoaded 已经触发过（脚本在 body 底部才加载），立即初始化一次
+  if (document.readyState !== 'loading') { layoutPages(); renderDots(); goTo(0); }
+
+  // 暴露给 home-edit.js：新增/删除页面后调用，保持翻页逻辑与实际 DOM 页数同步
+  window.LunaPager = {
+    refresh() { layoutPages(); renderDots(); goTo(curPage); },
+    goTo(i) { layoutPages(); goTo(i); renderDots(); },
+    currentPage() { return curPage; },
+    totalPages,
+    getFrameW
+  };
 })();
 
 /* ---- 实时时间 ---- */
@@ -1618,7 +1682,7 @@ function openApp(name) {
     'worldbook': 'worldbook.html',
     'iconbeauty': 'iconbeauty.html',
     'memory': 'memory.html',
-    'archive': 'archive.html',
+    'archive': 'user.html',
     'music': 'music.html',
     'forum': 'forum.html',
     'beautify': 'beautify.html',
@@ -1627,6 +1691,14 @@ function openApp(name) {
     'user': 'user.html',
     'dialognovel': 'dialognovel.html',
     'findphone': 'charphone.html',
+    'lunaplay': 'lunaplay.html',
+    'game':'game.html',
+    'shop':'shopping.html',
+    'xinshiju':'xinshiju.html',
+    'photos':'gallery.html',
+    'diary':'diary.html',
+    'trip':'travel.html',
+    'novel':'novel.html',
   }
 
   const url = routes[name];

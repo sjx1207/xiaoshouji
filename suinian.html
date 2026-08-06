@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>碎念 · SUINIAN</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,600&family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="suinian.css" />
 </head>
 <body>
@@ -127,7 +127,7 @@
           <div class="sn-dm-avatar sn-ring-1"></div>
           <div class="sn-dm-text">
             <div class="sn-dm-row1"><span class="sn-dm-name">Nova</span><span class="sn-dm-time">09:42</span></div>
-            <div class="sn-dm-row2"><span class="sn-dm-preview">当然，等你 🌙 —— 那今晚老地方？</span><span class="sn-dm-badge">2</span></div>
+            <div class="sn-dm-row2"><span class="sn-dm-preview">当然，等你 —— 那今晚老地方？</span><span class="sn-dm-badge">2</span></div>
           </div>
         </div>
 
@@ -167,55 +167,98 @@
     </section>
 
     <!-- ============ 个人中心 ============ -->
-    <section class="sn-page" id="pageProfile">
+    <section class="sn-page pf-page" id="pageProfile">
 
-      <div class="sn-profile-cover">
-        <div class="sn-cover-grid"></div>
-        <span class="sn-cover-watermark">SUINIAN · JOURNAL</span>
-        <button class="sn-icon-btn sn-cover-settings" id="btnSettings">
+      <!-- 封面：浅色渐变占位，可点击上传真实图片 -->
+      <div class="pf-cover" id="pfCover" role="button" aria-label="点击更换封面图">
+        <div class="pf-cover-mesh" id="pfCoverMesh"></div>
+        <div class="pf-cover-glow pf-cover-glow-a"></div>
+        <div class="pf-cover-glow pf-cover-glow-b"></div>
+        <div class="pf-cover-grain"></div>
+        <div class="pf-cover-lines"></div>
+        <span class="pf-cover-mark">SUINIAN · JOURNAL</span>
+        <span class="pf-cover-mark-sub">PERSONAL ARCHIVE</span>
+        <button class="pf-icon-btn pf-cover-settings" id="btnSettings" aria-label="编辑资料">
           <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
+        <span class="pf-cover-edit-hint" id="pfCoverEditHint">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 20l.9-3.6L16.4 5 19 7.6 7.6 19.1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 7l3 3" stroke="currentColor" stroke-width="1.8"/></svg>
+          更换封面
+        </span>
+        <input type="file" id="pfCoverFileInput" accept="image/*" style="display:none" />
       </div>
 
-      <div class="sn-profile-main">
-        <div class="sn-avatar-wrap">
-          <div class="sn-profile-avatar"></div>
-        </div>
-        <h2 class="sn-profile-name">Nova</h2>
-        <p class="sn-profile-handle">@nova.vlog · 碎念创作者</p>
-        <p class="sn-profile-bio">living in the moment ✦ 记录碎碎念与日常影像</p>
+      <div class="pf-main">
 
-        <div class="sn-profile-stats">
-          <div class="sn-stat"><b>128</b><span>作品</span></div>
-          <div class="sn-stat-divider"></div>
-          <div class="sn-stat"><b>24.6k</b><span>粉丝</span></div>
-          <div class="sn-stat-divider"></div>
-          <div class="sn-stat"><b>312</b><span>关注</span></div>
+        <!-- 头像：默认 CSS 渐变，可上传真实图片；点击弹出编辑资料弹窗 -->
+        <button class="pf-avatar-wrap" id="pfAvatarBtn" aria-label="点击编辑头像与资料">
+          <span class="pf-avatar-ring"></span>
+          <span class="pf-avatar" id="pfAvatar">
+            <span class="pf-avatar-sheen"></span>
+            <span class="pf-avatar-letter" id="pfAvatarLetter">N</span>
+          </span>
+          <span class="pf-avatar-edit-badge">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none"><path d="M4 20l.9-3.6L16.4 5 19 7.6 7.6 19.1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 7l3 3" stroke="currentColor" stroke-width="1.6"/></svg>
+          </span>
+        </button>
+
+        <div class="pf-name-row">
+          <h2 class="pf-name" id="pfName">Nova</h2>
+          <span class="pf-verified" id="pfVerified" aria-label="已认证">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M12 2l2.4 1.1 2.6-.3 1.3 2.3 2.3 1.3-.3 2.6L21.4 11l-1.1 2.4.3 2.6-2.3 1.3-1.3 2.3-2.6-.3L12 20.8l-2.4-1.1-2.6.3-1.3-2.3-2.3-1.3.3-2.6L2.6 11l1.1-2.4-.3-2.6 2.3-1.3L7 1.4l2.6.3z" fill="currentColor"/><path d="M8.5 12l2.3 2.3L15.8 9" stroke="#0c0a0d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+        <p class="pf-handle" id="pfHandle">@nova.moonlight</p>
+
+        <p class="pf-bio" id="pfBio">living in the moment · 记录碎碎念与日常影像</p>
+
+        <div class="pf-divider" aria-hidden="true"><span></span><i></i><span></span></div>
+
+        <div class="pf-stats" id="pfStats">
+          <button class="pf-stat" data-ptab="sub">
+            <b id="pfStatSub">0</b><span>订阅内容</span>
+          </button>
+          <div class="pf-stat-sep"></div>
+          <button class="pf-stat" data-ptab="fav">
+            <b id="pfStatFav">0</b><span>收藏</span>
+          </button>
+          <div class="pf-stat-sep"></div>
+          <button class="pf-stat" data-ptab="likes">
+            <b id="pfStatLikes">0</b><span>赞过</span>
+          </button>
         </div>
 
-        <div class="sn-profile-actions">
-          <button class="sn-btn-primary">编辑资料</button>
-          <button class="sn-btn-icon">
+        <div class="pf-actions">
+          <button class="pf-btn-edit" id="btnEditProfile">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M4 20l.9-3.6L16.4 5 19 7.6 7.6 19.1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 7l3 3" stroke="currentColor" stroke-width="1.6"/></svg>
+            <span>编辑资料</span>
+          </button>
+          <button class="pf-btn-share" id="btnShareProfile" aria-label="分享主页">
             <svg viewBox="0 0 24 24" fill="none"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 6l-4-4-4 4M12 2v13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
       </div>
 
-      <div class="sn-profile-tabs" id="snProfileTabs">
-        <button class="sn-ptab active" data-ptab="works">作品</button>
-        <button class="sn-ptab" data-ptab="fav">收藏</button>
-        <button class="sn-ptab" data-ptab="likes">赞过</button>
-        <span class="sn-ptab-indicator" id="snPtabIndicator"></span>
+      <!-- 标签：订阅内容 / 收藏 / 赞过（用户不能发布，主页只呈现"消费"内容） -->
+      <div class="pf-tabs" id="snProfileTabs">
+        <button class="pf-tab active" data-ptab="sub">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><rect x="3.5" y="5" width="17" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 9.5h8M8 13h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>订阅内容</span>
+        </button>
+        <button class="pf-tab" data-ptab="fav">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M6.5 3.5h11a1 1 0 0 1 1 1V21l-6.5-4.6L5.5 21V4.5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <span>收藏</span>
+        </button>
+        <button class="pf-tab" data-ptab="likes">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M12 20.5s-7.3-4.4-9.7-8.9C.7 8 2.4 4.2 6.2 3.6c2.2-.3 3.9 1 4.6 2.6.4-1.6 2.1-2.9 4.3-2.6 3.8.6 5.5 4.4 3.9 8-2.4 4.5-9.7 8.9-9.7 8.9z" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span>赞过</span>
+        </button>
+        <span class="pf-tab-indicator" id="snPtabIndicator"></span>
       </div>
 
-      <div class="sn-profile-grid" id="snProfileGrid">
-        <div class="sn-grid-item sn-grid-1"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">12.4k</span></div>
-        <div class="sn-grid-item sn-grid-2"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">8.1k</span></div>
-        <div class="sn-grid-item sn-grid-3"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">21.9k</span></div>
-        <div class="sn-grid-item sn-grid-4"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">15.2k</span></div>
-        <div class="sn-grid-item sn-grid-1"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">6.7k</span></div>
-        <div class="sn-grid-item sn-grid-2"><span class="sn-grid-play"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="sn-grid-views">3.2k</span></div>
-      </div>
+      <!-- 内容网格：JS 动态渲染，根据当前标签读取 订阅 / 收藏 / 赞过 三套数据 -->
+      <div class="pf-grid" id="snProfileGrid"></div>
+
     </section>
 
   </main>
@@ -613,6 +656,91 @@
   <!-- 延展板块提示 toast（生成逻辑后续接入） -->
   <div class="vd-extra-toast" id="vdExtraToast"></div>
 
+</div>
+
+<!-- ============================================================
+     编辑资料弹窗 — 头像预设 / 昵称 / 账号ID / 简介
+============================================================ -->
+<div class="pf-overlay" id="pfOverlay"></div>
+
+<div class="pf-modal" id="pfModal" role="dialog" aria-modal="true">
+
+  <div class="pf-modal-top">
+    <div class="pf-modal-top-text">
+      <span class="pf-modal-eyebrow">EDIT PROFILE</span>
+      <h2 class="pf-modal-title">编辑资料</h2>
+    </div>
+    <button class="pf-close-btn" id="pfCloseBtn" aria-label="关闭">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <div class="pf-modal-body" id="pfModalBody">
+
+    <!-- 封面图：可上传真实图片，未上传时使用浅色渐变占位 -->
+    <div class="pf-field">
+      <label class="pf-label"><span class="pf-label-dot"></span>主页封面</label>
+      <div class="pf-cover-upload-row" id="pfCoverUploadRow">
+        <button class="pf-cover-upload-remove" id="pfCoverRemoveBtn" type="button" aria-label="移除封面图">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <span class="pf-cover-upload-btn">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 20l.9-3.6L16.4 5 19 7.6 7.6 19.1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 7l3 3" stroke="currentColor" stroke-width="1.8"/></svg>
+          上传封面图
+        </span>
+      </div>
+      <input type="file" id="pfCoverModalFileInput" accept="image/*" style="display:none" />
+    </div>
+
+    <!-- 头像：可上传真实图片，或选择 CSS 渐变预设 -->
+    <div class="pf-field">
+      <label class="pf-label"><span class="pf-label-dot"></span>头像</label>
+      <div class="pf-avatar-preview-row">
+        <span class="pf-avatar-preview" id="pfAvatarPreview">
+          <span class="pf-avatar-preview-sheen"></span>
+          <span id="pfAvatarPreviewLetter">N</span>
+        </span>
+        <button class="pf-avatar-preview-upload-btn" id="pfAvatarUploadBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 20l.9-3.6L16.4 5 19 7.6 7.6 19.1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 7l3 3" stroke="currentColor" stroke-width="1.8"/></svg>
+          上传头像图片
+        </button>
+      </div>
+      <input type="file" id="pfAvatarFileInput" accept="image/*" style="display:none" />
+      <div class="pf-avatar-presets" id="pfAvatarPresets"><!-- JS 渲染预设色板（未上传图片时使用） --></div>
+    </div>
+
+    <!-- 昵称 -->
+    <div class="pf-field">
+      <label class="pf-label"><span class="pf-label-dot"></span>昵称</label>
+      <input class="pf-input" id="pfNameInput" type="text" maxlength="14" placeholder="给自己取个名字"/>
+    </div>
+
+    <!-- 账号 ID -->
+    <div class="pf-field">
+      <label class="pf-label"><span class="pf-label-dot"></span>账号 ID</label>
+      <div class="pf-input-prefix-wrap">
+        <span class="pf-input-prefix">@</span>
+        <input class="pf-input pf-input-with-prefix" id="pfHandleInput" type="text" maxlength="20" placeholder="仅限字母、数字与点"/>
+      </div>
+    </div>
+
+    <!-- 个人简介 -->
+    <div class="pf-field">
+      <label class="pf-label"><span class="pf-label-dot"></span>个人简介
+        <span class="pf-label-count" id="pfBioCount">0/60</span>
+      </label>
+      <textarea class="pf-textarea" id="pfBioInput" maxlength="60" placeholder="写一句关于你的碎碎念……"></textarea>
+    </div>
+
+  </div>
+
+  <div class="pf-modal-footer">
+    <button class="pf-btn-reset-modal" id="pfResetBtn">恢复默认</button>
+    <button class="pf-btn-save" id="pfSaveBtn">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      保存资料
+    </button>
+  </div>
 </div>
 
 <script src="suinian.js"></script>

@@ -25,6 +25,8 @@
 
   function activatePage(pageId) {
     pages.forEach(p => p.classList.toggle('active', p.id === pageId));
+    const header = document.getElementById('snHeader');
+    if (header) header.classList.toggle('sn-header-noir', pageId === 'pageProfile');
   }
 
   function setNavActive(index) {
@@ -44,20 +46,7 @@
     });
   });
 
-  /* ---------------- 个人中心：作品/收藏/赞过 标签 ---------------- */
-  const ptabs = Array.from(document.querySelectorAll('.sn-ptab'));
-  const ptabIndicator = document.getElementById('snPtabIndicator');
-
-  ptabs.forEach((tab, index) => {
-    tab.addEventListener('click', () => {
-      ptabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      if (ptabIndicator) {
-        ptabIndicator.style.transform = `translateX(${index * 100}%)`;
-      }
-      // 预留：根据 tab.dataset.ptab 切换网格数据源（作品 / 收藏 / 赞过）
-    });
-  });
+  /* ---------------- 个人中心：标签切换逻辑见文件末尾「个人中心」独立模块 ---------------- */
 
   /* ---------------- 私信列表：点击后取消未读状态 ---------------- */
   document.querySelectorAll('.sn-dm-item').forEach(item => {
@@ -2155,5 +2144,451 @@ ${mentionRule}
       showToast(`「${label}」生成功能即将上线，敬请期待`);
     });
   });
+
+  /* ============================================================
+     个人中心 — 资料系统 + 订阅/收藏/赞过 内容体系
+     用户不能发布内容，主页只呈现"消费型"数据：
+       · 订阅内容：关注的创作者更新
+       · 收藏：手动收藏的内容
+       · 赞过：点过赞的内容
+     头像完全由 CSS 渐变绘制，点击头像 / 编辑按钮 / 设置按钮
+     均可弹出资料编辑弹窗，修改后立即持久化到 localStorage。
+  ============================================================ */
+  (function initProfileModule() {
+
+    const PF_PROFILE_KEY = 'sn_profile_v1';
+    const PF_KEYS = { sub: 'sn_sub_content_v1', fav: 'sn_fav_content_v1', likes: 'sn_like_content_v1' };
+    const PF_TAB_ORDER = ['sub', 'fav', 'likes'];
+
+    /* ---- 头像预设：珠宝色系渐变，禁止米色/简约灰白 ---- */
+    const AVATAR_PRESETS = [
+      { id: 'wine',     bg: 'radial-gradient(120% 120% at 25% 20%, #9c4a5f 0%, #7c2438 42%, #3d1720 100%)' },
+      { id: 'plum',     bg: 'radial-gradient(120% 120% at 25% 20%, #7c5a95 0%, #4a2740 42%, #241228 100%)' },
+      { id: 'midnight', bg: 'radial-gradient(120% 120% at 25% 20%, #3a4a6b 0%, #1c2438 42%, #0d1220 100%)' },
+      { id: 'emerald',  bg: 'radial-gradient(120% 120% at 25% 20%, #3f7d5f 0%, #1f4a34 42%, #0e2419 100%)' },
+      { id: 'amber',    bg: 'radial-gradient(120% 120% at 25% 20%, #d19a4a 0%, #a9691f 42%, #4d2c0c 100%)' },
+      { id: 'charcoal', bg: 'radial-gradient(120% 120% at 25% 20%, #5a5a5f 0%, #2c2c30 42%, #121214 100%)' },
+      { id: 'rosewood', bg: 'radial-gradient(120% 120% at 25% 20%, #b6707a 0%, #7d3844 42%, #3a161c 100%)' },
+      { id: 'indigo',   bg: 'radial-gradient(120% 120% at 25% 20%, #5c5aa0 0%, #2f2d63 42%, #16152e 100%)' },
+    ];
+    function pfAvatarBg(id) {
+      return (AVATAR_PRESETS.find(p => p.id === id) || AVATAR_PRESETS[0]).bg;
+    }
+
+    const PF_DEFAULT_PROFILE = {
+      name: 'Nova',
+      handle: 'nova.moonlight',
+      bio: 'living in the moment · 记录碎碎念与日常影像',
+      avatarPreset: 'wine',
+      avatarImage: '',
+      coverImage: '',
+    };
+
+    /* ---- 图片上传：读取为 dataURL 并做基本大小/类型校验 ---- */
+    const PF_MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB，避免 localStorage 超限
+    function pfReadImageFile(file, onDone) {
+      if (!file) return;
+      if (!/^image\//.test(file.type)) {
+        if (typeof showToast === 'function') showToast('请选择图片文件');
+        return;
+      }
+      if (file.size > PF_MAX_IMAGE_BYTES) {
+        if (typeof showToast === 'function') showToast('图片过大，请选择 4MB 以内的图片');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => onDone(reader.result);
+      reader.onerror = () => { if (typeof showToast === 'function') showToast('图片读取失败，请重试'); };
+      reader.readAsDataURL(file);
+    }
+
+    function pfDeriveLetter(name) {
+      const s = String(name || '').trim();
+      if (!s) return '碎';
+      const ch = s[0];
+      return /[a-z]/i.test(ch) ? ch.toUpperCase() : ch;
+    }
+
+    function pfLoadProfile() {
+      try {
+        const raw = localStorage.getItem(PF_PROFILE_KEY);
+        if (raw) return Object.assign({}, PF_DEFAULT_PROFILE, JSON.parse(raw));
+      } catch (e) {}
+      const fresh = Object.assign({}, PF_DEFAULT_PROFILE);
+      localStorage.setItem(PF_PROFILE_KEY, JSON.stringify(fresh));
+      return fresh;
+    }
+    function pfSaveProfile(p) {
+      localStorage.setItem(PF_PROFILE_KEY, JSON.stringify(p));
+    }
+
+    /* ---- 内容初始化：首次进入时生成一批示例数据，之后完全读取本地持久化结果 ---- */
+    function pfSeedSub() {
+      return [
+        { author: 'Yuki',  title: '雨天的钢笔与手冲咖啡',     desc: '窗外下着雨，把一天的碎念都写进本子里。', caption: '慢一点，也没关系', tag: '日常',     duration: '00:42', likes: 1284, comments: 56,  time: '2小时前' },
+        { author: 'Cael',  title: '深夜书店打烊后的整理',     desc: '打烊后的书店，只剩下纸张和光。',       caption: '一个人的书店时间', tag: '治愈',     duration: '01:05', likes: 2310, comments: 98,  time: '昨天' },
+        { author: 'Mia',   title: '胶片里的三月',           desc: '用胶片记录下这个还带着凉意的三月。',   caption: '底片还没洗出来', tag: '影像日记', duration: '00:38', likes: 876,  comments: 41,  time: '3天前' },
+        { author: 'Leo',   title: '一个人的公路旅行 Day 3',  desc: '沿着海岸线一直开，导航也不知道终点在哪。', caption: '继续往前开', tag: '旅拍',     duration: '02:14', likes: 4520, comments: 203, time: '上周' },
+        { author: 'Aria',  title: '关于清晨仪式感这件事',    desc: '叠好被子，煮一壶茶，再开始这一天。',     caption: '仪式感救了我', tag: '日常',     duration: '00:51', likes: 1560, comments: 64,  time: '上周' },
+        { author: 'Noel',  title: '旧城区的光影散步',        desc: '巷子很窄，光很好，随手拍了很多墙。',     caption: 'City walk', tag: '城市漫游', duration: '01:22', likes: 2987, comments: 130, time: '两周前' },
+      ];
+    }
+    function pfSeedFav() {
+      return [
+        { author: 'Yuki',  title: '如何布置一个安静的角落',   desc: '收藏这条，打算周末也照着布置一下。',     caption: '角落改造计划', tag: '空间',   duration: '00:47', likes: 3320, comments: 145, time: '收藏于 3天前' },
+        { author: 'Sena',  title: '一人食的仪式感晚餐',       desc: '一个人也要好好吃饭，摆盘也不能将就。',   caption: '今日份治愈', tag: '美食',   duration: '00:56', likes: 2790, comments: 87,  time: '收藏于 5天前' },
+        { author: 'Rhee',  title: '手写体与旧信纸收藏',       desc: '关于字迹和纸张质感的一点小癖好。',       caption: '慢下来写信', tag: '文具',   duration: '00:33', likes: 1450, comments: 52,  time: '收藏于 上周' },
+        { author: 'Cael',  title: '深夜书店打烊后的整理',     desc: '喜欢这种安静收拾东西的状态。',           caption: '打烊之后', tag: '治愈',   duration: '01:05', likes: 2310, comments: 98,  time: '收藏于 上周' },
+      ];
+    }
+    function pfSeedLikes() {
+      return [
+        { author: 'Mia',   title: '胶片里的三月',            desc: '很喜欢这种颗粒感和淡淡的光晕。',         caption: '好喜欢这个色调', tag: '影像日记', duration: '00:38', likes: 876,  comments: 41,  time: '赞过 · 3天前' },
+        { author: 'Leo',   title: '一个人的公路旅行 Day 3',   desc: '看完就想立刻收拾行李出发。',             caption: '想去看看', tag: '旅拍',     duration: '02:14', likes: 4520, comments: 203, time: '赞过 · 上周' },
+        { author: 'Aria',  title: '关于清晨仪式感这件事',     desc: '被治愈到了，早起也没那么难了。',         caption: '早起有救了', tag: '日常',     duration: '00:51', likes: 1560, comments: 64,  time: '赞过 · 上周' },
+        { author: 'Noel',  title: '旧城区的光影散步',         desc: '光影拿捏得太好了。',                     caption: '好会拍', tag: '城市漫游', duration: '01:22', likes: 2987, comments: 130, time: '赞过 · 两周前' },
+        { author: 'Sena',  title: '一人食的仪式感晚餐',       desc: '摆盘和配色都很舒服。',                   caption: '氛围感拉满', tag: '美食',     duration: '00:56', likes: 2790, comments: 87,  time: '赞过 · 两周前' },
+      ];
+    }
+
+    function pfLoadContent(tab) {
+      const key = PF_KEYS[tab];
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      const seedFn = tab === 'sub' ? pfSeedSub : (tab === 'fav' ? pfSeedFav : pfSeedLikes);
+      const fresh = seedFn();
+      localStorage.setItem(key, JSON.stringify(fresh));
+      return fresh;
+    }
+
+    /* ---- 渲染：资料头 ---- */
+    function pfRenderHeader() {
+      const p = pfLoadProfile();
+      const avatarEl = document.getElementById('pfAvatar');
+      const letterEl = document.getElementById('pfAvatarLetter');
+      const nameEl = document.getElementById('pfName');
+      const handleEl = document.getElementById('pfHandle');
+      const bioEl = document.getElementById('pfBio');
+      if (avatarEl) {
+        if (p.avatarImage) {
+          avatarEl.style.background = `center / cover no-repeat url("${p.avatarImage}")`;
+          avatarEl.classList.add('has-image');
+        } else {
+          avatarEl.style.background = pfAvatarBg(p.avatarPreset);
+          avatarEl.classList.remove('has-image');
+        }
+      }
+      if (letterEl) letterEl.textContent = pfDeriveLetter(p.name);
+      if (nameEl) nameEl.textContent = p.name || 'SUINIAN';
+      if (handleEl) handleEl.textContent = '@' + (p.handle || 'suinian');
+      if (bioEl) bioEl.textContent = p.bio || '';
+
+      const coverEl = document.getElementById('pfCover');
+      const coverMeshEl = document.getElementById('pfCoverMesh');
+      if (coverEl && coverMeshEl) {
+        if (p.coverImage) {
+          coverMeshEl.style.backgroundImage = `url("${p.coverImage}")`;
+          coverEl.classList.add('has-image');
+        } else {
+          coverMeshEl.style.backgroundImage = '';
+          coverEl.classList.remove('has-image');
+        }
+      }
+
+      const subCount = pfLoadContent('sub').length;
+      const favCount = pfLoadContent('fav').length;
+      const likeCount = pfLoadContent('likes').length;
+      const elSub = document.getElementById('pfStatSub');
+      const elFav = document.getElementById('pfStatFav');
+      const elLikes = document.getElementById('pfStatLikes');
+      if (elSub) elSub.textContent = formatCount(subCount);
+      if (elFav) elFav.textContent = formatCount(favCount);
+      if (elLikes) elLikes.textContent = formatCount(likeCount);
+    }
+
+    /* ---- 渲染：内容网格 ---- */
+    const PF_EMPTY_COPY = {
+      sub:   { title: '还没有订阅的创作者', desc: '关注喜欢的创作者后，ta 们的更新会出现在这里' },
+      fav:   { title: '还没有收藏的内容',   desc: '看到喜欢的内容时，点一下收藏就会存在这里' },
+      likes: { title: '还没有赞过的内容',   desc: '为喜欢的内容点个赞，会同步记录在这里' },
+    };
+    const PF_EMPTY_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M6.5 3.5h11a1 1 0 0 1 1 1V21l-6.5-4.6L5.5 21V4.5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+
+    let _pfActiveTab = 'sub';
+
+    function pfRenderGrid(tab) {
+      const grid = document.getElementById('snProfileGrid');
+      if (!grid) return;
+      const items = pfLoadContent(tab);
+
+      if (!items.length) {
+        const copy = PF_EMPTY_COPY[tab] || PF_EMPTY_COPY.sub;
+        grid.innerHTML = `
+          <div class="pf-empty">
+            <div class="pf-empty-icon">${PF_EMPTY_ICON}</div>
+            <div class="pf-empty-title">${escHtml(copy.title)}</div>
+            <div class="pf-empty-desc">${escHtml(copy.desc)}</div>
+          </div>`;
+        return;
+      }
+
+      const badgeIcon = tab === 'fav'
+        ? '<svg viewBox="0 0 24 24" fill="none"><path d="M6.5 3.5h11a1 1 0 0 1 1 1V21l-6.5-4.6L5.5 21V4.5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>'
+        : tab === 'likes'
+          ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.3-4.4-9.7-8.9C.7 8 2.4 4.2 6.2 3.6c2.2-.3 3.9 1 4.6 2.6.4-1.6 2.1-2.9 4.3-2.6 3.8.6 5.5 4.4 3.9 8-2.4 4.5-9.7 8.9-9.7 8.9z"/></svg>'
+          : '';
+
+      grid.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      items.forEach((item, i) => {
+        const card = document.createElement('div');
+        card.className = 'pf-card';
+        card.style.background = pickPalette(item.author || item.title || i);
+        card.style.animationDelay = (i * 0.04) + 's';
+        const letter = (item.author || '?').trim()[0] || '?';
+        card.innerHTML = `
+          <div class="pf-card-top">
+            <span class="pf-card-avatar" style="background:${pickPalette(item.author || i)}">${escHtml(letter)}</span>
+            <span class="pf-card-author">${escHtml(item.author || '未知')}</span>
+          </div>
+          ${badgeIcon ? `<span class="pf-card-badge">${badgeIcon}</span>` : ''}
+          <span class="pf-card-play"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+          <div class="pf-card-bottom">
+            <div class="pf-card-title">${escHtml(item.title || '')}</div>
+            <div class="pf-card-meta"><span>${escHtml(item.duration || '')}</span><span>·</span><span>${formatCount(item.likes || 0)} 赞</span></div>
+          </div>
+        `;
+        card.addEventListener('click', () => openVideoDetail(Object.assign({}, item)));
+        frag.appendChild(card);
+      });
+      grid.appendChild(frag);
+    }
+
+    function pfSwitchTab(tab) {
+      if (!PF_TAB_ORDER.includes(tab)) tab = 'sub';
+      _pfActiveTab = tab;
+      const idx = PF_TAB_ORDER.indexOf(tab);
+      document.querySelectorAll('.pf-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.ptab === tab);
+      });
+      const indicator = document.getElementById('snPtabIndicator');
+      if (indicator) indicator.style.transform = `translateX(${idx * 100}%)`;
+      pfRenderGrid(tab);
+    }
+
+    document.querySelectorAll('.pf-tab, .pf-stat').forEach(el => {
+      el.addEventListener('click', () => pfSwitchTab(el.dataset.ptab));
+    });
+
+    /* ---- 编辑资料弹窗 ---- */
+    const pfOverlay = document.getElementById('pfOverlay');
+    const pfModal = document.getElementById('pfModal');
+    const pfCloseBtn = document.getElementById('pfCloseBtn');
+    const pfAvatarBtn = document.getElementById('pfAvatarBtn');
+    const btnEditProfile = document.getElementById('btnEditProfile');
+    const btnSettings = document.getElementById('btnSettings');
+    const pfNameInput = document.getElementById('pfNameInput');
+    const pfHandleInput = document.getElementById('pfHandleInput');
+    const pfBioInput = document.getElementById('pfBioInput');
+    const pfBioCount = document.getElementById('pfBioCount');
+    const pfAvatarPresetsWrap = document.getElementById('pfAvatarPresets');
+    const pfAvatarPreview = document.getElementById('pfAvatarPreview');
+    const pfAvatarPreviewLetter = document.getElementById('pfAvatarPreviewLetter');
+    const pfSaveBtn = document.getElementById('pfSaveBtn');
+    const pfResetBtn = document.getElementById('pfResetBtn');
+
+    /* 头像 / 封面图片上传相关元素 */
+    const pfCoverUploadRow = document.getElementById('pfCoverUploadRow');
+    const pfCoverModalFileInput = document.getElementById('pfCoverModalFileInput');
+    const pfCoverRemoveBtn = document.getElementById('pfCoverRemoveBtn');
+    const pfAvatarUploadBtn = document.getElementById('pfAvatarUploadBtn');
+    const pfAvatarFileInput = document.getElementById('pfAvatarFileInput');
+    const pfCover = document.getElementById('pfCover');
+    const pfCoverFileInput = document.getElementById('pfCoverFileInput');
+
+    let _pfDraft = null;
+
+    function pfRenderPresets() {
+      if (!pfAvatarPresetsWrap) return;
+      pfAvatarPresetsWrap.innerHTML = '';
+      AVATAR_PRESETS.forEach(preset => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pf-avatar-preset' + (preset.id === _pfDraft.avatarPreset ? ' pf-preset-selected' : '');
+        btn.style.background = preset.bg;
+        btn.dataset.preset = preset.id;
+        btn.setAttribute('aria-label', '选择头像配色');
+        btn.addEventListener('click', () => {
+          _pfDraft.avatarPreset = preset.id;
+          _pfDraft.avatarImage = '';
+          pfRenderPresets();
+          pfUpdateAvatarPreview();
+        });
+        pfAvatarPresetsWrap.appendChild(btn);
+      });
+    }
+    function pfUpdateAvatarPreview() {
+      if (pfAvatarPreview) {
+        if (_pfDraft.avatarImage) {
+          pfAvatarPreview.style.background = `center / cover no-repeat url("${_pfDraft.avatarImage}")`;
+          pfAvatarPreview.classList.add('has-image');
+        } else {
+          pfAvatarPreview.style.background = pfAvatarBg(_pfDraft.avatarPreset);
+          pfAvatarPreview.classList.remove('has-image');
+        }
+      }
+      if (pfAvatarPreviewLetter) pfAvatarPreviewLetter.textContent = pfDeriveLetter(_pfDraft.name);
+    }
+    function pfUpdateCoverPreview() {
+      if (!pfCoverUploadRow) return;
+      if (_pfDraft.coverImage) {
+        pfCoverUploadRow.style.backgroundImage = `url("${_pfDraft.coverImage}")`;
+        pfCoverUploadRow.classList.add('has-image');
+      } else {
+        pfCoverUploadRow.style.backgroundImage = '';
+        pfCoverUploadRow.classList.remove('has-image');
+      }
+    }
+    function pfUpdateBioCount() {
+      if (pfBioCount) pfBioCount.textContent = (_pfDraft.bio || '').length + '/60';
+    }
+
+    function pfFillFormFrom(profile) {
+      _pfDraft = Object.assign({}, profile);
+      if (pfNameInput) pfNameInput.value = _pfDraft.name || '';
+      if (pfHandleInput) pfHandleInput.value = _pfDraft.handle || '';
+      if (pfBioInput) pfBioInput.value = _pfDraft.bio || '';
+      pfRenderPresets();
+      pfUpdateAvatarPreview();
+      pfUpdateCoverPreview();
+      pfUpdateBioCount();
+    }
+
+    function openProfileModal() {
+      pfFillFormFrom(pfLoadProfile());
+      if (pfOverlay) pfOverlay.classList.add('show');
+      if (pfModal) pfModal.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeProfileModal() {
+      if (pfOverlay) pfOverlay.classList.remove('show');
+      if (pfModal) pfModal.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+
+    if (pfAvatarBtn) pfAvatarBtn.addEventListener('click', openProfileModal);
+    if (btnEditProfile) btnEditProfile.addEventListener('click', openProfileModal);
+    if (btnSettings) {
+      btnSettings.addEventListener('click', (e) => { e.stopPropagation(); openProfileModal(); });
+    }
+    if (pfCloseBtn) pfCloseBtn.addEventListener('click', closeProfileModal);
+    if (pfOverlay) pfOverlay.addEventListener('click', closeProfileModal);
+
+    /* 点击封面区域：直接打开系统选图（快捷更换封面），无需先进弹窗 */
+    if (pfCover && pfCoverFileInput) {
+      pfCover.addEventListener('click', () => pfCoverFileInput.click());
+      pfCoverFileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        pfReadImageFile(file, (dataUrl) => {
+          const p = pfLoadProfile();
+          p.coverImage = dataUrl;
+          pfSaveProfile(p);
+          pfRenderHeader();
+          if (typeof showToast === 'function') showToast('封面已更新');
+        });
+        pfCoverFileInput.value = '';
+      });
+    }
+
+    /* 弹窗内：封面上传 / 移除 */
+    if (pfCoverUploadRow && pfCoverModalFileInput) {
+      pfCoverUploadRow.addEventListener('click', () => pfCoverModalFileInput.click());
+      pfCoverModalFileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        pfReadImageFile(file, (dataUrl) => {
+          _pfDraft.coverImage = dataUrl;
+          pfUpdateCoverPreview();
+        });
+        pfCoverModalFileInput.value = '';
+      });
+    }
+    if (pfCoverRemoveBtn) {
+      pfCoverRemoveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _pfDraft.coverImage = '';
+        pfUpdateCoverPreview();
+      });
+    }
+
+    /* 弹窗内：头像图片上传 */
+    if (pfAvatarUploadBtn && pfAvatarFileInput) {
+      pfAvatarUploadBtn.addEventListener('click', () => pfAvatarFileInput.click());
+      pfAvatarFileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        pfReadImageFile(file, (dataUrl) => {
+          _pfDraft.avatarImage = dataUrl;
+          pfUpdateAvatarPreview();
+        });
+        pfAvatarFileInput.value = '';
+      });
+    }
+
+    if (pfNameInput) {
+      pfNameInput.addEventListener('input', () => {
+        _pfDraft.name = pfNameInput.value;
+        pfUpdateAvatarPreview();
+      });
+    }
+    if (pfHandleInput) {
+      pfHandleInput.addEventListener('input', () => {
+        const cleaned = pfHandleInput.value.replace(/^@+/, '').replace(/[^a-zA-Z0-9._]/g, '').toLowerCase();
+        if (cleaned !== pfHandleInput.value) pfHandleInput.value = cleaned;
+        _pfDraft.handle = cleaned;
+      });
+    }
+    if (pfBioInput) {
+      pfBioInput.addEventListener('input', () => {
+        _pfDraft.bio = pfBioInput.value;
+        pfUpdateBioCount();
+      });
+    }
+    if (pfResetBtn) {
+      pfResetBtn.addEventListener('click', () => {
+        pfFillFormFrom(PF_DEFAULT_PROFILE);
+      });
+    }
+    if (pfSaveBtn) {
+      pfSaveBtn.addEventListener('click', () => {
+        const name = (_pfDraft.name || '').trim() || PF_DEFAULT_PROFILE.name;
+        const handle = (_pfDraft.handle || '').trim() || PF_DEFAULT_PROFILE.handle;
+        const bio = (_pfDraft.bio || '').trim();
+        const next = {
+          name, handle, bio,
+          avatarPreset: _pfDraft.avatarPreset || 'wine',
+          avatarImage: _pfDraft.avatarImage || '',
+          coverImage: _pfDraft.coverImage || '',
+        };
+        pfSaveProfile(next);
+        pfRenderHeader();
+        closeProfileModal();
+        if (typeof showToast === 'function') showToast('资料已更新');
+      });
+    }
+
+    /* ---- 分享主页：占位反馈，交互不留空白 ---- */
+    const btnShareProfile = document.getElementById('btnShareProfile');
+    if (btnShareProfile) {
+      btnShareProfile.addEventListener('click', () => {
+        if (typeof showToast === 'function') showToast('主页分享功能即将上线');
+      });
+    }
+
+    /* ---- 初始渲染 ---- */
+    pfRenderHeader();
+    pfSwitchTab('sub');
+
+  })();
 
 })();

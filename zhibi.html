@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>执笔</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,200;0,300;1,200;1,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="zhibi.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&display=swap" rel="stylesheet" />
+  <style>
+    /* ═══════════════════════════════════════
+       Luxury Orb — 补充覆盖（CSS 文件已含主样式）
+       ═══════════════════════════════════════ */
+
+    /* 球体本体：确保 open 状态缩放 */
+    .zbg-fab-wrap.open .zbg-fab-btn {
+      transform: scale(1.09);
+    }
+    /* 图标居中（叠在纹样上） */
+    .zbg-orb-wrap .zbg-fab-icon {
+      position: absolute;
+      z-index: 2;
+    }
+    /* 隐藏原有 aura 层 */
+    .zbg-orb-wrap .zbg-fab-aura {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+<div class="luna-wrap">
+  <div class="luna-frame">
+
+    <!-- 背景装饰层 -->
+    <div class="zb-bg-layer" aria-hidden="true">
+      <!-- 对角装饰线 -->
+      <div class="zb-diag zb-diag-1"></div>
+      <div class="zb-diag zb-diag-2"></div>
+      <!-- 同心圆 -->
+      <div class="zb-circle zb-circle-1"></div>
+      <div class="zb-circle zb-circle-2"></div>
+      <div class="zb-circle zb-circle-3"></div>
+    </div>
+
+    <!-- 状态栏（与 index.html 完全一致） -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime"></div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal">
+          <i></i><i></i><i></i><i></i>
+        </div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct"></span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="zb-main">
+
+      <!-- 顶部暗色 Banner -->
+      <div class="zb-banner">
+        <!-- 四角装饰 -->
+        <svg class="zb-corner zb-corner-tl" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="0" y1="0" x2="22" y2="0" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+          <line x1="0" y1="0" x2="0" y2="22" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+          <line x1="4" y1="4" x2="10" y2="4" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+          <line x1="4" y1="4" x2="4" y2="10" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+          <rect x="11" y="11" width="5" height="5" stroke="rgba(255,255,255,0.18)" stroke-width="0.5" fill="none" transform="rotate(45 13.5 13.5)"/>
+        </svg>
+        <svg class="zb-corner zb-corner-tr" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="0" y1="0" x2="22" y2="0" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+          <line x1="0" y1="0" x2="0" y2="22" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+          <line x1="4" y1="4" x2="10" y2="4" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+          <line x1="4" y1="4" x2="4" y2="10" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+          <rect x="11" y="11" width="5" height="5" stroke="rgba(255,255,255,0.18)" stroke-width="0.5" fill="none" transform="rotate(45 13.5 13.5)"/>
+        </svg>
+        <svg class="zb-corner zb-corner-bl" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="0" y1="0" x2="22" y2="0" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+          <line x1="0" y1="0" x2="0" y2="22" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+          <line x1="4" y1="4" x2="10" y2="4" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+          <line x1="4" y1="4" x2="4" y2="10" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+          <rect x="11" y="11" width="5" height="5" stroke="rgba(255,255,255,0.18)" stroke-width="0.5" fill="none" transform="rotate(45 13.5 13.5)"/>
+        </svg>
+        <svg class="zb-corner zb-corner-br" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="0" y1="0" x2="22" y2="0" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+          <line x1="0" y1="0" x2="0" y2="22" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+          <line x1="4" y1="4" x2="10" y2="4" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+          <line x1="4" y1="4" x2="4" y2="10" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+          <rect x="11" y="11" width="5" height="5" stroke="rgba(255,255,255,0.18)" stroke-width="0.5" fill="none" transform="rotate(45 13.5 13.5)"/>
+        </svg>
+
+        <!-- banner 背景装饰线 -->
+        <div class="zb-banner-lines" aria-hidden="true">
+          <div class="zb-bline zb-bline-1"></div>
+          <div class="zb-bline zb-bline-2"></div>
+          <div class="zb-bline zb-bline-3"></div>
+          <div class="zb-bline zb-bline-4"></div>
+          <div class="zb-bcircle zb-bcircle-1"></div>
+          <div class="zb-bcircle zb-bcircle-2"></div>
+        </div>
+
+        <!-- logo + 标题 -->
+        <div class="zb-banner-content">
+          <div class="zb-logo-ring">
+            <div class="zb-logo-ring-inner"></div>
+            <svg class="zb-logo-svg" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- 几何笔尖形状 -->
+              <polygon points="16,6 22,18 16,22 10,18" stroke="rgba(255,255,255,0.65)" stroke-width="0.7" fill="none" stroke-linejoin="round"/>
+              <line x1="16" y1="22" x2="16" y2="27" stroke="rgba(255,255,255,0.45)" stroke-width="0.7" stroke-linecap="round"/>
+              <line x1="13" y1="18" x2="19" y2="18" stroke="rgba(255,255,255,0.28)" stroke-width="0.5"/>
+            </svg>
+          </div>
+
+          <h1 class="zb-title">执 笔</h1>
+          <p class="zb-title-en">ZHI BI &nbsp;·&nbsp; AI Interactive Story</p>
+        </div>
+
+        <!-- banner 底部分隔装饰 -->
+        <div class="zb-banner-foot">
+          <div class="zb-foot-line"></div>
+          <div class="zb-foot-diamond"></div>
+          <div class="zb-foot-line"></div>
+          <div class="zb-foot-diamond"></div>
+          <div class="zb-foot-line"></div>
+        </div>
+      </div>
+
+      <!-- 白色内容区 -->
+      <div class="zb-body">
+
+        <!-- 上半部分：divider + intro + features -->
+        <div class="zb-body-top">
+          <!-- 分隔装饰 -->
+          <div class="zb-divider">
+            <div class="zb-div-line"></div>
+            <div class="zb-div-center">
+              <span class="zb-div-dot"></span>
+              <span class="zb-div-diamond"></span>
+              <span class="zb-div-dot"></span>
+            </div>
+            <div class="zb-div-line"></div>
+          </div>
+
+          <p class="zb-intro-label">— &nbsp; About &nbsp; —</p>
+
+          <p class="zb-intro-text">
+            你执笔，AI 造世界<br>
+            实时调用 AI 生成可渲染的交互式文字游戏<br>
+            每一幕都是独一无二的沉浸体验
+          </p>
+
+          <!-- 功能卡片 -->
+          <div class="zb-features">
+
+            <div class="zb-feat-item">
+              <span class="zb-feat-accent"></span>
+              <span class="zb-feat-num">I</span>
+              <div class="zb-feat-body">
+                <div class="zb-feat-title">AI 动态叙事引擎</div>
+                <div class="zb-feat-desc">剧情实时生成，无固定脚本，每次体验皆不同</div>
+              </div>
+            </div>
+
+            <div class="zb-feat-item">
+              <span class="zb-feat-accent"></span>
+              <span class="zb-feat-num">II</span>
+              <div class="zb-feat-body">
+                <div class="zb-feat-title">交互式场景渲染</div>
+                <div class="zb-feat-desc">AI 为每幕生成专属页面，视觉随故事流动变化</div>
+              </div>
+            </div>
+
+            <div class="zb-feat-item">
+              <span class="zb-feat-accent"></span>
+              <span class="zb-feat-num">III</span>
+              <div class="zb-feat-body">
+                <div class="zb-feat-title">高自由度叙事选择</div>
+                <div class="zb-feat-desc">预设选项与自由输入并存，故事走向由你决定</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 按钮区 -->
+        <div class="zb-cta-wrap">
+          <button class="zb-btn-main" id="zbBtnStart" onclick="zbStart()">
+            <span class="zb-btn-rule"></span>
+            <span class="zb-btn-label">开始创作</span>
+            <span class="zb-btn-rule"></span>
+          </button>
+          <div class="zb-btn-row">
+            <button class="zb-btn-sub" id="zbBtnContinue" onclick="zbContinue()">
+              <span class="zb-btn-sub-label">Continue</span>
+            </button>
+            <button class="zb-btn-char" id="zbBtnChar" onclick="zbOpenChar()">
+              <svg class="zb-btn-char-svg" width="13" height="14" viewBox="0 0 13 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="6.5" cy="4" r="2.8" stroke="currentColor" stroke-width="0.9"/>
+                <path d="M1 13c0-3.038 2.462-5.5 5.5-5.5S12 9.962 12 13" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/>
+              </svg>
+              <span class="zb-btn-char-label">Char</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 底部：署名 + 装饰（合并，不留空白） -->
+        <div class="zb-footer">
+          <div class="zb-foot-rule-wrap">
+            <div class="zb-foot-r"></div>
+            <span class="zb-foot-text">Powered by Luna</span>
+            <div class="zb-foot-r"></div>
+          </div>
+          <span class="zb-version">Version 1.0 &nbsp;·&nbsp; 执笔出品</span>
+
+          <div class="zb-bottom-deco">
+            <div class="zb-bdeco-line-wrap">
+              <div class="zb-bdeco-line"></div>
+              <div class="zb-bdeco-diamond"></div>
+              <div class="zb-bdeco-line"></div>
+              <div class="zb-bdeco-diamond"></div>
+              <div class="zb-bdeco-line"></div>
+            </div>
+
+            <div class="zb-seal">
+              <div class="zb-seal-rule"></div>
+              <div class="zb-seal-mark"><span class="zb-seal-char">笔</span></div>
+              <div class="zb-seal-mark"><span class="zb-seal-char">境</span></div>
+              <div class="zb-seal-mark"><span class="zb-seal-char">道</span></div>
+              <div class="zb-seal-rule"></div>
+            </div>
+
+            <div class="zb-vertical-deco">
+              <div class="zb-vert-dot-col">
+                <div class="zb-vert-dot"></div>
+                <div class="zb-vert-dot"></div>
+                <div class="zb-vert-dot"></div>
+              </div>
+              <span class="zb-vert-text">以文字为墨　以想象为纸</span>
+              <div class="zb-vert-dot-col">
+                <div class="zb-vert-dot"></div>
+                <div class="zb-vert-dot"></div>
+                <div class="zb-vert-dot"></div>
+              </div>
+            </div>
+
+            <span class="zb-bdeco-copy">© 2026 &nbsp;·&nbsp; 执笔出品 &nbsp;·&nbsp; Powered by Luna</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========================================
+     创作设定面板（点击"开始创作"后显示）
+     ======================================== -->
+<div class="zbs-overlay" id="zbsOverlay">
+  <div class="zbs-wrap" id="zbsWrap">
+
+    <!-- 状态栏（一比一复刻） -->
+    <div class="status-bar">
+      <div class="status-time" id="zbsStatusTime"></div>
+      <div class="status-island" id="zbsStatusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="zbsBatPct"></span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="zbsBatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 顶部导航 -->
+    <div class="zbs-nav">
+      <div class="zbs-nav-back" onclick="zbsClose()">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M9 3L5 7.5L9 12" stroke="#666" stroke-width=".9"/></svg>
+        返回
+      </div>
+      <div class="zbs-nav-title">创作设定</div>
+      <div class="zbs-nav-step" id="zbsStepLabel">1 / 5</div>
+    </div>
+
+    <!-- 进度条 -->
+    <div class="zbs-prog"><div class="zbs-prog-f" id="zbsProgFill" style="width:20%"></div></div>
+
+    <!-- Tab 切换 -->
+    <div class="zbs-tabs">
+      <div class="zbs-tab on" id="zbsTab1" onclick="zbsGoStep(1)">世界观</div>
+      <div class="zbs-tab" id="zbsTab2" onclick="zbsGoStep(2)">叙事</div>
+      <div class="zbs-tab" id="zbsTab3" onclick="zbsGoStep(3)">章节</div>
+      <div class="zbs-tab" id="zbsTab4" onclick="zbsGoStep(4)">故事</div>
+      <div class="zbs-tab" id="zbsTab5" onclick="zbsGoStep(5)">角色</div>
+    </div>
+
+    <!-- 滚动区 -->
+    <div class="zbs-scroll" id="zbsScrollArea">
+
+      <!-- Step 1: 世界观 + 文笔 -->
+      <div class="zbs-panel on" id="zbsP1">
+        <div class="zbs-sec">
+          <div class="zbs-sec-hd"><span class="zbs-sec-num">1</span><span class="zbs-sec-label">世界观</span><div class="zbs-sec-line"></div></div>
+
+          <div class="zbs-f">
+            <div class="zbs-fl">世界观名称 <span class="zbs-fl-hint">存入世界树库，下次可复用</span></div>
+            <div class="zbs-save-row">
+              <input type="text" id="zbsWorldName" placeholder="为这个世界起个名字...">
+              <button class="zbs-save-btn" onclick="zbsSaveToLib('world')">存入库</button>
+            </div>
+          </div>
+
+          <div class="zbs-lib">
+            <div class="zbs-lib-hd"><span class="zbs-lib-name">世界树库</span><span class="zbs-lib-hint">点击载入 · 再点取消</span></div>
+            <div class="zbs-lib-pills" id="zbsWorldPills"></div>
+          </div>
+
+          <div class="zbs-f">
+            <div class="zbs-fl">世界观描述</div>
+            <textarea id="zbsWorldDesc" placeholder="描述这个世界的背景、规则、时代、特有名词..."></textarea>
+            <button class="zbs-ai-btn" id="zbsAiWorldBtn" onclick="zbsAiGen('world')"><span class="zbs-ai-dot"></span>AI 辅助生成</button>
+          </div>
+
+          <div class="zbs-f">
+            <div class="zbs-fl">世界类型</div>
+            <div class="zbs-chips" id="zbsWorldTypeChips">
+              <span class="zbs-chip on">玄幻</span><span class="zbs-chip">科幻</span><span class="zbs-chip">武侠</span>
+              <span class="zbs-chip">现代都市</span><span class="zbs-chip">架空历史</span><span class="zbs-chip">克苏鲁</span>
+              <span class="zbs-chip">末世</span><span class="zbs-chip">纯爱</span><span class="zbs-chip">悬疑推理</span>
+              <span class="zbs-chip zbs-chip-custom" id="zbsChipCustom" onclick="zbsToggleCustomType()">自定义…</span>
+            </div>
+            <div class="zbs-custom-type-wrap" id="zbsCustomTypeWrap">
+              <input type="text" id="zbsCustomTypeInput" placeholder="输入自定义世界类型，如：赛博朋克、修仙、蒸汽朋克…" maxlength="20" oninput="zbsOnCustomTypeInput()" />
+            </div>
+          </div>
+        </div>
+
+        <div class="zbs-div"></div>
+
+        <div class="zbs-sec">
+          <div class="zbs-sec-hd"><span class="zbs-sec-num">2</span><span class="zbs-sec-label">文笔风格</span><div class="zbs-sec-line"></div></div>
+
+          <div class="zbs-f">
+            <div class="zbs-fl">风格名称 <span class="zbs-fl-hint">存入文笔库</span></div>
+            <div class="zbs-save-row">
+              <input type="text" id="zbsStyleName" placeholder="为这种文风起个名字...">
+              <button class="zbs-save-btn" onclick="zbsSaveToLib('style')">存入库</button>
+            </div>
+          </div>
+
+          <div class="zbs-lib">
+            <div class="zbs-lib-hd"><span class="zbs-lib-name">文笔库</span><span class="zbs-lib-hint">点击载入 · 再点取消</span></div>
+            <div class="zbs-lib-pills" id="zbsStylePills"></div>
+          </div>
+
+          <div class="zbs-f">
+            <div class="zbs-fl">风格描述 / 参考作品</div>
+            <textarea id="zbsStyleDesc" placeholder="描述文笔特征，或提供参考作家、作品名..."></textarea>
+            <button class="zbs-ai-btn" id="zbsAiStyleBtn" onclick="zbsAiGen('style')"><span class="zbs-ai-dot"></span>AI 辅助生成</button>
+          </div>
+
+          <div class="zbs-f">
+            <div class="zbs-fl">叙事节奏</div>
+            <div class="zbs-chips" id="zbsPaceChips">
+              <span class="zbs-chip on">舒缓细腻</span><span class="zbs-chip">均衡推进</span>
+              <span class="zbs-chip">紧凑爽文</span><span class="zbs-chip">跳跃破碎</span>
+              <span class="zbs-chip zbs-chip-custom" id="zbsPaceChipCustom" onclick="zbsTogglePaceCustom()">自定义…</span>
+            </div>
+            <div class="zbs-custom-type-wrap" id="zbsPaceCustomWrap">
+              <input type="text" id="zbsPaceCustomInput" placeholder="输入自定义节奏，如：诗意跳跃、意识流…" maxlength="12" oninput="zbsOnPaceCustomInput()" />
+            </div>
+          </div>
+        </div>
+        <div style="height:14px"></div>
+      </div>
+
+      <!-- Step 2: 叙事视角 -->
+      <div class="zbs-panel" id="zbsP2">
+        <div class="zbs-sec">
+          <div class="zbs-sec-hd"><span class="zbs-sec-num">3</span><span class="zbs-sec-label">叙事视角</span><div class="zbs-sec-line"></div></div>
+
+          <!-- ① 人称视角 自定义选择器 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">人称视角 <span class="zbs-fl-hint">决定 AI 叙述的基本立场</span></div>
+            <div class="zbs-sel" id="zbsPovSel" data-val="first_person">
+              <div class="zbs-sel-trigger" onclick="zbsToggleSel('zbsPovSel')">
+                <span class="zbs-sel-val" id="zbsPovSelVal">第一人称·主观</span>
+                <svg class="zbs-sel-arrow" width="9" height="5" viewBox="0 0 9 5" fill="none"><path d="M1 1L4.5 4.5L8 1" stroke="#999" stroke-width=".9"/></svg>
+              </div>
+              <div class="zbs-sel-drop" id="zbsPovSelDrop">
+                <div class="zbs-sel-opt" data-val="first_person" onclick="zbsPickSel('zbsPovSel',this)">
+                  <div class="zbs-sel-opt-main">第一人称·主观</div>
+                  <div class="zbs-sel-opt-sub">以「我」叙述，情绪真实，代入感最强，信息受限于主角所见</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="third_limited" onclick="zbsPickSel('zbsPovSel',this)">
+                  <div class="zbs-sel-opt-main">第三人称·有限</div>
+                  <div class="zbs-sel-opt-sub">以「他/她」叙述，紧跟主角视野，兼顾沉浸感与叙事灵活度</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="third_omniscient" onclick="zbsPickSel('zbsPovSel',this)">
+                  <div class="zbs-sel-opt-main">第三人称·全知</div>
+                  <div class="zbs-sel-opt-sub">上帝视角，可自由进入任何角色内心，宏观叙事首选</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="second_person" onclick="zbsPickSel('zbsPovSel',this)">
+                  <div class="zbs-sel-opt-main">第二人称·沉浸</div>
+                  <div class="zbs-sel-opt-sub">以「你」指称玩家，强化互动临场感，偏文字游戏风格</div>
+                </div>
+                <div class="zbs-sel-opt zbs-sel-opt-custom" data-val="custom_pov" onclick="zbsPickSelCustom('zbsPovSel',this,'zbsPovCustomWrap')">
+                  <div class="zbs-sel-opt-main">自定义视角…</div>
+                  <div class="zbs-sel-opt-sub">完全自由描述，AI 将严格按你的设定叙述</div>
+                </div>
+              </div>
+            </div>
+            <!-- 人称自定义输入框 -->
+            <div class="zbs-sel-custom-wrap" id="zbsPovCustomWrap">
+              <input type="text" id="zbsPovCustomInput" placeholder="如：双重人格交替叙述、旁观者偶尔插嘴…" maxlength="40" oninput="zbsOnSelCustomInput('zbsPovSel','zbsPovCustomInput','zbsPovSelVal')" />
+            </div>
+          </div>
+
+          <!-- ② 聚焦主体 自定义选择器 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">聚焦主体 <span class="zbs-fl-hint">叙事跟随的核心对象</span></div>
+            <div class="zbs-sel" id="zbsFocusSel" data-val="single">
+              <div class="zbs-sel-trigger" onclick="zbsToggleSel('zbsFocusSel')">
+                <span class="zbs-sel-val" id="zbsFocusSelVal">主角单一视角</span>
+                <svg class="zbs-sel-arrow" width="9" height="5" viewBox="0 0 9 5" fill="none"><path d="M1 1L4.5 4.5L8 1" stroke="#999" stroke-width=".9"/></svg>
+              </div>
+              <div class="zbs-sel-drop" id="zbsFocusSelDrop">
+                <div class="zbs-sel-opt" data-val="single" onclick="zbsPickSel('zbsFocusSel',this)">
+                  <div class="zbs-sel-opt-main">主角单一视角</div>
+                  <div class="zbs-sel-opt-sub">始终以主角为中心展开，叙事聚焦，情感积累最强烈</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="rotate" onclick="zbsPickSel('zbsFocusSel',this)">
+                  <div class="zbs-sel-opt-main">多视角轮换</div>
+                  <div class="zbs-sel-opt-sub">章节间切换视角人物，丰富叙事层次，适合群戏故事</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="ensemble" onclick="zbsPickSel('zbsFocusSel',this)">
+                  <div class="zbs-sel-opt-main">群像并行</div>
+                  <div class="zbs-sel-opt-sub">多条故事线同步推进，AI 统筹全局，史诗感叙事</div>
+                </div>
+                <div class="zbs-sel-opt zbs-sel-opt-custom" data-val="custom_focus" onclick="zbsPickSelCustom('zbsFocusSel',this,'zbsFocusCustomWrap')">
+                  <div class="zbs-sel-opt-main">自定义聚焦…</div>
+                  <div class="zbs-sel-opt-sub">指定特定角色或自由描述聚焦规则</div>
+                </div>
+              </div>
+            </div>
+            <div class="zbs-sel-custom-wrap" id="zbsFocusCustomWrap">
+              <input type="text" id="zbsFocusCustomInput" placeholder="如：前三章跟反派，之后汇聚主角…" maxlength="40" oninput="zbsOnSelCustomInput('zbsFocusSel','zbsFocusCustomInput','zbsFocusSelVal')" />
+            </div>
+          </div>
+
+          <!-- ③ 叙述距离 chips + 自定义 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">叙述距离 <span class="zbs-fl-hint">AI 与角色内心的远近</span></div>
+            <div class="zbs-chips" id="zbsDistChips">
+              <span class="zbs-chip">旁观冷峻</span>
+              <span class="zbs-chip on">适中</span>
+              <span class="zbs-chip">贴近内心</span>
+              <span class="zbs-chip">意识流</span>
+              <span class="zbs-chip zbs-chip-custom" id="zbsDistChipCustom" onclick="zbsToggleChipCustom('zbsDistChips','zbsDistCustomWrap','zbsDistChipCustom')">自定义…</span>
+            </div>
+            <div class="zbs-custom-type-wrap" id="zbsDistCustomWrap">
+              <input type="text" id="zbsDistCustomInput" placeholder="如：外部动作与内心交织，感知细节极度放大…" maxlength="30" oninput="zbsOnChipCustomInput('zbsDistChipCustom','zbsDistCustomInput')" />
+            </div>
+          </div>
+
+          <!-- ④ 旁白语气 自定义选择器 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">旁白语气 <span class="zbs-fl-hint">AI 叙事的整体腔调</span></div>
+            <div class="zbs-sel" id="zbsNarrSel" data-val="neutral">
+              <div class="zbs-sel-trigger" onclick="zbsToggleSel('zbsNarrSel')">
+                <span class="zbs-sel-val" id="zbsNarrSelVal">客观陈述</span>
+                <svg class="zbs-sel-arrow" width="9" height="5" viewBox="0 0 9 5" fill="none"><path d="M1 1L4.5 4.5L8 1" stroke="#999" stroke-width=".9"/></svg>
+              </div>
+              <div class="zbs-sel-drop" id="zbsNarrSelDrop">
+                <div class="zbs-sel-opt" data-val="neutral" onclick="zbsPickSel('zbsNarrSel',this)">
+                  <div class="zbs-sel-opt-main">客观陈述</div>
+                  <div class="zbs-sel-opt-sub">旁白冷静中立，事件直白呈现，由读者自行感受</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="poetic" onclick="zbsPickSel('zbsNarrSel',this)">
+                  <div class="zbs-sel-opt-main">诗意抒情</div>
+                  <div class="zbs-sel-opt-sub">语言富有意象，情景交融，带有文学质感的叙事腔调</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="dramatic" onclick="zbsPickSel('zbsNarrSel',this)">
+                  <div class="zbs-sel-opt-main">戏剧张力</div>
+                  <div class="zbs-sel-opt-sub">节奏紧绷，铺垫悬念，善用短句制造冲击与转折</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="ironic" onclick="zbsPickSel('zbsNarrSel',this)">
+                  <div class="zbs-sel-opt-main">反讽轻盈</div>
+                  <div class="zbs-sel-opt-sub">旁白带有一丝疏离的幽默，叙述与情绪之间保留微妙距离</div>
+                </div>
+                <div class="zbs-sel-opt zbs-sel-opt-custom" data-val="custom_narr" onclick="zbsPickSelCustom('zbsNarrSel',this,'zbsNarrCustomWrap')">
+                  <div class="zbs-sel-opt-main">自定义语气…</div>
+                  <div class="zbs-sel-opt-sub">用一句话告诉 AI 你想要的旁白腔调</div>
+                </div>
+              </div>
+            </div>
+            <div class="zbs-sel-custom-wrap" id="zbsNarrCustomWrap">
+              <input type="text" id="zbsNarrCustomInput" placeholder="如：像老人讲古、带着南方方言腔的忧郁…" maxlength="40" oninput="zbsOnSelCustomInput('zbsNarrSel','zbsNarrCustomInput','zbsNarrSelVal')" />
+            </div>
+          </div>
+
+          <!-- ⑤ 主角称呼方式 chips + 自定义 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">主角称呼方式 <span class="zbs-fl-hint">AI 在正文中如何指代主角</span></div>
+            <div class="zbs-chips" id="zbsRefChips">
+              <span class="zbs-chip on">以「我」</span>
+              <span class="zbs-chip">呼名字</span>
+              <span class="zbs-chip">以「你」</span>
+              <span class="zbs-chip">随视角自动</span>
+              <span class="zbs-chip zbs-chip-custom" id="zbsRefChipCustom" onclick="zbsToggleChipCustom('zbsRefChips','zbsRefCustomWrap','zbsRefChipCustom')">自定义…</span>
+            </div>
+            <div class="zbs-custom-type-wrap" id="zbsRefCustomWrap">
+              <input type="text" id="zbsRefCustomInput" placeholder="如：混用「我」与角色名、特定绰号或代称…" maxlength="30" oninput="zbsOnChipCustomInput('zbsRefChipCustom','zbsRefCustomInput')" />
+            </div>
+          </div>
+
+          <!-- ⑥ 内心独白密度 chips + 自定义 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">内心独白密度 <span class="zbs-fl-hint">角色内心活动的呈现比重</span></div>
+            <div class="zbs-chips" id="zbsMonoChips">
+              <span class="zbs-chip">极少</span>
+              <span class="zbs-chip on">适量</span>
+              <span class="zbs-chip">丰富</span>
+              <span class="zbs-chip">全程流淌</span>
+              <span class="zbs-chip zbs-chip-custom" id="zbsMonoChipCustom" onclick="zbsToggleChipCustom('zbsMonoChips','zbsMonoCustomWrap','zbsMonoChipCustom')">自定义…</span>
+            </div>
+            <div class="zbs-custom-type-wrap" id="zbsMonoCustomWrap">
+              <input type="text" id="zbsMonoCustomInput" placeholder="如：只在关键抉择时爆发大段内心…" maxlength="30" oninput="zbsOnChipCustomInput('zbsMonoChipCustom','zbsMonoCustomInput')" />
+            </div>
+          </div>
+
+          <!-- ⑦ 视角补充说明 + AI 生成 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">视角补充说明 <span class="zbs-fl-hint">任何无法被以上选项覆盖的细节</span></div>
+            <textarea id="zbsPovDesc" placeholder="可以告诉 AI 更多叙事规则，例如：主角不记得自己的过去，叙述中偶尔插入旁观者的碎片视角，整体带有不可靠叙述者的特质…" style="height:72px"></textarea>
+            <button class="zbs-ai-btn" id="zbsAiPovBtn" onclick="zbsAiGenPov()"><span class="zbs-ai-dot"></span>AI 辅助生成</button>
+          </div>
+
+          <!-- ⑧ Toggles -->
+          <div class="zbs-toggle-box">
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">允许视角切换</div><div class="zbs-ti-sub">AI 可在章节间切换叙事主体</div></div>
+              <div class="zbs-tog on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">标注视角变换</div><div class="zbs-ti-sub">切换视角时插入过渡提示，避免读者迷失</div></div>
+              <div class="zbs-tog" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">不可靠叙述者模式</div><div class="zbs-ti-sub">AI 可植入叙事者偏见或刻意隐瞒信息</div></div>
+              <div class="zbs-tog" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">自由输入并存</div><div class="zbs-ti-sub">预设选项外，玩家可自由发送行动</div></div>
+              <div class="zbs-tog on" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+        </div>
+        <div style="height:14px"></div>
+      </div>
+
+      <!-- Step 3: 章节规格 -->
+      <div class="zbs-panel" id="zbsP3">
+        <div class="zbs-sec">
+          <div class="zbs-sec-hd"><span class="zbs-sec-num">4</span><span class="zbs-sec-label">章节规格</span><div class="zbs-sec-line"></div></div>
+
+          <!-- ① 每章字数：滑块 + 精确输入 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">
+              每章字数目标
+              <div class="zbs-wc-right">
+                <input class="zbs-wc-input" type="number" id="zbsWcInput" value="1200" min="100" max="9999" step="100"
+                  oninput="zbsSyncWcInput(this.value)" />
+                <span class="zbs-wc-unit">字</span>
+              </div>
+            </div>
+            <div class="zbs-sl-row">
+              <span class="zbs-sl-edge">600</span>
+              <input type="range" min="600" max="4000" step="200" value="1200" id="zbsWcSlider" oninput="zbsSyncWcSlider(this.value)">
+              <span class="zbs-sl-edge">4000</span>
+            </div>
+            <div class="zbs-wc-note" id="zbsWcNote">适合沉浸式阅读，情节推进适中</div>
+          </div>
+
+          <!-- ② 每章选项数 + 自定义 + AI 动态调整 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">每章选项数 <span class="zbs-fl-hint">玩家每章末可做的选择数量</span></div>
+            <div class="zbs-chips" id="zbsChoiceChips">
+              <span class="zbs-chip">1 个</span>
+              <span class="zbs-chip">2 个</span>
+              <span class="zbs-chip on">3 个</span>
+              <span class="zbs-chip">4 个</span>
+              <span class="zbs-chip">5 个</span>
+              <span class="zbs-chip zbs-chip-custom" id="zbsChoiceChipCustom" onclick="zbsToggleChipCustom('zbsChoiceChips','zbsChoiceCustomWrap','zbsChoiceChipCustom')">自定义…</span>
+            </div>
+            <div class="zbs-custom-type-wrap" id="zbsChoiceCustomWrap">
+              <input type="text" id="zbsChoiceCustomInput" placeholder="如：关键章 6 个、普通章 2 个、Boss 章仅 1 个…" maxlength="40" oninput="zbsOnChipCustomInput('zbsChoiceChipCustom','zbsChoiceCustomInput')" />
+            </div>
+          </div>
+
+          <!-- ③ 故事基调（多选）+ 自定义 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">故事基调 <span class="zbs-fl-hint">可多选，AI 将融合呈现</span></div>
+            <div class="zbs-chips zbs-chips-multi" id="zbsToneChips">
+              <span class="zbs-chip on">热血</span>
+              <span class="zbs-chip">悬疑</span>
+              <span class="zbs-chip">治愈</span>
+              <span class="zbs-chip">黑暗</span>
+              <span class="zbs-chip">轻松幽默</span>
+              <span class="zbs-chip">浪漫</span>
+              <span class="zbs-chip">克苏鲁恐怖</span>
+              <span class="zbs-chip">史诗壮阔</span>
+              <span class="zbs-chip">末世压抑</span>
+              <span class="zbs-chip">成长励志</span>
+              <span class="zbs-chip zbs-chip-custom" id="zbsToneChipCustom" onclick="zbsToggleChipCustom('zbsToneChips','zbsToneCustomWrap','zbsToneChipCustom')">自定义…</span>
+            </div>
+            <div class="zbs-custom-type-wrap" id="zbsToneCustomWrap">
+              <input type="text" id="zbsToneCustomInput" placeholder="如：先热血后黑化、表面治愈底色悲剧…" maxlength="40" oninput="zbsOnChipCustomInput('zbsToneChipCustom','zbsToneCustomInput')" />
+            </div>
+          </div>
+
+          <!-- ④ 章节结构偏好 自定义选择器 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">章节结构偏好 <span class="zbs-fl-hint">每章的叙事收尾方式</span></div>
+            <div class="zbs-sel" id="zbsStructSel" data-val="cliffhanger">
+              <div class="zbs-sel-trigger" onclick="zbsToggleSel('zbsStructSel')">
+                <span class="zbs-sel-val" id="zbsStructSelVal">悬念钩子</span>
+                <svg class="zbs-sel-arrow" width="9" height="5" viewBox="0 0 9 5" fill="none"><path d="M1 1L4.5 4.5L8 1" stroke="#999" stroke-width=".9"/></svg>
+              </div>
+              <div class="zbs-sel-drop" id="zbsStructSelDrop">
+                <div class="zbs-sel-opt" data-val="cliffhanger" onclick="zbsPickSel('zbsStructSel',this)">
+                  <div class="zbs-sel-opt-main">悬念钩子</div>
+                  <div class="zbs-sel-opt-sub">每章末留悬念或意外转折，强迫玩家想继续</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="open_end" onclick="zbsPickSel('zbsStructSel',this)">
+                  <div class="zbs-sel-opt-main">开放式收束</div>
+                  <div class="zbs-sel-opt-sub">本章情节相对完整，但留下更大的未解之谜</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="full_close" onclick="zbsPickSel('zbsStructSel',this)">
+                  <div class="zbs-sel-opt-main">完整收束</div>
+                  <div class="zbs-sel-opt-sub">每章有明确的起承转合，适合节奏舒缓的故事</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="mid_action" onclick="zbsPickSel('zbsStructSel',this)">
+                  <div class="zbs-sel-opt-main">高潮切断</div>
+                  <div class="zbs-sel-opt-sub">在动作或对话最激烈处截断，制造强迫症式的阅读欲</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="emotion_close" onclick="zbsPickSel('zbsStructSel',this)">
+                  <div class="zbs-sel-opt-main">情绪余韵</div>
+                  <div class="zbs-sel-opt-sub">以一句话或意象结章，留情绪共鸣，适合文学感叙事</div>
+                </div>
+                <div class="zbs-sel-opt zbs-sel-opt-custom" data-val="custom_struct" onclick="zbsPickSelCustom('zbsStructSel',this,'zbsStructCustomWrap')">
+                  <div class="zbs-sel-opt-main">自定义结构…</div>
+                  <div class="zbs-sel-opt-sub">描述你想要的章节收尾规则</div>
+                </div>
+              </div>
+            </div>
+            <div class="zbs-sel-custom-wrap" id="zbsStructCustomWrap">
+              <input type="text" id="zbsStructCustomInput" placeholder="如：奇数章悬念、偶数章情绪收束交替…" maxlength="40" oninput="zbsOnSelCustomInput('zbsStructSel','zbsStructCustomInput','zbsStructSelVal')" />
+            </div>
+          </div>
+
+          <!-- ⑤ 章节内容侧重（多选）+ 自定义 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">章节内容侧重 <span class="zbs-fl-hint">可多选，AI 优先丰富这些维度</span></div>
+            <div class="zbs-chips zbs-chips-multi" id="zbsFocusChips">
+              <span class="zbs-chip on">情感互动</span>
+              <span class="zbs-chip on">悬念伏笔</span>
+              <span class="zbs-chip">动作战斗</span>
+              <span class="zbs-chip">世界探索</span>
+              <span class="zbs-chip">对话博弈</span>
+              <span class="zbs-chip">环境渲染</span>
+              <span class="zbs-chip">权谋角力</span>
+              <span class="zbs-chip">成长蜕变</span>
+              <span class="zbs-chip zbs-chip-custom" id="zbsFocusChipCustom" onclick="zbsToggleChipCustom('zbsFocusChips','zbsFocusCustomWrap','zbsFocusChipCustom')">自定义…</span>
+            </div>
+            <div class="zbs-custom-type-wrap" id="zbsFocusCustomWrap">
+              <input type="text" id="zbsFocusCustomInput" placeholder="如：哲学性独白、民俗细节描写…" maxlength="30" oninput="zbsOnChipCustomInput('zbsFocusChipCustom','zbsFocusCustomInput')" />
+            </div>
+          </div>
+
+          <!-- ⑥ 情节推进速度 slider -->
+          <div class="zbs-f">
+            <div class="zbs-fl">情节推进速度 <span class="zbs-sl-val" id="zbsPaceVal">均衡</span></div>
+            <div class="zbs-sl-row">
+              <span class="zbs-sl-edge">平缓</span>
+              <input type="range" min="1" max="5" step="1" value="3" id="zbsPaceSlider" oninput="zbsOnPaceSlider(this.value)">
+              <span class="zbs-sl-edge">急速</span>
+            </div>
+            <div class="zbs-pace-labels">
+              <span>铺垫细腻</span><span>舒缓</span><span>均衡</span><span>紧凑</span><span>极速爽文</span>
+            </div>
+          </div>
+
+          <!-- ⑦ 章节补充说明 + AI 生成 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">章节补充说明 <span class="zbs-fl-hint">无法被以上选项覆盖的规则</span></div>
+            <textarea id="zbsChapDesc" placeholder="可以告诉 AI 更多章节要求，例如：每章开头用一句古诗引题，战斗场景不超过全章 20%，每隔三章安排一次角色关系的重大转变…" style="height:72px"></textarea>
+            <button class="zbs-ai-btn" id="zbsAiChapBtn" onclick="zbsAiGenChap()"><span class="zbs-ai-dot"></span>AI 辅助生成</button>
+          </div>
+
+          <!-- ⑧ Toggles -->
+          <div class="zbs-toggle-box">
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">章末必有悬念</div><div class="zbs-ti-sub">AI 保证每章末留下至少一个未解问题</div></div>
+              <div class="zbs-tog on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">允许剧情急转弯</div><div class="zbs-ti-sub">AI 可在章节间制造颠覆性反转</div></div>
+              <div class="zbs-tog on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">启用伏笔追踪系统</div><div class="zbs-ti-sub">AI 会记录已埋下的伏笔并在适当时机回收</div></div>
+              <div class="zbs-tog on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">关键章节自动加长</div><div class="zbs-ti-sub">高潮或转折章节由 AI 判断适当扩展篇幅</div></div>
+              <div class="zbs-tog" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">选项影响度提示</div><div class="zbs-ti-sub">在选项旁显示该选择对剧情走向的影响程度</div></div>
+              <div class="zbs-tog" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+        </div>
+        <div style="height:14px"></div>
+      </div>
+
+      <!-- Step 4: 故事 -->
+      <div class="zbs-panel" id="zbsP4">
+        <div class="zbs-sec">
+          <div class="zbs-sec-hd"><span class="zbs-sec-num">5</span><span class="zbs-sec-label">故事需求</span><div class="zbs-sec-line"></div></div>
+
+          <!-- ① 故事简介 / 核心冲突 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">故事简介 / 核心冲突 <span class="zbs-fl-hint">一切设定的起点</span></div>
+            <textarea id="zbsStoryDesc" placeholder="用一两句话说明你想讲的故事、初始情境或核心冲突..." style="height:80px"></textarea>
+            <button class="zbs-ai-btn" id="zbsAiStoryBtn" onclick="zbsAiGen('story')"><span class="zbs-ai-dot"></span>AI 辅助生成</button>
+          </div>
+
+          <!-- ② 核心驱动力（多选）+ 自定义 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">核心驱动力 <span class="zbs-fl-hint">可多选，决定主线推进的方向</span></div>
+            <div class="zbs-chips zbs-chips-multi" id="zbsDriveChips">
+              <span class="zbs-chip on">寻找真相</span>
+              <span class="zbs-chip">生存危机</span>
+              <span class="zbs-chip">复仇雪恨</span>
+              <span class="zbs-chip">情感纠葛</span>
+              <span class="zbs-chip">权力争夺</span>
+              <span class="zbs-chip">自我救赎</span>
+              <span class="zbs-chip">成长蜕变</span>
+              <span class="zbs-chip">守护所爱</span>
+              <span class="zbs-chip zbs-chip-custom" id="zbsDriveChipCustom" onclick="zbsToggleChipCustom('zbsDriveChips','zbsDriveCustomWrap','zbsDriveChipCustom')">自定义…</span>
+            </div>
+            <div class="zbs-custom-type-wrap" id="zbsDriveCustomWrap">
+              <input type="text" id="zbsDriveCustomInput" placeholder="如：解开身世之谜、逃离命运安排…" maxlength="20" oninput="zbsOnChipCustomInput('zbsDriveChipCustom','zbsDriveCustomInput')" />
+            </div>
+          </div>
+
+          <!-- ③ 开篇情境：角色登场的入口 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">开篇情境 <span class="zbs-fl-hint">角色将由此登场</span></div>
+            <textarea id="zbsOpeningDesc" placeholder="描述故事开始的具体场景：主角此刻身处何地、正面临什么处境、第一个登场的人物是谁、彼此是什么关系…" style="height:80px"></textarea>
+            <button class="zbs-ai-btn" id="zbsAiOpeningBtn" onclick="zbsAiGenOpening()"><span class="zbs-ai-dot"></span>AI 辅助生成</button>
+          </div>
+
+          <!-- ④ 结局走向 自定义选择器 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">结局走向 <span class="zbs-fl-hint">AI 将朝此方向铺垫长线</span></div>
+            <div class="zbs-sel" id="zbsEndingSel" data-val="open">
+              <div class="zbs-sel-trigger" onclick="zbsToggleSel('zbsEndingSel')">
+                <span class="zbs-sel-val" id="zbsEndingSelVal">开放式结局</span>
+                <svg class="zbs-sel-arrow" width="9" height="5" viewBox="0 0 9 5" fill="none"><path d="M1 1L4.5 4.5L8 1" stroke="#999" stroke-width=".9"/></svg>
+              </div>
+              <div class="zbs-sel-drop" id="zbsEndingSelDrop">
+                <div class="zbs-sel-opt" data-val="open" onclick="zbsPickSel('zbsEndingSel',this)">
+                  <div class="zbs-sel-opt-main">开放式结局</div>
+                  <div class="zbs-sel-opt-sub">不预设终点，结局随玩家的选择自然浮现</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="branching" onclick="zbsPickSel('zbsEndingSel',this)">
+                  <div class="zbs-sel-opt-main">多结局分支</div>
+                  <div class="zbs-sel-opt-sub">关键选择将引向截然不同的结局，AI 会记录倾向</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="fixed_arc" onclick="zbsPickSel('zbsEndingSel',this)">
+                  <div class="zbs-sel-opt-main">固定主线走向</div>
+                  <div class="zbs-sel-opt-sub">核心结局已定，过程与细节仍可自由发挥</div>
+                </div>
+                <div class="zbs-sel-opt" data-val="emergent" onclick="zbsPickSel('zbsEndingSel',this)">
+                  <div class="zbs-sel-opt-main">边写边定</div>
+                  <div class="zbs-sel-opt-sub">不预先设想结局，让故事在推进中自然找到方向</div>
+                </div>
+                <div class="zbs-sel-opt zbs-sel-opt-custom" data-val="custom_ending" onclick="zbsPickSelCustom('zbsEndingSel',this,'zbsEndingCustomWrap')">
+                  <div class="zbs-sel-opt-main">自定义走向…</div>
+                  <div class="zbs-sel-opt-sub">描述你想要的结局方向或限制</div>
+                </div>
+              </div>
+            </div>
+            <div class="zbs-sel-custom-wrap" id="zbsEndingCustomWrap">
+              <input type="text" id="zbsEndingCustomInput" placeholder="如：必须是悲剧收尾、主角最终会黑化…" maxlength="40" oninput="zbsOnSelCustomInput('zbsEndingSel','zbsEndingCustomInput','zbsEndingSelVal')" />
+            </div>
+          </div>
+
+          <div class="zbs-div" style="margin:4px 0 14px"></div>
+
+          <!-- ⑤ 故事名称：放在最后，可留空，可 AI 起名 -->
+          <div class="zbs-f">
+            <div class="zbs-fl">故事名称 <span class="zbs-fl-hint">存入故事库 · 留空可由 AI 命名</span></div>
+            <div class="zbs-save-row">
+              <input type="text" id="zbsStoryName" placeholder="给这个故事起个名字，或留空让 AI 帮你想...">
+              <button class="zbs-ainame-btn" id="zbsAiNameBtn" onclick="zbsAiGenStoryName()">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 0.5L6.6 4.4L10.5 5.5L6.6 6.6L5.5 10.5L4.4 6.6L0.5 5.5L4.4 4.4L5.5 0.5Z" fill="currentColor"/></svg>
+                起名
+              </button>
+              <button class="zbs-save-btn" onclick="zbsSaveToLib('story')">存入库</button>
+            </div>
+          </div>
+
+          <div class="zbs-lib">
+            <div class="zbs-lib-hd"><span class="zbs-lib-name">故事库</span><span class="zbs-lib-hint">点击载入 · 再点取消</span></div>
+            <div class="zbs-lib-pills" id="zbsStoryPills"></div>
+          </div>
+        </div>
+        <div style="height:14px"></div>
+      </div>
+
+      <!-- Step 5: 角色 -->
+      <div class="zbs-panel" id="zbsP5">
+
+        <!-- ① 故事角色 —— AI生成 / 用户选择扮演视角 -->
+        <div class="zbs-sec">
+          <div class="zbs-sec-hd"><span class="zbs-sec-num">6</span><span class="zbs-sec-label">故事角色</span><div class="zbs-sec-line"></div></div>
+
+          <p class="zbs-char-hint">AI 会根据你的故事设定自动安排角色登场，无需提前填写。<br>你也可以让 AI 先给你一份角色建议，从中选择<strong>你想扮演的主角视角</strong>，其余角色将由 AI 在故事中自然驱动。</p>
+
+          <!-- AI 建议角色 + 选择主角视角 -->
+          <div id="zbsStoryCharArea">
+            <!-- 未生成时的空状态 -->
+            <div class="zbs-char-empty" id="zbsStoryCharEmpty">
+              还没有角色建议 —— 点击下方按钮，AI 将根据你的故事设定生成可选角色
+            </div>
+            <!-- 生成后渲染在此 -->
+            <div id="zbsStoryCharList"></div>
+          </div>
+
+          <!-- 手动添加配角 -->
+          <div id="zbsCharList"></div>
+
+          <div class="zbs-char-actions">
+            <button class="zbs-add-char" onclick="zbsAddChar()">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5V11.5M1.5 6.5H11.5" stroke="#999" stroke-width=".9"/></svg>
+              手动添加配角
+            </button>
+          </div>
+
+          <button class="zbs-ai-btn zbs-ai-btn-block" id="zbsAiCharSuggestBtn" onclick="zbsAiSuggestChars()">
+            <span class="zbs-ai-dot"></span>AI 生成故事角色建议
+          </button>
+        </div>
+
+        <div class="zbs-div" style="margin:0 0 0"></div>
+
+        <!-- ② 陪玩角色 —— 独立于故事，从角色书邀请 -->
+        <div class="zbs-sec" style="margin-top:0; padding-top:14px">
+          <div class="zbs-sec-hd"><span class="zbs-sec-num-sm">+</span><span class="zbs-sec-label">邀请陪玩</span><div class="zbs-sec-line"></div></div>
+
+          <p class="zbs-char-hint">从你的角色书里邀请一位角色，在你游玩的全程陪着你 —— 和你一起吐槽剧情、聊天互动，完全独立于故事之外。<br><span style="color:#ccc">可以不邀请，完全可选。</span></p>
+
+          <!-- 已选陪玩角色展示 -->
+          <div id="zbsCompanionSlot">
+            <div class="zbs-companion-empty" id="zbsCompanionEmpty">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="11" stroke="#e0e0e0" stroke-width="1.2"/><circle cx="10" cy="12" r="2" fill="#e0e0e0"/><circle cx="18" cy="12" r="2" fill="#e0e0e0"/><path d="M9 18c1.2-2 3.4-3 5-3s3.8 1 5 3" stroke="#e0e0e0" stroke-width="1.2" stroke-linecap="round"/></svg>
+              <div class="zbs-companion-empty-text">暂未邀请陪玩角色</div>
+            </div>
+          </div>
+
+          <button class="zbs-add-char zbs-add-char-companion" id="zbsBtnInviteCompanion" onclick="zbsOpenCharPicker()">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="5" r="2.8" stroke="currentColor" stroke-width=".9" fill="none"/><path d="M1.5 11.5c0-2.8 2.2-4 5-4s5 1.2 5 4" stroke="currentColor" stroke-width=".9" stroke-linecap="round" fill="none"/></svg>
+            从角色书邀请
+          </button>
+
+          <!-- 陪玩互动风格 —— 仅在选了陪玩角色后显示 -->
+          <div id="zbsCompanionStyleArea" style="display:none">
+            <div class="zbs-char-global-hd" style="margin-top:12px">陪玩互动风格 <span class="zbs-fl-hint">可选，影响陪玩角色的聊天方式</span></div>
+            <div class="zbs-chips zbs-chips-multi" id="zbsCompStyleChips">
+              <span class="zbs-chip on">吐槽搭档</span>
+              <span class="zbs-chip">温柔陪伴</span>
+              <span class="zbs-chip">激将助攻</span>
+              <span class="zbs-chip">沉默旁观</span>
+              <span class="zbs-chip">同频共情</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 全局开关 -->
+        <div class="zbs-sec" style="margin-top:0; padding-top:0">
+          <div class="zbs-toggle-box">
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">角色记忆持久化</div><div class="zbs-ti-sub">跨章节保留角色与玩家的关系变化</div></div>
+              <div class="zbs-tog on" id="zbsTogMemory" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">允许角色关系演变</div><div class="zbs-ti-sub">随剧情发展，角色态度与立场可自然转化</div></div>
+              <div class="zbs-tog on" id="zbsTogRelShift" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="zbs-trow">
+              <div class="zbs-ti"><div class="zbs-ti-title">保护玩家主体地位</div><div class="zbs-ti-sub">配角不抢戏，故事焦点始终回归玩家</div></div>
+              <div class="zbs-tog on" id="zbsTogProtect" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:14px"></div>
+      </div>
+
+      <!-- 角色书邀请抽屉（仅用于陪玩） -->
+      <div class="zbs-char-picker-overlay" id="zbsCharPickerOverlay" onclick="zbsCloseCharPicker()"></div>
+      <div class="zbs-char-picker" id="zbsCharPicker">
+        <div class="zbs-cp-hd">
+          <div class="zbs-cp-title">邀请陪玩角色</div>
+          <button class="zbs-cp-close" onclick="zbsCloseCharPicker()">×</button>
+        </div>
+        <div class="zbs-cp-hint">选一位角色，游戏过程中他/她会一直陪着你，和你聊天互动，与故事剧情无关</div>
+        <div class="zbs-cp-loading" id="zbsCpLoading">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" class="zbs-cp-spin"><circle cx="10" cy="10" r="7" stroke="#ddd" stroke-width="1.5"/><path d="M10 3a7 7 0 0 1 7 7" stroke="#0a0a0a" stroke-width="1.5" stroke-linecap="round"/></svg>
+          读取中…
+        </div>
+        <div class="zbs-cp-empty" id="zbsCpEmpty" style="display:none"></div>
+        <div class="zbs-cp-list" id="zbsCpList"></div>
+        <div class="zbs-cp-mode-bar" id="zbsCpModeBar" style="display:none">
+          <button class="zbs-cp-confirm" onclick="zbsConfirmCompanion()">邀请 Ta 陪我玩</button>
+        </div>
+      </div>
+
+    </div><!-- /zbs-scroll -->
+
+    <!-- Footer -->
+    <div class="zbs-foot">
+      <div class="zbs-foot-dots" id="zbsFootDots"></div>
+      <div class="zbs-btn-row">
+        <button class="zbs-btn-prev" id="zbsBtnPrev" onclick="zbsPrevStep()">上一步</button>
+        <button class="zbs-btn-next" id="zbsBtnNext" onclick="zbsNextStep()">下一步</button>
+      </div>
+      <div class="zbs-foot-tip">设定随时可在游戏内修改 · 库中内容跨次复用</div>
+    </div>
+
+  </div><!-- /zbs-wrap -->
+</div><!-- /zbs-overlay -->
+
+<!-- ========================================
+     头部样式选择面板（点击"开始创作"后显示）
+     ======================================== -->
+<div class="zbh-overlay" id="zbhOverlay">
+  <div class="zbh-wrap" id="zbhWrap">
+
+    <!-- 状态栏（一比一复刻） -->
+    <div class="status-bar">
+      <div class="status-time" id="zbhStatusTime"></div>
+      <div class="status-island" id="zbhStatusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="zbhBatPct"></span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="zbhBatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 顶部导航 -->
+    <div class="zbh-nav">
+      <div class="zbh-nav-back" onclick="zbhClose()">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M9 3L5 7.5L9 12" stroke="#666" stroke-width=".9"/></svg>
+        返回设定
+      </div>
+      <div class="zbh-nav-title">开场样式</div>
+      <div class="zbh-nav-sub" id="zbhNavSub">初始化</div>
+    </div>
+
+    <!-- 滚动区 -->
+    <div class="zbh-scroll" id="zbhScroll">
+
+      <!-- Phase 1: 风格偏好输入 -->
+      <div class="zbh-phase" id="zbhPhaseInit">
+        <div class="zbh-phase-hd">
+          <div class="zbh-phase-en">Header Style</div>
+          <div class="zbh-phase-title">为你的故事选一个开场样式</div>
+          <div class="zbh-phase-desc">告诉 AI 你希望的头部风格方向，或留空让 AI 根据你的故事设定自由发挥。</div>
+        </div>
+
+        <div class="zbh-story-summary" id="zbhStorySummary">
+          <!-- 从故事设定中读取，动态渲染 -->
+        </div>
+
+        <div class="zbh-field">
+          <div class="zbh-fl">风格偏好描述 <span class="zbh-fl-hint">可选，留空交给 AI</span></div>
+          <textarea id="zbhStylePref" placeholder="如：想要更暖一点的灰调、标题用手写感字体、极简冷淡风、科幻感强的排版、带氛围渐变的深色头部…" class="zbh-textarea"></textarea>
+        </div>
+
+        <div class="zbh-field">
+          <div class="zbh-fl">基调倾向 <span class="zbh-fl-hint">可多选</span></div>
+          <div class="zbh-chips" id="zbhMoodChips">
+            <span class="zbh-chip">极简冷峻</span>
+            <span class="zbh-chip">沉浸暗黑</span>
+            <span class="zbh-chip">文学书卷</span>
+            <span class="zbh-chip">结构理性</span>
+            <span class="zbh-chip">氛围浓烈</span>
+            <span class="zbh-chip">清雅留白</span>
+          </div>
+        </div>
+
+        <button class="zbh-gen-btn" id="zbhGenBtn" onclick="zbhGenStyles()">
+          <span class="zbh-ai-dot"></span>
+          AI 生成头部样式方案
+        </button>
+
+        <div class="zbh-notice">
+          <span class="zbh-notice-quote">"</span>
+          <p>AI 会综合你的世界观、故事基调与偏好描述，生成 4 种差异化的头部方向供你选择。</p>
+        </div>
+      </div>
+
+      <!-- Phase 2: 样式方案展示与选择 -->
+      <div class="zbh-phase zbh-phase-hidden" id="zbhPhaseSelect">
+
+        <div class="zbh-result-hd">
+          <div class="zbh-result-left">
+            <div class="zbh-result-label">4 种方向</div>
+          </div>
+          <button class="zbh-regen-btn" id="zbhRegenBtn" onclick="zbhShowRegenPanel()">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M9 2.5A4.5 4.5 0 1 0 10 5.5" stroke="currentColor" stroke-width=".9" stroke-linecap="round"/><path d="M10 2.5V1M10 2.5H8.5" stroke="currentColor" stroke-width=".9" stroke-linecap="round"/></svg>
+            换一批
+          </button>
+        </div>
+
+        <!-- 重新生成：问题描述面板（默认隐藏） -->
+        <div class="zbh-regen-panel" id="zbhRegenPanel">
+          <div class="zbh-fl">哪里不满意？ <span class="zbh-fl-hint">告诉 AI 改进方向</span></div>
+          <textarea id="zbhRegenNote" placeholder="如：颜色太暗了、希望有更强的科幻感、标题排版不够有张力、想要更有书页感…" class="zbh-textarea zbh-textarea-sm"></textarea>
+          <button class="zbh-gen-btn zbh-gen-btn-sm" onclick="zbhRegenStyles()">
+            <span class="zbh-ai-dot"></span>重新生成
+          </button>
+        </div>
+
+        <!-- 4 个方案卡片区 -->
+        <div class="zbh-cards" id="zbhCards">
+          <!-- 动态渲染 -->
+        </div>
+
+        <!-- 提示语 -->
+        <div class="zbh-notice">
+          <span class="zbh-notice-quote">"</span>
+          <p>以上方案仅供参考，选择后 AI 仍会按你的设定调整细节；进入故事后随时可在设置中切换样式。</p>
+        </div>
+
+        <!-- 补充描述 -->
+        <div class="zbh-field" style="margin-top:4px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span class="zbh-fl" style="margin-bottom:0">补充描述</span>
+            <span style="flex:1;height:0.5px;background:#eee;display:block;"></span>
+            <span style="font-size:10px;color:#bbb">可选</span>
+          </div>
+          <textarea id="zbhExtraNote" placeholder="如：想要更暖一点的灰调、标题用手写感字体、头部带氛围插图…" class="zbh-textarea zbh-textarea-sm"></textarea>
+        </div>
+
+      </div>
+
+    </div><!-- /zbh-scroll -->
+
+    <!-- 底部操作区 -->
+    <div class="zbh-foot" id="zbhFoot">
+
+      <!-- Phase 1 底部 -->
+      <div id="zbhFootInit">
+        <div class="zbh-btn-row">
+          <button class="zbh-btn-skip" onclick="zbhSkipStyle()">跳过，让 AI 自由决定</button>
+          <button class="zbh-btn-next" id="zbhBtnGenFoot" onclick="zbhGenStyles()">生成样式方案</button>
+        </div>
+        <div class="zbh-foot-tip">选择样式不影响剧情内容 · 进入故事后随时可调整</div>
+      </div>
+
+      <!-- Phase 2 底部 -->
+      <div id="zbhFootSelect" style="display:none">
+        <div class="zbh-btn-row">
+          <button class="zbh-btn-save" id="zbhBtnSave" onclick="zbhSaveStyle()">存入风格库</button>
+          <button class="zbh-btn-enter" id="zbhBtnEnter" onclick="zbhEnterStory()">进入故事</button>
+        </div>
+        <div class="zbh-foot-tip">页面风格随时可调整 · 不影响剧情内容</div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<div class="zbs-toast" id="zbsToast"></div>
+
+<!-- ========================================
+     创作页面（进入故事后显示）
+     zbg 命名空间 — 动态头部 + 沉浸等待 + 悬浮球
+     ======================================== -->
+<div class="zbg-overlay" id="zbgOverlay">
+  <div class="zbg-wrap" id="zbgWrap">
+
+    <!-- 状态栏（与其他页面一比一复刻，zbg 专属 id） -->
+    <div class="status-bar zbg-status-bar">
+      <div class="status-time" id="zbgStatusTime"></div>
+      <div class="status-island" id="zbgStatusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="zbgBatPct"></span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="zbgBatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ★ 动态头部区 — 由 AI 生成的 HTML 注入此处 -->
+    <div class="zbg-header-mount" id="zbgHeaderMount">
+      <!-- zbhDoEnterStory 调用后，AI 生成的头部 HTML 注入至此 -->
+      <!-- 默认骨架，进入前会被替换 -->
+      <div class="zbg-header-skeleton">
+        <div class="zbg-sk-bg"></div>
+        <div class="zbg-sk-content">
+          <div class="zbg-sk-logo"></div>
+          <div class="zbg-sk-chapter"></div>
+          <div class="zbg-sk-title"></div>
+          <div class="zbg-sk-divider"></div>
+        </div>
+        <!-- 已选样式 badge -->
+        <div class="zbg-style-badge" id="zbgStyleBadge">
+          <span class="zbg-style-dot"></span>
+          <span class="zbg-style-name" id="zbgStyleName">载入中</span>
+        </div>
+        <!-- 同步状态 -->
+        <div class="zbg-sync-badge" id="zbgSyncBadge">
+          <span class="zbg-sync-ring"></span>
+          <span class="zbg-sync-txt" id="zbgSyncTxt">已同步</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 内容主体区 — AI 未返回前展示沉浸等待界面 -->
+    <div class="zbg-body" id="zbgBody">
+
+      <!-- 等待态（AI 构思中） -->
+      <div class="zbg-init-screen" id="zbgInitScreen">
+        <div class="zbg-deco-rule">
+          <div class="zbg-deco-line"></div>
+          <div class="zbg-deco-dot"></div>
+          <div class="zbg-deco-diamond"></div>
+          <div class="zbg-deco-dot"></div>
+          <div class="zbg-deco-line"></div>
+        </div>
+
+        <div class="zbg-center-icon" id="zbgCenterIcon">
+          <div class="zbg-ci-pulse"></div>
+          <div class="zbg-ci-pulse zbg-ci-pulse2"></div>
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+            <path d="M6 20 Q13 8 20 20" stroke="#c8c8c8" stroke-width="1" fill="none" stroke-linecap="round"/>
+            <circle cx="13" cy="11" r="1.8" fill="#d4d4d4"/>
+            <line x1="7" y1="22" x2="19" y2="22" stroke="#e2e2e2" stroke-width=".7"/>
+            <line x1="9.5" y1="24" x2="16.5" y2="24" stroke="#ebebeb" stroke-width=".5"/>
+          </svg>
+        </div>
+
+        <div class="zbg-hint-en">— Awaiting your first move —</div>
+
+        <div class="zbg-hint-zh" id="zbgHintZh">
+          AI 执笔在侧，等你一声令下<br>
+          点击唤醒，故事将为你而起
+        </div>
+
+        <div class="zbg-hint-sub">由 AI 生成专属开场，无须手动输入</div>
+
+        <button class="zbg-awaken-btn" id="zbgAwakenBtn" onclick="zbgAwaken()">
+          <div class="zbg-ab-shimmer"></div>
+        <div class="zbg-ab-ring"></div>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0;opacity:.65">
+            <circle cx="6.5" cy="6.5" r="5.2" stroke="rgba(255,255,255,.5)" stroke-width=".7" fill="none"/>
+            <path d="M5 6.5H8.5M6.5 5L8.5 6.5L6.5 8" stroke="rgba(255,255,255,.85)" stroke-width=".8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="zbg-aw-label" id="zbgAwLabel">唤醒故事</span>
+        </button>
+
+        <div class="zbg-deco-rule">
+          <div class="zbg-deco-line"></div>
+          <div class="zbg-deco-dot"></div>
+          <div class="zbg-deco-diamond"></div>
+          <div class="zbg-deco-dot"></div>
+          <div class="zbg-deco-line"></div>
+        </div>
+      </div>
+
+      <!-- 故事内容区（AI 返回后注入，初始隐藏） -->
+      <div class="zbg-story-content" id="zbgStoryContent" style="display:none">
+        <!-- AI 生成的故事章节 HTML 注入此处 -->
+      </div>
+
+    </div>
+
+    <!-- ★ 悬浮球系统 -->
+    <div class="zbg-fab-wrap" id="zbgFabWrap">
+
+      <!-- 毛玻璃遮罩 -->
+      <div class="zbg-fab-overlay" id="zbgFabOverlay" onclick="zbgFabClose()"></div>
+
+      <!-- 连线 SVG（luxury orb 风格） -->
+      <svg class="zbg-silk-svg" id="zbgSilkSvg">
+        <line class="zbg-silk" x1="38" y1="38" x2="35"  y2="-90"/>
+        <line class="zbg-silk" x1="38" y1="38" x2="-66" y2="-58"/>
+        <line class="zbg-silk" x1="38" y1="38" x2="-90" y2="35"/>
+        <line class="zbg-silk" x1="38" y1="38" x2="-66" y2="106"/>
+      </svg>
+
+      <!-- 花瓣 1：保存 — 正上方 -->
+      <div class="zbg-petal zbg-p1" id="zbgP1" onclick="zbgFabAction('save')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <rect x="4" y="4" width="16" height="16" rx="2.5" stroke="#9c9690" stroke-width="1.3"/>
+          <rect x="7" y="4" width="7" height="5" rx="0" fill="none" stroke="#9c9690" stroke-width="1.1"/>
+          <rect x="12.5" y="5" width="1.5" height="3" rx=".75" fill="#9c9690" opacity=".6"/>
+          <rect x="6" y="13" width="12" height="5" rx="1" stroke="#9c9690" stroke-width="1" opacity=".5"/>
+        </svg>
+        <span class="zbg-petal-lbl">保存</span>
+      </div>
+
+      <!-- 花瓣 2：历史 — 正右方 -->
+      <div class="zbg-petal zbg-p2" id="zbgP2" onclick="zbgFabAction('history')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="7.5" stroke="#9c9690" stroke-width="1.3"/>
+          <line x1="12" y1="12" x2="12" y2="7" stroke="#9c9690" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="12" y1="12" x2="15.5" y2="14" stroke="#9c9690" stroke-width="1.4" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="1.2" fill="#9c9690"/>
+        </svg>
+        <span class="zbg-petal-lbl">历史</span>
+      </div>
+
+      <!-- 花瓣 3：设置 — 正下方 -->
+      <div class="zbg-petal zbg-p3" id="zbgP3" onclick="zbgFabAction('settings')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" stroke="#9c9690" stroke-width="1.3"/>
+          <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2" stroke="#9c9690" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M5.64 5.64l1.42 1.42M16.94 16.94l1.42 1.42M5.64 18.36l1.42-1.42M16.94 7.06l1.42-1.42" stroke="#9c9690" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <span class="zbg-petal-lbl">设置</span>
+      </div>
+
+      <!-- 花瓣 4：角色 — 正左方 -->
+      <div class="zbg-petal zbg-p4" id="zbgP4" onclick="zbgFabAction('char')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="8" r="3.5" stroke="#9c9690" stroke-width="1.3"/>
+          <path d="M5 20c0-3.866 3.134-6 7-6s7 2.134 7 6" stroke="#9c9690" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <span class="zbg-petal-lbl">角色</span>
+      </div>
+
+      <!-- 主按钮 · luxury orb 风格 -->
+      <div class="zbg-orb-wrap" id="zbgFabBtn">
+        <!-- 旋转装饰环 -->
+        <div class="zbg-orb-ring zbg-orb-r1"></div>
+        <div class="zbg-orb-ring zbg-orb-r2"></div>
+        <!-- 脉冲 -->
+        <div class="zbg-orb-pulse" id="zbgOrbPulse"></div>
+        <!-- 球体 -->
+        <div class="zbg-fab-btn" id="zbgOrbCore">
+          <!-- 高光 -->
+          <div class="zbg-orb-hl1"></div>
+          <div class="zbg-orb-hl2"></div>
+          <!-- 球内 SVG 纹样 -->
+          <svg class="zbg-orb-art" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="zbgRg" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="rgba(155,149,141,0.0)"/>
+                <stop offset="60%" stop-color="rgba(155,149,141,0.18)"/>
+                <stop offset="100%" stop-color="rgba(155,149,141,0.0)"/>
+              </radialGradient>
+            </defs>
+            <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(148,142,134,0.15)" stroke-width="0.5"/>
+            <circle cx="28" cy="28" r="17" fill="none" stroke="rgba(148,142,134,0.18)" stroke-width="0.5"/>
+            <circle cx="28" cy="28" r="12" fill="none" stroke="rgba(148,142,134,0.2)" stroke-width="0.5"/>
+            <circle cx="28" cy="28" r="7"  fill="none" stroke="rgba(148,142,134,0.2)" stroke-width="0.5"/>
+            <g stroke="rgba(145,139,131,0.13)" stroke-width="0.5">
+              <line x1="28" y1="6" x2="28" y2="50"/>
+              <line x1="6"  y1="28" x2="50" y2="28"/>
+              <line x1="12.3" y1="12.3" x2="43.7" y2="43.7"/>
+              <line x1="43.7" y1="12.3" x2="12.3" y2="43.7"/>
+              <line x1="28" y1="6" x2="28" y2="50" transform="rotate(22.5 28 28)"/>
+              <line x1="6"  y1="28" x2="50" y2="28" transform="rotate(22.5 28 28)"/>
+            </g>
+            <g transform="translate(28,28)" stroke="rgba(140,134,126,0.28)" stroke-width="0.5" fill="none">
+              <ellipse rx="3" ry="8" transform="rotate(0)"/>
+              <ellipse rx="3" ry="8" transform="rotate(45)"/>
+              <ellipse rx="3" ry="8" transform="rotate(90)"/>
+              <ellipse rx="3" ry="8" transform="rotate(135)"/>
+              <circle r="3" stroke="rgba(140,134,126,0.3)" stroke-width="0.6"/>
+              <circle r="1.2" fill="rgba(148,142,134,0.22)" stroke="none"/>
+            </g>
+            <circle cx="28" cy="28" r="28" fill="url(#zbgRg)"/>
+          </svg>
+          <!-- 加/关图标（保留逻辑用，透明叠加） -->
+          <svg class="zbg-fab-icon" id="zbgFabIconPlus" width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <line x1="9" y1="3" x2="9" y2="15" stroke="rgba(140,134,126,.7)" stroke-width="1.6" stroke-linecap="round"/>
+            <line x1="3" y1="9" x2="15" y2="9" stroke="rgba(140,134,126,.7)" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <svg class="zbg-fab-icon" id="zbgFabIconClose" width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:none;opacity:0">
+            <line x1="3" y1="3" x2="13" y2="13" stroke="rgba(140,134,126,.7)" stroke-width="1.6" stroke-linecap="round"/>
+            <line x1="13" y1="3" x2="3" y2="13" stroke="rgba(140,134,126,.7)" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 保存进度弹窗 -->
+    <div class="zbg-modal-overlay" id="zbgSaveModal" onclick="zbgCloseModal('zbgSaveModal')">
+      <div class="zbg-modal" onclick="event.stopPropagation()">
+        <div class="zbg-modal-hd">
+          <div class="zbg-modal-title">保存进度</div>
+          <button class="zbg-modal-close" onclick="zbgCloseModal('zbgSaveModal')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="#999" stroke-width=".9"/></svg>
+          </button>
+        </div>
+        <div class="zbg-modal-body">
+          <div class="zbg-save-chapter" id="zbgSaveChapter">第 1 章 · 序章</div>
+          <div class="zbg-save-time" id="zbgSaveTime"></div>
+          <button class="zbg-save-confirm-btn" onclick="zbgDoSave()">确认保存</button>
+          <div class="zbg-save-note">进度将保存至本地，继续上次可在首页点击「继续」</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 历史进度弹窗 -->
+    <div class="zbg-modal-overlay" id="zbgHistoryModal" onclick="zbgCloseModal('zbgHistoryModal')">
+      <div class="zbg-modal" onclick="event.stopPropagation()">
+        <div class="zbg-modal-hd">
+          <div class="zbg-modal-title">历史进度</div>
+          <button class="zbg-modal-close" onclick="zbgCloseModal('zbgHistoryModal')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="#999" stroke-width=".9"/></svg>
+          </button>
+        </div>
+        <div class="zbg-modal-body" id="zbgHistoryList">
+          <div class="zbg-history-empty">暂无保存记录</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div class="zbg-modal-overlay" id="zbgSettingsModal" onclick="zbgCloseModal('zbgSettingsModal')">
+      <div class="zbg-modal" onclick="event.stopPropagation()">
+        <div class="zbg-modal-hd">
+          <div class="zbg-modal-title">游戏设置</div>
+          <button class="zbg-modal-close" onclick="zbgCloseModal('zbgSettingsModal')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="#999" stroke-width=".9"/></svg>
+          </button>
+        </div>
+        <div class="zbg-modal-body">
+          <div class="zbg-settings-row">
+            <div class="zbg-settings-label">切换头部样式</div>
+            <button class="zbg-settings-btn" onclick="zbgReswitchHeader()">重新选择</button>
+          </div>
+          <div class="zbg-settings-row">
+            <div class="zbg-settings-label">返回首页</div>
+            <button class="zbg-settings-btn zbg-settings-btn-danger" onclick="zbgExitToHome()">退出故事</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 角色弹窗 -->
+    <div class="zbg-modal-overlay" id="zbgCharModal" onclick="zbgCloseModal('zbgCharModal')">
+      <div class="zbg-modal" onclick="event.stopPropagation()">
+        <div class="zbg-modal-hd">
+          <div class="zbg-modal-title">故事角色</div>
+          <button class="zbg-modal-close" onclick="zbgCloseModal('zbgCharModal')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="#999" stroke-width=".9"/></svg>
+          </button>
+        </div>
+        <div class="zbg-modal-body" id="zbgCharList">
+          <div class="zbg-history-empty">暂无角色记录</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="zhibi.js"></script>
+</body>
+</html>
