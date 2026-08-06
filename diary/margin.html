@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>侧笔记录 · Luna Diary</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="margin.css" />
+</head>
+<body style="margin:0; padding:0;">
+
+<div class="margin-app" id="marginApp">
+
+  <!-- 背景光晕层，与日记主页保持同一套视觉语言 -->
+  <div class="margin-aurora"></div>
+  <div class="margin-grain"></div>
+
+  <!-- ============================================================
+       状态栏 —— 结构与主状态栏 / 详情页状态栏完全一致，
+       由 margin.js 同步真实时间 / 电量 / 灵动岛设置，
+       避免从日记详情页跳转进来后出现"观感断裂"。
+  ============================================================ -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       顶部工具条 —— 返回 · 标题徽记 · 占位（保持三段式平衡）
+  ============================================================ -->
+  <div class="margin-topbar">
+    <button class="margin-back-btn" id="marginBackBtn" aria-label="返回">
+      <span class="mbb-ring"></span>
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M14.5 6.5 C10.5 8.5 8 10.5 7 12 C8 13.5 10.5 15.5 14.5 17.5" />
+        <path class="mbb-tail" d="M7 12 L11.5 12" />
+      </svg>
+    </button>
+
+    <div class="margin-topbar-mark">
+      <span class="mtm-dot"></span>
+      <span class="mtm-text">
+        <span class="mtm-title">侧笔记录</span>
+        <span class="mtm-sub">Margin Notes</span>
+      </span>
+    </div>
+
+    <button class="margin-history-btn" id="marginHistoryBtn" aria-label="历史批注">
+      <span class="mhb-halo"></span>
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M5 6.5h11.5M5 12h8.5M5 17.5h6" stroke-linecap="round"/>
+        <circle cx="18.5" cy="16.5" r="3.6" />
+        <path d="M18.5 15v1.7l1.2 1" stroke-linecap="round"/>
+      </svg>
+      <span class="mhb-count" id="mhbCount" hidden>0</span>
+    </button>
+  </div>
+
+  <!-- ============================================================
+       可滚动主体
+  ============================================================ -->
+  <div class="margin-scroll" id="marginScroll">
+    <div class="margin-scroll-inner">
+
+      <!-- ============================================================
+           被批注的原文引卡 —— 日期徽记 + 心情天气 + 正文摘录
+      ============================================================ -->
+      <div class="source-card" id="sourceCard">
+        <div class="source-card-spine"></div>
+        <div class="source-card-inner">
+          <div class="source-datemark">
+            <span class="sdm-day" id="sdmDay">02</span>
+            <span class="sdm-meta">
+              <span class="sdm-weekday" id="sdmWeekday">星期日</span>
+              <span class="sdm-month" id="sdmMonth">AUGUST 2026</span>
+            </span>
+            <span class="sdm-condition" id="sdmCondition"></span>
+          </div>
+          <h2 class="source-title" id="sourceTitle">无题</h2>
+          <div class="source-excerpt" id="sourceExcerpt">这段文字尚未加载……</div>
+          <button class="source-expand-btn" id="sourceExpandBtn" type="button">
+            <span id="sourceExpandText">展开全文</span>
+            <svg viewBox="0 0 12 12" fill="none"><path d="M3 4.5 L6 7.5 L9 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           选角区整体容器 —— 说明卡 + 区块标签 + 角色轨道 + 空态，
+           全部包在同一个容器里，交给 showState() 统一管理显隐。
+           这样"生成中/已有结果"时只需要隐藏这一个容器，
+           不必逐个记住里面还有哪些子块要一起收起——
+           这正是上一版遗漏说明卡与角色轨道导致重叠的原因。
+      ============================================================ -->
+      <div class="picker-zone" id="pickerZone">
+
+        <!-- 说明卡：解释「侧笔记录」这个功能是什么 -->
+        <div class="intro-plate">
+          <div class="intro-plate-glyph">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M5 19 L5.7 15.9C5.8 15.4 6.05 14.95 6.4 14.6 L15.3 5.7C16.1 4.9 17.4 4.9 18.2 5.7L18.3 5.8C19.1 6.6 19.1 7.9 18.3 8.7L9.4 17.6C9.05 17.95 8.6 18.2 8.1 18.3Z"/>
+              <path d="M13.6 7.4 L16.6 10.4" opacity="0.6"/>
+            </svg>
+          </div>
+          <div class="intro-plate-text">
+            <span class="intro-plate-title">她们会在页边，写下没说出口的话</span>
+            <span class="intro-plate-body">选一位角色，让 Ta 以自己的视角批注这篇日记——既有 Ta 愿意说给你听的解读，也有只留在 Ta 心底、未曾出口的真实想法。两段文字，一明一暗，如同书页边缘被悄悄写下的批注。</span>
+          </div>
+        </div>
+
+        <!-- 角色选择区 —— 横向卡片轮播，从 LunaCharDB 同步 -->
+        <div class="section-label">
+          <span class="sl-line"></span>
+          <span>选择一位执笔者</span>
+          <span class="sl-sub">CHOOSE A VOICE</span>
+        </div>
+
+        <div class="char-rail-wrap">
+          <div class="char-rail" id="charRail">
+            <!-- 角色卡片由 margin.js 动态渲染插入这里 -->
+            <div class="char-rail-loading" id="charRailLoading">
+              <div class="crl-spinner"></div>
+              <span>正在同步角色档案……</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 无角色时的空态提示 -->
+        <div class="char-empty-state" id="charEmptyState" hidden>
+          <div class="ces-mark"></div>
+          <div class="ces-text">还没有任何角色档案</div>
+          <div class="ces-sub">先去「角色」页建立一位人物，Ta 才能读懂这页日记</div>
+          <button class="ces-goto-btn" id="cesGotoBtn" type="button">前往角色档案</button>
+        </div>
+
+      </div>
+
+      <!-- ============================================================
+           生成按钮 —— 选中角色后浮现
+      ============================================================ -->
+      <div class="generate-dock" id="generateDock" hidden>
+        <div class="generate-dock-info">
+          <span class="gdi-label">已选中</span>
+          <span class="gdi-name" id="gdiName">—</span>
+        </div>
+        <button class="generate-btn" id="generateBtn" type="button">
+          <span class="gb-shimmer"></span>
+          <span class="gb-glyph">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 3.5c-1 2-1 4 .3 5.3C13.6 10 15.7 10 17.7 9c-.6 2.4-2.6 4.3-5.1 4.7-3.4.5-6.6-1.7-7.3-5C4.7 5.4 8 2.6 12 3.5Z"/>
+              <circle cx="17" cy="15.5" r="0.9" fill="currentColor" stroke="none"/>
+              <circle cx="8.5" cy="18.5" r="0.6" fill="currentColor" stroke="none"/>
+            </svg>
+          </span>
+          <span class="gb-text" id="gbText">让 Ta 写下批注</span>
+        </button>
+      </div>
+
+      <!-- ============================================================
+           生成中的仪式感等待态
+      ============================================================ -->
+      <div class="conjuring-plate" id="conjuringPlate" hidden>
+        <div class="conjuring-orb">
+          <div class="co-ring co-ring-1"></div>
+          <div class="co-ring co-ring-2"></div>
+          <div class="co-ring co-ring-3"></div>
+          <div class="co-core"></div>
+        </div>
+        <div class="conjuring-text" id="conjuringText">Ta 正在展开这页日记……</div>
+        <div class="conjuring-sub">批注需要斟酌字句，请稍候片刻</div>
+      </div>
+
+      <!-- ============================================================
+           批注结果展示区 —— 解读 + 内心真实想法，双栏华丽卡片
+      ============================================================ -->
+      <div class="result-wrap" id="resultWrap" hidden>
+
+        <div class="result-header">
+          <div class="result-header-avatar" id="resultAvatar"></div>
+          <div class="result-header-info">
+            <span class="rhi-name" id="resultCharName">—</span>
+            <span class="rhi-meta" id="resultCharMeta">批注生成于 —</span>
+          </div>
+          <button class="result-regenerate-btn" id="resultRegenBtn" type="button" aria-label="重新生成">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 12a8 8 0 0 1 13.9-5.4M20 12a8 8 0 0 1-13.9 5.4" stroke-linecap="round"/>
+              <path d="M17.5 4.5v3.5H14M6.5 19.5V16H10" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 卡片一：她对这篇日记的解读（Ta 愿意说出口的） -->
+        <div class="note-card note-card-reading">
+          <div class="note-card-deco"></div>
+          <div class="note-card-ribbon">
+            <span class="ncr-icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 19.5V6a2 2 0 0 1 2-2h9.5L20 8.5V19.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M15 4v4.5h4.5" /><path d="M7.5 12.5h9M7.5 15.5h9M7.5 9.5h4" /></svg>
+            </span>
+            <span class="ncr-text">
+              <span class="ncr-title">她的解读</span>
+              <span class="ncr-sub">What She Reads Into It</span>
+            </span>
+          </div>
+          <div class="note-card-quote-mark">“</div>
+          <div class="note-card-body" id="readingBody"></div>
+          <div class="note-card-footmark">
+            <span class="ncf-line"></span>
+            <span id="readingWordCount">0 字</span>
+            <span class="ncf-line"></span>
+          </div>
+        </div>
+
+        <!-- 卡片二：内心真实想法（Ta 未曾说出口的） -->
+        <div class="note-card note-card-inner">
+          <div class="note-card-deco note-card-deco-dark"></div>
+          <div class="note-card-ribbon note-card-ribbon-dark">
+            <span class="ncr-icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 19c-.3 0-.6-.1-.8-.3C7.8 15.9 5 13.4 5 10.3 5 8 6.8 6.2 9 6.2c1.1 0 2.2.5 3 1.4.8-.9 1.9-1.4 3-1.4 2.2 0 4 1.8 4 4.1 0 3.1-2.8 5.6-6.2 8.4-.2.2-.5.3-.8.3Z"/></svg>
+            </span>
+            <span class="ncr-text">
+              <span class="ncr-title">未曾出口的心底话</span>
+              <span class="ncr-sub">Unspoken Inner Voice</span>
+            </span>
+          </div>
+          <div class="note-card-seal">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.6"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5"/></svg>
+            <span>仅你可见</span>
+          </div>
+          <div class="note-card-body note-card-body-inner" id="innerBody"></div>
+          <div class="note-card-footmark">
+            <span class="ncf-line"></span>
+            <span id="innerWordCount">0 字</span>
+            <span class="ncf-line"></span>
+          </div>
+        </div>
+
+        <!-- 底部操作条：收藏 / 分享 / 再写一段追问 -->
+        <div class="result-actions">
+          <button class="ra-btn ra-save" id="raSaveBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 4.5h12v15l-6-3.8-6 3.8Z"/></svg>
+            <span id="raSaveText">收藏这段批注</span>
+          </button>
+          <button class="ra-btn ra-ask" id="raAskBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-1 2-1 4 .3 5.3C13.6 10 15.7 10 17.7 9c-.6 2.4-2.6 4.3-5.1 4.7-3.4.5-6.6-1.7-7.3-5C4.7 5.4 8 2.6 12 3.5Z"/></svg>
+            <span>再问 Ta 一句</span>
+          </button>
+        </div>
+
+        <!-- 追问输入条（点击"再问 Ta 一句"后展开） -->
+        <div class="ask-more-row" id="askMoreRow" hidden>
+          <input class="ask-more-input" id="askMoreInput" type="text" placeholder="想追问 Ta 关于这篇日记的什么……" maxlength="80" />
+          <button class="ask-more-send" id="askMoreSend" type="button" aria-label="发送">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h15M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <!-- 追问的往来记录 -->
+        <div class="follow-thread" id="followThread"></div>
+
+      </div>
+
+      <!-- 错误提示态（API 未配置 / 请求失败） -->
+      <div class="error-plate" id="errorPlate" hidden>
+        <div class="error-plate-glyph">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v5M12 15.5v.1" stroke-linecap="round"/></svg>
+        </div>
+        <div class="error-plate-text" id="errorPlateText">生成失败，请稍后再试</div>
+        <button class="error-retry-btn" id="errorRetryBtn" type="button">重新尝试</button>
+      </div>
+
+      <div class="margin-bottom-pad"></div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       历史批注浮层 —— 点击右上角历史按钮弹出
+  ============================================================ -->
+  <div class="history-veil" id="historyVeil"></div>
+  <div class="history-modal" id="historyModal" aria-hidden="true">
+    <div class="hm-sheet">
+      <div class="hm-handle"></div>
+      <div class="hm-topbar">
+        <div class="hm-topbar-mark">
+          <span class="hm-dot"></span>
+          <span class="hm-title">历史批注</span>
+          <span class="hm-sub">Archive</span>
+        </div>
+        <button class="hm-close" id="hmCloseBtn" aria-label="关闭">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="hm-body" id="hmBody">
+        <!-- 由 margin.js 动态渲染该篇日记的历史批注列表 -->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="margin.js"></script>
+</body>
+</html>

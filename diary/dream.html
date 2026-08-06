@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>共感梦境 · Luna Diary</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="dream.css" />
+</head>
+<body>
+
+<div class="dream-app" id="dreamApp">
+
+  <!-- 背景漂浮光尘 -->
+  <div class="dream-dust" id="dreamDust"></div>
+
+  <!-- 状态栏：结构与 diary.html 一致，由 dream.js 同步时间 / 电量 / 灵动岛 -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell"><div class="bat-inner" id="batInner"></div><div class="bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 顶部工具条 -->
+  <div class="dream-topbar">
+    <button class="dream-back-btn" id="backBtn" aria-label="返回">
+      <span class="dbb-ring"></span>
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M14.5 6.5 C10.5 8.5 8 10.5 7 12 C8 13.5 10.5 15.5 14.5 17.5" />
+      </svg>
+    </button>
+
+    <div class="dream-topbar-mark">
+      <span class="dtm-eyebrow"><span class="dtm-dot"></span>Empathic Reverie</span>
+      <span class="dtm-title">共感梦境</span>
+    </div>
+
+    <button class="dream-archive-btn" id="archiveBtn" aria-label="梦境档案">
+      <span class="dbb-ring"></span>
+      <span class="archive-badge-dot" id="archiveBadge"></span>
+      <svg viewBox="0 0 24 24" fill="none">
+        <ellipse cx="12" cy="12" rx="7.5" ry="9.5"/>
+        <path d="M4.5 12h15M12 2.5v19"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 四段式进度轨迹 -->
+  <div class="dream-progress" id="dreamProgress">
+    <div class="dp-step active" data-step="topic"><span class="dp-dot"></span></div>
+    <div class="dp-line"></div>
+    <div class="dp-step" data-step="char"><span class="dp-dot"></span></div>
+    <div class="dp-line"></div>
+    <div class="dp-step" data-step="reverie"><span class="dp-dot"></span></div>
+    <div class="dp-line"></div>
+    <div class="dp-step" data-step="archive"><span class="dp-dot"></span></div>
+  </div>
+
+  <!-- 舞台容器 -->
+  <div class="dream-stage-wrap">
+
+    <!-- ============================================================
+         Stage 1 · 话题输入
+    ============================================================ -->
+    <div class="dream-stage active" data-stage="topic">
+
+      <div class="source-quote" id="sourceQuoteTopic"></div>
+
+      <div class="stage-headline">
+        <div class="sh-eyebrow">STEP 01 · TOPIC</div>
+        <div class="sh-title">此刻，想让 <em>Ta</em> 共感些什么？</div>
+        <div class="sh-sub">写下一个话题，或让 AI 从这篇日记里，替你找到值得被回应的那一处。</div>
+      </div>
+
+      <div class="topic-input-shell">
+        <textarea class="topic-textarea" id="topicInput" placeholder="例如：今天那种说不清的失落感，好像一直没被真正理解过……" maxlength="200"></textarea>
+        <div class="topic-input-foot">
+          <span class="tif-count"><span id="topicCount">0</span>/200</span>
+          <button class="ai-suggest-btn" id="aiSuggestBtn" type="button">
+            <svg viewBox="0 0 24 24"><path d="M12 3.5c-1 2-1 4 .3 5.3C13.6 10 15.7 10 17.7 9c-.6 2.4-2.6 4.3-5.1 4.7-3.4.5-6.6-1.7-7.3-5C4.7 5.4 8 2.6 12 3.5Z"/></svg>
+            <span id="aiSuggestBtnText">AI 帮我想</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="topic-suggest-list" id="topicSuggestList" hidden></div>
+
+      <div class="topic-presets" id="topicPresets" hidden>
+        <div class="tp-label">或从这些方向开始 · STARTING POINTS</div>
+        <div class="topic-suggest-list" id="topicPresetList"></div>
+      </div>
+
+      <button class="stage-next-btn" id="toCharBtn" type="button" disabled>
+        <span class="snb-glow"></span>
+        <span>选择共感的角色</span>
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+
+    </div>
+
+    <!-- ============================================================
+         Stage 2 · 角色甄选
+    ============================================================ -->
+    <div class="dream-stage" data-stage="char">
+
+      <div class="source-quote" id="sourceQuoteChar"></div>
+
+      <div class="stage-headline">
+        <div class="sh-eyebrow">STEP 02 · CHARACTER</div>
+        <div class="sh-title">由 <em>谁</em>，来接住这段心情？</div>
+        <div class="sh-sub">共感回应会完全代入 Ta 的人设、语气与视角来书写。</div>
+      </div>
+
+      <div class="char-gallery" id="charGallery"></div>
+
+      <div class="char-empty" id="charEmptyState" hidden>
+        <div class="char-empty-glyph">
+          <svg viewBox="0 0 24 24"><path d="M12 19c-.3 0-.6-.1-.8-.3C7.8 15.9 5 13.4 5 10.3 5 8 6.8 6.2 9 6.2c1.1 0 2.2.5 3 1.4.8-.9 1.9-1.4 3-1.4 2.2 0 4 1.8 4 4.1 0 3.1-2.8 5.6-6.2 8.4-.2.2-.5.3-.8.3Z"/></svg>
+        </div>
+        <div class="char-empty-text">尚未创建任何角色</div>
+        <div class="char-empty-sub">前往「角色档案」先塑造一位 Ta，再回来赴这场共感之约</div>
+      </div>
+
+      <button class="stage-next-btn" id="toReverieBtn" type="button" disabled>
+        <span class="snb-glow"></span>
+        <span>唤醒共感梦境</span>
+        <svg viewBox="0 0 24 24"><path d="M12 3.5c-1 2-1 4 .3 5.3C13.6 10 15.7 10 17.7 9c-.6 2.4-2.6 4.3-5.1 4.7-3.4.5-6.6-1.7-7.3-5C4.7 5.4 8 2.6 12 3.5Z"/></svg>
+      </button>
+
+    </div>
+
+    <!-- ============================================================
+         Stage 3 · 共感回响
+    ============================================================ -->
+    <div class="dream-stage" data-stage="reverie">
+
+      <!-- 生成中 -->
+      <div class="reverie-loading" id="reverieLoading" hidden>
+        <div class="rl-orb-wrap">
+          <div class="rl-orb-ring r2"></div>
+          <div class="rl-orb-ring r3"></div>
+          <div class="rl-orb-core"></div>
+          <div class="rl-orb-particle"></div>
+          <div class="rl-orb-particle"></div>
+          <div class="rl-orb-particle"></div>
+        </div>
+        <div class="rl-text" id="rlText">正在织梦……</div>
+        <div class="rl-sub">EMPATHIC REVERIE IN PROGRESS</div>
+        <div class="rl-steps">
+          <div class="rl-step" data-rl="read"><span class="rl-step-dot"></span>读入这篇日记的心情与文字</div>
+          <div class="rl-step" data-rl="embody"><span class="rl-step-dot"></span>代入角色人设与语气</div>
+          <div class="rl-step" data-rl="write"><span class="rl-step-dot"></span>写下共感回应、配图与心声</div>
+        </div>
+      </div>
+
+      <!-- 生成结果 -->
+      <div class="reverie-result" id="reverieResult" hidden>
+        <div class="rr-char-mark">
+          <div class="rr-avatar" id="rrAvatar"></div>
+          <div class="rr-char-info">
+            <div class="rr-char-name" id="rrCharName">—</div>
+            <div class="rr-char-topic" id="rrTopic">—</div>
+          </div>
+          <div class="rr-timestamp" id="rrTimestamp">—</div>
+        </div>
+
+        <div class="rr-body-shell">
+          <span class="rr-quote-mark">"</span>
+          <div class="rr-body-text" id="rrBodyText"></div>
+        </div>
+
+        <div class="rr-wordcount-row">
+          <span class="rr-wc-line"></span>
+          <span id="rrWordCount">0 字</span>
+          <span class="rr-wc-line right"></span>
+        </div>
+
+        <div class="rr-image-caption" id="rrImageCaption" hidden>
+          <div class="ric-label"><svg viewBox="0 0 24 24"><path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5v-11Z"/><path d="m4 15 4.5-4.5a1.5 1.5 0 0 1 2 0L15 15"/><path d="M14 13.5 15.5 12a1.5 1.5 0 0 1 2 0L20 14.5"/><circle cx="9" cy="9" r="1.3"/></svg>配图 · IMAGE</div>
+          <div class="ric-text" id="rrImageCaptionText"></div>
+        </div>
+
+        <div class="rr-inner-voice" id="rrInnerVoice" hidden>
+          <div class="riv-pin"></div>
+          <div class="riv-label">心声 · 没说出口的</div>
+          <div class="riv-text" id="rrInnerVoiceText"></div>
+        </div>
+
+        <div class="rr-actions">
+          <button class="rr-action-btn" id="rrRewriteBtn" type="button">
+            <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5M20 12a8 8 0 0 1-14 5M18 4v5h-5M6 20v-5h5"/></svg>
+            重新共感
+          </button>
+          <button class="rr-action-btn primary" id="rrSaveBtn" type="button">
+            <svg viewBox="0 0 24 24"><path d="M5 5h11l3 3v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/><path d="M8 5v5h8V5M8 20v-6h8v6"/></svg>
+            收入梦境档案
+          </button>
+        </div>
+      </div>
+
+      <!-- 生成失败 -->
+      <div class="reverie-error" id="reverieError" hidden>
+        <div class="re-glyph">
+          <svg viewBox="0 0 24 24"><path d="M12 8v5M12 16.2v.1M4.5 19h15a1 1 0 0 0 .87-1.5l-7.5-13a1 1 0 0 0-1.74 0l-7.5 13A1 1 0 0 0 4.5 19Z"/></svg>
+        </div>
+        <div class="re-text" id="reText">这次的织梦没能完成</div>
+        <div class="re-sub" id="reSub">请检查 API 连接是否已在设置中配置，或稍后再试一次。</div>
+        <button class="re-retry-btn" id="reRetryBtn" type="button">再试一次</button>
+      </div>
+
+    </div>
+
+    <!-- ============================================================
+         Stage 4 · 梦境档案
+    ============================================================ -->
+    <div class="dream-stage" data-stage="archive">
+
+      <div class="source-quote" id="sourceQuoteArchive"></div>
+
+      <div class="stage-headline">
+        <div class="sh-eyebrow">ARCHIVE · 已收藏的共感回响</div>
+        <div class="sh-title">这篇日记，曾被 <em>这样</em> 回应过</div>
+        <div class="sh-sub">每一段梦境都被完整封存，可随时重新展开细读。</div>
+      </div>
+
+      <div class="archive-list" id="archiveList"></div>
+
+      <div class="archive-empty" id="archiveEmptyState" hidden>
+        <div class="ae-mark"></div>
+        <div class="ae-text">此刻静止<br/>还没有一段共感梦境</div>
+        <div class="ae-sub">Archive · Coming Soon</div>
+        <button class="ae-start-btn" id="aeStartBtn" type="button">开始第一场共感</button>
+      </div>
+
+      <button class="archive-new-btn" id="archiveNewBtn" type="button" hidden>
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        再唤醒一场新的共感
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ============================================================
+     梦境阅读浮层 —— 从档案点开某一条时展开全文
+============================================================ -->
+<div class="reader-veil" id="readerVeil"></div>
+<div class="reader-modal" id="readerModal" aria-hidden="true">
+  <div class="reader-sheet">
+    <div class="reader-handle"></div>
+    <div class="reader-topbar">
+      <div class="rr-char-mark" style="margin:0;padding:0;border:none;flex:1;">
+        <div class="rr-avatar" id="readerAvatar"></div>
+        <div class="rr-char-info">
+          <div class="rr-char-name" id="readerCharName">—</div>
+          <div class="rr-char-topic" id="readerTopic">—</div>
+        </div>
+      </div>
+      <button class="reader-close" id="readerCloseBtn" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="reader-body" id="readerBody">
+      <div class="rr-body-shell">
+        <span class="rr-quote-mark">"</span>
+        <div class="rr-body-text" id="readerBodyText"></div>
+      </div>
+      <div class="rr-wordcount-row">
+        <span class="rr-wc-line"></span>
+        <span id="readerWordCount">0 字</span>
+        <span class="rr-wc-line right"></span>
+      </div>
+      <div class="rr-image-caption" id="readerImageCaption" hidden>
+        <div class="ric-label"><svg viewBox="0 0 24 24"><path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5v-11Z"/><path d="m4 15 4.5-4.5a1.5 1.5 0 0 1 2 0L15 15"/><path d="M14 13.5 15.5 12a1.5 1.5 0 0 1 2 0L20 14.5"/><circle cx="9" cy="9" r="1.3"/></svg>配图 · IMAGE</div>
+        <div class="ric-text" id="readerImageCaptionText"></div>
+      </div>
+      <div class="rr-inner-voice" id="readerInnerVoice" hidden>
+        <div class="riv-pin"></div>
+        <div class="riv-label">心声 · 没说出口的</div>
+        <div class="riv-text" id="readerInnerVoiceText"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 浮动提示 -->
+<div class="dream-toast" id="dreamToast"></div>
+
+<script src="dream.js"></script>
+</body>
+</html>

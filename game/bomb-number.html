@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>数字炸弹 · VENUE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="bomb-number.css" />
+</head>
+<body>
+
+<div class="phone-shell" id="phoneShell">
+
+  <!-- ============ 状态栏（与 game.html 同步） ============ -->
+  <div class="status-bar">
+    <span class="status-time" id="statusTime">9:41</span>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct">86</span>
+        <div class="bat-shell"><div class="bat-inner"></div><div class="bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 顶部：返回 · 局名 · 规则 ============ -->
+  <header class="bn-nav">
+    <button class="bn-back" id="btnBack" aria-label="返回">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="bn-nav__title">
+      <span class="bn-nav__glyph">数字炸弹</span>
+      <span class="bn-nav__text">Number Bomb</span>
+    </div>
+    <button class="bn-rules-btn" id="btnRules" aria-label="规则说明">
+      <span>?</span>
+    </button>
+  </header>
+
+  <!-- ============ 舞台容器 ============ -->
+  <main class="bn-stage" id="bnStage" data-at="mode">
+
+    <!-- ========== 阶段零：模式选择 + 择局中人 ========== -->
+    <section class="bn-panel" id="panelMode" data-panel="mode">
+      <div class="bn-scroll">
+        <div class="bn-hero">
+          <p class="bn-hero__eyebrow">Choose A Mode</p>
+          <h1 class="bn-hero__title">如何开局</h1>
+          <p class="bn-hero__sub">一个数字，藏于双方之间。逐句试探，逐步收紧。</p>
+        </div>
+
+        <div class="bn-modelist">
+          <button class="bn-modecard is-active" id="modeVersus" data-mode="versus">
+            <span class="bn-modecard__idx">01</span>
+            <span class="bn-modecard__body">
+              <span class="bn-modecard__title">邀请伙伴对局</span>
+              <span class="bn-modecard__desc">掷骰定身份，与角色轮流猜测 · 藏数</span>
+            </span>
+            <span class="bn-modecard__arrow">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </button>
+
+          <button class="bn-modecard is-disabled" id="modeSolo" data-mode="solo" disabled>
+            <span class="bn-modecard__idx">02</span>
+            <span class="bn-modecard__body">
+              <span class="bn-modecard__title">独自校准</span>
+              <span class="bn-modecard__desc">无需对局者，AI 同时扮演出题与猜测双方，供你练手</span>
+            </span>
+            <span class="bn-modecard__soon">SOON</span>
+          </button>
+        </div>
+
+        <div class="bn-rulecard is-open" id="ruleCardInline">
+          <button class="bn-rulecard__head" id="ruleCardToggle">
+            <span class="bn-rulecard__label">规则速览</span>
+            <span class="bn-rulecard__chev" id="ruleCardChev">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </button>
+          <div class="bn-rulecard__body" id="ruleCardBody">
+            <ol class="bn-rulecard__list">
+              <li>先设定一个数字区间，作为本局猜测的边界。</li>
+              <li>掷骰定局：点数<em>大</em>的一方负责在心中藏一个数字（出题者），点数<em>小</em>的一方负责逐个猜测（猜测者）。</li>
+              <li>猜测者每猜一个数字，出题者需回应「偏大 / 偏小 / 猜中」。</li>
+              <li>区间随每次回应不断收紧，直至数字被猜中，一局落定。</li>
+              <li>对局间隙可随时自由交流，无碍猜测节奏。</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="bn-charlist" id="charList">
+          <!-- 角色卡由 JS 注入 -->
+        </div>
+
+        <div class="bn-empty-chars" id="emptyChars" style="display:none;">
+          <span class="bn-empty-chars__rule"></span>
+          <p class="bn-empty-chars__text">尚未有可对局之人</p>
+          <p class="bn-empty-chars__sub">请先前往「角色档案」创建一位角色</p>
+        </div>
+      </div>
+
+      <div class="bn-config" id="bnConfig">
+        <div class="bn-config__row">
+          <span class="bn-config__label">区间下限</span>
+          <div class="bn-numstep" data-target="min">
+            <button class="bn-numstep__btn" data-act="dec">−</button>
+            <span class="bn-numstep__val" id="rangeMinVal">1</span>
+            <button class="bn-numstep__btn" data-act="inc">+</button>
+          </div>
+        </div>
+        <div class="bn-config__row">
+          <span class="bn-config__label">区间上限</span>
+          <div class="bn-numstep" data-target="max">
+            <button class="bn-numstep__btn" data-act="dec">−</button>
+            <span class="bn-numstep__val" id="rangeMaxVal">100</span>
+            <button class="bn-numstep__btn" data-act="inc">+</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="bn-primary" id="btnToDice" disabled>
+        <span>掷骰定序</span>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </section>
+
+    <!-- ========== 阶段二：掷骰定序 ========== -->
+    <section class="bn-panel" id="panelDice" data-panel="dice">
+      <div class="bn-dice-stage">
+        <p class="bn-dice-eyebrow">Roll To Decide</p>
+        <h2 class="bn-dice-title">掷骰定身份</h2>
+        <p class="bn-dice-hint">点数大者藏数，点数小者猜测</p>
+
+        <div class="bn-dice-row">
+          <div class="bn-dice-side" id="diceSideUser">
+            <div class="bn-dice-avatar" id="diceAvatarUser">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.5" r="3.4" stroke="currentColor" stroke-width="1.1"/><path d="M5 20c1.6-4 4.2-6 7-6s5.4 2 7 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+            </div>
+            <p class="bn-dice-name">我</p>
+            <div class="bn-die3d-well">
+              <div class="bn-die3d" id="dieUser">
+                <div class="bn-die3d__cube" id="dieUserCube">
+                  <div class="bn-die3d__face bn-die3d__face--front"  data-pips="1"></div>
+                  <div class="bn-die3d__face bn-die3d__face--back"   data-pips="6"></div>
+                  <div class="bn-die3d__face bn-die3d__face--right"  data-pips="2"></div>
+                  <div class="bn-die3d__face bn-die3d__face--left"   data-pips="5"></div>
+                  <div class="bn-die3d__face bn-die3d__face--top"    data-pips="3"></div>
+                  <div class="bn-die3d__face bn-die3d__face--bottom" data-pips="4"></div>
+                </div>
+              </div>
+            </div>
+            <p class="bn-dice-role" id="diceRoleUser">&nbsp;</p>
+          </div>
+
+          <div class="bn-dice-vs">
+            <span>VS</span>
+          </div>
+
+          <div class="bn-dice-side" id="diceSideChar">
+            <div class="bn-dice-avatar" id="diceAvatarChar">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.5" r="3.4" stroke="currentColor" stroke-width="1.1"/><path d="M5 20c1.6-4 4.2-6 7-6s5.4 2 7 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+            </div>
+            <p class="bn-dice-name" id="diceCharName">对局者</p>
+            <div class="bn-die3d-well">
+              <div class="bn-die3d" id="dieChar">
+                <div class="bn-die3d__cube" id="dieCharCube">
+                  <div class="bn-die3d__face bn-die3d__face--front"  data-pips="1"></div>
+                  <div class="bn-die3d__face bn-die3d__face--back"   data-pips="6"></div>
+                  <div class="bn-die3d__face bn-die3d__face--right"  data-pips="2"></div>
+                  <div class="bn-die3d__face bn-die3d__face--left"   data-pips="5"></div>
+                  <div class="bn-die3d__face bn-die3d__face--top"    data-pips="3"></div>
+                  <div class="bn-die3d__face bn-die3d__face--bottom" data-pips="4"></div>
+                </div>
+              </div>
+            </div>
+            <p class="bn-dice-role" id="diceRoleChar">&nbsp;</p>
+          </div>
+        </div>
+
+        <p class="bn-dice-result" id="diceResult">&nbsp;</p>
+
+        <button class="bn-primary bn-primary--wide" id="btnRoll">
+          <span>掷骰</span>
+        </button>
+
+        <button class="bn-primary bn-primary--wide bn-primary--confirm" id="btnDiceConfirm" style="display:none;">
+          <span>开始对局</span>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== 阶段三：对局中 ========== -->
+    <section class="bn-panel" id="panelPlay" data-panel="play">
+
+      <div class="bn-play-head">
+        <div class="bn-play-range">
+          <span class="bn-play-range__label">当前区间</span>
+          <span class="bn-play-range__val" id="curRangeVal">1 – 100</span>
+        </div>
+        <div class="bn-play-secret" id="secretChip" title="秘密数字，只有出题者知道">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none"><rect x="5" y="10.5" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          <span class="bn-play-secret__dots">• • •</span>
+        </div>
+        <div class="bn-play-turn" id="turnBadge">轮到你</div>
+      </div>
+
+      <div class="bn-timeline" id="timeline">
+        <!-- 猜测/交流记录 -->
+      </div>
+
+      <div class="bn-composer" id="composer">
+
+        <!-- 猜测者模式 · 子状态A：数字输入（轮到用户猜时） -->
+        <div class="bn-composer__mode" id="composerGuess">
+          <input type="number" id="guessInput" class="bn-composer__input bn-composer__input--num" placeholder="输入一个数字…" />
+          <button class="bn-composer__send" id="btnSendGuess" aria-label="猜测">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <!-- 猜测者模式 · 子状态B：已发送猜测，等待用户手动请求对方回应 -->
+        <div class="bn-composer__mode" id="composerAwaitReply" style="display:none;">
+          <button class="bn-composer__promptbtn" id="btnAskReply">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <span id="askReplyBtnText">请对方回应</span>
+          </button>
+        </div>
+
+        <!-- 出题者模式 · 子状态A：设置秘密数字（用户是出题者，尚未录入数字时） -->
+        <div class="bn-composer__mode" id="composerSetSecret" style="display:none;">
+          <input type="number" id="secretInput" class="bn-composer__input bn-composer__input--num" placeholder="输入你要藏的数字…" />
+          <button class="bn-composer__send" id="btnSetSecret" aria-label="确认藏数">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <!-- 出题者模式 · 子状态B：等待 char 猜测时的"请求回应"按钮（数字已录入后） -->
+        <div class="bn-composer__mode" id="composerPrompt" style="display:none;">
+          <button class="bn-composer__promptbtn" id="btnPromptChar">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <span id="promptBtnText">让对方猜一个数字</span>
+          </button>
+        </div>
+
+        <div class="bn-composer__chatrow">
+          <input type="text" id="chatInput" class="bn-composer__input" placeholder="留一句话，与对局者交流…" />
+          <button class="bn-composer__send bn-composer__send--ghost" id="btnSendChat" aria-label="发送">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M4 12l16-7-6 16-3-7-7-2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========== 阶段四：复盘 ========== -->
+    <section class="bn-panel" id="panelResult" data-panel="result">
+      <div class="bn-result">
+        <p class="bn-result__eyebrow" id="resultEyebrow">Local Finale</p>
+        <h2 class="bn-result__title" id="resultTitle">对局落定</h2>
+        <div class="bn-result__number" id="resultNumber">—</div>
+        <p class="bn-result__desc" id="resultDesc">数字揭晓的一刻，博弈归于沉默。</p>
+
+        <div class="bn-result__stats" id="resultStats"></div>
+
+        <div class="bn-result__actions">
+          <button class="bn-btn bn-btn--ghost" id="btnAgain">再对一局</button>
+          <button class="bn-btn bn-btn--solid" id="btnExit">回到大厅</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ 规则弹层 ============ -->
+  <div class="bn-rules-modal" id="rulesModal">
+    <div class="bn-rules-modal__mask" id="rulesModalMask"></div>
+    <div class="bn-rules-modal__sheet">
+      <div class="bn-rules-modal__head">
+        <p class="bn-rules-modal__eyebrow">How To Play</p>
+        <h3 class="bn-rules-modal__title">数字炸弹 · 规则</h3>
+        <button class="bn-rules-modal__close" id="btnRulesClose" aria-label="关闭">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="bn-rules-modal__body">
+        <section class="bn-rules-sec">
+          <p class="bn-rules-sec__tag">01</p>
+          <h4 class="bn-rules-sec__title">定区间</h4>
+          <p class="bn-rules-sec__text">对局前设定一个数字区间（如 1–100），这是本局猜测的全部边界。</p>
+        </section>
+        <section class="bn-rules-sec">
+          <p class="bn-rules-sec__tag">02</p>
+          <h4 class="bn-rules-sec__title">掷骰定身份</h4>
+          <p class="bn-rules-sec__text">双方各掷一枚骰子。点数<em>大</em>的一方成为「出题者」，在心中藏下一个数字；点数<em>小</em>的一方成为「猜测者」，负责逐步试探。若点数相同则重掷一次直至分出大小。</p>
+        </section>
+        <section class="bn-rules-sec">
+          <p class="bn-rules-sec__tag">03</p>
+          <h4 class="bn-rules-sec__title">逐句试探</h4>
+          <p class="bn-rules-sec__text">猜测者每次说出一个数字，出题者需明确回应「偏大」「偏小」或「猜中」。若角色是出题者，你猜测后由 AI 判断并给出角色口吻的回应；若你是出题者，角色猜测由 AI 结合人设主动喊出，你需点选反馈。</p>
+        </section>
+        <section class="bn-rules-sec">
+          <p class="bn-rules-sec__tag">04</p>
+          <h4 class="bn-rules-sec__title">收紧区间</h4>
+          <p class="bn-rules-sec__text">每一次回应都会让可能的区间不断缩小，直到某一方精准命中，这一局便告落定。</p>
+        </section>
+        <section class="bn-rules-sec">
+          <p class="bn-rules-sec__tag">05</p>
+          <h4 class="bn-rules-sec__title">自由交流</h4>
+          <p class="bn-rules-sec__text">对局间隙，双方可随时通过下方输入框自由对话，不影响猜测节奏，也不会泄露秘密数字本身。</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="bomb-number.js"></script>
+</body>
+</html>

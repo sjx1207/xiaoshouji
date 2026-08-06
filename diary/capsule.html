@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>时空胶囊 · Luna</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="capsule.css" />
+</head>
+<body style="margin:0; padding:0;">
+
+<div class="capsule-app" id="capsuleApp">
+
+  <div class="capsule-aurora"></div>
+  <div class="capsule-motes" id="capsuleMotes"></div>
+
+  <!-- 状态栏 -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页头 -->
+  <div class="capsule-header">
+    <button class="capsule-back-btn" id="capsuleBackBtn" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M14.5 6.5 C10.5 8.5 8 10.5 7 12 C8 13.5 10.5 15.5 14.5 17.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="capsule-title-block">
+      <div class="capsule-eyebrow">Time Capsule</div>
+      <div class="capsule-title">时空胶囊</div>
+    </div>
+    <div class="capsule-entry-chip" id="entryChip">
+      <div class="cec-dot"></div>
+      <span class="cec-text" id="entryChipText">加载中…</span>
+    </div>
+  </div>
+
+  <!-- 主体 -->
+  <div class="capsule-scroll" id="capsuleScroll">
+
+    <!-- ============ STAGE 1 · 选择角色 ============ -->
+    <section class="capsule-stage active" id="stage1">
+      <div class="stage-intro">
+        <div class="stage-intro-glyph">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="stage-intro-title">这封信，想请谁来写？</div>
+        <div class="stage-intro-desc">选择一位角色，让 Ta 读过这篇日记后，<br/>以过去或未来的身份，给此刻的你写一封信。</div>
+      </div>
+
+      <div class="char-picker-grid" id="charPickerGrid">
+        <!-- 由 capsule.js 动态渲染角色卡 -->
+      </div>
+
+      <div class="stage-cta-row">
+        <button class="stage-cta" id="toBranchBtn" disabled>
+          <span>下一步 · 选择时间分支</span>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ STAGE 2 · 分支择向 ============ -->
+    <section class="capsule-stage" id="stage2">
+      <div class="branch-selected-strip">
+        <div class="bss-avatar" id="bssAvatar"><span>?</span></div>
+        <div class="bss-text">
+          <div class="bss-name" id="bssName">未选择</div>
+          <div class="bss-sub" id="bssSub">点击右侧可重新选择角色</div>
+        </div>
+        <div class="bss-change" id="bssChange">重选</div>
+      </div>
+
+      <div class="branch-grid">
+
+        <div class="branch-card branch-past" data-branch="past" id="branchPastCard">
+          <div class="branch-card-top">
+            <div class="branch-glyph">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 22a10 10 0 1 0-8.66-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12h4M4.5 9.5 2 12l2.5 2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="branch-tag">Retrospect</div>
+          </div>
+          <div class="branch-card-name">回溯 · 过去的角色</div>
+          <div class="branch-card-desc" id="branchPastDesc">让 Ta 以更早、更青涩的一个自己，读到你今天写下的文字——带着那时候才有的天真、笨拙或未经世事的关切，回望此刻的你。</div>
+          <div class="branch-card-foot">
+            <span class="branch-card-hint">来自记忆更浅处的声音</span>
+            <div class="branch-card-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+        </div>
+
+        <div class="branch-card branch-future" data-branch="future" id="branchFutureCard">
+          <div class="branch-card-top">
+            <div class="branch-glyph">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="branch-tag">Foresight</div>
+          </div>
+          <div class="branch-card-name">前瞻 · 未来的角色</div>
+          <div class="branch-card-desc" id="branchFutureDesc">让 Ta 以走得更远、更从容的一个自己，回头读到你今天写下的文字——带着已经和解的释然，或是尚可提醒的温柔警示。</div>
+          <div class="branch-card-foot">
+            <span class="branch-card-hint">来自尚未抵达的时刻</span>
+            <div class="branch-card-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ STAGE 3 · 生成仪式 ============ -->
+    <section class="capsule-stage" id="stage3">
+      <div class="ritual-wrap">
+        <div class="ritual-seal" id="ritualSeal">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 8l8 5 8-5M4 8v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8M4 8l7-4a1 1 0 0 1 2 0l7 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="ritual-title" id="ritualTitle">胶囊正在被封存与开启…</div>
+        <div class="ritual-line" id="ritualLine">Ta 正在翻开这篇日记，感受字里行间的温度，然后提笔写下想对你说的话。</div>
+        <div class="ritual-progress"><div class="ritual-progress-bar"></div></div>
+
+        <div class="ritual-steps" id="ritualSteps">
+          <div class="ritual-step" data-step="0"><span class="rs-dot"></span><span>读取日记原文与情绪基调</span></div>
+          <div class="ritual-step" data-step="1"><span class="rs-dot"></span><span>唤醒角色人设与记忆锚点</span></div>
+          <div class="ritual-step" data-step="2"><span class="rs-dot"></span><span>切换至所选时间分支的视角</span></div>
+          <div class="ritual-step" data-step="3"><span class="rs-dot"></span><span>落笔，封缄这封跨时的信</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STAGE 4 · 信件结果 ============ -->
+    <section class="capsule-stage" id="stage4">
+
+      <div id="alertSlot"></div>
+
+      <div class="letter-card" id="letterCard">
+        <div class="letter-banner">
+          <div class="letter-banner-top">
+            <span class="letter-badge" id="letterBadge">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 8l8 5 8-5M4 8v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8M4 8l7-4a1 1 0 0 1 2 0l7 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span id="letterBadgeText">RETROSPECT</span>
+            </span>
+            <span class="letter-timestamp" id="letterTimestamp">—</span>
+          </div>
+          <div class="letter-banner-main">
+            <div class="lb-avatar" id="lbAvatar"><span>?</span></div>
+            <div class="lb-text">
+              <div class="lb-name" id="lbName">—</div>
+              <div class="lb-role" id="lbRole">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="letter-body-wrap">
+          <div class="letter-salutation" id="letterSalutation">致此刻的你：</div>
+          <div class="letter-body-text" id="letterBodyText"></div>
+          <div class="letter-signature">
+            <div>
+              <div class="letter-sig-name" id="letterSigName">—</div>
+            </div>
+            <div class="letter-sig-mark" id="letterSigMark">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-6.5-6-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5-6.5 11-6.5 11Z" stroke="currentColor" stroke-width="1.6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="letter-quote-strip" id="letterQuoteStrip" hidden>
+          <span class="lqs-label">Ta 记住了这句话</span>
+          <span id="letterQuoteText"></span>
+        </div>
+      </div>
+
+      <div class="letter-actions">
+        <button class="letter-act-btn letter-act-ghost" id="regenBtn">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.6 15A8 8 0 0 0 20 12M19.4 9A8 8 0 0 0 4 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>重新落笔</span>
+        </button>
+        <button class="letter-act-btn letter-act-primary" id="sealBtn">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-6.5-6-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5-6.5 11-6.5 11Z" stroke="currentColor" stroke-width="1.8"/></svg>
+          <span>收进胶囊</span>
+        </button>
+      </div>
+
+      <div class="archive-block" id="archiveBlock" hidden>
+        <div class="archive-title">这篇日记的胶囊记录</div>
+        <div class="archive-list" id="archiveList"></div>
+      </div>
+
+      <div class="stage-footer-nav">
+        <div class="sfn-btn" id="backToBranchBtn">换个时间分支</div>
+        <div class="sfn-btn" id="backToCharBtn">换一位角色</div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script src="capsule.js"></script>
+</body>
+</html>

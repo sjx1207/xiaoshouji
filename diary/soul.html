@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>灵魂回想 · Luna</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="../diary.css" />
+<link rel="stylesheet" href="soul.css" />
+</head>
+<body style="margin:0; padding:0;">
+
+<div class="soul-app" id="soulApp">
+
+  <!-- 背景光晕层 -->
+  <div class="soul-aurora"></div>
+  <div class="soul-noise"></div>
+
+  <!-- 状态栏（与主状态栏样式一致，由 soul.js 同步时间/电量/灵动岛） -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页头 -->
+  <div class="soul-header">
+    <button class="soul-back-btn" id="soulBackBtn" aria-label="返回">
+      <span class="dbb-ring"></span>
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M14.5 6.5 C10.5 8.5 8 10.5 7 12 C8 13.5 10.5 15.5 14.5 17.5" />
+        <path class="dbb-tail" d="M7 12 L11.5 12" />
+      </svg>
+    </button>
+
+    <div class="soul-header-center">
+      <div class="soul-header-eyebrow">Soul Recall</div>
+      <div class="soul-header-title">灵魂回想</div>
+    </div>
+
+    <!-- 存档按钮：打开历史回想列表 -->
+    <button class="soul-archive-btn" id="soulArchiveBtn" aria-label="回想存档">
+      <span class="sab-halo"></span>
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M4.5 8.5 L4.5 18 a1.6 1.6 0 0 0 1.6 1.6 L17.9 19.6 a1.6 1.6 0 0 0 1.6-1.6 L19.5 8.5" />
+        <path d="M3.8 5.6 A1.6 1.6 0 0 1 5.3 4.5 L18.7 4.5 A1.6 1.6 0 0 1 20.2 5.6 L20.6 7.6 A1 1 0 0 1 19.6 8.8 L4.4 8.8 A1 1 0 0 1 3.4 7.6 Z" />
+        <path d="M9.5 12.3 L14.5 12.3" />
+      </svg>
+      <span class="sab-count" id="sabCount" hidden></span>
+    </button>
+  </div>
+
+  <!-- ============================================================
+       主体舞台：四个阶段，通过 data-stage 切换
+       stage 1 · intro     —— 引言 + 召唤瓶子按钮
+       stage 2 · bottle     —— 玻璃瓶漂浮字条，抽取关键词
+       stage 3 · character  —— 选择角色
+       stage 4 · result     —— AI 生成结果展示 + 存档
+  ============================================================ -->
+  <div class="soul-stage-wrap" id="soulStageWrap">
+
+    <!-- ========== Stage 1：引言 ========== -->
+    <section class="soul-stage" data-stage="intro">
+      <div class="soul-intro">
+        <div class="soul-intro-mark">
+          <svg viewBox="0 0 64 64" fill="none">
+            <ellipse cx="32" cy="34" rx="19" ry="24" />
+            <path d="M24 12 Q24 6 32 6 Q40 6 40 12" />
+            <path d="M27 12 L27 18 M37 12 L37 18" opacity="0.5"/>
+            <ellipse class="soul-intro-liquid" cx="32" cy="42" rx="15" ry="12" />
+          </svg>
+        </div>
+        <div class="soul-intro-title">把这篇心情<br/>封进一只瓶子</div>
+        <div class="soul-intro-desc">
+          灵魂回想会读懂这篇日记，<br/>
+          将其中的情绪与细节，酿成几枚字条，<br/>
+          由你亲手抽出、再交给一位角色回信。
+        </div>
+        <div class="soul-intro-entry-card" id="soulEntryCard">
+          <!-- 由 soul.js 填入当前日记的摘要卡片 -->
+        </div>
+        <button class="soul-summon-btn" id="soulSummonBtn" type="button">
+          <span class="ssb-glow"></span>
+          <span class="ssb-text">召唤瓶子</span>
+          <span class="ssb-sub">Summon the Bottle</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== Stage 2：玻璃瓶 · 抽取字条 ========== -->
+    <section class="soul-stage" data-stage="bottle">
+
+      <div class="soul-bottle-head">
+        <div class="soul-bottle-eyebrow">从瓶中，抽出触动你的字</div>
+        <div class="soul-bottle-hint" id="soulBottleHint">轻触漂浮的字条，最多选 <b>3</b> 枚</div>
+      </div>
+
+      <div class="soul-bottle-stage">
+        <div class="soul-bottle-glass">
+          <svg class="soul-bottle-outline" viewBox="0 0 220 320" fill="none">
+            <path d="M84 18 Q84 8 110 8 Q136 8 136 18 L136 56 Q136 66 148 78 Q182 112 182 176 L182 268 Q182 300 150 300 L70 300 Q38 300 38 268 L38 176 Q38 112 72 78 Q84 66 84 56 Z" />
+            <path d="M90 20 L130 20" opacity="0.5" />
+          </svg>
+          <div class="soul-bottle-liquid"></div>
+          <div class="soul-bottle-shine"></div>
+          <div class="soul-notes-field" id="soulNotesField">
+            <!-- 漂浮字条由 soul.js 动态生成 -->
+          </div>
+          <div class="soul-bottle-loading" id="soulBottleLoading">
+            <div class="sbl-ring"></div>
+            <div class="sbl-text" id="sblText">正在读这篇日记…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 已选字条展示条 -->
+      <div class="soul-picked-row" id="soulPickedRow" hidden></div>
+
+      <button class="soul-next-btn" id="soulToCharBtn" type="button" disabled>
+        <span class="ssb-glow"></span>
+        <span class="ssb-text">带着这些字，去见 Ta</span>
+      </button>
+
+      <button class="soul-retry-link" id="soulRetryBottleBtn" type="button" hidden>重新酿一瓶字条</button>
+    </section>
+
+    <!-- ========== Stage 3：选择角色 ========== -->
+    <section class="soul-stage" data-stage="character">
+      <div class="soul-char-head">
+        <div class="soul-bottle-eyebrow">交给谁来回信</div>
+        <div class="soul-bottle-hint">选择一位角色，Ta 会读到你抽出的字条与这篇日记</div>
+      </div>
+
+      <!-- 已选字条回顾（小尺寸） -->
+      <div class="soul-picked-recap" id="soulPickedRecap"></div>
+
+      <div class="soul-char-grid" id="soulCharGrid">
+        <!-- 角色卡片由 soul.js 从 IndexedDB 动态渲染 -->
+      </div>
+
+      <div class="soul-char-empty" id="soulCharEmpty" hidden>
+        <div class="soul-char-empty-mark"></div>
+        <div>还没有任何角色档案</div>
+        <a class="soul-char-empty-link" href="../characters.html">去创建一位角色</a>
+      </div>
+
+      <button class="soul-next-btn" id="soulGenerateBtn" type="button" disabled>
+        <span class="ssb-glow"></span>
+        <span class="ssb-text">让 Ta 提笔回信</span>
+      </button>
+    </section>
+
+    <!-- ========== Stage 4：结果展示 ========== -->
+    <section class="soul-stage" data-stage="result">
+
+      <div class="soul-result-loading" id="soulResultLoading" hidden>
+        <div class="srl-mark">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 20c-.3 0-.6-.1-.8-.3C7.8 16.9 5 14.4 5 11.3 5 9 6.8 7.2 9 7.2c1.1 0 2.2.5 3 1.4.8-.9 1.9-1.4 3-1.4 2.2 0 4 1.8 4 4.1 0 3.1-2.8 5.6-6.2 8.4-.2.2-.5.3-.8.3Z"/>
+            <path d="M12 4.5V2.5M8.5 5.5 7.3 4M15.5 5.5 16.7 4" opacity="0.55"/>
+          </svg>
+        </div>
+        <div class="srl-title" id="srlTitle">灵魂正在回想…</div>
+        <div class="srl-sub">这可能需要一点时间，Ta 在字斟句酌</div>
+      </div>
+
+      <div class="soul-result-body" id="soulResultBody" hidden>
+
+        <div class="soul-result-card">
+          <div class="soul-result-letterhead">
+            <div class="src-topline">
+              <span class="src-dot"></span>
+              <span id="srcCharName">Ta 的回想</span>
+            </div>
+
+            <div class="soul-result-avatar-row">
+              <div class="sra-avatar" id="sraAvatar"></div>
+              <div class="sra-meta">
+                <div class="sra-name" id="sraName">—</div>
+                <div class="sra-role" id="sraRole">—</div>
+              </div>
+            </div>
+
+            <!-- 抽取字条回顾条 -->
+            <div class="src-notes-recap" id="srcNotesRecap"></div>
+          </div>
+
+          <div class="soul-result-letter-body">
+            <div class="src-title-row">
+              <span class="src-quote-mark">"</span>
+              <h1 class="src-title" id="srcTitle">无题</h1>
+            </div>
+            <div class="src-meta-line" id="srcMetaLine"></div>
+
+            <div class="src-body" id="srcBody"></div>
+
+            <div class="src-signoff" id="srcSignoff">
+              <div class="src-signoff-avatar" id="srcSignoffAvatar"></div>
+              <span class="src-signoff-line" id="srcSignoffLine">— 写下这些字的人</span>
+            </div>
+
+            <div class="src-footmark">
+              <span class="dfm-line"></span>
+              <span id="srcWordCount">0 字</span>
+              <span class="dfm-line"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="soul-result-actions">
+          <button class="soul-action-btn soul-action-ghost" id="soulRegenBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3" stroke-linecap="round"/><path d="M18 3v4.5h-4.5M6 21v-4.5h4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>再问一次</span>
+          </button>
+          <button class="soul-action-btn soul-action-fill" id="soulSaveBtn" type="button">
+            <span class="ssb-glow"></span>
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5 10 17.5 19.5 6.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>存入回想档案</span>
+          </button>
+        </div>
+
+        <div class="soul-saved-toast" id="soulSavedToast">
+          <span class="sst-ring"></span>
+          <span>已收入灵魂回想档案</span>
+        </div>
+
+      </div>
+
+      <div class="soul-result-error" id="soulResultError" hidden>
+        <div class="sre-mark">!</div>
+        <div class="sre-title">回想中断了</div>
+        <div class="sre-desc" id="sreDesc">请检查 API 设置后重试</div>
+        <button class="soul-retry-link" id="soulRetryResultBtn" type="button">重新召唤</button>
+      </div>
+
+    </section>
+
+    <!-- ========== Stage 5：回想档案（时间轴风格独立页） ========== -->
+    <section class="soul-stage" data-stage="archive">
+      <div class="soul-arch-page-head">
+        <div class="soul-arch-page-eyebrow">Archive</div>
+        <div class="soul-arch-page-title">回想档案</div>
+        <div class="soul-arch-page-count" id="archPageCount">0 封回信</div>
+      </div>
+
+      <div class="soul-arch-timeline" id="archTimeline">
+        <!-- 时间轴条目由 soul.js 动态渲染 -->
+      </div>
+
+      <div class="soul-arch-page-empty" id="archPageEmpty" hidden>
+        <div class="sde-seal">
+          <span class="sde-seal-ring"></span>
+          <svg viewBox="0 0 40 40" fill="none">
+            <path d="M8 14 L20 23 L32 14" />
+            <path d="M8 14 Q8 12 10 12 L30 12 Q32 12 32 14 L32 27 Q32 29 30 29 L10 29 Q8 29 8 27 Z" />
+          </svg>
+        </div>
+        <div class="sde-title">还没有回想存档</div>
+        <div class="soul-drawer-empty-sub">召唤一瓶字条，让角色为它写下第一封回信</div>
+        <div class="sde-thread"><span></span><span></span><span></span></div>
+      </div>
+    </section>
+
+    <!-- ========== Stage 6：某条存档的详情全文 ========== -->
+    <section class="soul-stage" data-stage="archdetail">
+      <div class="soul-archdetail-topbar">
+        <div class="soul-archdetail-eyebrow">往日回想</div>
+        <button class="soul-archdetail-del" id="soulArchviewDel" aria-label="删除" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M7 7l.7 12a2 2 0 0 0 2 1.9h4.6a2 2 0 0 0 2-1.9L17 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="soul-archdetail-body" id="soulArchviewScroll">
+        <!-- 由 soul.js 填充某条存档全文 -->
+      </div>
+    </section>
+
+  </div>
+
+</div>
+
+
+<script src="soul.js"></script>
+</body>
+</html>

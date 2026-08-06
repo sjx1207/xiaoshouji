@@ -1,0 +1,1166 @@
+/* ================================================================
+   dream.css — 共感梦境 · Empathic Reverie
+   独立全屏页面，承接自 diary.html 详情页「共感梦境」功能卡片
+   基调：延续 diary.css 的雾白 · 韩系高级感 · 丁香紫 + 雾玫瑰点缀，
+        绝无 emoji、绝无米色、绝不做成极简风格 —— 层层叠叠的描边、
+        渐变光晕、羽化边缘与手写笔迹感动画，是这个页面的核心气质。
+   ================================================================
+   结构总览：
+   Stage 0 · 序幕　　　 —— 打开时的呼吸式引导（若日记已存在共感回应，直接进 Stage 3 归档视图）
+   Stage 1 · 话题输入　 —— 用户手写话题 / AI 帮想话题（可多选候选）
+   Stage 2 · 角色甄选　 —— 卡片式角色画廊，选中即高亮
+   Stage 3 · 共感回响　 —— 生成中的织梦动画 → 逐字浮现的回应正文（痕迹感）
+   Stage 4 · 梦境档案　 —— 该篇日记下所有共感梦境的时间轴归档，可展开重读
+================================================================ */
+
+:root{
+  --pearl-1: #fbfaf9;
+  --pearl-2: #f5f3f1;
+  --pearl-3: #efece9;
+  --mist: #e8e4e1;
+
+  --ink-deep: #2b2a30;
+  --ink: #4a4852;
+  --ink-soft: #8b8891;
+  --ink-faint: #b9b6bd;
+
+  --lilac: #c9bfe0;
+  --lilac-deep: #9c8fc4;
+  --rose-mist: #e3c9d1;
+  --rose-deep: #c99aab;
+  --gold-hair: #d4c49a;
+
+  --ease-silk: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --btn-glass: rgba(255, 255, 255, 0.62);
+  --btn-border: rgba(255, 255, 255, 0.92);
+  --btn-shadow: rgba(150, 130, 170, 0.20);
+  --sheet-glass: rgba(251, 250, 249, 0.92);
+}
+
+*{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body{ margin: 0; padding: 0; overscroll-behavior: none; }
+body{
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif;
+  color: var(--ink);
+}
+
+/* ================================================================
+   页面骨架
+================================================================ */
+.dream-app{
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 75% 42% at 12% 0%, rgba(201,191,224,0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 65% 40% at 94% 12%, rgba(227,201,209,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(212,196,154,0.08) 0%, transparent 65%),
+    linear-gradient(178deg, var(--pearl-1) 0%, var(--pearl-2) 52%, var(--pearl-3) 100%);
+}
+.dream-app::before{
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+/* 漂浮微粒光尘 —— 贯穿整个页面背景的梦境感氛围 */
+.dream-dust{ position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.dream-dust span{
+  position: absolute;
+  bottom: -6%;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,191,224,0.9), rgba(227,201,209,0.2));
+  filter: blur(0.3px);
+  animation: dustRise linear infinite;
+  opacity: 0;
+}
+@keyframes dustRise{
+  0%{ transform: translateY(0) translateX(0) scale(0.6); opacity: 0; }
+  10%{ opacity: 0.7; }
+  50%{ transform: translateY(-52vh) translateX(14px) scale(1); }
+  90%{ opacity: 0.35; }
+  100%{ transform: translateY(-100vh) translateX(-10px) scale(0.5); opacity: 0; }
+}
+
+/* ================================================================
+   状态栏 —— 与 diary.html 主 / 详情状态栏结构完全一致，由 dream.js 同步
+================================================================ */
+.status-bar{
+  position: relative;
+  z-index: 6;
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 22px 9px;
+  flex-shrink: 0;
+}
+.status-time{ font-size: 15px; font-weight: 600; color: var(--ink-deep); letter-spacing: 0.2px; }
+.status-island{ height: 0; }
+.status-right{ display: flex; align-items: center; gap: 7px; }
+.signal{ display: flex; align-items: flex-end; gap: 2px; height: 13px; }
+.signal i{ display: block; width: 2.5px; border-radius: 1px; background: var(--ink); opacity: 0.85; }
+.signal i:nth-child(1){ height: 4px; }
+.signal i:nth-child(2){ height: 7px; }
+.signal i:nth-child(3){ height: 10px; }
+.signal i:nth-child(4){ height: 13px; }
+.battery{ display: flex; align-items: center; gap: 3px; }
+.bat-pct{ font-size: 14px; font-weight: 600; color: var(--ink); opacity: 0.85; }
+.bat-shell{ width: 24px; height: 12px; border: 1.5px solid rgba(74,72,82,0.5); border-radius: 3.5px; padding: 1.5px; position: relative; }
+.bat-inner{ width: 76%; height: 100%; border-radius: 1.5px; background: linear-gradient(90deg, #6ee7b7, #34d399); }
+.bat-nub{ position: absolute; right: -4px; top: 50%; transform: translateY(-50%); width: 2.5px; height: 5px; background: rgba(74,72,82,0.4); border-radius: 0 2px 2px 0; }
+
+/* ================================================================
+   顶部工具条
+================================================================ */
+.dream-topbar{
+  position: relative;
+  z-index: 6;
+  flex-shrink: 0;
+  padding: 4px 20px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.dream-back-btn, .dream-archive-btn{
+  position: relative;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 18px -8px var(--btn-shadow), 0 1px 0 rgba(255,255,255,0.9) inset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.3s var(--ease-silk);
+}
+.dream-back-btn:active, .dream-archive-btn:active{ transform: scale(0.92); }
+.dream-back-btn svg, .dream-archive-btn svg{ width: 17px; height: 17px; position: relative; z-index: 1; color: var(--ink); }
+.dream-back-btn svg path, .dream-archive-btn svg path{ stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.dbb-ring{
+  position: absolute; inset: -3px;
+  border-radius: 50%;
+  border: 1px solid rgba(201,191,224,0.5);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.4s var(--ease-silk);
+}
+.dream-back-btn:active .dbb-ring{ opacity: 1; transform: scale(1.08); }
+.archive-badge-dot{
+  position: absolute; top: 7px; right: 7px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac-deep), var(--rose-deep));
+  box-shadow: 0 0 6px rgba(201,191,224,0.7);
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.35s var(--ease-silk);
+}
+.archive-badge-dot.show{ opacity: 1; transform: scale(1); }
+
+.dream-topbar-mark{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.dtm-eyebrow{
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--lilac-deep);
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dtm-eyebrow .dtm-dot{
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac-deep), var(--rose-deep));
+  animation: dotPulse 2.6s var(--ease-soft) infinite;
+}
+@keyframes dotPulse{ 0%,100%{ opacity: 0.5; transform: scale(0.85);} 50%{ opacity: 1; transform: scale(1.15);} }
+.dtm-title{
+  font-family: 'Noto Serif SC', 'Fraunces', serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-deep);
+}
+
+/* ================================================================
+   进度轨迹 —— 四段式呼吸光点，标示当前处于话题 / 角色 / 回响 / 档案 哪一步
+================================================================ */
+.dream-progress{
+  position: relative;
+  z-index: 6;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 2px 20px 16px;
+}
+.dp-step{
+  display: flex; align-items: center; gap: 8px;
+}
+.dp-dot{
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(185, 182, 189, 0.45);
+  transition: all 0.5s var(--ease-silk);
+}
+.dp-step.active .dp-dot{
+  width: 18px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--lilac-deep), var(--rose-deep));
+  box-shadow: 0 0 10px rgba(201,191,224,0.55);
+}
+.dp-step.done .dp-dot{ background: linear-gradient(135deg, var(--lilac), var(--rose-mist)); }
+.dp-line{ width: 14px; height: 1px; background: rgba(185,182,189,0.35); }
+
+/* ================================================================
+   舞台容器 —— 四个 Stage 横向切换，仅一个可见
+================================================================ */
+.dream-stage-wrap{
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.dream-stage{
+  position: absolute; inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 4px 22px 40px;
+  opacity: 0;
+  transform: translateX(28px);
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease-soft), transform 0.55s var(--ease-silk);
+}
+.dream-stage::-webkit-scrollbar{ display: none; }
+.dream-stage.active{ opacity: 1; transform: translateX(0); pointer-events: auto; }
+.dream-stage.leaving{ transform: translateX(-28px); }
+
+/* ---- 溯源引用卡：贯穿各 Stage 顶部，摘录当前日记原文，提醒"这是关于什么的共感" ---- */
+.source-quote{
+  position: relative;
+  margin-bottom: 22px;
+  padding: 16px 20px 15px 22px;
+  border-radius: 6px 20px 20px 20px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.85), rgba(255,255,255,0.45));
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow: 0 12px 26px -16px rgba(150,130,170,0.28);
+}
+.source-quote::before{
+  content: '';
+  position: absolute; left: 0; top: 14px; bottom: 14px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--lilac-deep), var(--rose-deep));
+}
+.sq-label{
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--lilac-deep);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.sq-label .sq-line{ flex: 1; height: 1px; background: linear-gradient(90deg, rgba(201,191,224,0.5), transparent); }
+.sq-title{
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-deep);
+  margin-bottom: 5px;
+}
+.sq-text{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 13.5px;
+  font-style: italic;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+/* ================================================================
+   Stage 1 · 话题输入
+================================================================ */
+.stage-headline{
+  margin-bottom: 6px;
+}
+.sh-eyebrow{
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--lilac-deep);
+  opacity: 0.8;
+  margin-bottom: 8px;
+}
+.sh-title{
+  font-family: 'Fraunces', 'Noto Serif SC', serif;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ink-deep);
+  letter-spacing: 0.01em;
+}
+.sh-title em{
+  font-style: italic;
+  background: linear-gradient(120deg, var(--lilac-deep), var(--rose-deep));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.sh-sub{
+  margin-top: 8px;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.topic-input-shell{
+  margin-top: 22px;
+  position: relative;
+  border-radius: 8px 24px 24px 24px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.9), rgba(255,255,255,0.55));
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 16px 34px -18px rgba(150,130,170,0.32), 0 1px 0 rgba(255,255,255,0.9) inset;
+  padding: 18px 20px 14px;
+  transition: box-shadow 0.4s var(--ease-soft), border-color 0.4s;
+}
+.topic-input-shell:focus-within{
+  box-shadow: 0 18px 40px -16px rgba(156,143,196,0.42), 0 0 0 3px rgba(201,191,224,0.22);
+}
+.topic-textarea{
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: none;
+  font-family: 'Noto Serif SC', 'Cormorant Garamond', serif;
+  font-size: 15.5px;
+  line-height: 1.85;
+  color: var(--ink-deep);
+  min-height: 84px;
+}
+.topic-textarea::placeholder{ color: var(--ink-faint); font-style: italic; }
+.topic-input-foot{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(201,191,224,0.4);
+}
+.tif-count{
+  font-family: 'Space Mono', monospace;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
+.ai-suggest-btn{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: linear-gradient(150deg, rgba(201,191,224,0.16), rgba(227,201,209,0.14));
+  border-radius: 20px;
+  padding: 7px 14px 7px 11px;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--lilac-deep);
+  cursor: pointer;
+  transition: transform 0.28s var(--ease-silk), background 0.3s;
+}
+.ai-suggest-btn:active{ transform: scale(0.96); }
+.ai-suggest-btn svg{ width: 14px; height: 14px; flex-shrink: 0; }
+.ai-suggest-btn svg path{ stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.ai-suggest-btn.loading svg{ animation: spin360 1.1s linear infinite; }
+@keyframes spin360{ to{ transform: rotate(360deg); } }
+
+/* ---- AI 话题候选：轻盈标签云，点击即填入 ---- */
+.topic-suggest-list{
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.topic-suggest-list[hidden]{ display: none; }
+.topic-chip{
+  border: 1px solid rgba(201,191,224,0.4);
+  background: rgba(255,255,255,0.55);
+  border-radius: 16px;
+  padding: 8px 15px;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12.5px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.32s var(--ease-silk);
+  opacity: 0;
+  transform: translateY(6px);
+  animation: chipRise 0.5s var(--ease-silk) forwards;
+}
+@keyframes chipRise{ to{ opacity: 1; transform: translateY(0); } }
+.topic-chip:active{ transform: scale(0.95); }
+.topic-chip.picked{
+  background: linear-gradient(135deg, var(--lilac-deep), var(--rose-deep));
+  border-color: transparent;
+  color: var(--pearl-1);
+}
+
+/* ---- 常用话题原型（无网络/未配置API时的兜底候选） ---- */
+.topic-presets{
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(201,191,224,0.22);
+}
+.tp-label{
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 10px;
+}
+
+.stage-next-btn{
+  margin-top: 30px;
+  width: 100%;
+  position: relative;
+  border: none;
+  border-radius: 26px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pearl-1);
+  background: linear-gradient(120deg, var(--lilac-deep), var(--rose-deep));
+  box-shadow: 0 18px 34px -14px rgba(156,143,196,0.55);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.3s var(--ease-silk), opacity 0.3s;
+}
+.stage-next-btn:active{ transform: scale(0.98); }
+.stage-next-btn[disabled]{ opacity: 0.4; pointer-events: none; }
+.stage-next-btn svg{ width: 15px; height: 15px; }
+.stage-next-btn svg path{ stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.snb-glow{
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform: translateX(-120%);
+}
+.stage-next-btn:active .snb-glow{ transition: transform 0.6s var(--ease-soft); transform: translateX(120%); }
+
+/* ================================================================
+   Stage 2 · 角色甄选
+================================================================ */
+.char-gallery{
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 13px;
+}
+.char-card{
+  position: relative;
+  border-radius: 10px 22px 22px 22px;
+  background: linear-gradient(165deg, rgba(255,255,255,0.9), rgba(255,255,255,0.52));
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 14px 28px -18px rgba(150,130,170,0.3);
+  padding: 16px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.34s var(--ease-silk), box-shadow 0.34s var(--ease-silk), border-color 0.34s;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: chipRise 0.55s var(--ease-silk) forwards;
+}
+.char-card:active{ transform: scale(0.97); }
+.char-card.selected{
+  border-color: rgba(201,191,224,0.7);
+  box-shadow: 0 20px 38px -16px rgba(156,143,196,0.48), 0 0 0 3px rgba(201,191,224,0.22);
+}
+.char-card.selected::after{
+  content: '';
+  position: absolute; top: 10px; right: 10px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac-deep), var(--rose-deep));
+  box-shadow: 0 4px 10px -2px rgba(156,143,196,0.5);
+}
+.char-card.selected .cc-check{
+  opacity: 1; transform: scale(1);
+}
+.cc-check{
+  position: absolute; top: 10px; right: 10px;
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: scale(0.5);
+  transition: all 0.3s var(--ease-silk);
+  z-index: 1;
+}
+.cc-check svg{ width: 10px; height: 10px; }
+.cc-check svg path{ stroke: #fff; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+.cc-avatar{
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--lilac), var(--rose-mist));
+  box-shadow: 0 8px 18px -8px rgba(150,130,170,0.4), 0 0 0 3px rgba(255,255,255,0.85);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.cc-avatar img{ width: 100%; height: 100%; object-fit: cover; }
+.cc-avatar-letter{
+  font-family: 'Fraunces', serif;
+  font-size: 21px;
+  font-weight: 500;
+  color: var(--pearl-1);
+}
+.cc-name{
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-deep);
+  margin-bottom: 3px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-role{
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.char-empty{
+  margin-top: 30px;
+  text-align: center;
+  padding: 40px 20px;
+}
+.char-empty-glyph{
+  width: 52px; height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(150deg, rgba(201,191,224,0.2), rgba(227,201,209,0.16));
+  border: 1px solid rgba(255,255,255,0.9);
+  color: var(--lilac-deep);
+}
+.char-empty-glyph svg{ width: 24px; height: 24px; }
+.char-empty-glyph svg path{ stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.char-empty-text{
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14.5px;
+  color: var(--ink-deep);
+  margin-bottom: 6px;
+}
+.char-empty-sub{
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* ================================================================
+   Stage 3 · 共感回响 —— 织梦 loading + 逐字浮现正文（痕迹感）
+================================================================ */
+.reverie-loading{
+  margin-top: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 20px;
+}
+.reverie-loading[hidden]{ display: none; }
+.rl-orb-wrap{
+  position: relative;
+  width: 108px; height: 108px;
+  margin-bottom: 28px;
+}
+.rl-orb-ring{
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(201,191,224,0.35);
+}
+.rl-orb-ring.r2{ inset: 14px; border-color: rgba(227,201,209,0.4); animation: ringSpin 6s linear infinite; }
+.rl-orb-ring.r3{ inset: 28px; border-color: rgba(212,196,154,0.35); animation: ringSpin 9s linear infinite reverse; }
+@keyframes ringSpin{ to{ transform: rotate(360deg); } }
+.rl-orb-core{
+  position: absolute; inset: 38px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9), rgba(201,191,224,0.5) 55%, rgba(227,201,209,0.4));
+  box-shadow: 0 0 30px rgba(201,191,224,0.5), 0 0 60px rgba(227,201,209,0.3);
+  animation: orbBreathe 2.6s var(--ease-soft) infinite;
+}
+@keyframes orbBreathe{ 0%,100%{ transform: scale(1); opacity: 0.9;} 50%{ transform: scale(1.12); opacity: 1;} }
+.rl-orb-particle{
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: var(--lilac-deep);
+  animation: orbParticle 3.2s ease-in-out infinite;
+}
+.rl-orb-particle:nth-child(4){ top: 6%; left: 50%; animation-delay: 0s; }
+.rl-orb-particle:nth-child(5){ top: 50%; right: 2%; animation-delay: 0.8s; background: var(--rose-deep); }
+.rl-orb-particle:nth-child(6){ bottom: 6%; left: 30%; animation-delay: 1.6s; background: var(--gold-hair); }
+@keyframes orbParticle{ 0%,100%{ opacity: 0.2; transform: scale(0.7);} 50%{ opacity: 1; transform: scale(1.3);} }
+
+.rl-text{
+  font-family: 'Noto Serif SC', serif;
+  font-size: 15px;
+  color: var(--ink-deep);
+  margin-bottom: 8px;
+}
+.rl-sub{
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.rl-steps{
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: flex-start;
+}
+.rl-step{
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-faint);
+  opacity: 0.5;
+  transition: opacity 0.4s var(--ease-soft), color 0.4s;
+}
+.rl-step.active{ opacity: 1; color: var(--ink); }
+.rl-step.done{ opacity: 0.75; color: var(--lilac-deep); }
+.rl-step-dot{
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* ---- 回响正文呈现 —— 角色署名卡 + 手写痕迹感正文 ---- */
+.reverie-result{ padding-bottom: 6px; }
+.rr-char-mark{
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(201,191,224,0.25);
+}
+.rr-avatar{
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--lilac), var(--rose-mist));
+  box-shadow: 0 8px 18px -8px rgba(150,130,170,0.4), 0 0 0 3px rgba(255,255,255,0.85);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.rr-avatar img{ width: 100%; height: 100%; object-fit: cover; }
+.rr-avatar-letter{ font-family: 'Fraunces', serif; font-size: 15px; color: var(--pearl-1); }
+.rr-char-info{
+  flex: 1 1 auto;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.rr-char-name{
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink-deep);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rr-char-topic{
+  margin-top: 3px;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rr-timestamp{
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+  text-align: right;
+  margin-left: auto;
+  padding-top: 4px;
+  white-space: nowrap;
+}
+
+/* ---- 正文容器：宣纸质感卡片，带笔迹感光标 ---- */
+.rr-body-shell{
+  position: relative;
+  padding: 26px 24px 24px;
+  border-radius: 10px 26px 26px 26px;
+  background: linear-gradient(165deg, rgba(255,255,255,0.92), rgba(255,255,255,0.56));
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 20px 40px -20px rgba(150,130,170,0.34), 0 1px 0 rgba(255,255,255,0.9) inset;
+}
+.rr-body-shell::before{
+  content: '';
+  position: absolute; left: 22px; top: 18px; bottom: 18px;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(201,191,224,0.4), rgba(227,201,209,0.4), transparent);
+}
+.rr-quote-mark{
+  font-family: 'Fraunces', serif;
+  font-size: 42px;
+  line-height: 0.5;
+  color: var(--lilac);
+  opacity: 0.55;
+  margin-bottom: 6px;
+  display: block;
+}
+.rr-body-text{
+  padding-left: 14px;
+  font-family: 'Noto Serif SC', 'Cormorant Garamond', serif;
+  font-size: 16px;
+  line-height: 2.05;
+  color: var(--ink-deep);
+  letter-spacing: 0.015em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.rr-body-text .rr-char-span{
+  opacity: 0;
+  animation: inkReveal 0.42s var(--ease-soft) forwards;
+}
+@keyframes inkReveal{
+  0%{ opacity: 0; transform: translateY(2px); filter: blur(2px); }
+  100%{ opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.rr-cursor{
+  display: inline-block;
+  width: 2px; height: 17px;
+  background: var(--lilac-deep);
+  margin-left: 1px;
+  vertical-align: -3px;
+  animation: cursorBlink 0.9s steps(1) infinite;
+}
+.rr-cursor.hide{ display: none; }
+@keyframes cursorBlink{ 50%{ opacity: 0; } }
+
+.rr-wordcount-row{
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+.rr-wc-line{ width: 26px; height: 1px; background: linear-gradient(90deg, transparent, rgba(201,191,224,0.5)); }
+.rr-wc-line.right{ background: linear-gradient(90deg, rgba(227,201,209,0.5), transparent); }
+
+/* ---- 配图文字描述 ---- */
+.rr-image-caption{
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: linear-gradient(165deg, rgba(230,224,244,0.4), rgba(255,255,255,0.3));
+  border: 1px dashed rgba(178,163,214,0.45);
+}
+.ric-label{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--lilac-deep, #8a7aa8);
+  margin-bottom: 8px;
+}
+.ric-label svg{
+  width: 13px; height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ric-text{
+  font-family: 'Noto Sans SC', 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+/* ---- 内心独白 / 心声 便签 ---- */
+.rr-inner-voice{
+  position: relative;
+  margin-top: 16px;
+  padding: 18px 18px 16px 20px;
+  border-radius: 4px 14px 14px 4px;
+  background: linear-gradient(100deg, rgba(255,250,232,0.9), rgba(255,244,214,0.65));
+  box-shadow: 0 10px 22px -14px rgba(150,130,170,0.4), 0 1px 0 rgba(255,255,255,0.6) inset;
+  transform: rotate(-0.6deg);
+}
+.riv-pin{
+  position: absolute;
+  top: -7px; left: 22px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f4b3c2, #c9647f);
+  box-shadow: 0 3px 6px rgba(150,90,110,0.4);
+}
+.riv-label{
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(150,120,70,0.75);
+  margin-bottom: 8px;
+}
+.riv-text{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.85;
+  color: #6b5738;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---- 结果操作条 ---- */
+.rr-actions{
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+.rr-action-btn{
+  flex: 1;
+  border: 1px solid rgba(201,191,224,0.4);
+  background: rgba(255,255,255,0.55);
+  border-radius: 22px;
+  padding: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.3s var(--ease-silk);
+}
+.rr-action-btn:active{ transform: scale(0.97); }
+.rr-action-btn svg{ width: 14px; height: 14px; }
+.rr-action-btn svg path{ stroke: currentColor; stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.rr-action-btn.primary{
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--lilac-deep), var(--rose-deep));
+  color: var(--pearl-1);
+  box-shadow: 0 16px 30px -14px rgba(156,143,196,0.5);
+}
+
+/* ---- 生成失败态 ---- */
+.reverie-error{
+  margin-top: 50px;
+  text-align: center;
+  padding: 30px 20px;
+}
+.re-glyph{
+  width: 52px; height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(150deg, rgba(227,201,209,0.22), rgba(201,191,224,0.16));
+  border: 1px solid rgba(255,255,255,0.9);
+  color: var(--rose-deep);
+}
+.re-glyph svg{ width: 22px; height: 22px; }
+.re-glyph svg path{ stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.re-text{ font-family: 'Noto Serif SC', serif; font-size: 14.5px; color: var(--ink-deep); margin-bottom: 8px; }
+.re-sub{ font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 13px; color: var(--ink-faint); line-height: 1.7; max-width: 280px; margin: 0 auto; }
+.re-retry-btn{
+  margin-top: 22px;
+  border: none;
+  border-radius: 20px;
+  padding: 11px 26px;
+  background: linear-gradient(120deg, var(--lilac-deep), var(--rose-deep));
+  color: var(--pearl-1);
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.re-retry-btn:active{ transform: scale(0.96); }
+
+/* ================================================================
+   Stage 4 · 梦境档案 —— 时间轴归档，展示该篇日记下所有共感梦境
+================================================================ */
+.archive-list{ display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
+.archive-item{
+  position: relative;
+  border-radius: 8px 22px 22px 22px;
+  background: linear-gradient(165deg, rgba(255,255,255,0.88), rgba(255,255,255,0.5));
+  border: 1px solid rgba(255,255,255,0.88);
+  box-shadow: 0 14px 28px -18px rgba(150,130,170,0.3);
+  padding: 16px 18px 15px;
+  cursor: pointer;
+  transition: transform 0.3s var(--ease-silk), box-shadow 0.3s var(--ease-silk);
+}
+.archive-item:active{ transform: scale(0.98); }
+.ai-head{ display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.ai-avatar{
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--lilac), var(--rose-mist));
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2.5px rgba(255,255,255,0.85);
+}
+.ai-avatar img{ width: 100%; height: 100%; object-fit: cover; }
+.ai-avatar-letter{ font-family: 'Fraunces', serif; font-size: 13px; color: var(--pearl-1); }
+.ai-name{ font-family: 'Noto Serif SC', serif; font-size: 13px; font-weight: 500; color: var(--ink-deep); }
+.ai-time{
+  margin-left: auto;
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  color: var(--ink-faint);
+}
+.ai-topic{
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 12.5px;
+  color: var(--lilac-deep);
+  margin-bottom: 8px;
+}
+.ai-snippet{
+  font-family: 'Noto Serif SC', 'Cormorant Garamond', serif;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ai-foot{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(201,191,224,0.35);
+}
+.ai-wc{
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  color: var(--ink-faint);
+}
+.ai-open{
+  display: flex; align-items: center; gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--lilac-deep);
+}
+.ai-open svg{ width: 9px; height: 9px; }
+.ai-open svg path{ stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+.archive-empty{
+  margin-top: 60px;
+  text-align: center;
+  padding: 0 24px;
+}
+.ae-mark{
+  width: 64px; height: 64px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  position: relative;
+  background: linear-gradient(150deg, rgba(201,191,224,0.18), rgba(227,201,209,0.14));
+  border: 1px solid rgba(255,255,255,0.9);
+}
+.ae-mark::before, .ae-mark::after{
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  border: 1px dashed rgba(201,191,224,0.4);
+}
+.ae-mark::before{ inset: -8px; animation: ringSpin 14s linear infinite; }
+.ae-mark::after{ inset: -16px; border-color: rgba(227,201,209,0.3); animation: ringSpin 20s linear infinite reverse; }
+.ae-text{ font-family: 'Noto Serif SC', serif; font-size: 15px; color: var(--ink-deep); margin-bottom: 8px; line-height: 1.6; }
+.ae-sub{ font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 13px; color: var(--ink-faint); }
+.ae-start-btn{
+  margin-top: 24px;
+  border: none;
+  border-radius: 22px;
+  padding: 13px 30px;
+  background: linear-gradient(120deg, var(--lilac-deep), var(--rose-deep));
+  color: var(--pearl-1);
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 16px 32px -14px rgba(156,143,196,0.5);
+}
+.ae-start-btn:active{ transform: scale(0.96); }
+
+.archive-new-btn{
+  margin-top: 20px;
+  width: 100%;
+  border: 1px dashed rgba(201,191,224,0.55);
+  background: rgba(255,255,255,0.4);
+  border-radius: 22px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lilac-deep);
+  cursor: pointer;
+  transition: transform 0.3s var(--ease-silk), background 0.3s;
+}
+.archive-new-btn:active{ transform: scale(0.98); }
+.archive-new-btn svg{ width: 14px; height: 14px; }
+.archive-new-btn svg path{ stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ================================================================
+   梦境阅读浮层 —— 从档案点开某一条，全文重读（复用 rr-body-shell 视觉）
+================================================================ */
+.reader-veil{
+  position: fixed; inset: 0; z-index: 90;
+  background: radial-gradient(ellipse 120% 90% at 50% 0%, rgba(43,42,48,0.30), rgba(43,42,48,0.52));
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.5s var(--ease-soft);
+}
+.reader-veil.show{ opacity: 1; pointer-events: auto; }
+.reader-modal{
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 91;
+  display: flex; justify-content: center;
+  transform: translateY(100%); opacity: 0; pointer-events: none;
+  transition: transform 0.5s var(--ease-silk), opacity 0.42s var(--ease-soft);
+}
+.reader-modal.show{ transform: translateY(0); opacity: 1; pointer-events: auto; }
+.reader-sheet{
+  width: 100%; max-width: 640px; max-height: 84vh;
+  display: flex; flex-direction: column;
+  border-radius: 26px 26px 0 0;
+  background: var(--sheet-glass);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.9); border-bottom: none;
+  box-shadow: 0 -20px 50px -20px rgba(150,130,170,0.4);
+  overflow: hidden;
+}
+.reader-handle{ width: 38px; height: 4px; border-radius: 3px; background: linear-gradient(90deg, var(--lilac), var(--rose-mist)); opacity: 0.6; margin: 12px auto 6px; flex-shrink: 0; }
+.reader-topbar{
+  flex-shrink: 0; padding: 8px 22px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(201,191,224,0.22);
+}
+.reader-close{
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid var(--btn-border); background: var(--btn-glass);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-soft); cursor: pointer;
+  transition: transform 0.3s var(--ease-silk);
+}
+.reader-close:active{ transform: scale(0.9) rotate(90deg); }
+.reader-close svg{ width: 14px; height: 14px; }
+.reader-close svg path{ stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; }
+.reader-body{ flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 20px 22px 40px; }
+.reader-body::-webkit-scrollbar{ display: none; }
+.reader-body .rr-body-text .rr-char-span{ animation: none; opacity: 1; }
+
+/* ================================================================
+   浮动提示 toast
+================================================================ */
+.dream-toast{
+  position: fixed; left: 50%; bottom: 34px;
+  transform: translate(-50%, 16px);
+  z-index: 500;
+  padding: 12px 22px;
+  border-radius: 22px;
+  background: rgba(43,42,48,0.86);
+  backdrop-filter: blur(10px);
+  color: var(--pearl-1);
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s var(--ease-silk);
+  white-space: nowrap;
+}
+.dream-toast.show{ opacity: 1; transform: translate(-50%, 0); }
+
+/* ================================================================
+   响应式微调
+================================================================ */
+@media (max-width: 360px){
+  .char-gallery{ gap: 10px; }
+  .sh-title{ font-size: 20px; }
+  .rr-body-text{ font-size: 15px; }
+}
