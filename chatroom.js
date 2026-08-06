@@ -4839,6 +4839,12 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   await crRestoreMessages();
 
+  /* ── 接收从「朋友圈」转发过来的帖子卡片 ──
+     用户在 Moments 页点击「转发到聊天」并选定好友后，moments-feed.js 会把
+     卡片数据暂存进 localStorage 再跳转到本页。这里只在暂存数据确实指向
+     "当前打开的这个聊天对象" 时才消费它，消费后立即清除，避免刷新页面重复插入。 */
+  crConsumePendingMomentShare();
+
   /* ── 返回按钮：用事件委托绑定在 document 上 ──
      原因：Header Studio 美化功能可能会把 #crAvatarWrap（头像）从
      #crBackBtn 内部移动到 .cr-header-main 下（用于让头像在自定义
@@ -5531,6 +5537,51 @@ function crBuildStoryCardEl(msg) {
   return wrap;
 }
 
+/* ── 朋友圈「帖子」转发卡片（区别于上面的 Story/限时动态卡片 sc-card）──
+   视觉与限时动态卡片明显区分：不带"燃烧倒计时条"，标签固定写"朋友圈"，
+   点开即可在下方看到「AI 解读这条动态」按钮（仅用户点击后才会请求AI，不自动触发）。 */
+function crBuildMomentShareCardEl(msg) {
+  const isMine    = msg.role === 'mine';
+  const author    = msg.momAuthor || '';
+  const text      = msg.momText || '';
+  const tag       = msg.momTag || '';
+  const cover     = msg.momCover || '';
+  const hasImage  = !!msg.momHasImage;
+  const imgCount  = msg.momImageCount || 0;
+
+  const coverArea = hasImage
+    ? (cover
+        ? `<img src="${escHtml(cover)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />`
+        : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;">${imgCount} PHOTOS</div>`)
+    : '';
+
+  const html = `
+    <div class="mom-share-card">
+      ${hasImage ? `<div class="mom-share-cover">${coverArea}</div>` : ''}
+      <div class="mom-share-body">
+        <div class="mom-share-hd">
+          <div class="mom-share-av">${escHtml((author || '?')[0] || '?')}</div>
+          <div class="mom-share-author">${escHtml(author)}</div>
+        </div>
+        <div class="mom-share-text">${escHtml(text) || (hasImage ? '（图片动态）' : '')}${tag ? ` <span class="mom-share-tag">${escHtml(tag)}</span>` : ''}</div>
+        <div class="mom-share-foot">
+          <div class="mom-share-foot-dot"></div>
+          <div class="mom-share-foot-label">朋友圈</div>
+        </div>
+      </div>
+    </div>
+    ${!isMine ? `<div class="mom-share-ai-btn" onclick="crRequestAiCommentOnMoment(this)" data-post-id="${escHtml(msg.momPostId || '')}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+      <span>让 TA 去朋友圈评论这条</span>
+    </div>` : ''}
+  `;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'mom-share-wrap ' + (isMine ? 'mom-share-sent' : 'mom-share-recv');
+  wrap.innerHTML = html;
+  return wrap;
+}
+
 /* ── 构建气泡内「被引用预览块」的 HTML ──
    quote: { text, role, idx }；role 是被引用消息原作者（'mine'/'luna'） */
 function crBuildQuoteHtml(quote) {
@@ -5589,6 +5640,37 @@ function crBuildMsgEl(msg) {
     el.className = isMine ? 'cr-msg-mine' : 'cr-msg-luna';
 
     const cardWrap = crBuildStoryCardEl(msg);
+
+    if (isMine) {
+      el.appendChild(cardWrap);
+      const meta = document.createElement('div');
+      meta.className = 'cr-mine-meta';
+      meta.style.marginTop = '4px';
+      meta.innerHTML = `<span class="cr-mine-time">${msg.time}</span>
+        <svg class="cr-mine-check" width="14" height="10" viewBox="0 0 14 10" fill="none">
+          <path d="M1 5l3.5 3.5L13 1" stroke="rgba(100,100,100,0.5)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`;
+      el.appendChild(meta);
+    } else {
+      const avHtml = crMiniAvHtml();
+      const inner  = document.createElement('div');
+      inner.appendChild(cardWrap);
+      const timeP = document.createElement('p');
+      timeP.className = 'cr-msg-time';
+      timeP.textContent = msg.time;
+      inner.appendChild(timeP);
+      el.innerHTML = avHtml;
+      el.appendChild(inner);
+    }
+    return el;
+  }
+
+  // ── 朋友圈帖子转发卡片（与上面 Story 卡片是两套独立逻辑）──
+  if (msg.isMomentShare) {
+    const isMine = msg.role === 'mine';
+    el.className = isMine ? 'cr-msg-mine' : 'cr-msg-luna';
+
+    const cardWrap = crBuildMomentShareCardEl(msg);
 
     if (isMine) {
       el.appendChild(cardWrap);
@@ -6052,6 +6134,135 @@ function crSend() {
   area.scrollTop = area.scrollHeight;
 }
 
+/* ================================
+   接收「朋友圈帖子」转发卡片
+   —— 与 Story 转发是完全独立的两条链路，卡片带 isMomentShare 标记，
+      渲染样式(mom-share-card)和 crBuildApiMessages 里的解读文本都单独处理。
+================================ */
+function crConsumePendingMomentShare() {
+  let raw;
+  try { raw = localStorage.getItem('luna_pending_moment_share'); } catch (e) { return; }
+  if (!raw) return;
+
+  let payload;
+  try { payload = JSON.parse(raw); } catch (e) { localStorage.removeItem('luna_pending_moment_share'); return; }
+
+  // 只消费属于"当前打开的这个聊天对象"的转发；不是给当前人的，留着不动，等跳到对应聊天页时再消费
+  if (!payload || payload.friendName !== CR_NAME) return;
+
+  localStorage.removeItem('luna_pending_moment_share');
+
+  const card = payload.card;
+  if (!card) return;
+
+  const n = new Date();
+  const t = n.getHours().toString().padStart(2, '0') + ':' + n.getMinutes().toString().padStart(2, '0');
+
+  const msgObj = {
+    role: 'mine',
+    text: '[朋友圈] ' + (card.text || (card.hasImage ? '（图片动态）' : '')),
+    time: t,
+    isMomentShare: true,
+    momPostId: card.postId,
+    momAuthor: card.author,
+    momText: card.text,
+    momTag: card.tag,
+    momHasImage: card.hasImage,
+    momImageCount: card.imageCount,
+    momCover: card.coverImage,
+  };
+  crMessages.push(msgObj);
+
+  const area = document.getElementById('crMessages');
+  if (area) {
+    const el = crBuildMsgEl(msgObj);
+    area.appendChild(el);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  dbSaveMessages(CR_NAME, crMessages);
+}
+
+/* ================================
+   用户点击「让 TA 去朋友圈评论这条」按钮后才会触发的 AI 评论逻辑。
+   关键点：
+   - 这不是自动执行的。只有用户在聊天里主动点了这个按钮，才会调用 AI。
+   - AI 会读取当前聊天的上下文（包括围绕这条朋友圈说过的话），
+     结合角色人设，生成一句符合语境的评论。
+   - 生成结果直接写入 MOMENTS_FEED 对应帖子的 comments，并弹提示告知用户，
+     不会二次确认发送——因为点击这个按钮本身就是用户的明确指令。
+================================ */
+async function crRequestAiCommentOnMoment(btnEl) {
+  if (!btnEl || btnEl._crBusy) return;
+  const postId = btnEl.dataset.postId;
+  if (!postId) return;
+
+  const cur   = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
+  const model = localStorage.getItem('luna_api_model') || '';
+  if (!cur.baseUrl || !cur.apiKey || !model) {
+    crShowTip('请先在设置页配置 API');
+    return;
+  }
+
+  btnEl._crBusy = true;
+  const originalHtml = btnEl.innerHTML;
+  btnEl.innerHTML = '<span style="opacity:0.6;">正在生成评论…</span>';
+  btnEl.style.pointerEvents = 'none';
+
+  try {
+    const char = await crLoadCharProfile(CR_NAME);
+    const traits = (char?.traits || []).join('、') || '未知';
+
+    // 找到这条转发卡片消息，定位其在聊天记录里的位置，取周围的对话作为语境
+    const cardIdx = crMessages.findIndex(m => m.isMomentShare && m.momPostId === postId);
+    const contextMsgs = cardIdx >= 0
+      ? crMessages.slice(Math.max(0, cardIdx - 1), cardIdx + 6)
+      : crMessages.slice(-6);
+    const contextText = contextMsgs.map(m => {
+      const who = m.role === 'mine' ? '用户' : CR_NAME;
+      if (m.isMomentShare) return `${who}转发了一条朋友圈：作者「${m.momAuthor}」，内容「${m.momText || '（图片动态）'}」`;
+      return `${who}：${m.text || ''}`;
+    }).join('\n');
+
+    const cardMsg = crMessages.find(m => m.isMomentShare && m.momPostId === postId);
+    const momentAuthor = cardMsg?.momAuthor || '';
+    const momentText    = cardMsg?.momText || '（图片动态）';
+
+    const systemPrompt = `你现在扮演角色【${char?.name || CR_NAME}】，绝不是 AI 或助手。
+性格标签：${traits}
+人物简介：${char?.desc || '暂无'}
+现在你要去"朋友圈"给别人的一条动态写一句评论。
+这条动态的作者是「${momentAuthor}」，内容是："${momentText}"
+以下是你和用户最近聊天中围绕这条动态说过的话，请结合语境理解你们聊天里对这条动态的态度/情绪，让评论自然承接聊天内容：
+${contextText}
+要求：只返回评论正文本身，符合你的人设口吻，20字以内，不要加引号，不要任何解释性文字。`;
+
+    const raw = await crCallApi(systemPrompt, [{ role: 'user', content: '请生成这条评论' }]);
+    const commentText = (raw || '').trim().replace(/^["“]|["”]$/g, '');
+
+    if (!commentText) throw new Error('empty');
+
+    // 写入 Moments 帖子评论区
+    if (typeof MOMENTS_FEED !== 'undefined') {
+      const post = MOMENTS_FEED.find(p => p.id === postId);
+      if (post) {
+        post.comments = post.comments || [];
+        post.comments.push({ author: CR_NAME, text: commentText, createdAt: Date.now() });
+        if (typeof momentsDbSaveAll === 'function') momentsDbSaveAll(MOMENTS_FEED);
+        if (typeof momentsUpdateHeaderStats === 'function') momentsUpdateHeaderStats();
+      }
+    }
+
+    btnEl.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><span>已评论：' + commentText + '</span>';
+    crShowTip(CR_NAME + ' 去朋友圈评论了这条');
+  } catch (e) {
+    btnEl.innerHTML = originalHtml;
+    btnEl.style.pointerEvents = '';
+    btnEl._crBusy = false;
+    crShowTip('评论生成失败，请重试');
+  }
+}
+
 /* 灵动岛同步 */
 function applyIsland() {
   const enabled = localStorage.getItem('luna_island_enabled') === 'true';
@@ -6419,6 +6630,23 @@ async function crBuildSystemPrompt(char, situation, memeList, userIdentity) {
     }
   } catch (e) { rewindBlock = ''; }
 
+  // 世界书：读取与当前角色关联的条目（专属角色条目 + 全局条目），
+  // 常驻条目必定注入，关键词条目按最近对话内容扫描触发。
+  // 数据来自 worldbook-runtime.js（与世界书页面共用同一个 IndexedDB），
+  // 保存后立刻对该角色生效，不需要额外操作。
+  // 加超时兜底，避免 IndexedDB 异常时卡住正常回复。
+  let worldBookBlock = '';
+  try {
+    if (window.LunaWorldBookRuntime && typeof window.LunaWorldBookRuntime.resolveActiveEntries === 'function') {
+      const recentText = crBuildWorldBookScanText();
+      const { entries } = await Promise.race([
+        window.LunaWorldBookRuntime.resolveActiveEntries(char?.id, recentText),
+        new Promise(res => setTimeout(() => res({ entries: [] }), 1500))
+      ]);
+      worldBookBlock = window.LunaWorldBookRuntime.buildPromptBlock(entries);
+    }
+  } catch (e) { worldBookBlock = ''; }
+
   return `你现在扮演「${name}」，一个真实存在的人，绝对不是 AI 或助手。
 
 【角色身份】
@@ -6451,7 +6679,18 @@ ${memeRule}
     (b) 【你自己想主动发起时 — 才需要克制】如果是你自己没由头地突然想视频（不是用户要求的），格式规则同上，但频率必须非常克制：整段对话里极少触发，绝大多数时候完全不用，只有情绪或语境确实强烈到位时才用，绝不能连续两轮都用，不能靠这个功能刷存在感。这条"克制"的要求只适用于你自己主动发起的情况，不适用于(a)用户明确要求的情况。
     【严禁事项】对话历史里如果出现"（系统备注，仅供你理解上下文，不是你说过的话：……）"这类文字，那只是背景说明，不能原文照抄当成台词说出来，要用自己的话自然回应这件事本身（比如"刚才没接到你电话呀"）。这条规则只是禁止照抄措辞，不代表要回避使用视频通话功能本身，(a)(b)两种触发场景该用还是要用。
 ${bilingualRule}
+${worldBookBlock}
 ${situationNote}${rewindBlock}`;
+}
+
+/* ── 世界书关键词扫描用文本：拼接最近若干条对话（用户+角色），用于判断该触发哪些非常驻条目 ──
+   只取最近一段对话，避免早期无关内容误触发，也避免拼接全部历史拖慢扫描。 */
+function crBuildWorldBookScanText() {
+  try {
+    if (typeof crMessages === 'undefined' || !Array.isArray(crMessages) || !crMessages.length) return '';
+    const recent = crMessages.slice(-16); // 最近 16 条消息足够覆盖常见的世界书扫描深度设置
+    return recent.map(m => (m && (m.content || m.text)) || '').join('\n');
+  } catch (e) { return ''; }
 }
 
 /* ── 生成心声卡片数据（每次 AI 回复后调用） ── */
@@ -7103,6 +7342,8 @@ function crBuildApiMessages(historyMsgs) {
           : m.vcLogStatus === 'cancelled'
           ? `（系统备注，仅供你理解上下文，不是你说过的话：有一次视频通话被取消了，没有实际接通）`
           : `（系统备注，仅供你理解上下文，不是你说过的话：你和用户刚刚进行了一次视频通话，时长${crFormatCallDuration(m.vcLogDuration || 0)}）`)
+      : m.isMomentShare
+      ? `[用户给你转发了一条朋友圈动态。发布者：${m.momAuthor || '未知'}；内容：${m.momText || (m.momHasImage ? '（一条图片动态，共' + (m.momImageCount || 0) + '张图，无文字）' : '（空）')}${m.momTag ? '；话题标签：' + m.momTag : ''}。请把这当作用户分享给你看的真实朋友圈内容来理解和回应，可以评价、提问或调侃，不要说自己看不到内容。]`
       : m.text;
     if (m.role === 'mine' && m.edited && m.originalText && m.originalText !== m.text) {
       content =

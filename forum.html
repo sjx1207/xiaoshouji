@@ -256,6 +256,18 @@
             </div>
           </div>
 
+          <!-- 当前用户身份栏（你自己的身份，非AI角色） -->
+          <div class="publish-identity-bar" id="publishIdentityBar">
+            <div class="pub-identity-empty" onclick="openPersonaModal()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+                <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+              <span>尚未选择用户身份，点击设置</span>
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+
           <!-- 发帖编辑器框架 -->
           <div class="editor-wrap">
             <!-- 类型选择 -->
@@ -800,6 +812,98 @@
   </div>
 </div>
 
+<!-- ══ 角色论坛行为偏好弹窗 ══ -->
+<div class="persona-mask" id="charEditMask" onclick="closeCharEditModal()"></div>
+<div class="persona-modal char-edit-modal" id="charEditModal">
+  <div class="persona-modal-header">
+    <div class="persona-modal-title-wrap">
+      <div class="persona-modal-title" id="charBehaviorTitle">论坛行为偏好</div>
+      <div class="persona-modal-subtitle">设定该角色在本论坛的行动方式，与角色书设定独立</div>
+    </div>
+    <button class="persona-modal-close" onclick="closeCharEditModal()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+  <div class="char-edit-body">
+
+    <!-- 角色名只读展示 -->
+    <div class="cbp-char-banner" id="cbpCharBanner">
+      <div class="cbp-char-avatar" id="cbpCharAvatar"></div>
+      <div class="cbp-char-info">
+        <div class="cbp-char-name" id="cbpCharName">—</div>
+        <div class="cbp-char-hint">以下设定仅影响此角色在论坛的生成行为</div>
+      </div>
+    </div>
+
+    <!-- 发帖频率 -->
+    <div class="persona-field">
+      <label class="persona-label">发帖频率</label>
+      <div class="cbp-chip-row" id="cbpFreqRow">
+        <button class="cbp-chip active" data-val="low"    onclick="selectCbpChip('freq',this)">偶尔发帖</button>
+        <button class="cbp-chip"        data-val="medium" onclick="selectCbpChip('freq',this)">正常频率</button>
+        <button class="cbp-chip"        data-val="high"   onclick="selectCbpChip('freq',this)">高频活跃</button>
+      </div>
+    </div>
+
+    <!-- 常发话题 -->
+    <div class="persona-field">
+      <label class="persona-label">常发话题 <span class="persona-label-hint">逗号分隔，最多 5 个</span></label>
+      <input class="persona-input" id="cbpTopics" placeholder="如：科技，日常，评测，吐槽…" maxlength="80"/>
+    </div>
+
+    <!-- 回帖风格 -->
+    <div class="persona-field">
+      <label class="persona-label">回帖风格</label>
+      <div class="cbp-chip-row" id="cbpReplyRow">
+        <button class="cbp-chip active" data-val="brief"    onclick="selectCbpChip('reply',this)">言简意赅</button>
+        <button class="cbp-chip"        data-val="detailed" onclick="selectCbpChip('reply',this)">详细展开</button>
+        <button class="cbp-chip"        data-val="emoji"    onclick="selectCbpChip('reply',this)">emoji 爱好者</button>
+        <button class="cbp-chip"        data-val="meme"     onclick="selectCbpChip('reply',this)">网络梗多</button>
+      </div>
+    </div>
+
+    <!-- 语气倾向 -->
+    <div class="persona-field">
+      <label class="persona-label">语气倾向</label>
+      <div class="cbp-chip-row" id="cbpToneRow">
+        <button class="cbp-chip active" data-val="casual"   onclick="selectCbpChip('tone',this)">随意</button>
+        <button class="cbp-chip"        data-val="warm"     onclick="selectCbpChip('tone',this)">温和</button>
+        <button class="cbp-chip"        data-val="sharp"    onclick="selectCbpChip('tone',this)">犀利</button>
+        <button class="cbp-chip"        data-val="humorous" onclick="selectCbpChip('tone',this)">幽默</button>
+        <button class="cbp-chip"        data-val="serious"  onclick="selectCbpChip('tone',this)">严肃</button>
+      </div>
+    </div>
+
+    <!-- 互动倾向 -->
+    <div class="persona-field">
+      <label class="persona-label">互动倾向 <span class="persona-label-hint">可多选</span></label>
+      <div class="cbp-chip-row cbp-multi" id="cbpInteractRow">
+        <button class="cbp-chip" data-val="like"    onclick="toggleCbpChip(this)">主动点赞</button>
+        <button class="cbp-chip" data-val="comment" onclick="toggleCbpChip(this)">主动评论</button>
+        <button class="cbp-chip" data-val="repost"  onclick="toggleCbpChip(this)">转发内容</button>
+        <button class="cbp-chip" data-val="follow"  onclick="toggleCbpChip(this)">关注用户</button>
+      </div>
+    </div>
+
+    <!-- 补充备注 -->
+    <div class="persona-field">
+      <label class="persona-label">补充行为备注</label>
+      <textarea class="persona-textarea" id="cbpNote" placeholder="其他想让这个角色在论坛特别注意的行为，如：不主动发美食相关，遇到争议话题保持沉默…" maxlength="300"></textarea>
+    </div>
+
+    <div class="persona-form-actions">
+      <button class="persona-btn-ghost" onclick="closeCharEditModal()">取消</button>
+      <button class="persona-btn-primary" onclick="saveCharBehavior()">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><polyline points="17 21 17 13 7 13 7 21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        保存偏好
+      </button>
+    </div>
+    <div class="persona-save-tip" id="cbpSaveTip" style="display:none">已保存</div>
+  </div>
+</div>
+
 <!-- ══ 人设弹窗遮罩 ══ -->
 <div class="persona-mask" id="personaMask" onclick="closePersonaModal()"></div>
 
@@ -808,42 +912,115 @@
 
   <!-- 顶部标题栏 -->
   <div class="persona-modal-header">
-    <div class="persona-modal-title">人设管理</div>
+    <div class="persona-modal-title-wrap">
+      <div class="persona-modal-title">人设管理</div>
+      <div class="persona-modal-subtitle">角色与身份独立运作</div>
+    </div>
     <button class="persona-modal-close" onclick="closePersonaModal()">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
   </div>
 
   <!-- Tab 切换 -->
   <div class="persona-tabs">
-    <button class="persona-tab active" onclick="switchPersonaTab(this,'char')">选择角色</button>
-    <button class="persona-tab" onclick="switchPersonaTab(this,'identity')">用户身份</button>
-    <button class="persona-tab" onclick="switchPersonaTab(this,'world')">世界观</button>
+    <button class="persona-tab active" onclick="switchPersonaTab(this,'char')">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>
+      选择角色
+    </button>
+    <button class="persona-tab" onclick="switchPersonaTab(this,'identity')">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      用户身份
+    </button>
+    <button class="persona-tab" onclick="switchPersonaTab(this,'world')">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" stroke-width="1.8"/></svg>
+      世界观
+    </button>
   </div>
 
   <!-- ─── Tab 1：选择角色 ─── -->
   <div class="persona-panel active" id="ptab-char">
-    <div class="persona-panel-desc">选择一个角色书中的角色进入论坛，该角色将作为你的发帖身份参与互动。</div>
+    <div class="persona-panel-notice">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      选择 AI 将扮演的角色——热搜、帖子、评论等内容由 AI 以此角色身份生成。与你自己的「用户身份」彼此独立。
+    </div>
     <div class="persona-char-list" id="personaCharList">
-      <div class="persona-loading">读取角色书中...</div>
+      <div class="persona-loading">
+        <div class="persona-loading-spinner"></div>
+        读取角色书中…
+      </div>
     </div>
   </div>
 
   <!-- ─── Tab 2：用户身份 ─── -->
   <div class="persona-panel" id="ptab-identity">
-    <div class="persona-panel-desc">填写你在论坛中的用户身份信息，用于辅助内容生成。</div>
 
-    <!-- 身份档案卡片列表 -->
-    <div class="persona-identity-list" id="personaIdentityList"></div>
-
-    <!-- 当前编辑区 -->
-    <div class="persona-identity-form" id="personaIdentityForm">
-      <div class="persona-field">
-        <label class="persona-label">身份名称</label>
-        <input class="persona-input" id="idtName" placeholder="例：学生党 / 上班族 / 二次元爱好者" maxlength="20"/>
+    <!-- 空状态（无身份时显示） -->
+    <div class="persona-identity-empty" id="identityEmptyState" style="display:none">
+      <div class="pie-icon-wrap">
+        <svg viewBox="0 0 48 48" width="48" height="48" fill="none">
+          <rect x="6" y="10" width="36" height="28" rx="5" stroke="#c4b5fd" stroke-width="2"/>
+          <circle cx="17" cy="22" r="4" stroke="#c4b5fd" stroke-width="1.8"/>
+          <path d="M9 34c0-4 3.6-7 8-7s8 3 8 7" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M28 20h7M28 25h5M28 30h7" stroke="#ddd6fe" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
       </div>
+      <div class="pie-title">还没有用户身份</div>
+      <div class="pie-desc">这是<strong>你自己</strong>在论坛发帖时的身份<br>发布页会显示此身份，与 AI 扮演的角色彼此独立</div>
+      <button class="pie-create-btn" onclick="showIdentityForm()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        创建第一个身份
+      </button>
+    </div>
+
+    <!-- 身份卡片列表区 -->
+    <div class="persona-identity-cards-wrap" id="identityCardsWrap" style="display:none">
+      <div class="persona-identity-section-head">
+        <div class="pish-title">我的身份档案</div>
+        <button class="pish-add-btn" onclick="showIdentityForm()">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          新建
+        </button>
+      </div>
+      <div class="persona-identity-cards" id="personaIdentityCards"></div>
+    </div>
+
+    <!-- 身份编辑表单（默认隐藏，创建/编辑时出现） -->
+    <div class="persona-identity-form" id="personaIdentityForm" style="display:none">
+      <div class="pif-form-header">
+        <button class="pif-back-btn" onclick="backToIdentityCards()">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          返回
+        </button>
+        <div class="pif-form-title" id="pifFormTitle">创建身份</div>
+      </div>
+
+      <div class="persona-field">
+        <label class="persona-label">身份名称 <span class="persona-label-required">*</span></label>
+        <input class="persona-input" id="idtName" placeholder="如：深夜科技博主 / 生活方式达人" maxlength="20"/>
+      </div>
+
+      <div class="persona-field">
+        <label class="persona-label">博主类型</label>
+        <div class="persona-blogger-type-grid" id="bloggerTypeGrid">
+          <button class="pbt-btn" data-bt="科技数码" onclick="selectBloggerType(this)">科技数码</button>
+          <button class="pbt-btn" data-bt="生活方式" onclick="selectBloggerType(this)">生活方式</button>
+          <button class="pbt-btn" data-bt="美妆时尚" onclick="selectBloggerType(this)">美妆时尚</button>
+          <button class="pbt-btn" data-bt="美食探店" onclick="selectBloggerType(this)">美食探店</button>
+          <button class="pbt-btn" data-bt="旅行摄影" onclick="selectBloggerType(this)">旅行摄影</button>
+          <button class="pbt-btn" data-bt="读书影评" onclick="selectBloggerType(this)">读书影评</button>
+          <button class="pbt-btn" data-bt="游戏电竞" onclick="selectBloggerType(this)">游戏电竞</button>
+          <button class="pbt-btn" data-bt="二次元" onclick="selectBloggerType(this)">二次元</button>
+          <button class="pbt-btn" data-bt="职场成长" onclick="selectBloggerType(this)">职场成长</button>
+          <button class="pbt-btn" data-bt="自定义" onclick="selectBloggerType(this)">自定义</button>
+        </div>
+        <!-- 自定义类型输入框，选中「自定义」时出现 -->
+        <div id="bloggerTypeCustomField" style="display:none; margin-top:8px">
+          <input class="persona-input" id="idtBloggerTypeCustom" placeholder="输入自定义博主类型，如：手工艺人 / 宠物博主" maxlength="20"/>
+        </div>
+      </div>
+
       <div class="persona-field">
         <label class="persona-label">性别</label>
         <div class="persona-gender-row">
@@ -853,39 +1030,50 @@
           <button class="persona-gender-btn" data-g="其他" onclick="selectIdtGender(this)">其他</button>
         </div>
       </div>
+
       <div class="persona-field">
         <label class="persona-label">年龄段</label>
-        <input class="persona-input" id="idtAge" placeholder="例：18-22岁" maxlength="20"/>
+        <input class="persona-input" id="idtAge" placeholder="如：18-22岁 / 25岁左右" maxlength="20"/>
       </div>
+
       <div class="persona-field">
-        <label class="persona-label">兴趣标签（逗号分隔）</label>
-        <input class="persona-input" id="idtTags" placeholder="例：动漫，音乐，写作，摄影" maxlength="100"/>
+        <label class="persona-label">兴趣标签 <span class="persona-label-hint">逗号分隔</span></label>
+        <input class="persona-input" id="idtTags" placeholder="如：动漫，音乐，写作，摄影，咖啡" maxlength="100"/>
       </div>
+
       <div class="persona-field">
-        <label class="persona-label">性格描述</label>
-        <textarea class="persona-textarea" id="idtPersonality" placeholder="例：内向，喜欢深夜刷论坛，对二次元话题热情" maxlength="200"></textarea>
+        <label class="persona-label">发帖风格 / 性格描述</label>
+        <textarea class="persona-textarea" id="idtPersonality" placeholder="描述这个博主的说话风格和性格特点，如：喜欢用网络梗，文字简洁有力，偏爱深夜发帖…" maxlength="200"></textarea>
       </div>
+
       <div class="persona-field">
-        <label class="persona-label">补充说明</label>
-        <textarea class="persona-textarea" id="idtExtra" placeholder="其他影响内容生成的信息..." maxlength="300"></textarea>
+        <label class="persona-label">背景故事 / 补充设定</label>
+        <textarea class="persona-textarea" id="idtExtra" placeholder="这个博主的背景信息，如：刚毕业的设计师，热爱二次元，在北京打拼，养了一只橘猫…" maxlength="300"></textarea>
       </div>
+
       <div class="persona-form-actions">
-        <button class="persona-btn-ghost" onclick="newIdentity()">新建身份</button>
-        <button class="persona-btn-primary" onclick="saveIdentity()">保存身份</button>
+        <button class="persona-btn-ghost" onclick="backToIdentityCards()">取消</button>
+        <button class="persona-btn-primary" onclick="saveIdentity()">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><polyline points="17 21 17 13 7 13 7 21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><polyline points="7 3 7 8 15 8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          保存身份
+        </button>
       </div>
     </div>
   </div>
 
   <!-- ─── Tab 3：世界观 ─── -->
   <div class="persona-panel" id="ptab-world">
-    <div class="persona-panel-desc">描述本论坛所在的世界观背景，用于辅助内容生成时保持设定一致。</div>
+    <div class="persona-panel-notice">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v4l3 3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      设定论坛所处的世界背景，AI 生成内容时将保持该世界观设定。
+    </div>
     <div class="persona-field">
       <label class="persona-label">世界观名称</label>
-      <input class="persona-input" id="worldName" placeholder="例：赛博都市2087 / 魔法学院日常" maxlength="40"/>
+      <input class="persona-input" id="worldName" placeholder="如：赛博都市2087 / 魔法学院日常" maxlength="40"/>
     </div>
     <div class="persona-field">
       <label class="persona-label">世界观描述</label>
-      <textarea class="persona-textarea" id="worldDesc" style="min-height:120px" placeholder="描述这个世界的背景、规则、文化氛围等，越详细内容生成越准确..." maxlength="800"></textarea>
+      <textarea class="persona-textarea" id="worldDesc" style="min-height:110px" placeholder="描述这个世界的背景、规则、文化氛围等，越详细生成越准确…" maxlength="800"></textarea>
     </div>
     <div class="persona-field">
       <label class="persona-label">论坛风格基调</label>
@@ -898,11 +1086,14 @@
       </div>
     </div>
     <div class="persona-field">
-      <label class="persona-label">禁忌话题（逗号分隔）</label>
-      <input class="persona-input" id="worldTaboo" placeholder="例：现代科技，政治，地球" maxlength="200"/>
+      <label class="persona-label">禁忌话题 <span class="persona-label-hint">逗号分隔</span></label>
+      <input class="persona-input" id="worldTaboo" placeholder="如：现代科技，政治，地球" maxlength="200"/>
     </div>
     <div class="persona-form-actions">
-      <button class="persona-btn-primary" onclick="saveWorldview()">保存世界观</button>
+      <button class="persona-btn-primary" onclick="saveWorldview()">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><polyline points="17 21 17 13 7 13 7 21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><polyline points="7 3 7 8 15 8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        保存世界观
+      </button>
     </div>
     <div class="persona-save-tip" id="worldSaveTip" style="display:none">已保存</div>
   </div>

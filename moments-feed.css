@@ -1,0 +1,136 @@
+/* ══════════════════════════════════════════════════════
+   Moments Feed — moments-feed.css
+   点赞 / 评论 / 收藏 交互样式，黑白灰高级韩系风格
+══════════════════════════════════════════════════════ */
+
+/* ---- 空状态 ---- */
+.mmt-feed-empty {
+  padding: 60px 30px;
+  text-align: center;
+}
+.mmt-feed-empty-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; color: rgba(10,10,15,0.55);
+  margin-bottom: 6px;
+}
+.mmt-feed-empty-sub {
+  font-size: 12.5px; color: rgba(10,10,15,0.32);
+  line-height: 1.6;
+}
+
+/* ---- 点赞动效 ---- */
+.mmt-like-pop { animation: mmtLikePop 0.26s ease; }
+@keyframes mmtLikePop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+
+.mmt-cb-save.saved { }
+.mmt-cb-save svg { transition: fill 0.15s ease; }
+
+/* ---- 评论弹层（复用 fwd-sheet 视觉规范，独立命名避免冲突） ---- */
+.mmt-comment-overlay {
+  position: fixed; inset: 0; z-index: 330;
+  background: rgba(10,10,10,0.32);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.mmt-comment-overlay.show { opacity: 1; pointer-events: all; }
+
+.mmt-comment-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 331;
+  background: #fff;
+  border-radius: 22px 22px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
+  max-height: 72vh;
+  display: flex; flex-direction: column;
+}
+.mmt-comment-sheet.show { transform: translateY(0); }
+
+.mmt-comment-handle {
+  width: 34px; height: 4px; border-radius: 2px;
+  background: rgba(10,10,10,0.14);
+  margin: 10px auto 8px;
+  flex-shrink: 0;
+}
+.mmt-comment-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 20px 12px;
+  border-bottom: 0.5px solid rgba(10,10,10,0.07);
+  flex-shrink: 0;
+}
+.mmt-comment-hdr-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px; color: #0a0a0a;
+}
+.mmt-comment-hdr-close {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(10,10,10,0.05);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: rgba(10,10,10,0.5);
+}
+
+.mmt-comment-list {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 6px 0 10px;
+}
+.mmt-comment-empty {
+  text-align: center; padding: 40px 20px;
+  font-size: 12.5px; color: rgba(10,10,15,0.32);
+}
+.mmt-comment-item {
+  display: flex; gap: 10px;
+  padding: 11px 20px;
+}
+.mmt-comment-av {
+  width: 30px; height: 30px; border-radius: 10px; flex-shrink: 0;
+  background: #0a0a0a; color: rgba(255,255,255,0.85);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+}
+.mmt-comment-body { flex: 1; min-width: 0; }
+.mmt-comment-name { font-size: 12.5px; font-weight: 600; color: #0a0a0a; }
+.mmt-comment-text { font-size: 13.5px; color: rgba(10,10,15,0.75); line-height: 1.55; margin-top: 2px; }
+.mmt-comment-time { font-size: 10.5px; color: rgba(10,10,15,0.3); margin-top: 4px; }
+
+.mmt-comment-input-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 0.5px solid rgba(10,10,10,0.07);
+  flex-shrink: 0;
+  background: #fff;
+}
+.mmt-comment-input {
+  flex: 1;
+  border: none; outline: none;
+  background: #f2f2f0;
+  border-radius: 20px;
+  padding: 10px 16px;
+  font-size: 13.5px; color: #0a0a0a;
+  font-family: 'Inter', sans-serif;
+}
+.mmt-comment-input::placeholder { color: rgba(10,10,10,0.3); }
+.mmt-comment-send {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #0a0a0a; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  transition: transform 0.15s;
+}
+.mmt-comment-send:active { transform: scale(0.9); }
+
+/* ---- 轻提示（feed 级别，独立于 post-editor toast） ---- */
+.mmt-toast {
+  position: fixed; left: 50%; bottom: 100px;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(10,10,10,0.88);
+  color: #fff; font-size: 12.5px;
+  padding: 10px 18px; border-radius: 20px;
+  z-index: 350; opacity: 0; pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+}
+.mmt-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

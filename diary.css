@@ -1,0 +1,3055 @@
+/* ================================================================
+   diary.css — Luna 日记 App
+   基调：偏白浅色系 · 韩系高级感 · 华丽而不喧闹
+   三页：我的日记 / Char日记 / 私密
+   本次重点：底部导航栏（液态玻璃 + 珍珠光泽 + 呼吸光晕 + 丝绒描边）
+================================================================ */
+
+:root{
+  /* —— 韩系浅白基调：不是纯白，是带一点点灰紫的雾白，避免"廉价白" —— */
+  --pearl-1: #fbfaf9;
+  --pearl-2: #f5f3f1;
+  --pearl-3: #efece9;
+  --mist: #e8e4e1;
+
+  /* —— 墨色文字（拒绝纯黑，拒绝米色）—— */
+  --ink-deep: #2b2a30;
+  --ink: #4a4852;
+  --ink-soft: #8b8891;
+  --ink-faint: #b9b6bd;
+
+  /* —— 点缀色：极淡的丁香紫 + 雾玫瑰，韩系高级感的关键 —— */
+  --lilac: #c9bfe0;
+  --lilac-deep: #9c8fc4;
+  --rose-mist: #e3c9d1;
+  --rose-deep: #c99aab;
+  --gold-hair: #d4c49a;
+
+  /* —— 导航栏专属 —— */
+  --nav-glass: rgba(251, 250, 249, 0.72);
+  --nav-border: rgba(255, 255, 255, 0.9);
+  --nav-shadow: rgba(150, 130, 170, 0.16);
+
+  --ease-silk: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* —— composer / header 按钮专属阴影与玻璃 —— */
+  --btn-glass: rgba(255, 255, 255, 0.62);
+  --btn-border: rgba(255, 255, 255, 0.92);
+  --btn-shadow: rgba(150, 130, 170, 0.20);
+  --sheet-glass: rgba(251, 250, 249, 0.92);
+}
+
+/* ================================================================
+   页面骨架
+================================================================ */
+.diary-app{
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 45% at 18% 8%, rgba(201, 191, 224, 0.16) 0%, transparent 62%),
+    radial-gradient(ellipse 60% 40% at 88% 14%, rgba(227, 201, 209, 0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 70% at 50% 100%, rgba(212, 196, 154, 0.06) 0%, transparent 65%),
+    linear-gradient(175deg, var(--pearl-1) 0%, var(--pearl-2) 55%, var(--pearl-3) 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 极细绢丝纹理，叠加在背景上，让浅色不显得空 */
+.diary-app::before{
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0.5;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+  z-index: 0;
+}
+
+/* 缓慢漂浮的光斑，营造有呼吸感的高级空间 */
+.diary-aurora{
+  position: absolute; inset: -10%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle 220px at 20% 30%, rgba(201,191,224,0.20) 0%, transparent 70%),
+    radial-gradient(circle 260px at 82% 68%, rgba(227,201,209,0.16) 0%, transparent 72%);
+  filter: blur(2px);
+  animation: auroraDrift 22s ease-in-out infinite alternate;
+}
+@keyframes auroraDrift{
+  0%   { transform: translate(0,0) scale(1); }
+  50%  { transform: translate(-3%, 4%) scale(1.06); }
+  100% { transform: translate(3%, -3%) scale(1.02); }
+}
+
+/* ================================================================
+   状态栏（与 index.html 完全一致的结构，Class 名相同以便脚本同步）
+================================================================ */
+.status-bar{
+  position: relative;
+  z-index: 60;
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 22px 9px;
+  flex-shrink: 0;
+}
+.status-time{
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-deep);
+  letter-spacing: 0.2px;
+}
+.status-island{ height: 0; }
+.status-right{ display: flex; align-items: center; gap: 7px; }
+.signal{ display: flex; align-items: flex-end; gap: 2px; height: 13px; }
+.signal i{ display: block; width: 2.5px; border-radius: 1px; background: var(--ink); opacity: 0.85; }
+.signal i:nth-child(1){ height: 4px; }
+.signal i:nth-child(2){ height: 7px; }
+.signal i:nth-child(3){ height: 10px; }
+.signal i:nth-child(4){ height: 13px; }
+.battery{ display: flex; align-items: center; gap: 3px; }
+.bat-pct{ font-size: 14px; font-weight: 600; color: var(--ink); opacity: 0.85; }
+.bat-shell{ width: 24px; height: 12px; border: 1.5px solid rgba(74,72,82,0.5); border-radius: 3.5px; padding: 1.5px; position: relative; }
+.bat-inner{ width: 76%; height: 100%; border-radius: 1.5px; background: linear-gradient(90deg, #6ee7b7, #34d399); }
+.bat-nub{ position: absolute; right: -4px; top: 50%; transform: translateY(-50%); width: 2.5px; height: 5px; background: rgba(74,72,82,0.4); border-radius: 0 2px 2px 0; }
+
+/* ================================================================
+   页头 —— 极简的仪式感标题区
+================================================================ */
+.diary-header{
+  position: relative;
+  z-index: 10;
+  padding: 6px 20px 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.diary-header-center{
+  flex: 1;
+  min-width: 0;
+}
+.diary-header-eyebrow{
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--lilac-deep);
+  opacity: 0.75;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.diary-header-eyebrow::before{
+  content: '';
+  display: block;
+  width: 14px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lilac-deep));
+}
+.diary-header-title{
+  font-family: 'Fraunces', 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink-deep);
+  letter-spacing: 0.01em;
+  transition: opacity 0.32s var(--ease-soft), transform 0.32s var(--ease-soft), filter 0.32s var(--ease-soft);
+}
+.diary-header-title.switching{
+  opacity: 0;
+  transform: translateY(6px);
+  filter: blur(3px);
+}
+
+/* "我的日记"专属按钮组（返回 / 写日记）在其余分页收起——
+   用 visibility+opacity 而非 display:none，保留布局占位，
+   避免头部左右两侧按钮消失时标题区发生跳动 */
+[data-page-scope="mine"].scope-hidden{
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.85);
+}
+.diary-back-btn, .diary-write-btn{
+  transition: opacity 0.32s var(--ease-soft), transform 0.32s var(--ease-soft), visibility 0.32s;
+}
+
+/* ================================================================
+   内容区（三页，占位——内容后续设计）
+================================================================ */
+.diary-pages{
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  z-index: 5;
+}
+.diary-page{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.98) translateY(10px);
+  transition: opacity 0.42s var(--ease-silk), transform 0.5s var(--ease-silk);
+}
+.diary-page.active{
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1) translateY(0);
+}
+.diary-placeholder{
+  text-align: center;
+  padding: 0 40px;
+}
+.diary-placeholder-mark{
+  width: 46px; height: 46px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(156, 143, 196, 0.35);
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.diary-placeholder-mark::before{
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac), var(--rose-mist));
+  box-shadow: 0 0 14px rgba(201,191,224,0.7);
+  animation: markPulse 3.2s ease-in-out infinite;
+}
+@keyframes markPulse{
+  0%, 100%{ transform: scale(1); opacity: 0.85; }
+  50%{ transform: scale(1.35); opacity: 1; }
+}
+.diary-placeholder-text{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+  line-height: 1.9;
+}
+.diary-placeholder-sub{
+  margin-top: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ================================================================
+   ★★★ 底部导航栏 —— 本次设计核心 ★★★
+   结构：外层浮岛容器（液态玻璃）→ 内层滑动珍珠指示器 → 三个图形化 icon + label
+   风格关键词：液态玻璃感、珍珠光泽、丝绒描边、微粒环绕、呼吸光晕
+================================================================ */
+.diary-nav-wrap{
+  position: relative;
+  z-index: 50;
+  flex-shrink: 0;
+  padding: 0 18px calc(14px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  justify-content: center;
+}
+
+/* 外层浮岛 —— 液态玻璃质感容器 */
+.diary-nav{
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  height: 74px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 6px;
+
+  background: var(--nav-glass);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+
+  border: 1px solid var(--nav-border);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 -1px 0 rgba(255,255,255,0.4) inset,
+    0 18px 40px -12px var(--nav-shadow),
+    0 4px 14px -6px rgba(150,130,170,0.14);
+
+  overflow: hidden;
+}
+
+/* 顶部一道极细高光，模拟珍珠母贝的釉面反光 */
+.diary-nav::before{
+  content: '';
+  position: absolute;
+  top: 0; left: 8%; right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent);
+}
+
+/* 缓慢流动的珠光扫光层，覆盖整条导航栏，营造"华丽"的动态高光 */
+.diary-nav::after{
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(115deg,
+    transparent 20%,
+    rgba(255,255,255,0.55) 46%,
+    rgba(227,201,209,0.35) 50%,
+    rgba(255,255,255,0.55) 54%,
+    transparent 80%);
+  background-size: 260% 100%;
+  background-position: 120% 0;
+  mix-blend-mode: soft-light;
+  opacity: 0.9;
+  animation: navSheen 7s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes navSheen{
+  0%   { background-position: 130% 0; }
+  45%  { background-position: -30% 0; }
+  100% { background-position: -30% 0; }
+}
+
+/* 内部环绕漂浮的极细微粒，仅在导航栏范围内，增强"华丽感"但不喧宾夺主 */
+.diary-nav-dust{
+  position: absolute; inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.diary-nav-dust span{
+  position: absolute;
+  bottom: 6px;
+  width: 2.5px; height: 2.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,191,224,0.9), transparent 70%);
+  opacity: 0;
+  animation: navDustFloat 5.5s ease-in infinite;
+}
+@keyframes navDustFloat{
+  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+  15%  { opacity: 0.8; }
+  80%  { opacity: 0.3; }
+  100% { transform: translateY(-46px) scale(1); opacity: 0; }
+}
+
+/* ---- 滑动的"珍珠"选中指示器：跟随激活的 tab 平滑滑动 ----
+   注意：left/width/transform 均由 diary.js 通过读取被选中 tab 的
+   真实 offsetLeft / offsetWidth 动态写成内联 style，
+   不再用百分比估算位移 —— 这样无论 tab 间距、容器 padding 如何变化，
+   珍珠都会像素级贴合 tab 本身，不会出现"选中框跑偏"的问题。
+   此处的 left/width 仅作为 JS 计算完成前的兜底初始值。 */
+.diary-nav-pearl{
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 120px;
+  height: 58px;
+  border-radius: 20px;
+  z-index: 2;
+
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.55) 100%);
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,1) inset,
+    0 10px 22px -8px rgba(156,143,196,0.38),
+    0 2px 8px -2px rgba(201,154,171,0.22);
+
+  transition:
+    left 0.62s var(--ease-silk),
+    width 0.62s var(--ease-silk),
+    box-shadow 0.4s var(--ease-soft);
+  will-change: left, width;
+}
+/* 珍珠内部的柔光核心，呼吸动画，是"华丽感"的心脏 */
+.diary-nav-pearl::before{
+  content:'';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 70%; height: 70%;
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(227,201,209,0.55) 0%, rgba(201,191,224,0.28) 45%, transparent 75%);
+  filter: blur(6px);
+  animation: pearlBreathe 3.6s ease-in-out infinite;
+}
+@keyframes pearlBreathe{
+  0%, 100%{ opacity: 0.55; transform: translate(-50%,-50%) scale(0.92); }
+  50%{ opacity: 0.95; transform: translate(-50%,-50%) scale(1.08); }
+}
+/* 珍珠边缘的旋转细金线描边，仪式感来源 */
+.diary-nav-pearl::after{
+  content:'';
+  position: absolute; inset: -1px;
+  border-radius: 21px;
+  padding: 1px;
+  background: conic-gradient(from 0deg,
+    rgba(212,196,154,0) 0%,
+    rgba(212,196,154,0.55) 18%,
+    rgba(212,196,154,0) 36%,
+    rgba(201,191,224,0.4) 60%,
+    rgba(212,196,154,0) 80%);
+  -webkit-mask: linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: pearlRing 6s linear infinite;
+  opacity: 0.85;
+}
+@keyframes pearlRing{ to{ transform: rotate(360deg); } }
+
+/* ---- 单个 tab 按钮 ---- */
+.diary-tab{
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  height: 58px;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* 图标容器 —— 用几何线条自绘，杜绝 emoji */
+.diary-tab-icon{
+  width: 21px;
+  height: 21px;
+  position: relative;
+  transition: transform 0.5s var(--ease-silk);
+}
+.diary-tab-icon svg{
+  width: 100%; height: 100%;
+  overflow: visible;
+}
+.diary-tab-icon svg path,
+.diary-tab-icon svg circle,
+.diary-tab-icon svg rect,
+.diary-tab-icon svg ellipse{
+  stroke: var(--ink-faint);
+  fill: none;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.45s var(--ease-soft), fill 0.45s var(--ease-soft), opacity 0.45s var(--ease-soft);
+}
+
+.diary-tab-label{
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  transition: color 0.45s var(--ease-soft), letter-spacing 0.45s var(--ease-soft), transform 0.45s var(--ease-soft);
+}
+
+/* 激活态：icon 描边变实心渐变色 + 微上浮 + label 加深加粗 */
+.diary-tab.active .diary-tab-icon{
+  transform: translateY(-1px) scale(1.08);
+}
+.diary-tab.active .diary-tab-icon svg path,
+.diary-tab.active .diary-tab-icon svg circle,
+.diary-tab.active .diary-tab-icon svg rect,
+.diary-tab.active .diary-tab-icon svg ellipse{
+  stroke: var(--ink-deep);
+}
+.diary-tab.active .diary-tab-icon svg .fill-accent{
+  fill: url(#navGradA);
+  opacity: 1;
+}
+.diary-tab.active .diary-tab-label{
+  color: var(--ink-deep);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* 点击时的涟漪反馈（华丽而克制） */
+.diary-tab-ripple{
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,191,224,0.55), transparent 70%);
+  transform: translate(-50%,-50%) scale(0);
+  pointer-events: none;
+  opacity: 0;
+}
+.diary-tab-ripple.firing{
+  animation: tabRipple 0.62s var(--ease-soft);
+}
+@keyframes tabRipple{
+  0%{ transform: translate(-50%,-50%) scale(0); opacity: 0.65; }
+  100%{ transform: translate(-50%,-50%) scale(9); opacity: 0; }
+}
+
+/* 激活 tab 下方的一枚极小光点 —— 呼应"珍珠"主题的细节收尾 */
+.diary-tab-dot{
+  position: absolute;
+  bottom: 6px;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac-deep), var(--rose-deep));
+  opacity: 0;
+  transform: scale(0.4);
+  box-shadow: 0 0 6px rgba(156,143,196,0.7);
+  transition: opacity 0.4s var(--ease-soft), transform 0.4s var(--ease-silk);
+}
+.diary-tab.active .diary-tab-dot{
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ---- 私密 tab 专属：细微不同的锁形描边动效，切到私密页时有"合拢"的仪式感 ---- */
+.diary-tab[data-tab="private"].active .lock-shackle{
+  animation: lockClose 0.5s var(--ease-silk);
+}
+@keyframes lockClose{
+  0%{ transform: translateY(-2px) scaleY(0.8); opacity: 0.4; }
+  60%{ transform: translateY(0.5px) scaleY(1.05); }
+  100%{ transform: translateY(0) scaleY(1); opacity: 1; }
+}
+
+/* 响应式：更窄屏时收紧一点 */
+@media (max-width: 360px){
+  .diary-nav{ height: 68px; }
+  .diary-nav-pearl{ height: 52px; }
+  .diary-tab{ height: 52px; }
+}
+
+/* ================================================================
+   ★★★ 页头按钮 —— 返回 / 写日记 ★★★
+   风格：拒绝常见的圆形图标按钮观感，用"墨迹展开的弧线"与
+   "羽毛笔尖 + 墨渍光晕"来做非常规造型，呼应整体的书写主题。
+================================================================ */
+
+/* ---- 返回按钮：展开的墨迹弧线 ---- */
+.diary-back-btn{
+  position: relative;
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  border-radius: 15px 8px 15px 8px;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-glass);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.95) inset,
+    0 8px 18px -8px var(--btn-shadow);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.4s var(--ease-silk), box-shadow 0.4s var(--ease-soft), border-radius 0.5s var(--ease-silk);
+}
+.diary-back-btn svg{ width: 19px; height: 19px; overflow: visible; }
+.diary-back-btn svg path{
+  stroke: var(--ink);
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.diary-back-btn svg .dbb-tail{
+  stroke: var(--lilac-deep);
+  stroke-width: 1.3;
+  opacity: 0.75;
+}
+.dbb-ring{
+  position: absolute; inset: -4px;
+  border-radius: inherit;
+  border: 1px solid rgba(201,191,224,0.4);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.4s var(--ease-soft), transform 0.4s var(--ease-silk);
+  pointer-events: none;
+}
+.diary-back-btn:active{
+  transform: scale(0.92);
+  border-radius: 8px 15px 8px 15px;
+}
+.diary-back-btn:active .dbb-ring{
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+/* ---- 写日记按钮：羽毛笔尖 + 墨渍光晕展开 ---- */
+.diary-write-btn{
+  position: relative;
+  flex-shrink: 0;
+  width: 46px; height: 46px;
+  border-radius: 8px 18px 18px 18px;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(148deg, #fdfcfb 0%, var(--pearl-2) 100%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,1) inset,
+    0 10px 22px -9px rgba(156,143,196,0.42),
+    0 3px 10px -3px rgba(201,154,171,0.28);
+  display: flex; align-items: center; justify-content: center;
+  overflow: visible;
+  transition: transform 0.45s var(--ease-silk), box-shadow 0.4s var(--ease-soft);
+}
+.diary-write-btn::after{
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from 90deg,
+    rgba(212,196,154,0) 0%,
+    rgba(212,196,154,0.65) 20%,
+    rgba(212,196,154,0) 40%,
+    rgba(201,191,224,0.55) 65%,
+    rgba(212,196,154,0) 85%);
+  -webkit-mask: linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: pearlRing 7s linear infinite;
+}
+.dwb-halo{
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 60%; height: 60%;
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(227,201,209,0.55) 0%, rgba(201,191,224,0.3) 50%, transparent 75%);
+  filter: blur(5px);
+  animation: pearlBreathe 4.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.dwb-glyph{ position: relative; width: 20px; height: 20px; z-index: 1; }
+.dwb-glyph svg{ width: 100%; height: 100%; overflow: visible; }
+.dwb-glyph svg path{
+  stroke: var(--ink-deep);
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dwb-glyph svg .dwb-tip{
+  stroke: url(#navGradA);
+  stroke-width: 1.7;
+}
+.diary-write-btn:active{ transform: scale(0.9) rotate(-4deg); }
+.diary-write-btn:active .dwb-halo{
+  animation: none;
+  transform: translate(-50%,-50%) scale(1.9);
+  opacity: 0.85;
+}
+
+/* ================================================================
+   ★★★ 日记流 —— 已发布日记的呈现体系 ★★★
+================================================================ */
+.diary-feed{
+  position: absolute; inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 22px 28px;
+  scrollbar-width: none;
+}
+.diary-feed::-webkit-scrollbar{ display: none; }
+
+.diary-feed-inner{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-left: 20px;
+}
+.diary-feed-inner::before{
+  content: '';
+  position: absolute;
+  top: 6px; bottom: 6px; left: 4px;
+  width: 1px;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(201,191,224,0.5) 8%,
+    rgba(201,191,224,0.5) 92%,
+    transparent 100%);
+}
+
+.diary-entry{
+  position: relative;
+  border-radius: 6px 22px 22px 22px;
+  padding: 20px 20px 17px;
+  background: linear-gradient(168deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.55) 100%);
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.95) inset,
+    0 16px 34px -18px rgba(150,130,170,0.30),
+    0 4px 12px -4px rgba(201,154,171,0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(16px) scale(0.98);
+  animation: entryRise 0.62s var(--ease-silk) forwards;
+}
+@keyframes entryRise{ to{ opacity: 1; transform: translateY(0) scale(1); } }
+.diary-entry::before{
+  content: '';
+  position: absolute;
+  left: -20px; top: 24px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac), var(--rose-mist));
+  box-shadow: 0 0 0 4px var(--pearl-1), 0 0 10px rgba(201,191,224,0.6);
+}
+
+.entry-top{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.entry-date{ display: flex; align-items: baseline; gap: 6px; }
+.entry-date-day{
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  color: var(--ink-deep);
+  font-weight: 500;
+  line-height: 1;
+}
+.entry-date-sub{
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.entry-time{
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-faint);
+  letter-spacing: 0.05em;
+  padding-top: 2px;
+}
+
+.entry-mood{
+  position: absolute;
+  top: 14px; right: -1px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 8px 0 0 8px;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  background: linear-gradient(120deg, rgba(255,255,255,0.85), rgba(255,255,255,0.55));
+  border: 1px solid rgba(255,255,255,0.8);
+  border-right: none;
+  box-shadow: -4px 4px 12px -6px rgba(150,130,170,0.25);
+}
+.entry-mood svg{ width: 12px; height: 12px; overflow: visible; }
+.entry-mood svg path, .entry-mood svg circle{
+  stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+.entry-mood[data-mood="calm"]{ color: var(--lilac-deep); }
+.entry-mood[data-mood="joy"]{ color: var(--gold-hair); }
+.entry-mood[data-mood="tender"]{ color: var(--rose-deep); }
+.entry-mood[data-mood="blue"]{ color: #9db3c9; }
+.entry-mood[data-mood="storm"]{ color: #a695b8; }
+
+.entry-title{
+  font-family: 'Fraunces', 'Noto Serif SC', serif;
+  font-size: 16.5px;
+  font-weight: 500;
+  color: var(--ink-deep);
+  line-height: 1.5;
+  margin: 2px 0 8px;
+  letter-spacing: 0.01em;
+}
+
+.entry-body-wrap{ position: relative; padding-left: 16px; }
+.entry-body-wrap::before{
+  content: '"';
+  position: absolute;
+  left: -4px; top: -10px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 34px;
+  color: var(--lilac);
+  opacity: 0.55;
+  line-height: 1;
+}
+.entry-body{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 14.5px;
+  line-height: 1.85;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.diary-entry.expanded .entry-body{
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+
+.entry-expand{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lilac-deep);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.entry-expand svg{ width: 9px; height: 9px; transition: transform 0.4s var(--ease-silk); }
+.diary-entry.expanded .entry-expand svg{ transform: rotate(180deg); }
+
+.entry-foot{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(201,191,224,0.22);
+}
+.entry-foot-mark{
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac), var(--rose-mist));
+  flex-shrink: 0;
+}
+.entry-foot-text{
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+.feed-group-label{
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 -4px 0;
+}
+.feed-group-label span{
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--lilac-deep);
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.feed-group-label::after{
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201,191,224,0.4), transparent);
+}
+
+/* ================================================================
+   ★★★ 写日记 · Composer 全屏面板 ★★★
+================================================================ */
+.composer-veil{
+  position: fixed; inset: 0;
+  z-index: 90;
+  background: linear-gradient(180deg, rgba(43,42,48,0.28), rgba(43,42,48,0.42));
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease-soft);
+}
+.composer-veil.show{ opacity: 1; pointer-events: auto; }
+
+.composer{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 91;
+  display: flex;
+  justify-content: center;
+  transform: translateY(100%);
+  transition: transform 0.56s var(--ease-silk);
+  pointer-events: none;
+}
+.composer.show{ transform: translateY(0); pointer-events: auto; }
+
+.composer-sheet{
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 30px 30px 0 0;
+  background:
+    radial-gradient(ellipse 70% 40% at 20% 0%, rgba(201,191,224,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 8%, rgba(227,201,209,0.12) 0%, transparent 60%),
+    var(--sheet-glass);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.9);
+  border-bottom: none;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.95) inset,
+    0 -24px 60px -20px rgba(150,130,170,0.32);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  overflow: hidden;
+}
+
+.composer-handle{
+  width: 38px; height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--lilac), var(--rose-mist));
+  opacity: 0.55;
+  margin: 12px auto 2px;
+  flex-shrink: 0;
+}
+
+.composer-topbar{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px 14px;
+  flex-shrink: 0;
+}
+.composer-cancel{
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 4px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.3s var(--ease-soft);
+}
+.composer-cancel:active{ color: var(--ink-deep); }
+
+.composer-topbar-mark{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.ctm-dot{
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--rose-deep), var(--lilac-deep));
+  box-shadow: 0 0 8px rgba(201,154,171,0.6);
+  animation: markPulse 2.4s ease-in-out infinite;
+}
+
+.composer-publish{
+  position: relative;
+  padding: 8px 18px;
+  border-radius: 8px 16px 16px 16px;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+  background: rgba(200,197,204,0.18);
+  transition: color 0.4s var(--ease-soft), background 0.4s var(--ease-soft), box-shadow 0.4s var(--ease-soft), transform 0.3s var(--ease-silk);
+  overflow: hidden;
+}
+.composer-publish .cp-glow{
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg, var(--lilac-deep), var(--rose-deep));
+  opacity: 0;
+  transition: opacity 0.4s var(--ease-soft);
+  z-index: 0;
+}
+.composer-publish .cp-text{ position: relative; z-index: 1; }
+.composer-publish:not(:disabled){
+  color: var(--pearl-1);
+  box-shadow: 0 10px 22px -8px rgba(156,143,196,0.5);
+}
+.composer-publish:not(:disabled) .cp-glow{ opacity: 1; }
+.composer-publish:not(:disabled):active{ transform: scale(0.94); }
+.composer-publish:disabled{ cursor: default; }
+
+.composer-body{
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 24px 26px;
+  scrollbar-width: none;
+}
+.composer-body::-webkit-scrollbar{ display: none; }
+
+.composer-datestamp{
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(201,191,224,0.25);
+}
+.cds-day{
+  font-family: 'Fraunces', serif;
+  font-size: 40px;
+  font-weight: 400;
+  color: var(--ink-deep);
+  line-height: 1;
+}
+.cds-meta{ display: flex; flex-direction: column; gap: 4px; }
+.cds-month{
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--lilac-deep);
+}
+.cds-week{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.mood-row{
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.mood-row::-webkit-scrollbar{ display: none; }
+.mood-chip{
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 8px 14px 14px 14px;
+  border: 1px solid rgba(255,255,255,0.85);
+  background: linear-gradient(160deg, rgba(255,255,255,0.75), rgba(255,255,255,0.4));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--ink-faint);
+  transition: color 0.35s var(--ease-soft), border-color 0.35s var(--ease-soft), box-shadow 0.35s var(--ease-soft), transform 0.3s var(--ease-silk), background 0.35s var(--ease-soft);
+}
+.mood-chip svg{ width: 15px; height: 15px; overflow: visible; }
+.mood-chip svg path, .mood-chip svg circle{
+  stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+.mood-chip .mood-bolt{ stroke: currentColor; }
+.mood-chip em{
+  font-style: normal;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.mood-chip.active{
+  color: var(--ink-deep);
+  border-color: rgba(201,191,224,0.7);
+  background: linear-gradient(160deg, rgba(255,255,255,0.95), rgba(255,255,255,0.7));
+  box-shadow: 0 8px 18px -8px rgba(156,143,196,0.4);
+  transform: translateY(-1px);
+}
+.mood-chip:active{ transform: scale(0.95); }
+
+.composer-title-input{
+  width: 100%;
+  border: none;
+  background: none;
+  outline: none;
+  font-family: 'Fraunces', 'Noto Serif SC', serif;
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--ink-deep);
+  padding: 4px 0 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(201,191,224,0.2);
+}
+.composer-title-input::placeholder{ color: var(--ink-faint); font-weight: 400; }
+
+.composer-text-input{
+  width: 100%;
+  border: none;
+  background: none;
+  outline: none;
+  resize: none;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--ink);
+  padding: 14px 0 6px;
+  min-height: 150px;
+  letter-spacing: 0.01em;
+}
+.composer-text-input::placeholder{ color: var(--ink-faint); opacity: 0.85; }
+
+.composer-footbar{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
+.cf-count b{ color: var(--ink-soft); font-weight: 700; }
+.cf-sep{ opacity: 0.5; }
+.cf-draft{ transition: color 0.3s var(--ease-soft); }
+.cf-draft.ready{ color: var(--rose-deep); }
+
+/* ================================================================
+   发布成功的仪式感反馈印章
+================================================================ */
+.publish-stamp{
+  position: fixed;
+  top: 50%; left: 50%;
+  z-index: 120;
+  transform: translate(-50%,-50%) scale(0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+}
+.publish-stamp.fire{ animation: stampFire 1.5s var(--ease-silk) forwards; }
+@keyframes stampFire{
+  0%{ opacity: 0; transform: translate(-50%,-50%) scale(0.5) rotate(-8deg); }
+  22%{ opacity: 1; transform: translate(-50%,-50%) scale(1.08) rotate(2deg); }
+  32%{ transform: translate(-50%,-50%) scale(1) rotate(0deg); }
+  78%{ opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(0deg); }
+  100%{ opacity: 0; transform: translate(-50%,-50%) scale(0.94) rotate(0deg); }
+}
+.stamp-ring{
+  width: 74px; height: 74px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(201,191,224,0.7);
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0.5));
+  box-shadow: 0 18px 40px -14px rgba(150,130,170,0.45);
+  position: relative;
+}
+.stamp-ring::before{
+  content: '';
+  position: absolute; inset: 8px;
+  border-radius: 50%;
+  border: 1px dashed rgba(212,196,154,0.7);
+}
+.stamp-ring::after{
+  content: '';
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac-deep), var(--rose-deep));
+  box-shadow: 0 0 14px rgba(156,143,196,0.7);
+}
+.stamp-text{
+  font-family: 'Space Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: rgba(251,250,249,0.85);
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.8);
+}
+
+@media (max-width: 360px){
+  .diary-header{ padding: 6px 16px 12px; }
+  .composer-body{ padding: 4px 18px 20px; }
+}
+
+
+/* ================================================================
+   ★★★ 天气 / 位置 胶囊 + 天气选择展开条 ★★★
+================================================================ */
+.cds-tags{
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+.cds-tag{
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px 5px 8px;
+  border-radius: 8px 12px 12px 12px;
+  border: 1px solid rgba(255,255,255,0.85);
+  background: linear-gradient(160deg, rgba(255,255,255,0.75), rgba(255,255,255,0.4));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--ink-faint);
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: color 0.35s var(--ease-soft), border-color 0.35s var(--ease-soft), background 0.35s var(--ease-soft);
+}
+.cds-tag-icon{ width: 12px; height: 12px; overflow: visible; }
+.cds-tag-icon path, .cds-tag-icon circle{
+  stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+.cds-tag.active{
+  color: var(--lilac-deep);
+  border-color: rgba(201,191,224,0.6);
+  background: linear-gradient(160deg, rgba(255,255,255,0.95), rgba(255,255,255,0.65));
+}
+
+.weather-picker{
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: -8px 0 18px;
+  padding-bottom: 2px;
+  animation: pickerDrop 0.4s var(--ease-silk);
+}
+.weather-picker::-webkit-scrollbar{ display: none; }
+@keyframes pickerDrop{
+  from{ opacity: 0; transform: translateY(-8px); }
+  to{ opacity: 1; transform: translateY(0); }
+}
+.weather-opt{
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 56px;
+  padding: 9px 4px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.8);
+  background: linear-gradient(160deg, rgba(255,255,255,0.7), rgba(255,255,255,0.35));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--ink-faint);
+  transition: color 0.3s var(--ease-soft), border-color 0.3s var(--ease-soft), background 0.3s var(--ease-soft), transform 0.3s var(--ease-silk);
+}
+.weather-opt svg{ width: 17px; height: 17px; overflow: visible; }
+.weather-opt svg path, .weather-opt svg circle{
+  stroke: currentColor; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round;
+}
+.weather-opt em{ font-style: normal; font-family: 'Noto Sans SC', sans-serif; font-size: 9.5px; }
+.weather-opt.active{
+  color: var(--ink-deep);
+  border-color: rgba(201,191,224,0.7);
+  background: linear-gradient(160deg, rgba(255,255,255,0.95), rgba(255,255,255,0.7));
+  box-shadow: 0 8px 16px -8px rgba(156,143,196,0.4);
+  transform: translateY(-1px);
+}
+
+/* ================================================================
+   ★★★ 配图区 ★★★
+================================================================ */
+.photo-section, .tag-section{
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(201,191,224,0.2);
+}
+.photo-section-label{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.photo-section-label > span:nth-child(2){
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-deep);
+  letter-spacing: 0.02em;
+}
+.psl-line{
+  width: 3px; height: 12px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--lilac-deep), var(--rose-deep));
+  flex-shrink: 0;
+}
+.psl-sub{
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  margin-left: auto;
+}
+
+.photo-slots{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* 添加配图按钮：手绘十字 + 呼吸细圈 */
+.photo-add-btn{
+  position: relative;
+  width: 78px; height: 78px;
+  border-radius: 8px 18px 18px 18px;
+  border: 1.5px dashed rgba(201,191,224,0.55);
+  background: linear-gradient(160deg, rgba(255,255,255,0.55), rgba(255,255,255,0.25));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--lilac-deep);
+  transition: border-color 0.35s var(--ease-soft), transform 0.3s var(--ease-silk), background 0.35s var(--ease-soft);
+}
+.photo-add-btn svg{ width: 16px; height: 16px; overflow: visible; }
+.photo-add-btn svg path{ stroke: currentColor; stroke-width: 1.6; }
+.photo-add-btn em{
+  font-style: normal;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+.pab-ring{
+  position: absolute; inset: -3px;
+  border-radius: inherit;
+  border: 1px solid rgba(201,191,224,0.35);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.4s var(--ease-soft), transform 0.4s var(--ease-silk);
+  pointer-events: none;
+}
+.photo-add-btn:active{ transform: scale(0.94); }
+.photo-add-btn:active .pab-ring{ opacity: 1; transform: scale(1.06); }
+
+/* 已添加的配图卡片：图 + 底部描述摘要一角，暗示"这张图带有文字语义" */
+.photo-card{
+  position: relative;
+  width: 78px; height: 78px;
+  border-radius: 8px 18px 18px 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow: 0 10px 20px -10px rgba(150,130,170,0.35);
+  animation: entryRise 0.45s var(--ease-silk) forwards;
+}
+.photo-card img{
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* 底部渐隐条 + 一枚"文字语义已附加"的小标记，而非直接铺满文字 */
+.photo-card::after{
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 30px;
+  background: linear-gradient(180deg, transparent, rgba(43,42,48,0.55));
+  pointer-events: none;
+}
+.photo-card-desc-mark{
+  position: absolute;
+  left: 6px; bottom: 5px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: rgba(255,255,255,0.92);
+}
+.photo-card-desc-mark svg{ width: 9px; height: 9px; overflow: visible; }
+.photo-card-desc-mark svg path{ stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.photo-card-remove{
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  background: rgba(43,42,48,0.5);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1;
+}
+.photo-card-remove svg{ width: 8px; height: 8px; overflow: visible; }
+.photo-card-remove svg path{ stroke: #fff; stroke-width: 1.8; stroke-linecap: round; }
+
+/* ================================================================
+   ★★★ 标签输入区 ★★★
+================================================================ */
+.tag-input-row{ margin-bottom: 10px; }
+.tag-input{
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid rgba(201,191,224,0.25);
+  background: none;
+  outline: none;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 6px 2px 8px;
+}
+.tag-input::placeholder{ color: var(--ink-faint); }
+
+.tag-list{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.tag-chip{
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 6px 5px 11px;
+  border-radius: 12px 4px 12px 12px;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--rose-deep);
+  background: linear-gradient(160deg, rgba(227,201,209,0.22), rgba(201,191,224,0.16));
+  border: 1px solid rgba(201,191,224,0.35);
+  animation: entryRise 0.4s var(--ease-silk) forwards;
+}
+.tag-chip::before{ content: '#'; opacity: 0.6; margin-right: -2px; }
+.tag-chip-remove{
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(150,130,170,0.16);
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+  padding: 0;
+}
+
+/* ================================================================
+   ★★★ 配图文字描述弹层 ★★★
+   核心目的：图片必须搭配文字描述才能加入日记，因为底层是文字模型，
+   看不到图片本身；描述即这张图对 AI 而言唯一可读的"内容"。
+================================================================ */
+.photo-desc-veil{
+  position: fixed; inset: 0;
+  z-index: 130;
+  background: rgba(43,42,48,0.42);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-soft);
+}
+.photo-desc-veil.show{ opacity: 1; pointer-events: auto; }
+
+.photo-desc-modal{
+  position: fixed;
+  inset: 0;
+  z-index: 131;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-soft);
+}
+.photo-desc-modal.show{ opacity: 1; pointer-events: auto; }
+
+.pdm-sheet{
+  width: 100%;
+  max-width: 340px;
+  border-radius: 8px 26px 26px 26px;
+  overflow: hidden;
+  background: var(--sheet-glass);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 30px 70px -24px rgba(150,130,170,0.4);
+  transform: scale(0.92) translateY(10px);
+  transition: transform 0.42s var(--ease-silk);
+}
+.photo-desc-modal.show .pdm-sheet{ transform: scale(1) translateY(0); }
+
+.pdm-preview{
+  width: 100%; height: 150px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--pearl-3);
+  position: relative;
+}
+.pdm-preview::after{
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(43,42,48,0.3));
+}
+
+.pdm-body{ padding: 18px 20px 20px; }
+.pdm-title{
+  font-family: 'Fraunces', 'Noto Serif SC', serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink-deep);
+  margin-bottom: 6px;
+}
+.pdm-hint{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+.pdm-textarea{
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(201,191,224,0.3);
+  background: rgba(255,255,255,0.55);
+  outline: none;
+  resize: none;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink);
+  padding: 11px 12px;
+}
+.pdm-textarea::placeholder{ color: var(--ink-faint); }
+.pdm-count{
+  text-align: right;
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  color: var(--ink-faint);
+  margin-top: 5px;
+}
+.pdm-actions{
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.pdm-cancel{
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px 14px 14px 14px;
+  border: 1px solid rgba(201,191,224,0.3);
+  background: none;
+  color: var(--ink-soft);
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pdm-confirm{
+  position: relative;
+  flex: 1.4;
+  padding: 10px;
+  border-radius: 8px 14px 14px 14px;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  background: rgba(200,197,204,0.18);
+  overflow: hidden;
+  transition: color 0.35s var(--ease-soft), box-shadow 0.35s var(--ease-soft);
+}
+.pdm-confirm .cp-glow{
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg, var(--lilac-deep), var(--rose-deep));
+  opacity: 0;
+  transition: opacity 0.35s var(--ease-soft);
+}
+.pdm-confirm .cp-text{ position: relative; z-index: 1; }
+.pdm-confirm:not(:disabled){
+  color: var(--pearl-1);
+  box-shadow: 0 10px 20px -8px rgba(156,143,196,0.5);
+}
+.pdm-confirm:not(:disabled) .cp-glow{ opacity: 1; }
+.pdm-confirm:disabled{ cursor: default; }
+
+/* ================================================================
+   ★★★ 日记流卡片内的配图与标签展示（发布后呈现体系的补充）★★★
+================================================================ */
+.entry-photos{
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.entry-photos::-webkit-scrollbar{ display: none; }
+.entry-photo{
+  position: relative;
+  flex-shrink: 0;
+  width: 92px; height: 92px;
+  border-radius: 6px 16px 16px 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow: 0 10px 22px -12px rgba(150,130,170,0.35);
+}
+.entry-photo img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+.entry-photo-alt{
+  position: absolute; inset: auto 0 0 0;
+  padding: 5px 7px 6px;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 9px;
+  line-height: 1.35;
+  color: rgba(255,255,255,0.95);
+  background: linear-gradient(180deg, transparent, rgba(43,42,48,0.72));
+}
+
+.entry-tags{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.entry-tag{
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--rose-deep);
+  background: linear-gradient(160deg, rgba(227,201,209,0.18), rgba(201,191,224,0.12));
+  border: 1px solid rgba(201,191,224,0.3);
+  padding: 3px 9px;
+  border-radius: 10px 3px 10px 10px;
+}
+.entry-tag::before{ content: '#'; opacity: 0.6; }
+
+.entry-meta-row{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.entry-meta-chip{
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--ink-faint);
+  letter-spacing: 0.03em;
+}
+.entry-meta-chip svg{ width: 10px; height: 10px; overflow: visible; }
+.entry-meta-chip svg path, .entry-meta-chip svg circle{
+  stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+/* ================================================================
+   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+   日记详情页 —— Detail Page
+   全屏华丽卷轴层：从日记流点击条目后展开，展示单篇日记全部内容，
+   并在末尾放置四枚"唤醒仪式"功能卡片。视觉延续雾白 + 丁香紫/雾玫瑰点缀，
+   多层次描边、渐变、光晕堆叠出华丽高级感，绝无 emoji、绝无米色、绝不极简。
+   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+================================================================ */
+
+.detail-veil{
+  position: fixed; inset: 0;
+  z-index: 200;
+  background: radial-gradient(ellipse 120% 90% at 50% 0%, rgba(43,42,48,0.30), rgba(43,42,48,0.52));
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease-soft);
+}
+.detail-veil.show{ opacity: 1; pointer-events: auto; }
+
+.detail-page{
+  position: fixed;
+  inset: 0;
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse 75% 40% at 15% 0%, rgba(201,191,224,0.20) 0%, transparent 60%),
+    radial-gradient(ellipse 65% 38% at 92% 10%, rgba(227,201,209,0.17) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(212,196,154,0.07) 0%, transparent 65%),
+    linear-gradient(178deg, var(--pearl-1) 0%, var(--pearl-2) 52%, var(--pearl-3) 100%);
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.58s var(--ease-silk), opacity 0.5s var(--ease-soft);
+  overflow: hidden;
+}
+.detail-page::before{
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0.5;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+  z-index: 0;
+}
+.detail-page.show{
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.detail-status-bar{ position: relative; z-index: 5; flex-shrink: 0; }
+
+/* ---- 顶部工具条 ---- */
+.detail-topbar{
+  position: relative;
+  z-index: 5;
+  flex-shrink: 0;
+  padding: 4px 20px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.detail-back-btn, .detail-more-btn{
+  position: relative;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 18px -8px var(--btn-shadow), 0 1px 0 rgba(255,255,255,0.9) inset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.3s var(--ease-silk);
+}
+.detail-back-btn:active, .detail-more-btn:active{ transform: scale(0.92); }
+.detail-back-btn svg, .detail-more-btn svg{ width: 17px; height: 17px; position: relative; z-index: 1; }
+.detail-back-btn svg path{ stroke: var(--ink); stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.detail-more-btn svg{ color: var(--ink); }
+.dbb-ring, .dmb-halo{
+  position: absolute; inset: -3px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac), var(--rose-mist));
+  opacity: 0;
+  filter: blur(6px);
+  transition: opacity 0.3s var(--ease-soft);
+}
+.detail-back-btn:active .dbb-ring, .detail-more-btn:active .dmb-halo{ opacity: 0.5; }
+
+.detail-topbar-mark{
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--lilac-deep);
+  opacity: 0.8;
+}
+.dtm-dot{
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac-deep), var(--rose-deep));
+  box-shadow: 0 0 8px rgba(156,143,196,0.55);
+}
+
+/* ---- 可滚动主体 ---- */
+.detail-scroll{
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.detail-scroll::-webkit-scrollbar{ display: none; }
+.detail-scroll-inner{
+  padding: 6px 24px 40px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* ---- 日期仪式感徽记 ---- */
+.detail-datemark{
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(201,191,224,0.28);
+  position: relative;
+}
+.detail-datemark::after{
+  content: '';
+  position: absolute;
+  left: 0; bottom: -1px;
+  width: 46px; height: 1px;
+  background: linear-gradient(90deg, var(--lilac-deep), var(--rose-deep));
+}
+.ddm-day{
+  font-family: 'Fraunces', serif;
+  font-size: 46px;
+  font-weight: 500;
+  line-height: 0.9;
+  color: var(--ink-deep);
+  background: linear-gradient(160deg, var(--ink-deep) 40%, var(--lilac-deep) 130%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.ddm-meta{ display: flex; flex-direction: column; gap: 3px; }
+.ddm-weekday{
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+.ddm-month{
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.ddm-time{
+  margin-left: auto;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+  align-self: flex-end;
+  white-space: nowrap;
+}
+
+/* ---- 心情 · 天气 · 位置 仪式条 ---- */
+.detail-condition-row{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.detail-condition-row:empty{ display: none; margin-bottom: 0; }
+.dcr-chip{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px 7px 10px;
+  border-radius: 8px 16px 16px 16px;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  background: linear-gradient(150deg, rgba(255,255,255,0.85), rgba(255,255,255,0.5));
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow: 0 8px 18px -10px rgba(150,130,170,0.28), 0 1px 0 rgba(255,255,255,0.9) inset;
+}
+.dcr-chip svg{ width: 13px; height: 13px; overflow: visible; flex-shrink: 0; }
+.dcr-chip svg path, .dcr-chip svg circle{ stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.dcr-chip.dcr-mood[data-mood="calm"]{ color: var(--lilac-deep); }
+.dcr-chip.dcr-mood[data-mood="joy"]{ color: var(--gold-hair); }
+.dcr-chip.dcr-mood[data-mood="tender"]{ color: var(--rose-deep); }
+.dcr-chip.dcr-mood[data-mood="blue"]{ color: #7f9ab3; }
+.dcr-chip.dcr-mood[data-mood="storm"]{ color: #8a76a8; }
+.dcr-chip.dcr-weather{ color: var(--lilac-deep); }
+.dcr-chip.dcr-location{ color: var(--rose-deep); }
+
+/* ---- 标题 ---- */
+.detail-title{
+  font-family: 'Fraunces', 'Noto Serif SC', serif;
+  font-size: 27px;
+  font-weight: 500;
+  line-height: 1.42;
+  color: var(--ink-deep);
+  letter-spacing: 0.005em;
+  margin: 0 0 18px;
+}
+
+/* ---- 正文全文 ---- */
+.detail-body{
+  position: relative;
+  padding: 26px 22px 24px;
+  margin-bottom: 24px;
+  border-radius: 6px 26px 26px 26px;
+  background: linear-gradient(168deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.48) 100%);
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.95) inset,
+    0 20px 40px -22px rgba(150,130,170,0.32),
+    0 6px 16px -6px rgba(201,154,171,0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 16.5px;
+  line-height: 1.95;
+  color: var(--ink);
+  letter-spacing: 0.012em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.detail-body::before{
+  content: '"';
+  position: absolute;
+  left: 14px; top: -6px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 54px;
+  color: var(--lilac);
+  opacity: 0.5;
+  line-height: 1;
+}
+.detail-body::after{
+  content: '';
+  position: absolute;
+  right: 18px; bottom: 14px;
+  width: 26px; height: 26px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(201,191,224,0.35), transparent 60%),
+    radial-gradient(circle at 70% 70%, rgba(227,201,209,0.3), transparent 60%);
+  border-radius: 50%;
+  filter: blur(1px);
+}
+
+/* ---- 配图长廊 ---- */
+.detail-gallery{
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 2px 22px;
+  margin-bottom: 4px;
+}
+.detail-gallery::-webkit-scrollbar{ display: none; }
+.detail-gallery-item{
+  position: relative;
+  flex-shrink: 0;
+  width: 168px; height: 210px;
+  border-radius: 8px 26px 26px 26px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 18px 34px -16px rgba(150,130,170,0.38);
+}
+.detail-gallery-item img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+.detail-gallery-alt{
+  position: absolute; inset: auto 0 0 0;
+  padding: 10px 12px 11px;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.96);
+  background: linear-gradient(180deg, transparent, rgba(43,42,48,0.78) 55%);
+}
+
+/* ---- 标签 ---- */
+.detail-tags{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 30px;
+}
+.detail-tag{
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--rose-deep);
+  background: linear-gradient(160deg, rgba(227,201,209,0.2), rgba(201,191,224,0.13));
+  border: 1px solid rgba(201,191,224,0.32);
+  padding: 6px 13px;
+  border-radius: 11px 4px 11px 11px;
+}
+.detail-tag::before{ content: '#'; opacity: 0.6; }
+
+/* ---- 字数印记 ---- */
+.detail-footmark{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin: 6px 0 34px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.dfm-line{
+  flex: 1;
+  max-width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,191,224,0.5));
+}
+.dfm-line:last-child{ background: linear-gradient(90deg, rgba(201,191,224,0.5), transparent); }
+
+/* ================================================================
+   ★ 功能区标签 ★
+================================================================ */
+.feature-section-label{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13.5px;
+  color: var(--ink-deep);
+  letter-spacing: 0.03em;
+}
+.fsl-line{
+  flex: 0 0 22px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--lilac-deep), var(--rose-deep));
+}
+.fsl-sub{
+  margin-left: auto;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+/* ================================================================
+   ★★★ 四枚功能卡片 —— 2x2 华丽网格 ★★★
+   每张卡片各有独立色相点缀（丁香紫 / 雾玫瑰 / 暖金 / 雾蓝紫），
+   静态即有渐变光泽，点按呈现光晕扩散反馈。
+================================================================ */
+.feature-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+
+.feature-card{
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px 24px 24px 24px;
+  padding: 18px 16px 16px;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,0.88);
+  background: linear-gradient(165deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.55) 100%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.95) inset,
+    0 16px 32px -18px rgba(150,130,170,0.32),
+    0 4px 12px -6px rgba(201,154,171,0.14);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.32s var(--ease-silk), box-shadow 0.32s var(--ease-silk);
+}
+.feature-card:active{
+  transform: scale(0.965);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.95) inset,
+    0 8px 18px -12px rgba(150,130,170,0.35);
+}
+
+/* 每张卡片右上角悬浮的柔光光晕，营造华丽层次 */
+.fc-aura{
+  position: absolute;
+  top: -30%; right: -25%;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  filter: blur(20px);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-soft), transform 0.4s var(--ease-soft);
+}
+.feature-card:active .fc-aura{ opacity: 0.85; transform: scale(1.15); }
+
+.fc-dream .fc-aura{ background: radial-gradient(circle, var(--lilac) 0%, transparent 70%); }
+.fc-capsule .fc-aura{ background: radial-gradient(circle, var(--rose-mist) 0%, transparent 70%); }
+.fc-soul .fc-aura{ background: radial-gradient(circle, var(--gold-hair) 0%, transparent 70%); }
+.fc-margin .fc-aura{ background: radial-gradient(circle, #b9c9dd 0%, transparent 70%); }
+
+/* 卡片边角细节：一枚极细的描边弧线，呼应"墨迹弧线"返回按钮的手绘感 */
+.feature-card::after{
+  content: '';
+  position: absolute;
+  left: -14px; bottom: -14px;
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  opacity: 0.12;
+  pointer-events: none;
+}
+.fc-dream::after{ background: radial-gradient(circle, var(--lilac-deep), transparent 70%); }
+.fc-capsule::after{ background: radial-gradient(circle, var(--rose-deep), transparent 70%); }
+.fc-soul::after{ background: radial-gradient(circle, var(--gold-hair), transparent 70%); }
+.fc-margin::after{ background: radial-gradient(circle, #8ea3c2, transparent 70%); }
+
+.fc-glyph{
+  position: relative;
+  z-index: 1;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  background: linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.5));
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 6px 14px -6px rgba(150,130,170,0.3);
+}
+.fc-glyph svg{ width: 19px; height: 19px; overflow: visible; }
+.fc-glyph svg path, .fc-glyph svg circle, .fc-glyph svg ellipse{
+  stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+.fc-dream .fc-glyph{ color: var(--lilac-deep); }
+.fc-capsule .fc-glyph{ color: var(--rose-deep); }
+.fc-soul .fc-glyph{ color: #b89a5c; }
+.fc-margin .fc-glyph{ color: #6f85a8; }
+
+/* 「共感梦境」卡片上的归档数量徽标 —— 已收藏过的梦境会在此留下痕迹 */
+.fc-dream-count{
+  position: absolute;
+  top: -3px; right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--pearl-1);
+  background: linear-gradient(135deg, var(--lilac-deep), var(--rose-deep));
+  box-shadow: 0 4px 10px -3px rgba(156,143,196,0.6), 0 0 0 2px var(--pearl-1);
+}
+
+.fc-text{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: auto;
+}
+.fc-title{
+  font-family: 'Noto Serif SC', 'Fraunces', serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-deep);
+  letter-spacing: 0.02em;
+}
+.fc-sub{
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.fc-arrow{
+  position: relative;
+  z-index: 1;
+  align-self: flex-end;
+  margin-top: 14px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(140deg, rgba(255,255,255,0.9), rgba(255,255,255,0.55));
+  border: 1px solid rgba(255,255,255,0.9);
+  color: var(--ink-soft);
+  transition: transform 0.32s var(--ease-silk), color 0.32s var(--ease-soft);
+}
+.feature-card:active .fc-arrow{ transform: translateX(2px); }
+.fc-dream:active .fc-arrow{ color: var(--lilac-deep); }
+.fc-capsule:active .fc-arrow{ color: var(--rose-deep); }
+.fc-soul:active .fc-arrow{ color: #b89a5c; }
+.fc-margin:active .fc-arrow{ color: #6f85a8; }
+.fc-arrow svg{ width: 8px; height: 8px; }
+
+.detail-bottom-pad{ height: 30px; }
+
+/* ================================================================
+   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+   功能卡片浮层 —— Feature Modal
+   四种功能（共感梦境 / 时空胶囊 / 灵魂回想 / 侧笔记录）共用同一层壳，
+   diary.js 按 data-feature 切换 body 内容与主题色。
+   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+================================================================ */
+.feature-veil{
+  position: fixed; inset: 0;
+  z-index: 300;
+  background: rgba(43,42,48,0.42);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.42s var(--ease-soft);
+}
+.feature-veil.show{ opacity: 1; pointer-events: auto; }
+
+.feature-modal{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 301;
+  display: flex;
+  justify-content: center;
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.5s var(--ease-silk), opacity 0.42s var(--ease-soft);
+}
+.feature-modal.show{ transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+.fm-sheet{
+  width: 100%;
+  max-width: 640px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 26px 26px 0 0;
+  background: var(--sheet-glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.9);
+  border-bottom: none;
+  box-shadow: 0 -20px 50px -20px rgba(150,130,170,0.4);
+  overflow: hidden;
+}
+.fm-handle{
+  width: 38px; height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--lilac), var(--rose-mist));
+  opacity: 0.6;
+  margin: 12px auto 6px;
+  flex-shrink: 0;
+}
+.fm-topbar{
+  flex-shrink: 0;
+  padding: 8px 22px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(201,191,224,0.22);
+}
+.fm-topbar-mark{ display: flex; align-items: center; gap: 12px; }
+.fm-glyph-mini{
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(150deg, rgba(255,255,255,0.95), rgba(255,255,255,0.6));
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 6px 14px -6px rgba(150,130,170,0.32);
+  flex-shrink: 0;
+}
+.fm-glyph-mini svg{ width: 17px; height: 17px; overflow: visible; }
+.fm-glyph-mini svg path, .fm-glyph-mini svg circle, .fm-glyph-mini svg ellipse{
+  stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+.fm-topbar-text{ display: flex; flex-direction: column; gap: 2px; }
+.fm-title{
+  font-family: 'Noto Serif SC', 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink-deep);
+}
+.fm-sub{
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.fm-close{
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-glass);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.3s var(--ease-silk);
+}
+.fm-close:active{ transform: scale(0.9) rotate(90deg); }
+.fm-close svg{ width: 14px; height: 14px; }
+
+.fm-body{
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 22px 22px 36px;
+}
+.fm-body::-webkit-scrollbar{ display: none; }
+
+/* ---- 浮层内通用文本样式 ---- */
+.fm-intro{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border-radius: 6px 18px 18px 18px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.85), rgba(255,255,255,0.45));
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow: 0 12px 26px -16px rgba(150,130,170,0.28);
+  position: relative;
+}
+.fm-intro::before{
+  content: '';
+  position: absolute; left: 0; top: 14px; bottom: 14px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--lilac-deep), var(--rose-deep));
+}
+
+/* ---- 共感梦境：梦境片段卡列表 ---- */
+.dream-fragments{ display: flex; flex-direction: column; gap: 12px; }
+.dream-fragment{
+  position: relative;
+  padding: 16px 18px 15px 20px;
+  border-radius: 6px 20px 20px 20px;
+  background: linear-gradient(165deg, rgba(255,255,255,0.88), rgba(255,255,255,0.5));
+  border: 1px solid rgba(255,255,255,0.88);
+  box-shadow: 0 14px 28px -18px rgba(150,130,170,0.3);
+}
+.dream-fragment::before{
+  content: '';
+  position: absolute; left: 7px; top: 20px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac), var(--rose-mist));
+  box-shadow: 0 0 8px rgba(201,191,224,0.6);
+}
+.df-label{
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lilac-deep);
+  margin-bottom: 6px;
+  display: block;
+}
+.df-text{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: var(--ink);
+}
+
+/* ---- 时空胶囊：未来信 / 封存时间轴 ---- */
+.capsule-lock{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 26px 14px 22px;
+  border-radius: 8px 26px 26px 26px;
+  background: linear-gradient(165deg, rgba(255,255,255,0.88), rgba(255,255,255,0.5));
+  border: 1px solid rgba(255,255,255,0.88);
+  box-shadow: 0 16px 32px -18px rgba(150,130,170,0.3);
+  margin-bottom: 18px;
+}
+.capsule-lock-glyph{
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  background: linear-gradient(150deg, rgba(227,201,209,0.28), rgba(201,191,224,0.2));
+  border: 1px solid rgba(255,255,255,0.9);
+  color: var(--rose-deep);
+}
+.capsule-lock-glyph svg{ width: 26px; height: 26px; overflow: visible; }
+.capsule-lock-glyph svg path, .capsule-lock-glyph svg ellipse{
+  stroke: currentColor; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round;
+}
+.capsule-lock-title{
+  font-family: 'Noto Serif SC', serif;
+  font-size: 15px;
+  color: var(--ink-deep);
+  margin-bottom: 6px;
+}
+.capsule-lock-sub{
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.capsule-timeline{ display: flex; flex-direction: column; gap: 0; }
+.capsule-node{
+  position: relative;
+  padding: 4px 0 20px 26px;
+  border-left: 1px dashed rgba(201,191,224,0.5);
+}
+.capsule-node:last-child{ border-left-color: transparent; padding-bottom: 0; }
+.capsule-node::before{
+  content: '';
+  position: absolute; left: -4.5px; top: 4px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lilac-deep), var(--rose-deep));
+  box-shadow: 0 0 0 3px var(--pearl-1);
+}
+.cn-date{
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: block;
+}
+.cn-text{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+/* ---- 灵魂回想：内心问答卡 ---- */
+.soul-qa{ display: flex; flex-direction: column; gap: 14px; }
+.soul-qa-item{
+  padding: 16px 18px;
+  border-radius: 6px 20px 20px 20px;
+  background: linear-gradient(165deg, rgba(255,255,255,0.88), rgba(255,255,255,0.5));
+  border: 1px solid rgba(255,255,255,0.88);
+  box-shadow: 0 14px 28px -18px rgba(150,130,170,0.3);
+}
+.soul-q{
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-deep);
+  margin-bottom: 8px;
+}
+.soul-q::before{
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-hair), var(--rose-deep));
+  flex-shrink: 0;
+}
+.soul-a{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--ink);
+  padding-left: 12px;
+}
+
+/* ---- 侧笔记录：批注式笔记列表 + 输入 ---- */
+.margin-notes{ display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.margin-note{
+  position: relative;
+  padding: 12px 16px 12px 18px;
+  border-radius: 4px 16px 16px 16px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.85), rgba(255,255,255,0.48));
+  border: 1px solid rgba(255,255,255,0.85);
+  border-left: 2px solid var(--lilac);
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.margin-note-time{
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+.margin-empty{
+  text-align: center;
+  padding: 22px 10px;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13.5px;
+  color: var(--ink-faint);
+}
+.margin-input-row{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 6px 6px 16px;
+  border-radius: 20px;
+  background: linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.55));
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 10px 22px -14px rgba(150,130,170,0.32);
+}
+.margin-input{
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  color: var(--ink-deep);
+  padding: 8px 0;
+}
+.margin-input::placeholder{ color: var(--ink-faint); }
+.margin-send{
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--lilac-deep), var(--rose-deep));
+  color: var(--pearl-1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.28s var(--ease-silk);
+}
+.margin-send:active{ transform: scale(0.9); }
+.margin-send svg{ width: 14px; height: 14px; }
+.margin-send svg path{ stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---- 详情页响应式微调（较窄屏） ---- */
+@media (max-width: 360px){
+  .feature-grid{ gap: 10px; }
+  .feature-card{ padding: 15px 13px 13px; min-height: 122px; }
+  .detail-title{ font-size: 23px; }
+}
+/* ================================================================
+   ★★★★★ Char 日记 —— 角色日记本书架 ★★★★★
+   设计基调：与"我的日记"页头彻底区分——顶部不出现返回/写日记按钮，
+   而是"日记本计数徽记 + 横滑提示"。内容区为横向滑动书架，
+   一次仅完整呈现一本日记本，每本书随机匹配 6 套版型之一，
+   版型之间在封面材质、装订方式、点缀纹样、配色权重上均有明显区分，
+   但都统一收束在浅白 · 韩系 · 华丽的调性之内——
+   绝不使用 emoji、绝不使用米色、绝不落入极简风。
+================================================================ */
+
+/* Char 日记页需要"顶部条 + 内容区"的纵向排布，
+   覆盖通用 .diary-page 的居中单元素布局 */
+.diary-page[data-page="char"]{
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+/* ---- 顶部专属条：与 .diary-header 区分开的第二种头部语言 ---- */
+.char-topbar{
+  position: relative;
+  z-index: 10;
+  padding: 2px 22px 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.char-topbar-left{
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.ctb-count{
+  font-family: 'Fraunces', 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--ink-deep);
+  letter-spacing: 0.01em;
+  font-variant-numeric: oldstyle-nums;
+}
+.ctb-count-label{
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+}
+.char-topbar-hint{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 8.6px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lilac-deep);
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.cth-arrow{ width: 20px; height: 8px; animation: cthSlide 2.6s ease-in-out infinite; }
+.cth-arrow path{ stroke: currentColor; }
+@keyframes cthSlide{
+  0%, 100%{ transform: translateX(0); opacity: 0.55; }
+  50%{ transform: translateX(3px); opacity: 1; }
+}
+
+/* ---- 空态容器占满剩余区域（角色列表为空时） ----
+   显式覆盖 [hidden] 优先级问题：自定义 class 规则的 display 声明
+   若晚于原生 [hidden] 出现在样式表中会盖掉它，这里用 &[hidden] 显式兜底 */
+.char-diary-empty{
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 40px;
+}
+.char-diary-empty[hidden]{ display: none; }
+.char-shelf-wrap[hidden]{ display: none; }
+
+/* ================================================================
+   横向滑动书架容器
+================================================================ */
+.char-shelf-wrap{
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.char-shelf{
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 2px 0 10px;
+}
+.char-shelf::-webkit-scrollbar{ display: none; }
+
+/* 每一屏一本书，居中满宽展示 */
+.char-book-slide{
+  flex: 0 0 100%;
+  width: 100%;
+  scroll-snap-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 26px;
+  box-sizing: border-box;
+}
+
+/* 底部翻页圆点 */
+.char-shelf-dots{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 6px 0 4px;
+  flex-shrink: 0;
+}
+.char-shelf-dot{
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(139, 136, 145, 0.28);
+  transition: all 0.4s var(--ease-silk);
+}
+.char-shelf-dot.active{
+  width: 18px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--lilac-deep), var(--rose-deep));
+}
+
+/* ================================================================
+   ★ 日记本通用骨架 ★
+   结构：外封（书脊 + 封面材质 + 角色信息）→ 打开态露出的内页占位
+   （空状态，等待真实日记数据接入）
+================================================================ */
+.char-book{
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 3 / 4.35;
+  border-radius: 4px 14px 14px 4px;
+  overflow: hidden;
+  animation: bookRise 0.6s var(--ease-silk) both;
+}
+@keyframes bookRise{
+  from{ opacity: 0; transform: translateY(18px) scale(0.97); }
+  to{ opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 书本整体投影 —— 让书"浮"在书架上 */
+.char-book-shadow{
+  position: absolute;
+  inset: 6px 10px -14px 10px;
+  border-radius: 4px 14px 14px 4px;
+  background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(120,105,140,0.28) 0%, transparent 72%);
+  filter: blur(10px);
+  z-index: 0;
+}
+
+/* 书脊 —— 左侧竖条，营造真实装订感 */
+.char-book-spine{
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 15px;
+  z-index: 3;
+}
+.char-book-spine::before{
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,0.14), transparent 60%);
+}
+.char-book-spine::after{
+  content: '';
+  position: absolute;
+  left: 5px; top: 10%; bottom: 10%;
+  width: 1px;
+  background: rgba(255,255,255,0.5);
+}
+
+/* 封面主体 */
+.char-book-cover{
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 4px 14px 14px 4px;
+  padding: 26px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.5),
+    0 24px 48px -22px rgba(90,76,110,0.42),
+    0 4px 14px -6px rgba(90,76,110,0.22);
+}
+
+/* 点击涟漪反馈层 */
+.char-book-cover:active{ transform: scale(0.985); }
+.char-book{ transition: transform 0.3s var(--ease-silk); }
+
+/* 顶部：角色徽记区（头像 + 名字 + 角色简述） */
+.cbc-crest{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-top: 6px;
+}
+.cbc-avatar-ring{
+  width: 74px; height: 74px;
+  border-radius: 50%;
+  padding: 3px;
+  margin-bottom: 14px;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.cbc-avatar-ring::before{
+  content: '';
+  position: absolute; inset: -5px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.55);
+}
+.cbc-avatar{
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  box-shadow: 0 6px 16px -6px rgba(0,0,0,0.28);
+}
+.cbc-avatar img{ width: 100%; height: 100%; object-fit: cover; }
+
+.cbc-name{
+  font-family: 'Fraunces', 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin-bottom: 5px;
+}
+.cbc-role{
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+/* 中段：纹样/印记装饰区（各版型各不相同，见下方 skin） */
+.cbc-emblem{
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  margin: 16px 0;
+}
+.cbc-emblem svg{ width: 100%; height: 100%; max-width: 150px; max-height: 130px; }
+
+/* 底部：日记本标题铭牌 + 篇数占位 */
+.cbc-plate{
+  text-align: center;
+}
+.cbc-plate-title{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-style: italic;
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+  opacity: 0.92;
+}
+.cbc-plate-meta{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+.cbc-plate-meta .cpm-dot{
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* 书页边缘小截面（右侧），营造"这是一本厚书"的错觉 */
+.char-book-pages{
+  position: absolute;
+  right: -3px; top: 8px; bottom: 8px;
+  width: 6px;
+  z-index: 1;
+  border-radius: 0 3px 3px 0;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255,255,255,0.95) 0px, rgba(255,255,255,0.95) 1.2px,
+    rgba(210,205,198,0.7) 1.2px, rgba(210,205,198,0.7) 2.2px
+  );
+  box-shadow: 1px 0 3px rgba(0,0,0,0.08);
+}
+
+/* 空态提示角标 —— 尚无日记内容时叠加在封面右下角的柔和提示 */
+.cbc-empty-tag{
+  position: absolute;
+  right: 16px; bottom: 16px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px 5px 8px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.55);
+}
+.cbc-empty-tag svg{ width: 10px; height: 10px; opacity: 0.65; }
+.cbc-empty-tag span{
+  font-family: 'Space Mono', monospace;
+  font-size: 7.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+/* ================================================================
+   ★ 版型 A —— 「云鸢」云纹丁香紫绒面本 ★
+   丁香紫绒面 + 描边云纹 + 圆角厚封，甜而不腻
+================================================================ */
+.skin-a .char-book-cover{
+  background:
+    radial-gradient(circle 140px at 85% -6%, rgba(255,255,255,0.55), transparent 68%),
+    linear-gradient(165deg, #ece6f5 0%, #ddd0ec 46%, #cabbe0 100%);
+  color: #453d5c;
+}
+.skin-a .char-book-cover::after{
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.skin-a .cbc-avatar{ background: linear-gradient(135deg,#9c8fc4,#7b6ba8); color: #f3eefb; }
+.skin-a .char-book-spine{ background: linear-gradient(90deg,#8a7ab4,#a894c9); }
+.skin-a .cbc-empty-tag svg path, .skin-a .cbc-empty-tag svg circle{ stroke:#453d5c; }
+
+/* ================================================================
+   ★ 版型 B —— 「雾蔷」雾玫瑰烫金细线本 ★
+   雾玫瑰底 + 细金线边框 + 尖角古典封，华丽庄重
+================================================================ */
+.skin-b .char-book-cover{
+  background:
+    radial-gradient(circle 160px at 12% 100%, rgba(255,255,255,0.5), transparent 65%),
+    linear-gradient(160deg, #f5e5e8 0%, #ecccd3 50%, #dcaeb9 100%);
+  color: #5c3d47;
+}
+.skin-b .char-book-cover::before{
+  content: '';
+  position: absolute; inset: 10px;
+  border: 1px solid rgba(212,196,154,0.65);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.skin-b .char-book-cover::after{
+  content: '';
+  position: absolute; inset: 15px;
+  border: 1px solid rgba(212,196,154,0.32);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.skin-b .cbc-avatar{ background: linear-gradient(135deg,#c99aab,#a9677c); color: #fbeef0; }
+.skin-b .char-book-spine{ background: linear-gradient(90deg,#b57f8f,#d2a2ae); }
+.skin-b .cbc-plate-title{ color: #8a5c66; }
+
+/* ================================================================
+   ★ 版型 C —— 「月霜」银雾大理石纹漆面本 ★
+   冷银雾底 + 大理石流纹 + 直角利落封，克制的华丽
+================================================================ */
+.skin-c .char-book-cover{
+  background:
+    radial-gradient(ellipse 180px 120px at 70% 15%, rgba(255,255,255,0.6), transparent 60%),
+    linear-gradient(150deg, #f1f2f4 0%, #dfe0e4 55%, #c7c9cf 100%);
+  color: #3c3c44;
+  border-radius: 2px 6px 6px 2px;
+}
+.skin-c .char-book-cover::after{
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(115deg, transparent 30%, rgba(160,164,178,0.25) 42%, transparent 54%),
+    linear-gradient(65deg, transparent 60%, rgba(160,164,178,0.18) 70%, transparent 80%);
+  pointer-events: none;
+}
+.skin-c .char-book{ border-radius: 2px 6px 6px 2px; }
+.skin-c .char-book-cover, .skin-c .char-book-spine{ border-radius: 2px 6px 6px 2px; }
+.skin-c .cbc-avatar{ background: linear-gradient(135deg,#8c8f99,#5c5e68); color: #f4f4f6; border-radius: 50%;}
+.skin-c .char-book-spine{ background: linear-gradient(90deg,#a7a9b2,#c3c5cb); }
+
+/* ================================================================
+   ★ 版型 D —— 「鎏光」珠白烫金细纹本 ★
+   珠光冷白底（非暖调米色）+ 极细烫金描边与星芒纹样作点缀，
+   金色只作为线条/边框出现，绝不大面积铺色，避免落入米色调性
+================================================================ */
+.skin-d .char-book-cover{
+  background:
+    radial-gradient(circle 160px at 85% 90%, rgba(212,196,154,0.14), transparent 62%),
+    radial-gradient(circle 140px at 10% 6%, rgba(255,255,255,0.85), transparent 60%),
+    linear-gradient(170deg, #fcfbf9 0%, #f6f4f0 55%, #ece8e0 100%);
+  color: #4a4238;
+}
+.skin-d .char-book-cover::before{
+  content: '';
+  position: absolute; inset: 9px;
+  border: 1px solid rgba(196,168,104,0.55);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.skin-d .char-book-cover::after{
+  content: '';
+  position: absolute; inset: 14px;
+  border: 1px solid rgba(196,168,104,0.24);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.skin-d .cbc-avatar{ background: linear-gradient(135deg,#e7dbb8,#c4a86a); color: #3f371f; }
+.skin-d .cbc-avatar-ring::before{ border-color: rgba(196,168,104,0.5); }
+.skin-d .char-book-spine{ background: linear-gradient(90deg,#c9ad6a,#e6d6a4); }
+.skin-d .cbc-plate-title{ color: #8f7638; }
+.skin-d .cbc-role{ color: #7a7368; }
+.skin-d .cbc-emblem{ color: #b6923f; }
+
+/* ================================================================
+   ★ 版型 E —— 「暮墨」深墨渐层烫银星纹本 ★
+   全场唯一深色系，深墨渐层 + 银色星点，制造强烈对比与戏剧张力
+================================================================ */
+.skin-e .char-book-cover{
+  background:
+    radial-gradient(circle 200px at 20% -10%, rgba(201,191,224,0.22), transparent 60%),
+    linear-gradient(165deg, #302c3d 0%, #211e2b 55%, #17151e 100%);
+  color: #eae7f0;
+}
+.skin-e .char-book-cover::after{
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 20% 24%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 68% 14%, rgba(255,255,255,0.55), transparent),
+    radial-gradient(1.4px 1.4px at 82% 42%, rgba(255,255,255,0.65), transparent),
+    radial-gradient(1px 1px at 34% 62%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1.2px 1.2px at 55% 82%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 12% 88%, rgba(255,255,255,0.35), transparent);
+  pointer-events: none;
+}
+.skin-e .cbc-avatar{ background: linear-gradient(135deg,#c9bfe0,#8f80b8); color: #211e2b; }
+.skin-e .char-book-spine{ background: linear-gradient(90deg,#463f57,#5c5470); }
+.skin-e .cbc-plate-meta{ opacity: 0.5; }
+.skin-e .cbc-empty-tag{ background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); }
+.skin-e .cbc-empty-tag svg path, .skin-e .cbc-empty-tag svg circle{ stroke:#eae7f0; }
+.skin-e .cbc-empty-tag span{ color: #eae7f0; }
+.skin-e .char-book-pages{
+  background: repeating-linear-gradient(180deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0.5) 1.2px, rgba(60,55,75,0.6) 1.2px, rgba(60,55,75,0.6) 2.2px);
+}
+
+/* ================================================================
+   ★ 版型 F —— 「霁色」薄荷晨雾丝绒本 ★
+   极浅薄荷雾底 + 波纹綢缎光泽，清透而不失质感
+================================================================ */
+.skin-f .char-book-cover{
+  background:
+    radial-gradient(circle 150px at 15% 8%, rgba(255,255,255,0.65), transparent 62%),
+    linear-gradient(160deg, #e9f1ee 0%, #d6e6e0 50%, #bfd8cf 100%);
+  color: #3c4a44;
+}
+.skin-f .char-book-cover::after{
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(100deg, rgba(255,255,255,0.22) 0px, rgba(255,255,255,0.22) 2px, transparent 2px, transparent 10px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.skin-f .cbc-avatar{ background: linear-gradient(135deg,#8fb3a4,#5f8a79); color: #eef7f2; }
+.skin-f .char-book-spine{ background: linear-gradient(90deg,#7ea595,#a4c9ba); }
+.skin-f .cbc-plate-title, .skin-f .cbc-role{ color: #4d6459; }
+
+/* ================================================================
+   六种版型的中段纹样描边色统一走 currentColor，
+   由各 skin 的 .char-book-cover{ color } 自动继承，
+   无需逐个版型单独覆写 emblem 描边颜色
+================================================================ */
+.cbc-emblem svg path, .cbc-emblem svg circle, .cbc-emblem svg ellipse{
+  stroke: currentColor;
+  fill: none;
+}
+.skin-d .cbc-emblem svg .emblem-fill,
+.skin-e .cbc-emblem svg .emblem-fill{ fill: currentColor; stroke: none; }
+.cbc-emblem svg .emblem-fill{ fill: currentColor; stroke: none; opacity: 0.85; }
+
+/* ---- 窄屏微调 ---- */
+@media (max-width: 360px){
+  .char-book{ max-width: 280px; }
+  .cbc-name{ font-size: 19px; }
+  .cbc-avatar-ring{ width: 66px; height: 66px; }
+}

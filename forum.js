@@ -156,6 +156,9 @@ function switchPage(pageName, btn) {
   // 触感反馈
   if (window.navigator && navigator.vibrate) navigator.vibrate(8);
 
+  // 发帖页：刷新用户身份显示
+  if (pageName === 'post') loadPublishUserIdentity();
+
   // profile 页状态栏变白，其他页恢复
   const statusBar = document.querySelector('.status-bar');
   if (statusBar) {
@@ -254,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(updateTime, 1000);
   applyIsland();
   applyFontFamily();
+  loadPublishUserIdentity();
 
   // 启动时读取已缓存的热搜数据
   const cachedTrending = loadTrendingFromStorage();
@@ -369,7 +373,7 @@ let _personaDB = null;
 function openPersonaDB() {
   return new Promise((res, rej) => {
     if (_personaDB) return res(_personaDB);
-    const req = indexedDB.open('LunaPersonaDB', 2);
+    const req = indexedDB.open('LunaPersonaDB');
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('identities')) {
@@ -380,7 +384,7 @@ function openPersonaDB() {
       }
     };
     req.onsuccess = e => { _personaDB = e.target.result; res(_personaDB); };
-    req.onerror = () => rej();
+    req.onerror = e => rej(new Error('PersonaDB open failed: ' + (e.target?.error || 'unknown')));
   });
 }
 
@@ -426,6 +430,8 @@ function openPersonaModal() {
 function closePersonaModal() {
   document.getElementById('personaMask').classList.remove('open');
   document.getElementById('personaModal').classList.remove('open');
+  // 关闭后刷新发帖页的身份显示
+  loadPublishUserIdentity();
 }
 
 /* ══════════════════════════════
@@ -439,13 +445,24 @@ function switchPersonaTab(btn, panel) {
 }
 
 /* ══════════════════════════════
-   Tab 1：读取角色书角色
+   Tab 1：读取角色书角色（丰富卡片版）
 ══════════════════════════════ */
 let _selectedCharId = parseInt(localStorage.getItem('luna_active_char')) || null;
 
+// 颜色配置：每种 color key 对应卡片渐变
+const CHAR_CARD_COLORS = {
+  warm:  { grad: 'linear-gradient(135deg,#f5e6d3 0%,#e8d0b8 100%)', avatar: 'linear-gradient(135deg,#d4956a,#c47a4a)', text: '#7a4a2a', badge: '#c47a4a' },
+  cool:  { grad: 'linear-gradient(135deg,#d3e6f5 0%,#b8d0e8 100%)', avatar: 'linear-gradient(135deg,#5a8da8,#4a7d98)', text: '#2a4a5a', badge: '#4a7d98' },
+  gold:  { grad: 'linear-gradient(135deg,#f0e6d0 0%,#ddd0b0 100%)', avatar: 'linear-gradient(135deg,#b09840,#907820)', text: '#5a4a10', badge: '#907820' },
+  ash:   { grad: 'linear-gradient(135deg,#e8e6f0 0%,#d0cee0 100%)', avatar: 'linear-gradient(135deg,#7878a0,#606080)', text: '#303050', badge: '#606080' },
+  mist:  { grad: 'linear-gradient(135deg,#d8ecd8 0%,#c0dcc0 100%)', avatar: 'linear-gradient(135deg,#5a8a72,#4a7a62)', text: '#1a4a32', badge: '#4a7a62' },
+  blush: { grad: 'linear-gradient(135deg,#f5d8d8 0%,#e8c0c0 100%)', avatar: 'linear-gradient(135deg,#c87878,#b06060)', text: '#5a2828', badge: '#b06060' },
+};
+const CHAR_DEFAULT_COLOR = { grad: 'linear-gradient(135deg,#ede8ff 0%,#d8d0f8 100%)', avatar: 'linear-gradient(135deg,#9d7cff,#7c5cbf)', text: '#3d2a6a', badge: '#7c5cbf' };
+
 async function loadPersonaCharList() {
   const listEl = document.getElementById('personaCharList');
-  listEl.innerHTML = '<div class="persona-loading">读取角色书中...</div>';
+  listEl.innerHTML = `<div class="persona-loading"><div class="persona-loading-spinner"></div>读取角色书中…</div>`;
 
   let chars = [];
   try {
@@ -462,111 +479,411 @@ async function loadPersonaCharList() {
   } catch(e) { chars = []; }
 
   if (chars.length === 0) {
-    listEl.innerHTML = '<div class="persona-char-empty">角色书中还没有角色<br>请先去角色书创建角色</div>';
+    listEl.innerHTML = `
+      <div class="persona-char-empty-state">
+        <div class="pces-icon">
+          <svg viewBox="0 0 48 48" width="44" height="44" fill="none">
+            <circle cx="24" cy="18" r="8" stroke="#c4b5fd" stroke-width="2"/>
+            <path d="M8 40c0-8.8 7.2-16 16-16s16 7.2 16 16" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="36" cy="14" r="3" stroke="#ddd6fe" stroke-width="1.5"/>
+            <path d="M33 22c1.2-.6 2.5-1 4-1" stroke="#ddd6fe" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="pces-title">角色书中还没有角色</div>
+        <div class="pces-desc">请先前往角色书创建角色<br>创建后即可在此选择并以该角色身份发帖</div>
+      </div>`;
     return;
   }
-
-  const COLOR_BG = {
-    warm:'#a8956e', cool:'#607d85', gold:'#927d50',
-    ash:'#707070', mist:'#7a8e72', blush:'#9e7870'
-  };
 
   listEl.innerHTML = '';
   chars.forEach(c => {
     const isSelected = c.id === _selectedCharId;
-    const bgColor = COLOR_BG[c.color] || '#a8956e';
+    const col = CHAR_CARD_COLORS[c.color] || CHAR_DEFAULT_COLOR;
     const letter = (c.name || '?')[0].toUpperCase();
 
+    const roleText = c.role || '未设定定位';
+    const promptSnippet = c.prompt ? c.prompt.slice(0, 60) + (c.prompt.length > 60 ? '…' : '') : '';
+
     const item = document.createElement('div');
-    item.className = 'persona-char-item' + (isSelected ? ' selected' : '');
+    item.className = 'persona-char-card' + (isSelected ? ' selected' : '');
     item.dataset.id = c.id;
     item.innerHTML = `
-      <div class="persona-char-avatar" style="background:${bgColor}">
-        ${c.avatar ? `<img src="${c.avatar}" alt=""/>` : letter}
+      <div class="pcc-header" style="background:${col.grad}">
+        <div class="pcc-header-deco"></div>
+        <div class="pcc-avatar-wrap">
+          <div class="pcc-avatar" style="background:${col.avatar}">
+            ${c.avatar ? `<img src="${c.avatar}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"/>` : `<span>${letter}</span>`}
+          </div>
+          ${isSelected ? `<div class="pcc-active-ring"></div>` : ''}
+        </div>
+        <div class="pcc-check" style="background:${isSelected ? col.badge : 'rgba(255,255,255,0.55)'}; border-color:${isSelected ? col.badge : 'rgba(255,255,255,0.7)'}">
+          ${isSelected ? `<svg viewBox="0 0 24 24" width="11" height="11" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+        </div>
+        <div class="pcc-header-info">
+          <div class="pcc-name" style="color:${col.text}">${c.name || '未命名角色'}</div>
+          <div class="pcc-role-badge" style="background:rgba(255,255,255,0.55);color:${col.badge}">${roleText}</div>
+        </div>
+        <div class="pcc-card-actions">
+          <button class="pcc-edit-btn" title="编辑角色" onclick="editPersonaChar(${c.id}, event)">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="pcc-del-btn" title="删除角色" onclick="deletePersonaChar(${c.id}, event)">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="persona-char-info">
-        <div class="persona-char-name">${c.name || '未命名'}</div>
-        <div class="persona-char-role">${c.role || '无定位'}</div>
-      </div>
-      <div class="persona-char-check">
-        ${isSelected ? `<svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+      <div class="pcc-body">
+        ${promptSnippet ? `<div class="pcc-desc">${promptSnippet}</div>` : `<div class="pcc-desc pcc-desc-empty">暂无角色描述</div>`}
+        <div class="pcc-footer-row">
+          ${isSelected ? `<div class="pcc-active-label" style="background:${col.badge}20;color:${col.badge}">当前发帖角色</div>` : '<div></div>'}
+          <button class="pcc-select-btn ${isSelected ? 'selected' : ''}" style="${isSelected ? `background:${col.badge};border-color:${col.badge}` : ''}">
+            ${isSelected ? `<svg viewBox="0 0 24 24" width="11" height="11" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg> 使用中` : '使用此角色'}
+          </button>
+        </div>
       </div>`;
-    item.onclick = () => selectPersonaChar(item, c);
+    // select on card click (not on action buttons)
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.pcc-card-actions')) return;
+      selectPersonaChar(null, c, col);
+    });
     listEl.appendChild(item);
   });
 }
 
-function selectPersonaChar(itemEl, c) {
+function selectPersonaChar(itemEl, c, col) {
+  col = col || CHAR_DEFAULT_COLOR;
+  if (!c || !c.id) return;
   _selectedCharId = c.id;
   localStorage.setItem('luna_active_char', c.id);
   localStorage.setItem('luna_char_name', c.name || '');
   localStorage.setItem('luna_char_prompt', c.prompt || '');
 
-  document.querySelectorAll('.persona-char-item').forEach(el => {
-    const isMe = parseInt(el.dataset.id) === c.id;
-    el.classList.toggle('selected', isMe);
-    el.querySelector('.persona-char-check').innerHTML = isMe
-      ? `<svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-      : '';
-  });
+  // 重新渲染列表（简单重新加载）
+  loadPersonaCharList();
 }
 
 /* ══════════════════════════════
-   Tab 2：用户身份
+   角色「论坛行为偏好」弹窗
+   数据存 localStorage，key = luna_cbp_<charId>
+   完全独立于角色书 LunaCharDB
+══════════════════════════════ */
+let _cbpCharId   = null;  // 当前正在编辑偏好的角色 id
+let _cbpInteract = [];    // 多选：互动倾向
+
+// chip 单选组
+const _cbpSingle = { freq: 'low', reply: 'brief', tone: 'casual' };
+
+function selectCbpChip(group, btn) {
+  _cbpSingle[group] = btn.dataset.val;
+  btn.closest('.cbp-chip-row').querySelectorAll('.cbp-chip')
+    .forEach(b => b.classList.toggle('active', b === btn));
+}
+
+function toggleCbpChip(btn) {
+  const val = btn.dataset.val;
+  if (_cbpInteract.includes(val)) {
+    _cbpInteract = _cbpInteract.filter(v => v !== val);
+    btn.classList.remove('active');
+  } else {
+    _cbpInteract.push(val);
+    btn.classList.add('active');
+  }
+}
+
+function _loadCbpDefaults() {
+  // 重置到默认值
+  _cbpSingle.freq  = 'low';
+  _cbpSingle.reply = 'brief';
+  _cbpSingle.tone  = 'casual';
+  _cbpInteract     = [];
+  ['cbpFreqRow','cbpReplyRow','cbpToneRow'].forEach(rowId => {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    row.querySelectorAll('.cbp-chip').forEach((b, i) => b.classList.toggle('active', i === 0));
+  });
+  const interactRow = document.getElementById('cbpInteractRow');
+  if (interactRow) interactRow.querySelectorAll('.cbp-chip').forEach(b => b.classList.remove('active'));
+  const noteEl = document.getElementById('cbpNote');
+  if (noteEl) noteEl.value = '';
+}
+
+function _applyCbpData(data) {
+  // freq
+  _cbpSingle.freq = data.freq || 'low';
+  const freqRow = document.getElementById('cbpFreqRow');
+  if (freqRow) freqRow.querySelectorAll('.cbp-chip').forEach(b =>
+    b.classList.toggle('active', b.dataset.val === _cbpSingle.freq));
+  // topics
+  const topicsEl = document.getElementById('cbpTopics');
+  if (topicsEl) topicsEl.value = data.topics || '';
+  // reply
+  _cbpSingle.reply = data.reply || 'brief';
+  const replyRow = document.getElementById('cbpReplyRow');
+  if (replyRow) replyRow.querySelectorAll('.cbp-chip').forEach(b =>
+    b.classList.toggle('active', b.dataset.val === _cbpSingle.reply));
+  // tone
+  _cbpSingle.tone = data.tone || 'casual';
+  const toneRow = document.getElementById('cbpToneRow');
+  if (toneRow) toneRow.querySelectorAll('.cbp-chip').forEach(b =>
+    b.classList.toggle('active', b.dataset.val === _cbpSingle.tone));
+  // interact (multi)
+  _cbpInteract = data.interact || [];
+  const interactRow = document.getElementById('cbpInteractRow');
+  if (interactRow) interactRow.querySelectorAll('.cbp-chip').forEach(b =>
+    b.classList.toggle('active', _cbpInteract.includes(b.dataset.val)));
+  // note
+  const noteEl = document.getElementById('cbpNote');
+  if (noteEl) noteEl.value = data.note || '';
+}
+
+function editPersonaChar(id, e) {
+  if (e) e.stopPropagation();
+  // 从 LunaCharDB 读基础信息（只用于展示名字/头像）
+  new Promise((res) => {
+    const req = indexedDB.open('LunaCharDB', 2);
+    req.onsuccess = ev => {
+      const db = ev.target.result;
+      const r = db.transaction('chars').objectStore('chars').get(id);
+      r.onsuccess = () => res(r.result || null);
+      r.onerror = () => res(null);
+    };
+    req.onerror = () => res(null);
+  }).then(c => {
+    if (!c) return;
+    _cbpCharId = c.id;
+
+    // 更新 banner 显示
+    const col = CHAR_CARD_COLORS[c.color] || CHAR_DEFAULT_COLOR;
+    const avatarEl = document.getElementById('cbpCharAvatar');
+    const nameEl   = document.getElementById('cbpCharName');
+    if (avatarEl) {
+      avatarEl.style.background = col.avatar;
+      avatarEl.textContent = (c.name || '?')[0].toUpperCase();
+    }
+    if (nameEl) nameEl.textContent = c.name || '未命名角色';
+
+    // 从 localStorage 读已存的偏好（key: luna_cbp_<id>）
+    _loadCbpDefaults();
+    const saved = localStorage.getItem('luna_cbp_' + c.id);
+    if (saved) {
+      try { _applyCbpData(JSON.parse(saved)); } catch(e) {}
+    }
+
+    // 隐藏保存提示
+    const tip = document.getElementById('cbpSaveTip');
+    if (tip) tip.style.display = 'none';
+
+    document.getElementById('charEditMask').classList.add('open');
+    document.getElementById('charEditModal').classList.add('open');
+  });
+}
+
+function saveCharBehavior() {
+  if (!_cbpCharId) return;
+  const data = {
+    freq:     _cbpSingle.freq,
+    topics:   (document.getElementById('cbpTopics')?.value || '').trim(),
+    reply:    _cbpSingle.reply,
+    tone:     _cbpSingle.tone,
+    interact: [..._cbpInteract],
+    note:     (document.getElementById('cbpNote')?.value || '').trim(),
+  };
+  localStorage.setItem('luna_cbp_' + _cbpCharId, JSON.stringify(data));
+
+  // 如果这是当前选中角色，同步更新 luna_char_behavior 供生成时使用
+  if (_cbpCharId === _selectedCharId) {
+    localStorage.setItem('luna_char_behavior', JSON.stringify(data));
+  }
+
+  const tip = document.getElementById('cbpSaveTip');
+  if (tip) { tip.style.display = 'block'; setTimeout(() => tip.style.display = 'none', 1800); }
+}
+
+function closeCharEditModal() {
+  document.getElementById('charEditMask').classList.remove('open');
+  document.getElementById('charEditModal').classList.remove('open');
+  _cbpCharId = null;
+}
+
+async function deletePersonaChar(id, e) {
+  if (e) e.stopPropagation();
+  if (!confirm('确认删除这个角色？')) return;
+  await new Promise(res => {
+    const req = indexedDB.open('LunaCharDB');
+    req.onsuccess = ev => {
+      const db = ev.target.result;
+      const tx = db.transaction('chars', 'readwrite');
+      tx.objectStore('chars').delete(id);
+      tx.oncomplete = res;
+    };
+    req.onerror = res;
+  });
+  if (id === _selectedCharId) {
+    _selectedCharId = null;
+    localStorage.removeItem('luna_active_char');
+    localStorage.removeItem('luna_char_name');
+    localStorage.removeItem('luna_char_prompt');
+  }
+  loadPersonaCharList();
+}
+
+/* ══════════════════════════════
+   Tab 2：用户身份（卡片 + 空状态 + 博主类型体系）
 ══════════════════════════════ */
 let _identities = [];
 let _editingIdentityId = null;
 let _idtGender = '不限';
+let _idtBloggerType = '';
+
+// 身份面板视图状态: 'empty' | 'cards' | 'form'
+function _showIdentityView(view) {
+  const emptyEl  = document.getElementById('identityEmptyState');
+  const cardsEl  = document.getElementById('identityCardsWrap');
+  const formEl   = document.getElementById('personaIdentityForm');
+  // force all hidden first, then show the right one
+  if (emptyEl)  { emptyEl.style.display  = 'none'; }
+  if (cardsEl)  { cardsEl.style.display  = 'none'; }
+  if (formEl)   { formEl.style.display   = 'none'; }
+
+  if (view === 'empty'  && emptyEl) emptyEl.style.display  = 'flex';
+  if (view === 'cards'  && cardsEl) cardsEl.style.display  = 'block';
+  if (view === 'form'   && formEl)  formEl.style.display   = 'flex';
+}
 
 async function loadIdentityList() {
   _identities = await dbGetAll('identities');
-  renderIdentityList();
-
-  // 默认加载第一个身份到表单
-  const active = _identities.find(x => x.id === parseInt(localStorage.getItem('luna_active_identity')));
-  if (active) fillIdentityForm(active);
-  else if (_identities.length > 0) fillIdentityForm(_identities[0]);
+  if (_identities.length === 0) {
+    _showIdentityView('empty');
+  } else {
+    _showIdentityView('cards');
+    renderIdentityCards();
+  }
 }
 
-function renderIdentityList() {
-  const listEl = document.getElementById('personaIdentityList');
-  if (_identities.length === 0) { listEl.innerHTML = ''; return; }
+function renderIdentityCards() {
+  const cardsEl = document.getElementById('personaIdentityCards');
+  if (!cardsEl) return;
   const activeId = parseInt(localStorage.getItem('luna_active_identity'));
-  listEl.innerHTML = '';
+  cardsEl.innerHTML = '';
+
   _identities.forEach(idt => {
-    const isSelected = idt.id === activeId;
-    const div = document.createElement('div');
-    div.className = 'persona-identity-item' + (isSelected ? ' selected' : '');
-    div.dataset.id = idt.id;
-    div.innerHTML = `
-      <div onclick="fillIdentityForm(window._identities.find(x=>x.id===${idt.id}))">
-        <div class="persona-identity-name">${idt.name || '未命名身份'}</div>
-        <div class="persona-identity-meta">${idt.gender || ''} ${idt.age ? '· ' + idt.age : ''} ${idt.tags ? '· ' + idt.tags.slice(0,16) : ''}</div>
+    const isActive = idt.id === activeId;
+
+    // 博主类型颜色映射
+    const typeColors = {
+      '科技数码':   { bg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', accent: '#3b82f6', badge: '#eff6ff' },
+      '生活方式':   { bg: 'linear-gradient(135deg,#fce7f3,#fbcfe8)', accent: '#ec4899', badge: '#fdf2f8' },
+      '美妆时尚':   { bg: 'linear-gradient(135deg,#fce7f3,#f5d0e8)', accent: '#db2777', badge: '#fdf2f8' },
+      '美食探店':   { bg: 'linear-gradient(135deg,#fef3c7,#fde68a)', accent: '#d97706', badge: '#fffbeb' },
+      '旅行摄影':   { bg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', accent: '#059669', badge: '#ecfdf5' },
+      '读书影评':   { bg: 'linear-gradient(135deg,#ede9fe,#ddd6fe)', accent: '#7c3aed', badge: '#f5f3ff' },
+      '游戏电竞':   { bg: 'linear-gradient(135deg,#e0e7ff,#c7d2fe)', accent: '#4f46e5', badge: '#eef2ff' },
+      '二次元':     { bg: 'linear-gradient(135deg,#fce7f3,#e9d5ff)', accent: '#9333ea', badge: '#fdf4ff' },
+      '职场成长':   { bg: 'linear-gradient(135deg,#f0fdf4,#dcfce7)', accent: '#16a34a', badge: '#f0fdf4' },
+      '自定义':     { bg: 'linear-gradient(135deg,#f8fafc,#f1f5f9)', accent: '#64748b', badge: '#f8fafc' },
+    };
+    const col = typeColors[idt.bloggerType] || { bg: 'linear-gradient(135deg,#ede8ff,#ddd6fe)', accent: '#7c5cbf', badge: '#f5f3ff' };
+
+    const tagsArr = (idt.tags || '').split(/[，,]/).filter(Boolean).slice(0, 4);
+    const tagsHtml = tagsArr.map(t => `<span class="pic-tag">${t.trim()}</span>`).join('');
+
+    const card = document.createElement('div');
+    card.className = 'persona-identity-card' + (isActive ? ' active' : '');
+    card.dataset.id = idt.id;
+    card.innerHTML = `
+      <div class="pic-color-bar" style="background:${col.bg}">
+        <div class="pic-avatar" style="background:${col.accent}">
+          <span>${(idt.name || '身')[0]}</span>
+        </div>
+        ${isActive ? `<div class="pic-active-badge" style="background:${col.accent}">当前身份</div>` : ''}
+        <div class="pic-actions">
+          <button class="pic-edit-btn" onclick="editIdentity(${idt.id},event)">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="pic-del-btn" onclick="deleteIdentity(${idt.id},event)">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
       </div>
-      <button class="persona-identity-del" onclick="deleteIdentity(${idt.id})">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none">
-          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        </svg>
-      </button>`;
-    div.querySelector('div').onclick = () => fillIdentityForm(idt);
-    listEl.appendChild(div);
+      <div class="pic-body">
+        <div class="pic-name-row">
+          <div class="pic-name">${idt.name || '未命名身份'}</div>
+          ${idt.bloggerType ? `<div class="pic-type-label" style="background:${col.badge};color:${col.accent}">${idt.bloggerType}</div>` : ''}
+        </div>
+        <div class="pic-meta">
+          ${idt.gender && idt.gender !== '不限' ? `<span>${idt.gender}</span>` : ''}
+          ${idt.age ? `<span>${idt.age}</span>` : ''}
+        </div>
+        ${tagsHtml ? `<div class="pic-tags">${tagsHtml}</div>` : ''}
+        ${idt.personality ? `<div class="pic-personality">${idt.personality.slice(0, 50)}${idt.personality.length > 50 ? '…' : ''}</div>` : ''}
+        <button class="pic-select-btn ${isActive ? 'selected' : ''}" onclick="activateIdentity(${idt.id},event)" style="${isActive ? `background:${col.accent};border-color:${col.accent}` : ''}">
+          ${isActive
+            ? `<svg viewBox="0 0 24 24" width="11" height="11" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg> 使用中`
+            : `使用此身份`}
+        </button>
+      </div>`;
+    cardsEl.appendChild(card);
   });
 }
 
-function fillIdentityForm(idt) {
-  if (!idt) return;
-  _editingIdentityId = idt.id;
-  _idtGender = idt.gender || '不限';
-  document.getElementById('idtName').value = idt.name || '';
-  document.getElementById('idtAge').value = idt.age || '';
-  document.getElementById('idtTags').value = idt.tags || '';
-  document.getElementById('idtPersonality').value = idt.personality || '';
-  document.getElementById('idtExtra').value = idt.extra || '';
+function activateIdentity(id, e) {
+  if (e) e.stopPropagation();
+  localStorage.setItem('luna_active_identity', id);
+  renderIdentityCards();
+}
+
+function editIdentity(id, e) {
+  if (e) e.stopPropagation();
+  const idt = _identities.find(x => x.id === id);
+  if (idt) showIdentityForm(idt);
+}
+
+// 显示空状态的创建按钮 / 卡片列表的新建按钮 → 进入表单
+function showIdentityForm(idt) {
+  _editingIdentityId = idt ? idt.id : null;
+  _idtGender = idt ? (idt.gender || '不限') : '不限';
+  _idtBloggerType = idt ? (idt.bloggerType || '') : '';
+
+  const formTitleEl = document.getElementById('pifFormTitle');
+  if (formTitleEl) formTitleEl.textContent = idt ? '编辑身份' : '创建身份';
+
+  document.getElementById('idtName').value        = idt ? (idt.name || '') : '';
+  document.getElementById('idtAge').value         = idt ? (idt.age || '') : '';
+  document.getElementById('idtTags').value        = idt ? (idt.tags || '') : '';
+  document.getElementById('idtPersonality').value = idt ? (idt.personality || '') : '';
+  document.getElementById('idtExtra').value       = idt ? (idt.extra || '') : '';
+
   document.querySelectorAll('.persona-gender-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.g === _idtGender);
   });
-  localStorage.setItem('luna_active_identity', idt.id);
-  renderIdentityList();
+  document.querySelectorAll('.pbt-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.bt === _idtBloggerType);
+  });
+  // 自定义类型回填
+  const customField = document.getElementById('bloggerTypeCustomField');
+  const customInput = document.getElementById('idtBloggerTypeCustom');
+  const knownTypes = ['科技数码','生活方式','美妆时尚','美食探店','旅行摄影','读书影评','游戏电竞','二次元','职场成长','自定义'];
+  if (idt && idt.bloggerType && !knownTypes.includes(idt.bloggerType)) {
+    // 是自定义文字，激活「自定义」按钮并填入
+    _idtBloggerType = '自定义';
+    document.querySelectorAll('.pbt-btn').forEach(b => b.classList.toggle('active', b.dataset.bt === '自定义'));
+    if (customInput) customInput.value = idt.bloggerType;
+    if (customField) customField.style.display = 'block';
+  } else {
+    if (customField) customField.style.display = _idtBloggerType === '自定义' ? 'block' : 'none';
+    if (customInput) customInput.value = '';
+  }
+
+  _showIdentityView('form');
+}
+
+function backToIdentityCards() {
+  if (_identities.length === 0) {
+    _showIdentityView('empty');
+  } else {
+    _showIdentityView('cards');
+    renderIdentityCards();
+  }
 }
 
 function selectIdtGender(btn) {
@@ -574,16 +891,24 @@ function selectIdtGender(btn) {
   document.querySelectorAll('.persona-gender-btn').forEach(b => b.classList.toggle('active', b === btn));
 }
 
-function newIdentity() {
-  _editingIdentityId = null;
-  _idtGender = '不限';
-  document.getElementById('idtName').value = '';
-  document.getElementById('idtAge').value = '';
-  document.getElementById('idtTags').value = '';
-  document.getElementById('idtPersonality').value = '';
-  document.getElementById('idtExtra').value = '';
-  document.querySelectorAll('.persona-gender-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+function selectBloggerType(btn) {
+  _idtBloggerType = btn.dataset.bt;
+  document.querySelectorAll('.pbt-btn').forEach(b => b.classList.toggle('active', b === btn));
+  // 自定义类型：显示输入框
+  const customField = document.getElementById('bloggerTypeCustomField');
+  if (customField) {
+    if (_idtBloggerType === '自定义') {
+      customField.style.display = 'block';
+      document.getElementById('idtBloggerTypeCustom').focus();
+    } else {
+      customField.style.display = 'none';
+      document.getElementById('idtBloggerTypeCustom').value = '';
+    }
+  }
 }
+
+// 兼容旧的 newIdentity() 调用
+function newIdentity() { showIdentityForm(null); }
 
 async function saveIdentity() {
   const name = document.getElementById('idtName').value.trim();
@@ -591,6 +916,9 @@ async function saveIdentity() {
 
   const data = {
     name,
+    bloggerType: _idtBloggerType === '自定义'
+      ? (document.getElementById('idtBloggerTypeCustom')?.value.trim() || '自定义')
+      : _idtBloggerType,
     gender: _idtGender,
     age: document.getElementById('idtAge').value.trim(),
     tags: document.getElementById('idtTags').value.trim(),
@@ -605,19 +933,24 @@ async function saveIdentity() {
   localStorage.setItem('luna_active_identity', data.id);
 
   _identities = await dbGetAll('identities');
-  renderIdentityList();
+  _showIdentityView('cards');
+  renderIdentityCards();
 }
 
-async function deleteIdentity(id) {
+async function deleteIdentity(id, e) {
+  if (e) e.stopPropagation();
   await dbDelete('identities', id);
   if (parseInt(localStorage.getItem('luna_active_identity')) === id) {
     localStorage.removeItem('luna_active_identity');
     _editingIdentityId = null;
   }
   _identities = await dbGetAll('identities');
-  renderIdentityList();
-  if (_identities.length > 0) fillIdentityForm(_identities[0]);
-  else newIdentity();
+  if (_identities.length === 0) {
+    _showIdentityView('empty');
+  } else {
+    _showIdentityView('cards');
+    renderIdentityCards();
+  }
 }
 
 /* ══════════════════════════════
@@ -665,9 +998,9 @@ async function saveWorldview() {
 async function getWorldviewContext() {
   try {
     const db = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaPersonaDB', 2);
+      const req = indexedDB.open('LunaPersonaDB');
       req.onsuccess = e => res(e.target.result);
-      req.onerror = () => rej();
+      req.onerror = e => rej(new Error('DB open failed: ' + (e.target?.error || 'unknown')));
     });
     const data = await new Promise(res => {
       const r = db.transaction('worldview').objectStore('worldview').get('main');
@@ -970,6 +1303,55 @@ function renderPostList(posts) {
     div.addEventListener('click', () => openPostDetail(p));
     el.appendChild(div);
   });
+}
+
+/* ══════════════════════════════
+   发帖页 — 加载当前用户身份
+  （用户自己的身份，不是 AI 角色）
+══════════════════════════════ */
+async function loadPublishUserIdentity() {
+  const activeId = parseInt(localStorage.getItem('luna_active_identity'));
+  const identityBarEl = document.getElementById('publishIdentityBar');
+  if (!identityBarEl) return;
+
+  if (!activeId) {
+    identityBarEl.innerHTML = `
+      <div class="pub-identity-empty" onclick="openPersonaModal()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <span>尚未选择用户身份，点击设置</span>
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </div>`;
+    return;
+  }
+
+  try {
+    const identities = await dbGetAll('identities');
+    const idt = identities.find(x => x.id === activeId);
+    if (!idt) {
+      identityBarEl.innerHTML = `<div class="pub-identity-empty" onclick="openPersonaModal()"><span>身份未找到，点击重新选择</span></div>`;
+      return;
+    }
+    const typeColors = {
+      '科技数码': '#3b82f6', '生活方式': '#ec4899', '美妆时尚': '#db2777',
+      '美食探店': '#d97706', '旅行摄影': '#059669', '读书影评': '#7c3aed',
+      '游戏电竞': '#4f46e5', '二次元': '#9333ea', '职场成长': '#16a34a',
+    };
+    const color = typeColors[idt.bloggerType] || '#7c5cbf';
+    identityBarEl.innerHTML = `
+      <div class="pub-identity-info">
+        <div class="pub-identity-avatar" style="background:${color}">${(idt.name||'我')[0]}</div>
+        <div class="pub-identity-meta">
+          <div class="pub-identity-name">${idt.name}</div>
+          ${idt.bloggerType ? `<div class="pub-identity-type" style="color:${color}">${idt.bloggerType}</div>` : ''}
+        </div>
+        <button class="pub-identity-change" onclick="openPersonaModal()">切换</button>
+      </div>`;
+  } catch(e) {
+    identityBarEl.innerHTML = `<div class="pub-identity-empty" onclick="openPersonaModal()"><span>点击选择用户身份</span></div>`;
+  }
 }
 
 /* ══════════════════════════════

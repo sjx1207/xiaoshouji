@@ -103,18 +103,40 @@
       </div>
     </div>
 
-    <div class="bt-card" data-target="countdown">
+    <div class="bt-card" data-target="friends">
       <div class="bt-card-left">
         <div class="bt-card-icon">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-            <circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M12 9v4l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M9 2h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M2 20c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M16 15c2.5 0 6 1.5 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </div>
         <div class="bt-card-info">
-          <div class="bt-card-name">倒数日组件</div>
-          <div class="bt-card-meta">日期 / 事件名称</div>
+          <div class="bt-card-name">好友组件</div>
+          <div class="bt-card-meta">头像 / 天数 / 签名</div>
+        </div>
+      </div>
+      <div class="bt-card-arrow">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+          <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="bt-card" data-target="magazine">
+      <div class="bt-card-left">
+        <div class="bt-card-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M3 9h7M3 15h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="12" y="3" width="9" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="bt-card-info">
+          <div class="bt-card-name">杂志组件</div>
+          <div class="bt-card-meta">照片 / 文字 / 背景</div>
         </div>
       </div>
       <div class="bt-card-arrow">
@@ -130,11 +152,12 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
             <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/>
             <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="19" cy="6" r="2" fill="currentColor" opacity="0.5"/>
           </svg>
         </div>
         <div class="bt-card-info">
-          <div class="bt-card-name">个人名片组件</div>
-          <div class="bt-card-meta">名称 / 简介 / 数据</div>
+          <div class="bt-card-name">Press 名片组件</div>
+          <div class="bt-card-meta">头像 / 名字 / 数据 / 简介</div>
         </div>
       </div>
       <div class="bt-card-arrow">
@@ -667,199 +690,672 @@
   </div>
 </div>
 
-<!-- 倒数日组件设置面板 -->
-<div id="cdOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.25);backdrop-filter:blur(4px);z-index:300;" onclick="cdClose()"></div>
-<div id="cdPanel" style="position:fixed;inset:0;background:var(--bg);z-index:301;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);overflow:hidden;display:flex;flex-direction:column;">
+<!-- 杂志组件设置面板 — mgz -->
+<div id="mgzOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.25);backdrop-filter:blur(4px);z-index:300;" onclick="mgzClose()"></div>
+<div id="mgzPanel" style="position:fixed;inset:0;background:var(--bg);z-index:301;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);overflow:hidden;display:flex;flex-direction:column;">
 
   <!-- 状态栏 -->
   <div class="ww-status-bar">
-    <div class="status-time">9:41</div>
-    <div class="status-island"></div>
+    <div class="status-time" id="mgzStatusTime">9:41</div>
+    <div class="status-island" id="mgzStatusIsland"></div>
     <div class="status-right">
       <div class="signal"><i></i><i></i><i></i><i></i></div>
       <div class="battery">
-        <span class="bat-pct">76</span>
-        <div class="bat-shell"><div class="bat-inner"></div><div class="bat-nub"></div></div>
+        <span class="bat-pct" id="mgzBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="mgzBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- 顶部导航 -->
-  <div style="height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:rgba(247,246,244,0.88);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);flex-shrink:0;">
-    <button onclick="cdClose()" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--text-1);border-radius:50%;cursor:pointer;">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <!-- 头部 -->
+  <div class="ww-header">
+    <button class="ww-close" onclick="mgzClose()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     </button>
-    <div style="text-align:center;">
-      <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--text-1);">倒数日组件</div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-3);letter-spacing:0.2em;text-transform:uppercase;margin-top:3px;">Countdown Widget</div>
+    <div class="ww-header-center">
+      <div class="ww-title">杂志组件</div>
+      <div class="ww-subtitle">Widget Studio</div>
     </div>
-    <div style="width:36px;"></div>
+    <div style="width:36px"></div>
   </div>
 
   <!-- 可滚动内容 -->
-  <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 18px 120px;min-height:0;">
+  <div class="ww-body">
 
     <!-- 实时预览 -->
-    <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">实时预览</div>
-
-    <!-- 1:1 复刻 index 组件 -->
-    <div style="position:relative;height:198px;border-radius:20px;overflow:hidden;margin-bottom:28px;background:#fff;box-shadow:0 2px 20px rgba(0,0,0,0.08),0 8px 36px rgba(0,0,0,0.05),inset 0 1px 0 rgba(255,255,255,1),inset 0 0 0 0.8px rgba(0,0,0,0.07);">
-      <!-- 背景图层 -->
-      <div id="cdPrevBg" style="position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;"></div>
-      <!-- 白色遮罩（无背景图时受透明度控制） -->
-      <div id="cdPrevMask" style="position:absolute;inset:0;background:rgba(255,255,255,0.65);z-index:1;pointer-events:none;"></div>
-      <!-- grain颗粒 -->
-      <div style="position:absolute;inset:0;z-index:2;opacity:0.22;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27300%27 height=%27300%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.75%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3CfeColorMatrix type=%27saturate%27 values=%270%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27 opacity=%271%27/%3E%3C/svg%3E');mix-blend-mode:multiply;pointer-events:none;"></div>
-      <!-- 胶片轨道线 -->
-      <div style="position:absolute;left:20px;right:20px;top:0;height:0.5px;background:rgba(160,156,150,0.18);z-index:3;"></div>
-      <div style="position:absolute;left:20px;right:20px;bottom:0;height:0.5px;background:rgba(160,156,150,0.18);z-index:3;"></div>
-      <!-- 左侧胶片孔 -->
-      <div style="position:absolute;left:4px;top:0;bottom:0;display:flex;flex-direction:column;justify-content:space-around;padding:12px 0;z-index:4;">
-        <div style="width:9px;height:13px;border-radius:3px;background:rgba(200,198,194,0.30);border:0.7px solid rgba(180,176,170,0.25);"></div>
-        <div style="width:9px;height:13px;border-radius:3px;background:rgba(200,198,194,0.30);border:0.7px solid rgba(180,176,170,0.25);"></div>
-        <div style="width:9px;height:13px;border-radius:3px;background:rgba(200,198,194,0.30);border:0.7px solid rgba(180,176,170,0.25);"></div>
-        <div style="width:9px;height:13px;border-radius:3px;background:rgba(200,198,194,0.30);border:0.7px solid rgba(180,176,170,0.25);"></div>
-        <div style="width:9px;height:13px;border-radius:3px;background:rgba(200,198,194,0.30);border:0.7px solid rgba(180,176,170,0.25);"></div>
-      </div>
-      <!-- 右侧胶片孔 -->
-      <div style="position:absolute;right:4px;top:0;bottom:0;display:flex;flex-direction:column;justify-content:space-around;padding:12px 0;z-index:4;">
-        <div style="width:9px;height:13px;border-radius:3px;background:rgba(200,198,194,0.30);border:0.7px solid rgba(180,176,170,0.25);"></div>
-        <div style="width:9px;height:13px;border-radius:3px;background:rgba(200,198,194,0.30);border:0.7px solid rgba(180,176,170,0.25);"></div>
-        <div style="width:9px;height:13px;border-radius:3px;background:rgba(200,198,194,0.30);border:0.7px solid rgba(180,176,170,0.25);"></div>
-        <div style="width:9px;height:13px;border-radius:3px;background:rgba(200,198,194,0.30);border:0.7px solid rgba(180,176,170,0.25);"></div>
-        <div style="width:9px;height:13px;border-radius:3px;background:rgba(200,198,194,0.30);border:0.7px solid rgba(180,176,170,0.25);"></div>
-      </div>
-      <!-- 四角线框 -->
-      <div style="position:absolute;top:10px;left:10px;width:10px;height:10px;border-color:rgba(120,116,112,0.22);border-style:solid;border-width:1px 0 0 1px;z-index:5;"></div>
-      <div style="position:absolute;top:10px;right:10px;width:10px;height:10px;border-color:rgba(120,116,112,0.22);border-style:solid;border-width:1px 1px 0 0;z-index:5;"></div>
-      <div style="position:absolute;bottom:10px;left:10px;width:10px;height:10px;border-color:rgba(120,116,112,0.22);border-style:solid;border-width:0 0 1px 1px;z-index:5;"></div>
-      <div style="position:absolute;bottom:10px;right:10px;width:10px;height:10px;border-color:rgba(120,116,112,0.22);border-style:solid;border-width:0 1px 1px 0;z-index:5;"></div>
-      <!-- 左侧主内容 -->
-      <div style="position:absolute;left:20px;right:118px;top:0;bottom:0;z-index:6;display:flex;flex-direction:column;justify-content:center;padding-left:6px;">
-        <div id="cdPrevEyebrow" style="font-family:'Fraunces',serif;font-weight:100;font-size:13px;letter-spacing:0.15em;color:#b0aca6;text-transform:uppercase;margin-bottom:3px;">距离那天</div>
-        <div id="cdPrevNumber" style="font-family:'Libre Baskerville',serif;font-style:italic;font-size:80px;line-height:0.84;color:#1a1816;letter-spacing:-0.04em;">28</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-          <div style="width:20px;height:0.6px;background:rgba(100,96,92,0.22);"></div>
-          <div id="cdPrevUnit" style="font-family:'Fraunces',serif;font-weight:100;font-size:12px;letter-spacing:0.35em;color:#b0aca6;text-transform:uppercase;">DAYS AWAY</div>
-        </div>
-        <div id="cdPrevEvent" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-style:italic;font-size:12.5px;color:#5a5650;letter-spacing:0.02em;margin-top:6px;">我们的纪念日</div>
-        <div id="cdPrevDate" style="font-family:'Fraunces',serif;font-weight:100;font-size:10px;letter-spacing:0.22em;color:#c0bab4;text-transform:uppercase;margin-top:4px;">Jun · 01 · 2025</div>
-      </div>
-      <!-- 底部条形码 -->
-      <div style="position:absolute;bottom:11px;left:26px;display:flex;align-items:flex-end;gap:2px;z-index:6;opacity:0.13;">
-        <span style="display:block;width:1.5px;height:10px;background:#1a1816;border-radius:1px;"></span><span style="display:block;width:1.5px;height:16px;background:#1a1816;border-radius:1px;"></span><span style="display:block;width:1.5px;height:8px;background:#1a1816;border-radius:1px;"></span><span style="display:block;width:1.5px;height:14px;background:#1a1816;border-radius:1px;"></span><span style="display:block;width:1.5px;height:20px;background:#1a1816;border-radius:1px;"></span><span style="display:block;width:1.5px;height:10px;background:#1a1816;border-radius:1px;"></span><span style="display:block;width:1.5px;height:18px;background:#1a1816;border-radius:1px;"></span><span style="display:block;width:1.5px;height:6px;background:#1a1816;border-radius:1px;"></span><span style="display:block;width:1.5px;height:14px;background:#1a1816;border-radius:1px;"></span><span style="display:block;width:1.5px;height:12px;background:#1a1816;border-radius:1px;"></span>
-      </div>
-      <!-- 右侧拍立得 -->
-      <div style="position:absolute;right:12px;top:50%;transform:translateY(-50%);z-index:6;width:96px;height:162px;">
-        <div style="position:absolute;top:8px;left:18px;transform:rotate(5.5deg);z-index:2;width:72px;background:#fff;border-radius:3px;padding:5px 5px 16px;box-shadow:0 3px 14px rgba(0,0,0,0.10),0 6px 22px rgba(0,0,0,0.06);">
-          <div id="cdPrevPol1" style="width:100%;aspect-ratio:1;border-radius:1.5px;overflow:hidden;background:linear-gradient(148deg,#e8e6e2,#d8d6d0);display:flex;align-items:center;justify-content:center;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" opacity="0.25"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#888" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#888" stroke-width="1.5"/><path d="M3 15l5-4 4 4 3-3 6 5" stroke="#888" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <div class="ww-section-label">实时预览</div>
+    <div style="width:100%;aspect-ratio:2/1;border-radius:20px;overflow:hidden;position:relative;margin-bottom:28px;box-shadow:0 2px 20px rgba(0,0,0,0.08),inset 0 0 0 0.8px rgba(0,0,0,0.06);">
+      <!-- 背景层 -->
+      <div id="mgzPrevBg" style="position:absolute;inset:0;background:#FAFAF8;background-size:cover;background-position:center;z-index:0;"></div>
+      <!-- 白色遮罩 -->
+      <div id="mgzPrevMask" style="position:absolute;inset:0;background:rgba(250,250,248,1);z-index:1;"></div>
+      <!-- 噪点 -->
+      <div class="noise-layer"></div>
+      <!-- 内容 -->
+      <div style="position:relative;z-index:3;width:100%;height:100%;display:flex;flex-direction:row;">
+        <!-- 左侧大图 -->
+        <div style="width:42%;flex-shrink:0;overflow:hidden;position:relative;">
+          <div id="mgzPrevPhoto1" style="width:100%;height:100%;background:#E6E2DB;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 40 40" fill="none" width="36" height="36"><rect x="2" y="6" width="36" height="28" rx="3" stroke="rgba(100,92,80,0.35)" stroke-width="1.2"/><circle cx="12" cy="17" r="4" stroke="rgba(100,92,80,0.3)" stroke-width="1"/><path d="M2 28l9-7 7 7 5-5 13 9" stroke="rgba(100,92,80,0.3)" stroke-width="1" stroke-linecap="round"/></svg>
           </div>
         </div>
-        <div style="position:absolute;top:26px;left:4px;transform:rotate(-4deg);z-index:1;width:72px;background:#fff;border-radius:3px;padding:5px 5px 16px;box-shadow:0 3px 14px rgba(0,0,0,0.10),0 6px 22px rgba(0,0,0,0.06);">
-          <div id="cdPrevPol2" style="width:100%;aspect-ratio:1;border-radius:1.5px;overflow:hidden;background:linear-gradient(162deg,#eae8e4,#d4d2cc);display:flex;align-items:center;justify-content:center;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" opacity="0.25"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#888" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#888" stroke-width="1.5"/><path d="M3 15l5-4 4 4 3-3 6 5" stroke="#888" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <!-- 分割线 -->
+        <div style="width:0.5px;background:linear-gradient(to bottom,transparent 0%,rgba(160,150,138,0.22) 15%,rgba(160,150,138,0.22) 85%,transparent 100%);flex-shrink:0;"></div>
+        <!-- 右侧 -->
+        <div style="flex:1;display:flex;flex-direction:column;padding:14px 14px 12px 16px;overflow:hidden;">
+          <!-- 顶部文案 -->
+          <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:10px;border-bottom:0.5px solid rgba(160,150,138,0.18);flex-shrink:0;">
+            <div id="mgzPrevNum" style="font-family:'Fraunces',serif;font-weight:100;font-size:10px;letter-spacing:0.22em;color:rgba(90,82,72,0.75);text-transform:uppercase;">No. 01 · Edition</div>
+            <div id="mgzPrevTitle" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:28px;line-height:1.08;color:#1a1614;letter-spacing:0.01em;">Quiet<br><em style="font-style:italic;color:#4a4540;">Luxury</em></div>
+            <div style="width:22px;height:0.5px;background:rgba(140,132,122,0.30);margin:2px 0;"></div>
+            <div id="mgzPrevSub" style="font-family:'Fraunces',serif;font-weight:100;font-size:9.5px;letter-spacing:0.18em;color:rgba(90,82,72,0.65);text-transform:uppercase;">Luna · Maison</div>
+          </div>
+          <!-- 小图行 -->
+          <div style="display:flex;gap:7px;flex:1;padding-top:10px;min-height:0;">
+            <div id="mgzPrevPhoto2" style="flex:1;border-radius:8px;background:#E2DED8;background-size:cover;background-position:center;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:0;">
+              <svg viewBox="0 0 40 40" fill="none" width="22" height="22"><rect x="2" y="6" width="36" height="28" rx="3" stroke="rgba(100,92,80,0.35)" stroke-width="1.2"/><circle cx="12" cy="17" r="4" stroke="rgba(100,92,80,0.3)" stroke-width="1"/><path d="M2 28l9-7 7 7 5-5 13 9" stroke="rgba(100,92,80,0.3)" stroke-width="1" stroke-linecap="round"/></svg>
+            </div>
+            <div id="mgzPrevPhoto3" style="flex:1;border-radius:8px;background:#E2DED8;background-size:cover;background-position:center;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:0;">
+              <svg viewBox="0 0 40 40" fill="none" width="22" height="22"><rect x="2" y="6" width="36" height="28" rx="3" stroke="rgba(100,92,80,0.35)" stroke-width="1.2"/><circle cx="12" cy="17" r="4" stroke="rgba(100,92,80,0.3)" stroke-width="1"/><path d="M2 28l9-7 7 7 5-5 13 9" stroke="rgba(100,92,80,0.3)" stroke-width="1" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+          <!-- 底部标注 -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:9px;flex-shrink:0;font-family:'Fraunces',serif;font-weight:100;font-size:9px;letter-spacing:0.20em;color:rgba(100,92,80,0.55);text-transform:uppercase;">
+            <span id="mgzPrevFooterL">SS · 2026</span>
+            <div style="display:flex;gap:3px;"><i style="display:block;width:2.5px;height:2.5px;border-radius:50%;background:rgba(140,132,122,0.20);"></i><i style="display:block;width:2.5px;height:2.5px;border-radius:50%;background:rgba(140,132,122,0.20);"></i><i style="display:block;width:2.5px;height:2.5px;border-radius:50%;background:rgba(140,132,122,0.20);"></i></div>
+            <span id="mgzPrevFooterR">LUNA</span>
           </div>
         </div>
       </div>
-      <!-- ISO meta -->
-      <div style="position:absolute;bottom:9px;right:12px;font-family:'Fraunces',serif;font-weight:100;font-size:8px;letter-spacing:0.24em;color:rgba(140,136,130,0.30);text-transform:uppercase;z-index:6;">ISO 400 · 35mm · LUNA</div>
+      <!-- 四角装饰 -->
+      <div style="position:absolute;top:10px;left:10px;width:9px;height:9px;border-top:0.8px solid rgba(130,122,112,0.18);border-left:0.8px solid rgba(130,122,112,0.18);z-index:4;"></div>
+      <div style="position:absolute;top:10px;right:10px;width:9px;height:9px;border-top:0.8px solid rgba(130,122,112,0.18);border-right:0.8px solid rgba(130,122,112,0.18);z-index:4;"></div>
+      <div style="position:absolute;bottom:10px;left:10px;width:9px;height:9px;border-bottom:0.8px solid rgba(130,122,112,0.18);border-left:0.8px solid rgba(130,122,112,0.18);z-index:4;"></div>
+      <div style="position:absolute;bottom:10px;right:10px;width:9px;height:9px;border-bottom:0.8px solid rgba(130,122,112,0.18);border-right:0.8px solid rgba(130,122,112,0.18);z-index:4;"></div>
     </div>
 
-    <!-- 目标日期 -->
-    <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">目标日期</div>
+    <!-- 三张照片上传 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">照片</div>
     <div class="bt-card-list">
       <div class="ww-inner-section">
-        <input class="ww-slider" type="date" id="cdDateInput" oninput="cdCalc()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
-      </div>
-    </div>
-
-    <!-- 文字内容 -->
-    <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">文字内容</div>
-    <div class="bt-card-list">
-      <div class="ww-inner-section">
-        <div class="ww-inner-label">顶部小字</div>
-        <input type="text" id="cdEyebrowInput" placeholder="e.g. 距离那天 / 已陪伴" maxlength="10" oninput="cdPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
-      </div>
-      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
-      <div class="ww-inner-section">
-        <div class="ww-inner-label">单位文字</div>
-        <input type="text" id="cdUnitInput" placeholder="e.g. days away / 天了" maxlength="12" oninput="cdPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
-      </div>
-      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
-      <div class="ww-inner-section">
-        <div class="ww-inner-label">事件名称</div>
-        <input type="text" id="cdEventInput" placeholder="e.g. 我们的纪念日" maxlength="20" oninput="cdPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
-      </div>
-      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
-      <div class="ww-inner-section">
-        <div class="ww-inner-label">日期显示文字</div>
-        <input type="text" id="cdDateLabelInput" placeholder="e.g. Jun · 01 · 2025" maxlength="20" oninput="cdPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
-      </div>
-    </div>
-
-    <!-- 拍立得照片 -->
-    <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">拍立得照片</div>
-    <div class="bt-card-list">
-      <div class="ww-inner-section">
-        <div class="ww-inner-label">照片 1</div>
-        <div class="ww-upload-zone" onclick="document.getElementById('cdPol1Input').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:8px;">
-          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传第一张</div>
+        <div class="ww-inner-label">左侧大图（照片 1）</div>
+        <div onclick="document.getElementById('mgzP1Input').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传</div>
           <div style="font-size:11px;color:var(--text-3);margin-top:3px;">JPG · PNG · WebP</div>
-          <input type="file" id="cdPol1Input" accept="image/*" style="display:none" onchange="cdHandlePol(this,1)"/>
+          <input type="file" id="mgzP1Input" accept="image/*" style="display:none" onchange="mgzHandlePhoto(this,1)"/>
         </div>
-        <div id="cdPol1Preview" style="display:none;margin-top:10px;border-radius:10px;overflow:hidden;position:relative;">
-          <img id="cdPol1Thumb" src="" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;border-radius:10px;"/>
-          <button onclick="cdRemovePol(1)" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;border-radius:20px;padding:4px 10px;color:#fff;font-size:10px;cursor:pointer;">移除</button>
+        <div id="mgzP1Preview" style="display:none;margin-top:10px;border-radius:10px;overflow:hidden;position:relative;">
+          <img id="mgzP1Thumb" src="" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;border-radius:10px;"/>
+          <button onclick="mgzRemovePhoto(1)" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;border-radius:20px;padding:4px 10px;color:#fff;font-size:10px;cursor:pointer;">移除</button>
         </div>
       </div>
       <div style="height:1px;background:var(--border);margin:0 16px;"></div>
       <div class="ww-inner-section">
-        <div class="ww-inner-label">照片 2</div>
-        <div class="ww-upload-zone" onclick="document.getElementById('cdPol2Input').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:8px;">
-          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传第二张</div>
+        <div class="ww-inner-label">右侧小图一（照片 2）</div>
+        <div onclick="document.getElementById('mgzP2Input').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传</div>
           <div style="font-size:11px;color:var(--text-3);margin-top:3px;">JPG · PNG · WebP</div>
-          <input type="file" id="cdPol2Input" accept="image/*" style="display:none" onchange="cdHandlePol(this,2)"/>
+          <input type="file" id="mgzP2Input" accept="image/*" style="display:none" onchange="mgzHandlePhoto(this,2)"/>
         </div>
-        <div id="cdPol2Preview" style="display:none;margin-top:10px;border-radius:10px;overflow:hidden;position:relative;">
-          <img id="cdPol2Thumb" src="" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;border-radius:10px;"/>
-          <button onclick="cdRemovePol(2)" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;border-radius:20px;padding:4px 10px;color:#fff;font-size:10px;cursor:pointer;">移除</button>
+        <div id="mgzP2Preview" style="display:none;margin-top:10px;border-radius:10px;overflow:hidden;position:relative;">
+          <img id="mgzP2Thumb" src="" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;border-radius:10px;"/>
+          <button onclick="mgzRemovePhoto(2)" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;border-radius:20px;padding:4px 10px;color:#fff;font-size:10px;cursor:pointer;">移除</button>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">右侧小图二（照片 3）</div>
+        <div onclick="document.getElementById('mgzP3Input').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:3px;">JPG · PNG · WebP</div>
+          <input type="file" id="mgzP3Input" accept="image/*" style="display:none" onchange="mgzHandlePhoto(this,3)"/>
+        </div>
+        <div id="mgzP3Preview" style="display:none;margin-top:10px;border-radius:10px;overflow:hidden;position:relative;">
+          <img id="mgzP3Thumb" src="" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;border-radius:10px;"/>
+          <button onclick="mgzRemovePhoto(3)" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;border-radius:20px;padding:4px 10px;color:#fff;font-size:10px;cursor:pointer;">移除</button>
         </div>
       </div>
     </div>
 
-    <!-- 组件背景 -->
-    <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">组件背景</div>
+    <!-- 文字编辑 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">文字</div>
     <div class="bt-card-list">
       <div class="ww-inner-section">
-        <div class="ww-inner-label">背景图片</div>
-        <div class="ww-inner-sub">图片将显示在组件后方，上传后透明度不生效</div>
-        <div onclick="document.getElementById('cdBgInput').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:10px;">
+        <div class="ww-inner-label">顶部期刊编号</div>
+        <input type="text" id="mgzNumInput" placeholder="No. 01 · Edition" maxlength="24" oninput="mgzPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">大标题（第一行）</div>
+        <input type="text" id="mgzTitle1Input" placeholder="Quiet" maxlength="20" oninput="mgzPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">大标题（第二行，斜体）</div>
+        <input type="text" id="mgzTitle2Input" placeholder="Luxury" maxlength="20" oninput="mgzPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">副标题</div>
+        <input type="text" id="mgzSubInput" placeholder="Luna · Maison" maxlength="24" oninput="mgzPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">底部左侧文字</div>
+        <input type="text" id="mgzFooterLInput" placeholder="SS · 2026" maxlength="16" oninput="mgzPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">底部右侧文字</div>
+        <input type="text" id="mgzFooterRInput" placeholder="LUNA" maxlength="16" oninput="mgzPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+    </div>
+
+    <!-- 右侧区域背景 & 透明度 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">右侧背景与透明度</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">背景图片（覆盖右侧文字区域）</div>
+        <div class="ww-inner-sub">上传后透明度滑到最左 = 纯玻璃效果</div>
+        <div onclick="document.getElementById('mgzBgInput').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:10px;">
           <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传背景图</div>
           <div style="font-size:11px;color:var(--text-3);margin-top:3px;">JPG · PNG · WebP</div>
-          <input type="file" id="cdBgInput" accept="image/*" style="display:none" onchange="cdHandleBg(this)"/>
+          <input type="file" id="mgzBgInput" accept="image/*" style="display:none" onchange="mgzHandleBg(this)"/>
         </div>
-        <div id="cdBgPreview" style="display:none;margin-top:10px;border-radius:10px;overflow:hidden;position:relative;">
-          <img id="cdBgThumb" src="" style="width:100%;aspect-ratio:2/1;object-fit:cover;display:block;"/>
-          <button onclick="cdRemoveBg()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;border-radius:20px;padding:4px 10px;color:#fff;font-size:10px;cursor:pointer;">移除</button>
+        <div id="mgzBgPreview" style="display:none;margin-top:10px;border-radius:10px;overflow:hidden;position:relative;">
+          <img id="mgzBgThumb" src="" style="width:100%;aspect-ratio:2/1;object-fit:cover;display:block;"/>
+          <button onclick="mgzRemoveBg()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;border-radius:20px;padding:4px 10px;color:#fff;font-size:10px;cursor:pointer;">移除</button>
         </div>
       </div>
       <div style="height:1px;background:var(--border);margin:0 16px;"></div>
       <div class="ww-inner-section">
-        <div class="ww-inner-label">背景透明度 <span id="cdOpacityNum">65</span>%</div>
-        <div class="ww-inner-sub">无背景图时生效，只影响白色底色</div>
+        <div class="ww-inner-label">背景透明度 <span id="mgzOpacityNum">100</span>%</div>
+        <div class="ww-inner-sub">0% = 完全透明玻璃，100% = 原始米白色</div>
         <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
           <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-3);">透明</span>
-          <input type="range" class="ww-slider" id="cdOpacitySlider" min="0" max="100" value="65" oninput="cdPreviewOpacity(this.value)" style="flex:1;"/>
+          <input type="range" class="ww-slider" id="mgzOpacitySlider" min="0" max="100" value="100" oninput="mgzPreviewOpacity(this.value)" style="flex:1;"/>
           <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-3);">实</span>
         </div>
       </div>
     </div>
 
-    <button onclick="cdSave()" style="width:100%;height:52px;background:#1a1916;border:none;border-radius:14px;font-size:14px;letter-spacing:0.08em;color:#fff;cursor:pointer;margin-top:28px;">保存</button>
+    <button onclick="mgzSave()" style="width:100%;height:52px;background:#1a1916;border:none;border-radius:14px;font-size:14px;letter-spacing:0.08em;color:#fff;cursor:pointer;margin-top:28px;position:relative;z-index:10;">保存</button>
 
+  </div><!-- /ww-body -->
+</div><!-- /mgzPanel -->
+
+<!-- ====== 好友组件设置面板 — fw ====== -->
+<div id="fwOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.25);backdrop-filter:blur(4px);z-index:300;" onclick="fwClose()"></div>
+<div id="fwPanel" style="position:fixed;inset:0;background:var(--bg);z-index:301;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);overflow:hidden;display:flex;flex-direction:column;">
+
+  <!-- 状态栏 -->
+  <div class="ww-status-bar">
+    <div class="status-time" id="fwStatusTime">9:41</div>
+    <div class="status-island" id="fwStatusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="fwBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="fwBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
+
+  <!-- 头部 -->
+  <div class="ww-header">
+    <button class="ww-close" onclick="fwClose()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="ww-header-center">
+      <div class="ww-title">好友组件</div>
+      <div class="ww-subtitle">Widget Studio</div>
+    </div>
+    <div style="width:36px"></div>
+  </div>
+
+  <!-- 可滚动内容 -->
+  <div class="ww-body">
+
+    <!-- 实时预览 -->
+    <div class="ww-section-label">实时预览</div>
+    <div style="display:flex;justify-content:center;margin-bottom:28px;">
+      <div id="fwPreviewWrap" style="width:160px;height:160px;border-radius:24px;overflow:hidden;position:relative;box-shadow:0 6px 28px rgba(0,0,0,0.13);">
+        <!-- 背景层 -->
+        <div id="fwPreviewBg" style="position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;border-radius:24px;"></div>
+        <!-- 白色遮罩（透明度控制） -->
+        <div id="fwPreviewMask" style="position:absolute;inset:0;background:rgba(255,255,255,0.92);z-index:1;border-radius:24px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);"></div>
+        <!-- 组件内容 -->
+        <div style="position:relative;z-index:2;width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="height:3px;background:#111;flex-shrink:0;"></div>
+          <div style="flex:1;padding:14px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;">
+            <!-- 头像行 -->
+            <div style="display:flex;align-items:center;justify-content:center;">
+              <div id="fwPrevAvL" style="width:42px;height:42px;border-radius:50%;border:2.5px solid rgba(255,255,255,0.95);background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;flex-shrink:0;position:relative;z-index:2;overflow:hidden;">L</div>
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+                <svg width="52" height="30" viewBox="0 0 52 30" fill="none"><path d="M0 15 C10 7,16 7,26 15 C36 23,42 23,52 15" stroke="#d4d4d4" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M0 15 C10 23,16 23,26 15 C36 7,42 7,52 15" stroke="#e8e8e8" stroke-width="1" fill="none" stroke-linecap="round"/><circle cx="26" cy="15" r="2.2" fill="#ccc"/></svg>
+              </div>
+              <div id="fwPrevAvR" style="width:42px;height:42px;border-radius:50%;border:2.5px solid rgba(255,255,255,0.95);background:#888;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;flex-shrink:0;position:relative;z-index:2;overflow:hidden;">M</div>
+            </div>
+            <!-- 大数字 -->
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:4px;">
+              <div id="fwPrevDays" style="font-family:'Inter',-apple-system,sans-serif;font-size:38px;font-weight:700;color:#111;letter-spacing:-2px;line-height:1;">365</div>
+              <div id="fwPrevLbl" style="font-family:'Inter',-apple-system,sans-serif;font-size:8.5px;color:#ccc;letter-spacing:0.18em;text-transform:uppercase;">days together</div>
+            </div>
+            <!-- 签名 -->
+            <div id="fwPrevSig" style="font-family:'Inter',-apple-system,sans-serif;font-size:10px;color:#bbb;text-align:center;border-top:0.8px solid #f0f0f0;padding-top:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">always on the same page</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 日期（自动计算天数） -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">纪念日期</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">开始日期（自动计算天数）</div>
+        <input type="date" id="fwDateInput" oninput="fwCalcDays()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">天数副标签</div>
+        <input type="text" id="fwLabelInput" placeholder="e.g. days together" maxlength="20" oninput="fwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">底部签名</div>
+        <input type="text" id="fwSigInput" placeholder="e.g. always on the same page" maxlength="30" oninput="fwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+    </div>
+
+    <!-- 头像上传 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">头像</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">左侧头像</div>
+        <div onclick="document.getElementById('fwAvLInput').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:3px;">JPG · PNG · WebP</div>
+          <input type="file" id="fwAvLInput" accept="image/*" style="display:none" onchange="fwHandleAv(this,'left')"/>
+        </div>
+        <div id="fwAvLPreview" style="display:none;margin-top:10px;border-radius:50%;overflow:hidden;width:52px;height:52px;position:relative;">
+          <img id="fwAvLThumb" src="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"/>
+          <button onclick="fwRemoveAv('left')" style="position:absolute;top:0;right:0;background:rgba(0,0,0,0.55);border:none;border-radius:20px;padding:2px 6px;color:#fff;font-size:9px;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">右侧头像</div>
+        <div onclick="document.getElementById('fwAvRInput').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:3px;">JPG · PNG · WebP</div>
+          <input type="file" id="fwAvRInput" accept="image/*" style="display:none" onchange="fwHandleAv(this,'right')"/>
+        </div>
+        <div id="fwAvRPreview" style="display:none;margin-top:10px;border-radius:50%;overflow:hidden;width:52px;height:52px;position:relative;">
+          <img id="fwAvRThumb" src="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"/>
+          <button onclick="fwRemoveAv('right')" style="position:absolute;top:0;right:0;background:rgba(0,0,0,0.55);border:none;border-radius:20px;padding:2px 6px;color:#fff;font-size:9px;cursor:pointer;">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 背景图 & 透明度 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">背景与透明度</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">背景图片</div>
+        <div class="ww-inner-sub">上传后透明度滑到最左 = 纯玻璃效果</div>
+        <div onclick="document.getElementById('fwBgInput').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:10px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传背景图</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:3px;">JPG · PNG · WebP</div>
+          <input type="file" id="fwBgInput" accept="image/*" style="display:none" onchange="fwHandleBg(this)"/>
+        </div>
+        <div id="fwBgPreview" style="display:none;margin-top:10px;border-radius:10px;overflow:hidden;position:relative;">
+          <img id="fwBgThumb" src="" style="width:100%;aspect-ratio:2/1;object-fit:cover;display:block;"/>
+          <button onclick="fwRemoveBg()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;border-radius:20px;padding:4px 10px;color:#fff;font-size:10px;cursor:pointer;">移除</button>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">白色遮罩透明度 <span id="fwOpacityNum">92</span>%</div>
+        <div class="ww-inner-sub">0% = 完全玻璃透明，100% = 纯白不透明</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+          <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-3);">透明</span>
+          <input type="range" class="ww-slider" id="fwOpacitySlider" min="0" max="100" value="92" oninput="fwPreviewOpacity(this.value)" style="flex:1;"/>
+          <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-3);">实</span>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="fwSave()" style="width:100%;height:52px;background:#1a1916;border:none;border-radius:14px;font-size:14px;letter-spacing:0.08em;color:#fff;cursor:pointer;margin-top:28px;position:relative;z-index:10;">保存</button>
+
+  </div><!-- /ww-body -->
+</div><!-- /fwPanel -->
+
+<!-- Press 名片组件设置面板 — pw -->
+<div id="pwOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.25);backdrop-filter:blur(4px);z-index:300;" onclick="pwClose()"></div>
+<div id="pwPanel" style="position:fixed;inset:0;background:var(--bg);z-index:301;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);overflow:hidden;display:flex;flex-direction:column;">
+
+  <!-- 状态栏 -->
+  <div class="ww-status-bar">
+    <div class="status-time" id="pwStatusTime">9:41</div>
+    <div class="status-island" id="pwStatusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="pwBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="pwBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 头部 -->
+  <div class="ww-header">
+    <button class="ww-close" onclick="pwClose()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="ww-header-center">
+      <div class="ww-title">Press 名片</div>
+      <div class="ww-subtitle">Widget Studio</div>
+    </div>
+    <div style="width:36px"></div>
+  </div>
+
+  <!-- 可滚动内容 -->
+  <div class="ww-body">
+
+    <!-- 实时预览 -->
+    <div class="ww-section-label">实时预览</div>
+    <div style="display:flex;justify-content:center;margin-bottom:28px;">
+      <div id="pwPreviewCard" style="width:160px;border-radius:22px;overflow:hidden;box-shadow:0 1px 0 #e8e4dc,0 4px 28px rgba(0,0,0,0.10);border:1px solid #eceae4;display:flex;flex-direction:column;background:#ffffff;">
+        <!-- 黑色顶栏 -->
+        <div style="background:#1c1c1a;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+          <div id="pwPrevBandLabel" style="font-size:8px;letter-spacing:0.16em;color:#666660;text-transform:uppercase;font-weight:300;">profile · active</div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#8aac84;flex-shrink:0;"></div>
+        </div>
+        <!-- 卡片主体 -->
+        <div style="padding:16px 14px 14px;display:flex;flex-direction:column;align-items:center;">
+          <!-- 头像 -->
+          <div id="pwPrevAvatar" style="width:48px;height:48px;border-radius:12px;background:#f0ede6;border:1px solid #e4e0d8;display:flex;align-items:center;justify-content:center;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07);overflow:hidden;flex-shrink:0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9a9690" stroke-width="1.3" width="22" height="22"><circle cx="12" cy="8" r="4.5"/><path d="M3 21c0-4.5 4-8 9-8s9 3.5 9 8"/></svg>
+          </div>
+          <div id="pwPrevName" style="font-size:11px;font-weight:500;color:#1c1c1a;letter-spacing:0.04em;text-transform:uppercase;line-height:1;">Nina Sol</div>
+          <div id="pwPrevSub" style="font-size:9px;color:#b0aca4;margin-top:3px;font-weight:300;font-style:italic;letter-spacing:0.02em;">always somewhere new</div>
+          <div style="width:100%;height:1px;background:#f0ece4;margin:10px 0;flex-shrink:0;"></div>
+          <div style="display:flex;width:100%;justify-content:space-around;margin-bottom:4px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+              <div id="pwPrevN1" style="font-size:14px;font-weight:500;color:#1c1c1a;letter-spacing:-0.02em;line-height:1;">248</div>
+              <div id="pwPrevL1" style="font-size:7px;color:#c0bcb4;letter-spacing:0.1em;text-transform:uppercase;font-weight:300;">posts</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+              <div id="pwPrevN2" style="font-size:14px;font-weight:500;color:#1c1c1a;letter-spacing:-0.02em;line-height:1;">12k</div>
+              <div id="pwPrevL2" style="font-size:7px;color:#c0bcb4;letter-spacing:0.1em;text-transform:uppercase;font-weight:300;">fans</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+              <div id="pwPrevN3" style="font-size:14px;font-weight:500;color:#1c1c1a;letter-spacing:-0.02em;line-height:1;">364</div>
+              <div id="pwPrevL3" style="font-size:7px;color:#c0bcb4;letter-spacing:0.1em;text-transform:uppercase;font-weight:300;">likes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 背景图上传 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">背景图</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">上传背景图片</div>
+        <div onclick="document.getElementById('pwBgInput').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:3px;">JPG · PNG · WebP</div>
+          <input type="file" id="pwBgInput" accept="image/*" style="display:none" onchange="pwHandleBg(this)"/>
+        </div>
+        <div id="pwBgPreview" style="display:none;margin-top:10px;position:relative;width:52px;">
+          <img id="pwBgThumb" src="" style="width:52px;height:52px;object-fit:cover;border-radius:10px;display:block;"/>
+          <button onclick="pwRemoveBg()" style="position:absolute;top:-6px;right:-6px;background:rgba(0,0,0,0.55);border:none;border-radius:50%;width:18px;height:18px;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">背景透明度</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+          <input type="range" id="pwBgOpacity" min="0" max="1" step="0.01" value="0" oninput="_pw.bgOpacity=parseFloat(this.value);document.getElementById('pwBgOpacityVal').textContent=Math.round(this.value*100)+'%';pwApplyBg();" style="flex:1;accent-color:#1a1916;"/>
+          <span id="pwBgOpacityVal" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-2);min-width:32px;text-align:right;">0%</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-3);margin-top:4px;">拖动调整背景图透明度（0% = 完全不透明）</div>
+      </div>
+    </div>
+
+    <!-- 头像上传 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">头像</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">上传头像图片</div>
+        <div onclick="document.getElementById('pwAvInput').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:3px;">JPG · PNG · WebP</div>
+          <input type="file" id="pwAvInput" accept="image/*" style="display:none" onchange="pwHandleAvatar(this)"/>
+        </div>
+        <div id="pwAvPreview" style="display:none;margin-top:10px;position:relative;width:52px;">
+          <img id="pwAvThumb" src="" style="width:52px;height:52px;object-fit:cover;border-radius:12px;display:block;"/>
+          <button onclick="pwRemoveAvatar()" style="position:absolute;top:-6px;right:-6px;background:rgba(0,0,0,0.55);border:none;border-radius:50%;width:18px;height:18px;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文字编辑 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">文字</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">顶栏标签文字</div>
+        <input type="text" id="pwBandInput" placeholder="profile · active" maxlength="24" oninput="pwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">名字</div>
+        <input type="text" id="pwNameInput" placeholder="Nina Sol" maxlength="24" oninput="pwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">简介（斜体小字）</div>
+        <input type="text" id="pwSubInput" placeholder="always somewhere new" maxlength="30" oninput="pwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+    </div>
+
+    <!-- 数据三格 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">数据三格</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">第一格 — 数字 / 标签</div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <input type="text" id="pwN1" placeholder="248" maxlength="8" oninput="pwPreviewText()" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
+          <input type="text" id="pwL1" placeholder="posts" maxlength="10" oninput="pwPreviewText()" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">第二格 — 数字 / 标签</div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <input type="text" id="pwN2" placeholder="12k" maxlength="8" oninput="pwPreviewText()" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
+          <input type="text" id="pwL2" placeholder="fans" maxlength="10" oninput="pwPreviewText()" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">第三格 — 数字 / 标签</div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <input type="text" id="pwN3" placeholder="364" maxlength="8" oninput="pwPreviewText()" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
+          <input type="text" id="pwL3" placeholder="likes" maxlength="10" oninput="pwPreviewText()" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;"/>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="pwSave()" style="width:100%;height:52px;background:#1a1916;border:none;border-radius:14px;font-size:14px;letter-spacing:0.08em;color:#fff;cursor:pointer;margin-top:28px;position:relative;z-index:10;">保存</button>
+
+  </div><!-- /ww-body -->
+</div><!-- /pwPanel -->
+
+<!-- 日记本组件设置面板 — pdw -->
+<div id="pdwOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.25);backdrop-filter:blur(4px);z-index:300;" onclick="pdwClose()"></div>
+<div id="pdwPanel" style="position:fixed;inset:0;background:var(--bg);z-index:301;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);overflow:hidden;display:flex;flex-direction:column;">
+
+  <!-- 状态栏 -->
+  <div class="ww-status-bar">
+    <div class="status-time" id="pdwStatusTime">9:41</div>
+    <div class="status-island" id="pdwStatusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="pdwBatPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="pdwBatInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 头部 -->
+  <div class="ww-header">
+    <button class="ww-close" onclick="pdwClose()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="ww-header-center">
+      <div class="ww-title">日记本</div>
+      <div class="ww-subtitle">Widget Studio</div>
+    </div>
+    <div style="width:36px"></div>
+  </div>
+
+  <!-- 可滚动内容 -->
+  <div class="ww-body">
+
+    <!-- 实时预览 -->
+    <div class="ww-section-label">实时预览</div>
+    <div style="display:flex;justify-content:center;margin-bottom:28px;">
+      <!-- 预览卡片：1:1 复刻 photo-diary-widget 外观 -->
+      <div style="width:220px;border-radius:20px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.08),0 8px 36px rgba(0,0,0,0.05),inset 0 1px 0 rgba(255,255,255,1),inset 0 0 0 0.8px rgba(0,0,0,0.07);display:flex;flex-direction:column;background:#ffffff;min-height:180px;">
+        <!-- 上半：背景图区域 -->
+        <div id="pdwPrevImg" style="flex:1;min-height:90px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(160deg,#eae8e2 0%,#d8d4cc 100%);">
+          <!-- 占位图标 -->
+          <div id="pdwPrevPlaceholder">
+            <svg width="48" height="48" viewBox="0 0 80 80" fill="none">
+              <rect x="10" y="10" width="60" height="60" rx="4" stroke="#c4c0b8" stroke-width="0.8"/>
+              <circle cx="40" cy="40" r="10" stroke="#c4c0b8" stroke-width="0.6"/>
+              <line x1="10" y1="40" x2="70" y2="40" stroke="#c4c0b8" stroke-width="0.4"/>
+              <line x1="40" y1="10" x2="40" y2="70" stroke="#c4c0b8" stroke-width="0.4"/>
+            </svg>
+          </div>
+          <!-- 渐隐遮罩（向上渐隐到白色） -->
+          <div id="pdwPrevFade" style="position:absolute;bottom:0;left:0;right:0;height:50px;background:linear-gradient(to top,rgba(255,255,255,0.9),transparent);z-index:1;pointer-events:none;"></div>
+          <!-- caption -->
+          <div id="pdwPrevCaption" style="position:absolute;bottom:10px;left:14px;right:14px;z-index:2;font-family:'Cormorant Garamond',serif;font-size:11px;font-style:italic;font-weight:300;color:rgba(28,28,26,0.6);">"the beauty of ordinary days"</div>
+        </div>
+        <!-- 下半：文字区域 -->
+        <div style="padding:8px 14px 10px;flex-shrink:0;">
+          <div id="pdwPrevName" style="font-size:11px;font-weight:500;color:#2a2a28;margin-bottom:2px;line-height:1.4;">Aurora · 日记本</div>
+          <div id="pdwPrevSub" style="font-size:10px;color:#a8a7a4;font-weight:300;letter-spacing:0.04em;margin-bottom:6px;line-height:1.4;">Apr 27, 2026 · Monday</div>
+          <div style="display:flex;gap:12px;align-items:center;">
+            <div style="display:flex;align-items:center;gap:3px;font-size:10px;color:#a8a7a4;font-weight:300;">
+              <svg viewBox="0 0 24 24" width="10" height="10" stroke="#a8a7a4" fill="none" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+              <span id="pdwPrevStat1">2.4k</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:3px;font-size:10px;color:#a8a7a4;font-weight:300;">
+              <svg viewBox="0 0 24 24" width="10" height="10" stroke="#a8a7a4" fill="none" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              <span id="pdwPrevStat2">138</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:3px;font-size:10px;color:#a8a7a4;font-weight:300;">
+              <svg viewBox="0 0 24 24" width="10" height="10" stroke="#a8a7a4" fill="none" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              <span id="pdwPrevStat3">Share</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 背景图上传 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">背景图（上半部分）</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">上传背景图片</div>
+        <div onclick="document.getElementById('pdwBgInput').click()" style="border:1.5px dashed rgba(0,0,0,0.12);border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-top:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-3);">点击上传</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:3px;">JPG · PNG · WebP</div>
+          <input type="file" id="pdwBgInput" accept="image/*" style="display:none" onchange="pdwHandleBg(this)"/>
+        </div>
+        <div id="pdwBgPreview" style="display:none;margin-top:10px;position:relative;width:52px;">
+          <img id="pdwBgThumb" src="" style="width:52px;height:52px;object-fit:cover;border-radius:10px;display:block;"/>
+          <button onclick="pdwRemoveBg()" style="position:absolute;top:-6px;right:-6px;background:rgba(0,0,0,0.55);border:none;border-radius:50%;width:18px;height:18px;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">背景透明度</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+          <input type="range" id="pdwOpacitySlider" min="0" max="100" step="1" value="100" oninput="_pdw.opacity=parseInt(this.value);document.getElementById('pdwOpacityNum').textContent=this.value;pdwApplyBg();" style="flex:1;accent-color:#1a1916;"/>
+          <span id="pdwOpacityNum" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-2);min-width:28px;text-align:right;">100</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-3);margin-top:4px;">100 = 不透明 · 0 = 完全透明</div>
+      </div>
+    </div>
+
+    <!-- 文字编辑 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">文字内容</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">图片标题（斜体引用语）</div>
+        <input type="text" id="pdwCaptionInput" placeholder="the beauty of ordinary days" maxlength="40" oninput="pdwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">主标题</div>
+        <input type="text" id="pdwNameInput" placeholder="Aurora · 日记本" maxlength="30" oninput="pdwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">副标题（日期等）</div>
+        <input type="text" id="pdwSubInput" placeholder="Apr 27, 2026 · Monday" maxlength="30" oninput="pdwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+    </div>
+
+    <!-- 数据三格 -->
+    <div class="ww-section-label" style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;margin-top:28px;">底部数据</div>
+    <div class="bt-card-list">
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">❤ 点赞数</div>
+        <input type="text" id="pdwStat1" placeholder="2.4k" maxlength="10" oninput="pdwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">💬 评论数</div>
+        <input type="text" id="pdwStat2" placeholder="138" maxlength="10" oninput="pdwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+      <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+      <div class="ww-inner-section">
+        <div class="ww-inner-label">分享文字</div>
+        <input type="text" id="pdwStat3" placeholder="Share" maxlength="10" oninput="pdwPreviewText()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text-1);outline:none;box-sizing:border-box;margin-top:8px;"/>
+      </div>
+    </div>
+
+    <button onclick="pdwSave()" style="width:100%;height:52px;background:#1a1916;border:none;border-radius:14px;font-size:14px;letter-spacing:0.08em;color:#fff;cursor:pointer;margin-top:28px;position:relative;z-index:10;">保存</button>
+
+  </div><!-- /ww-body -->
+</div><!-- /pdwPanel -->
 
 <script src="beautify.js"></script>
 </body>

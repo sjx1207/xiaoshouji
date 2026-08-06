@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>相册 · Luna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,500;1,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="gallery.css" />
+</head>
+<body>
+
+<div class="gl-frame">
+
+  <!-- ============ 背景层：留白宣纸质感 + 极缓漂浮光斑 ============ -->
+  <div class="gl-bg">
+    <div class="gl-bg-wash"></div>
+    <div class="gl-bg-veil"></div>
+    <div class="gl-bg-grain"></div>
+  </div>
+
+  <!-- ============ 状态栏（与 index.html 完全一致的结构，供 gallery.js 同步）============ -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 顶部页眉 ============ -->
+  <header class="gl-header">
+    <button class="gl-back" id="glBack" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="gl-header-mid">
+      <div class="gl-eyebrow">LUNA GALLERY</div>
+      <h1 class="gl-title" id="glPageTitle">我的相册</h1>
+    </div>
+    <button class="gl-more" aria-label="更多">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="19" cy="12" r="1.4" fill="currentColor"/></svg>
+    </button>
+  </header>
+
+  <!-- ============ 主体：三个内容面板（内容敬请期待，先只做基调占位）============ -->
+  <main class="gl-main">
+
+    <section class="gl-panel is-active gl-panel--mine" id="panel-mine" data-panel="mine">
+      <div class="mine-root" id="mineRoot">
+
+        <!-- ============ 我的相册 · 顶部工具区（视图切换 + 统计 + 上传）============ -->
+        <div class="mine-toolbar">
+          <div class="mine-views" id="mineViews">
+            <button class="mv-item is-active" data-view="stream" type="button">
+              <span class="mv-text">时光卷</span>
+              <span class="mv-count" id="mvCountStream">0</span>
+            </button>
+            <button class="mv-item" data-view="albums" type="button">
+              <span class="mv-text">相册集</span>
+              <span class="mv-count" id="mvCountAlbums">0</span>
+            </button>
+            <span class="mv-underline" id="mvUnderline"></span>
+          </div>
+
+          <div class="mine-toolbar-actions">
+            <button class="mine-select-btn" id="mineSelectBtn" type="button">选择</button>
+            <button class="mine-upload-btn" id="mineUploadBtn" type="button" aria-label="上传照片">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <input type="file" id="mineFileInput" accept="image/*" multiple hidden />
+        </div>
+
+        <!-- 批量选择模式下的浮动操作条 -->
+        <div class="select-bar" id="selectBar" aria-hidden="true">
+          <span class="sb-count" id="sbCount">已选 0 张</span>
+          <div class="sb-actions">
+            <button class="sb-btn" id="sbAddToAlbum" type="button">加入相册集</button>
+            <button class="sb-btn sb-btn-danger" id="sbDelete" type="button">删除</button>
+          </div>
+          <button class="sb-done" id="sbDone" type="button">完成</button>
+        </div>
+
+        <!-- ============ 视图一：时光卷 —— 全部照片网格（按日期分组）============ -->
+        <div class="mine-view is-active" id="view-stream" data-view="stream">
+          <div class="mine-scroll" id="streamScroll">
+
+            <div class="mine-empty" id="streamEmpty">
+              <div class="me-seal">
+                <svg viewBox="0 0 64 64" fill="none">
+                  <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="1"/>
+                  <circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="0.6" opacity="0.5"/>
+                  <path d="M20 40c8-10 16-10 24 0" stroke="currentColor" stroke-width="0.8" opacity="0.4" stroke-linecap="round"/>
+                  <circle cx="26" cy="24" r="2.4" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
+                </svg>
+              </div>
+              <p class="me-eyebrow">EMPTY ARCHIVE</p>
+              <p class="me-title">尚无影像</p>
+              <p class="me-desc">点击右上角「＋」，选取照片批量存入相册</p>
+              <button class="me-cta" id="streamEmptyCta" type="button">选择照片</button>
+            </div>
+
+            <div class="stream-groups" id="streamGroups"></div>
+          </div>
+        </div>
+
+        <!-- ============ 视图二：相册集 —— 卡片网格 ============ -->
+        <div class="mine-view" id="view-albums" data-view="albums">
+          <div class="mine-scroll" id="albumsScroll">
+
+            <div class="mine-empty" id="albumsEmpty" hidden>
+              <div class="me-seal">
+                <svg viewBox="0 0 64 64" fill="none">
+                  <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="1"/>
+                  <rect x="18" y="20" width="28" height="22" rx="1.5" stroke="currentColor" stroke-width="0.9" opacity="0.5"/>
+                  <rect x="14" y="24" width="28" height="22" rx="1.5" stroke="currentColor" stroke-width="0.9"/>
+                </svg>
+              </div>
+              <p class="me-eyebrow">NO COLLECTIONS</p>
+              <p class="me-title">尚无相册集</p>
+              <p class="me-desc">新建一个相册集，为影像分类归档</p>
+            </div>
+
+            <div class="albums-grid" id="albumsGrid"></div>
+
+            <button class="album-new-card" id="albumNewCard" type="button">
+              <span class="anc-icon">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </span>
+              <span class="anc-text">新建相册集</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="gl-panel gl-panel--char" id="panel-char" data-panel="char">
+      <div class="char-root" id="charRoot">
+
+        <!-- ============ 顶部：编号刻度 + 计数 ============ -->
+        <div class="char-topbar">
+          <div class="char-topbar-left">
+            <div class="char-topbar-eyebrow">CHARACTER ARCHIVE</div>
+            <div class="char-topbar-sub">PERSONA FILES · MONOCHROME</div>
+          </div>
+          <div class="char-topbar-count"><span id="charCount">00</span> 位角色</div>
+        </div>
+
+        <!-- ============ 样式切换：三种不同质感的封面呈现，点击圆点切换 ============ -->
+        <div class="char-style-switch" id="charStyleSwitch">
+          <button class="css-item is-active" data-style="stack" type="button">
+            <span class="css-dot"></span><span class="css-label">叠影</span>
+          </button>
+          <button class="css-item" data-style="polaroid" type="button">
+            <span class="css-dot"></span><span class="css-label">拍立得</span>
+          </button>
+          <button class="css-item" data-style="lightbox" type="button">
+            <span class="css-dot"></span><span class="css-label">灯箱</span>
+          </button>
+        </div>
+
+        <!-- ============ 空状态：尚无角色 ============ -->
+        <div class="char-empty" id="charEmpty" hidden>
+          <div class="me-seal">
+            <svg viewBox="0 0 64 64" fill="none">
+              <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="1"/>
+              <circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="0.6" opacity="0.5"/>
+              <path d="M20 40c4-14 20-14 24 0" stroke="currentColor" stroke-width="0.8" opacity="0.4"/>
+              <circle cx="32" cy="26" r="6" stroke="currentColor" stroke-width="0.8" opacity="0.4"/>
+            </svg>
+          </div>
+          <p class="me-eyebrow">NO PROFILES</p>
+          <p class="me-title">尚无角色</p>
+          <p class="me-desc">在「角色档案」中新建角色后，这里会出现对应的专属相册</p>
+        </div>
+
+        <!-- ============ 主体：单封面滑动视图 —— 一次只呈现一位角色的整版封面，
+             左右滑动 / 点箭头切换到上一位或下一位。三种视觉风格共用同一套
+             DOM 与交互逻辑，仅通过 data-style 切换外观（见 gallery.css）============ -->
+        <div class="char-cover-stage" id="charCoverStage" data-style="stack">
+
+          <button class="ccs-nav ccs-nav-prev" id="ccsPrev" aria-label="上一位" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+
+          <div class="ccs-track" id="ccsTrack"></div>
+
+          <button class="ccs-nav ccs-nav-next" id="ccsNext" aria-label="下一位" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+
+          <!-- 底部页码刻度：长短线条替代常规圆点分页器，可点击跳转 -->
+          <div class="ccs-ticks" id="ccsTicks"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ Char 相册 · 角色专属相册详情覆盖层 ============ -->
+    <div class="char-detail" id="charDetail" aria-hidden="true">
+      <div class="cd-scrim"></div>
+      <div class="cd-sheet">
+        <div class="cd-header">
+          <button class="cd-back" id="cdBack" aria-label="返回" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="cd-title-wrap">
+            <p class="cd-eyebrow">PERSONA ARCHIVE</p>
+            <h2 class="cd-title" id="cdTitle">角色相册</h2>
+          </div>
+          <button class="cd-profile-link" id="cdProfileLink" aria-label="查看角色档案" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.4" r="3.6" stroke="currentColor" stroke-width="1.5"/><path d="M4.8 20.2c1.2-4.4 4.4-6.5 7.2-6.5s6 2.1 7.2 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="cd-meta">
+          <span class="cd-count" id="cdCount">0 张影像</span>
+          <span class="cd-meta-divider">·</span>
+          <span class="cd-page-indicator" id="cdPageIndicator">01 / 00</span>
+        </div>
+
+        <div class="cd-empty" id="cdEmpty">
+          <div class="me-seal">
+            <svg viewBox="0 0 64 64" fill="none">
+              <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="1"/>
+              <rect x="18" y="20" width="28" height="22" rx="1.5" stroke="currentColor" stroke-width="0.9" opacity="0.5"/>
+              <rect x="14" y="24" width="28" height="22" rx="1.5" stroke="currentColor" stroke-width="0.9"/>
+            </svg>
+          </div>
+          <p class="me-eyebrow">EMPTY ALBUM</p>
+          <p class="me-title">这本相册还是空的</p>
+          <p class="me-desc">影像来源暂未接入，待补充后会在这里展示</p>
+        </div>
+
+        <!-- ============ 单页画册视图：一次只展示一张，左右滑动翻页 ============ -->
+        <div class="cd-pager" id="cdPager" hidden>
+          <button class="cd-pager-nav cd-pager-nav-prev" id="cdPrev" aria-label="上一页" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+
+          <div class="cd-pager-track" id="cdPagerTrack"></div>
+
+          <button class="cd-pager-nav cd-pager-nav-next" id="cdNext" aria-label="下一页" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+
+          <div class="cd-pager-ticks" id="cdPagerTicks"></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="gl-panel" id="panel-feed" data-panel="feed">
+      <div class="gl-placeholder">
+        <div class="ph-seal">
+          <svg viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="1"/>
+            <circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="0.6" opacity="0.5"/>
+            <path d="M22 24h20M22 32h20M22 40h12" stroke="currentColor" stroke-width="0.8" opacity="0.4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p class="ph-eyebrow">MOMENTS</p>
+        <p class="ph-title">动态</p>
+        <p class="ph-desc">内容敬请期待</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ 相册集 · 详情覆盖层（点击相册集卡片后打开）============ -->
+  <div class="album-detail" id="albumDetail" aria-hidden="true">
+    <div class="ad-scrim"></div>
+    <div class="ad-sheet">
+      <div class="ad-header">
+        <button class="ad-back" id="adBack" aria-label="返回相册集" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="ad-title-wrap">
+          <p class="ad-eyebrow">COLLECTION</p>
+          <h2 class="ad-title" id="adTitle">相册集</h2>
+        </div>
+        <button class="ad-menu" id="adMenu" aria-label="相册集操作" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="19" cy="12" r="1.4" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <div class="ad-scroll">
+        <div class="ad-meta">
+          <span class="ad-count" id="adCount">0 张影像</span>
+          <button class="ad-add-btn" id="adAddBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            添加照片
+          </button>
+        </div>
+        <div class="ad-empty" id="adEmpty" hidden>
+          <p class="me-desc">这个相册集还是空的，点击「添加照片」放入影像</p>
+        </div>
+        <div class="ad-grid" id="adGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 单张照片 · 全屏查看器（开卷式裱框设计）============ -->
+  <div class="photo-viewer" id="photoViewer" aria-hidden="true">
+    <div class="pv-scrim"></div>
+    <div class="pv-body">
+      <div class="pv-top">
+        <button class="pv-close" id="pvClose" aria-label="关闭" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <div class="pv-meta">
+          <p class="pv-date" id="pvDate">—</p>
+          <p class="pv-index" id="pvIndex">1 / 1</p>
+        </div>
+        <button class="pv-more" id="pvMore" aria-label="更多操作" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="19" cy="12" r="1.4" fill="currentColor"/></svg>
+        </button>
+      </div>
+
+      <div class="pv-stage" id="pvStage">
+        <button class="pv-nav pv-nav-prev" id="pvPrev" aria-label="上一张" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="pv-frame">
+          <img class="pv-img" id="pvImg" src="" alt="照片" draggable="false" />
+        </div>
+        <button class="pv-nav pv-nav-next" id="pvNext" aria-label="下一张" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="pv-bottom">
+        <button class="pv-action" id="pvAddToAlbum" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M8 3.5h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span>加入相册集</span>
+        </button>
+        <button class="pv-action pv-action-danger" id="pvDelete" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-9 0l1 12a2 2 0 002 2h4a2 2 0 002-2l1-12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>删除</span>
+        </button>
+        <div class="pv-filmstrip" id="pvFilmstrip"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 通用小面板：新建相册集 / 选择相册集（复用同一浮层结构）============ -->
+  <div class="mine-sheet" id="mineSheet" aria-hidden="true">
+    <div class="ms-scrim" id="msScrim"></div>
+    <div class="ms-card">
+      <div class="ms-handle"></div>
+      <p class="ms-eyebrow" id="msEyebrow">NEW COLLECTION</p>
+      <h3 class="ms-title" id="msTitle">新建相册集</h3>
+
+      <div class="ms-body" id="msBodyCreate">
+        <input class="ms-input" id="msNameInput" type="text" placeholder="为相册集命名" maxlength="24" />
+        <button class="ms-primary" id="msCreateConfirm" type="button">创建相册集</button>
+        <button class="ms-cancel" id="msCreateCancel" type="button">取消</button>
+      </div>
+
+      <div class="ms-body" id="msBodyPick" hidden>
+        <div class="ms-pick-list" id="msPickList"></div>
+        <button class="ms-primary ms-primary-ghost" id="msPickNewAlbum" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          新建相册集并加入
+        </button>
+        <button class="ms-cancel" id="msPickCancel" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 底部导航：高级华丽、非常规设计 ============
+       概念：「刻轨浮标」— 一条窄长的悬浮石轨，下方嵌一条会横向滑行的
+       实体光轨（书签夹造型，非圆形），激活项文字与图标整体跳变为
+       高对比亮白并轻微放大，光轨精确卡在其正下方，两侧留出呼吸感的
+       线性刻度，营造仪器般的精密华丽感，而非常见的图标+圆点组合。 -->
+  <nav class="gl-dock" id="glDock">
+    <div class="gl-dock-plate">
+
+      <!-- 顶部内嵌细分隔线，划分出三个刻度区 -->
+      <div class="gl-dock-rule"></div>
+
+      <!-- 滑行光轨：书签夹造型，随选中项横向精确移动 -->
+      <div class="gl-track" id="glTrack">
+        <span class="track-bar"></span>
+        <span class="track-glow"></span>
+      </div>
+
+      <button class="gl-seal" data-target="mine" aria-label="我的相册">
+        <span class="seal-face">
+          <svg viewBox="0 0 26 26" fill="none">
+            <rect x="4" y="4" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/>
+            <circle cx="9.6" cy="9.6" r="1.7" fill="currentColor"/>
+            <path d="M4.5 17l5.5-5.5 4 4 3-3 6.5 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="seal-label">我的相册</span>
+        <span class="seal-tick">01</span>
+      </button>
+
+      <button class="gl-seal" data-target="char" aria-label="Char 相册">
+        <span class="seal-face">
+          <svg viewBox="0 0 26 26" fill="none">
+            <circle cx="13" cy="9.4" r="4.3" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M4.4 21.8c1.4-5.1 5.1-7.5 8.6-7.5s7.2 2.4 8.6 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="seal-label">Char 相册</span>
+        <span class="seal-tick">02</span>
+      </button>
+
+      <button class="gl-seal" data-target="feed" aria-label="动态">
+        <span class="seal-face">
+          <svg viewBox="0 0 26 26" fill="none">
+            <path d="M13 3.2c2.7 3 4.4 6.3 4.4 9.5a4.4 4.4 0 1 1-8.8 0c0-3.2 1.7-6.5 4.4-9.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M13 12.4v6.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity="0.6"/>
+          </svg>
+        </span>
+        <span class="seal-label">动态</span>
+        <span class="seal-tick">03</span>
+      </button>
+
+
+    </div>
+
+    <!-- 石板底部悬浮投影：让整个 dock 呈"浮起于内容之上"的质感 -->
+    <div class="gl-dock-shadow"></div>
+  </nav>
+
+</div>
+
+<script src="gallery.js"></script>
+</body>
+</html>

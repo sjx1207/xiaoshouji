@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>日记 · Luna</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="diary.css" />
+</head>
+<body style="margin:0; padding:0;">
+
+<div class="diary-app" id="diaryApp">
+
+  <!-- 背景光晕层 -->
+  <div class="diary-aurora"></div>
+
+  <!-- 状态栏（结构与 index.html 主状态栏一致，由 diary.js 同步时间/电量） -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页头 -->
+  <div class="diary-header">
+    <!-- 返回按钮：非常规造型 —— 一枚展开的墨迹弧线，而非常见的 "<" 箭头 -->
+    <button class="diary-back-btn" id="diaryBackBtn" aria-label="返回" data-page-scope="mine">
+      <span class="dbb-ring"></span>
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M14.5 6.5 C10.5 8.5 8 10.5 7 12 C8 13.5 10.5 15.5 14.5 17.5" />
+        <path class="dbb-tail" d="M7 12 L11.5 12" />
+      </svg>
+    </button>
+
+    <div class="diary-header-center">
+      <div class="diary-header-eyebrow">Luna Diary</div>
+      <div class="diary-header-title" id="diaryTitle">我的日记</div>
+    </div>
+
+    <!-- 写日记按钮：羽毛笔尖 + 展开的墨渍光晕，非常规圆形铅笔按钮 -->
+    <button class="diary-write-btn" id="diaryWriteBtn" aria-label="写日记" data-page-scope="mine">
+      <span class="dwb-halo"></span>
+      <span class="dwb-glyph">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M5 19 L5.7 15.9 C5.8 15.4 6.05 14.95 6.4 14.6 L15.3 5.7 C16.1 4.9 17.4 4.9 18.2 5.7 L18.3 5.8 C19.1 6.6 19.1 7.9 18.3 8.7 L9.4 17.6 C9.05 17.95 8.6 18.2 8.1 18.3 Z" />
+          <path class="dwb-tip" d="M13.6 7.4 L16.6 10.4" />
+        </svg>
+      </span>
+    </button>
+  </div>
+
+  <!-- 三个页面内容区 -->
+  <div class="diary-pages">
+
+    <div class="diary-page active" data-page="mine">
+
+      <!-- 空态（无任何日记时显示） -->
+      <div class="diary-placeholder" id="mineEmptyState">
+        <div class="diary-placeholder-mark"></div>
+        <div class="diary-placeholder-text">此刻静止<br/>你的文字，尚未落笔</div>
+        <div class="diary-placeholder-sub">My Diary · Coming Soon</div>
+      </div>
+
+      <!-- 日记流（有日记时显示，替代空态） -->
+      <div class="diary-feed" id="mineFeed" hidden>
+        <div class="diary-feed-inner" id="mineFeedInner">
+          <!-- 条目由 diary.js 动态渲染插入这里 -->
+        </div>
+      </div>
+
+    </div>
+
+    <div class="diary-page" data-page="char">
+
+      <!-- Char 日记专属顶部条：与"我的日记"页头区分——
+           不出现返回按钮，代之以角色数量的仪式感计数徽记，
+           右侧是横向滑动提示，而非写日记按钮 -->
+      <div class="char-topbar" id="charTopbar">
+        <div class="char-topbar-left">
+          <span class="ctb-count" id="ctbCount">0</span>
+          <span class="ctb-count-label">本日记本</span>
+        </div>
+        <div class="char-topbar-hint">
+          <span class="cth-text">左右滑动 · 翻阅每个人的心事</span>
+          <svg class="cth-arrow" viewBox="0 0 28 10" fill="none">
+            <path d="M1 5 H25 M20 1 L25 5 L20 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 空态：尚未创建任何角色时 -->
+      <div class="char-diary-empty" id="charDiaryEmpty" hidden>
+        <div class="diary-placeholder">
+          <div class="diary-placeholder-mark"></div>
+          <div class="diary-placeholder-text">Ta 的视角<br/>也在悄悄书写着什么</div>
+          <div class="diary-placeholder-sub">Char Diary · 尚无角色</div>
+        </div>
+      </div>
+
+      <!-- 横向滑动书架：每个角色一本独立设计的日记本，一次只呈现一本 -->
+      <div class="char-shelf-wrap" id="charShelfWrap" hidden>
+        <div class="char-shelf" id="charShelf">
+          <!-- 由 diary.js 动态渲染插入每一本角色日记本 -->
+        </div>
+
+        <!-- 底部书本翻页圆点指示器 -->
+        <div class="char-shelf-dots" id="charShelfDots"></div>
+      </div>
+
+    </div>
+
+    <div class="diary-page" data-page="private">
+      <div class="diary-placeholder">
+        <div class="diary-placeholder-mark"></div>
+        <div class="diary-placeholder-text">只属于你的角落<br/>无人知晓，无人打扰</div>
+        <div class="diary-placeholder-sub">Private · Coming Soon</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       ★ 底部导航栏 ★
+  ============================================================ -->
+  <div class="diary-nav-wrap">
+    <nav class="diary-nav" id="diaryNav">
+
+      <!-- 环绕微粒 -->
+      <div class="diary-nav-dust">
+        <span style="left:14%; animation-delay:0s;"></span>
+        <span style="left:34%; animation-delay:1.4s;"></span>
+        <span style="left:52%; animation-delay:2.6s;"></span>
+        <span style="left:68%; animation-delay:0.7s;"></span>
+        <span style="left:84%; animation-delay:3.3s;"></span>
+      </div>
+
+      <!-- 滑动珍珠指示器 -->
+      <div class="diary-nav-pearl pos-0" id="navPearl"></div>
+
+      <!-- SVG 渐变定义（供 icon 激活态使用） -->
+      <svg width="0" height="0" style="position:absolute;">
+        <defs>
+          <linearGradient id="navGradA" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#c9bfe0"/>
+            <stop offset="100%" stop-color="#e3c9d1"/>
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <!-- Tab 1：我的日记 —— 手写羽毛笔线条图标 -->
+      <button class="diary-tab active" data-tab="mine">
+        <span class="diary-tab-ripple"></span>
+        <span class="diary-tab-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 20 L4 16.8 C4 16.3 4.2 15.85 4.55 15.5 L15.5 4.55 C16.3 3.75 17.6 3.75 18.4 4.55 L19.45 5.6 C20.25 6.4 20.25 7.7 19.45 8.5 L8.5 19.45 C8.15 19.8 7.7 20 7.2 20 Z" />
+            <path d="M13.5 6.5 L17.5 10.5" class="fill-accent" fill="none" />
+            <path d="M4 20 L7.3 19.4" />
+          </svg>
+        </span>
+        <span class="diary-tab-label">我的日记</span>
+        <span class="diary-tab-dot"></span>
+      </button>
+
+      <!-- Tab 2：Char日记 —— 双心/对话叠合线条图标 -->
+      <button class="diary-tab" data-tab="char">
+        <span class="diary-tab-ripple"></span>
+        <span class="diary-tab-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path class="fill-accent" d="M12 19c-.3 0-.6-.1-.8-.3C7.8 15.9 5 13.4 5 10.3 5 8 6.8 6.2 9 6.2c1.1 0 2.2.5 3 1.4.8-.9 1.9-1.4 3-1.4 2.2 0 4 1.8 4 4.1 0 3.1-2.8 5.6-6.2 8.4-.2.2-.5.3-.8.3Z" opacity="0.9"/>
+            <circle cx="9" cy="10.4" r="0.6" fill="#4a4852" stroke="none" />
+            <circle cx="15" cy="10.4" r="0.6" fill="#4a4852" stroke="none" />
+          </svg>
+        </span>
+        <span class="diary-tab-label">Char日记</span>
+        <span class="diary-tab-dot"></span>
+      </button>
+
+      <!-- Tab 3：私密 —— 锁形线条图标（含"合拢"锁扣动画） -->
+      <button class="diary-tab" data-tab="private">
+        <span class="diary-tab-ripple"></span>
+        <span class="diary-tab-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="5.5" y="10.5" width="13" height="9.5" rx="2.6" class="fill-accent" opacity="0.9" />
+            <path class="lock-shackle" d="M8.2 10.5 V8 a3.8 3.8 0 0 1 7.6 0 v2.5" stroke="#4a4852" />
+            <circle cx="12" cy="14.6" r="1.15" fill="#fbfaf9" stroke="none" />
+            <path d="M12 15.7 V17.3" stroke="#fbfaf9" stroke-width="1.3" />
+          </svg>
+        </span>
+        <span class="diary-tab-label">私密</span>
+        <span class="diary-tab-dot"></span>
+      </button>
+
+    </nav>
+  </div>
+
+  <!-- ============================================================
+       ★ 写日记 · 全屏композер overlay ★
+       结构：顶部工具条（取消 / 心情 / 发布）→ 日期仪式感抬头 →
+             标题输入 → 正文输入（自适应高度）→ 底部心情选择条
+  ============================================================ -->
+  <div class="composer-veil" id="composerVeil"></div>
+  <div class="composer" id="composer" aria-hidden="true">
+
+    <div class="composer-sheet">
+
+      <!-- composer 顶部把手，模拟纸张卷起的边缘 -->
+      <div class="composer-handle"></div>
+
+      <div class="composer-topbar">
+        <button class="composer-cancel" id="composerCancel">
+          <span>收起</span>
+        </button>
+        <div class="composer-topbar-mark">
+          <span class="ctm-dot"></span>落笔中
+        </div>
+        <button class="composer-publish" id="composerPublish" disabled>
+          <span class="cp-glow"></span>
+          <span class="cp-text">发布</span>
+        </button>
+      </div>
+
+      <div class="composer-body">
+
+        <!-- 日期仪式感抬头 -->
+        <div class="composer-datestamp" id="composerDatestamp">
+          <span class="cds-day">02</span>
+          <span class="cds-meta">
+            <span class="cds-month" id="cdsMonth">AUGUST 2026</span>
+            <span class="cds-week" id="cdsWeek">星期日</span>
+          </span>
+
+          <!-- 天气 · 位置 胶囊：点开后可选 -->
+          <div class="cds-tags">
+            <button class="cds-tag" id="weatherTagBtn" type="button" data-weather="">
+              <svg class="cds-tag-icon" id="weatherTagIcon" viewBox="0 0 24 24"><path d="M7 15a4 4 0 0 1 .7-7.9A5 5 0 0 1 17.4 9 3.6 3.6 0 0 1 17 16H7Z"/></svg>
+              <span id="weatherTagText">天气</span>
+            </button>
+            <button class="cds-tag" id="locationTagBtn" type="button">
+              <svg class="cds-tag-icon" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2"/></svg>
+              <span id="locationTagText">此刻</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 天气选择展开条（点击天气胶囊后出现） -->
+        <div class="weather-picker" id="weatherPicker" hidden>
+          <button class="weather-opt" data-weather="sunny" data-label="晴朗">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1M18.4 18.4l-2.1-2.1M7.7 7.7 5.6 5.6" stroke-linecap="round"/></svg>
+            <em>晴朗</em>
+          </button>
+          <button class="weather-opt" data-weather="cloudy" data-label="多云">
+            <svg viewBox="0 0 24 24"><path d="M7 15a4 4 0 0 1 .7-7.9A5 5 0 0 1 17.4 9 3.6 3.6 0 0 1 17 16H7Z"/></svg>
+            <em>多云</em>
+          </button>
+          <button class="weather-opt" data-weather="rainy" data-label="有雨">
+            <svg viewBox="0 0 24 24"><path d="M6.5 13a4 4 0 0 1 .7-7.9A5 5 0 0 1 16.9 7 3.6 3.6 0 0 1 16.5 14H6.5Z"/><path d="M8 17.5 7 20M12 17.5l-1 2.5M16 17.5l-1 2.5" stroke-linecap="round"/></svg>
+            <em>有雨</em>
+          </button>
+          <button class="weather-opt" data-weather="night" data-label="夜晚">
+            <svg viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>
+            <em>夜晚</em>
+          </button>
+          <button class="weather-opt" data-weather="snow" data-label="落雪">
+            <svg viewBox="0 0 24 24"><path d="M12 2v20M4.5 7l15 10M19.5 7l-15 10" stroke-linecap="round"/></svg>
+            <em>落雪</em>
+          </button>
+        </div>
+
+        <!-- 心情选择：五枚手绘线条心情符号，非 emoji -->
+        <div class="mood-row" id="moodRow">
+          <button class="mood-chip" data-mood="calm">
+            <svg viewBox="0 0 24 24"><path d="M4 14c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0" /><path d="M4 9c2-2.5 4-2.5 6 0" opacity="0.55"/></svg>
+            <em>平静</em>
+          </button>
+          <button class="mood-chip" data-mood="joy">
+            <svg viewBox="0 0 24 24"><path d="M5 13c1.5 3.2 4.2 5 7 5s5.5-1.8 7-5" /><circle cx="8.5" cy="9" r="0.9" fill="currentColor" stroke="none"/><circle cx="15.5" cy="9" r="0.9" fill="currentColor" stroke="none"/></svg>
+            <em>欢喜</em>
+          </button>
+          <button class="mood-chip" data-mood="tender">
+            <svg viewBox="0 0 24 24"><path d="M12 19c-.3 0-.6-.1-.8-.3C7.8 15.9 5 13.4 5 10.3 5 8 6.8 6.2 9 6.2c1.1 0 2.2.5 3 1.4.8-.9 1.9-1.4 3-1.4 2.2 0 4 1.8 4 4.1 0 3.1-2.8 5.6-6.2 8.4-.2.2-.5.3-.8.3Z" /></svg>
+            <em>柔软</em>
+          </button>
+          <button class="mood-chip" data-mood="blue">
+            <svg viewBox="0 0 24 24"><path d="M12 4c-4 4-7 7.4-7 10.6A7 7 0 0 0 12 21a7 7 0 0 0 7-6.4C19 11.4 16 8 12 4Z" /></svg>
+            <em>低落</em>
+          </button>
+          <button class="mood-chip" data-mood="storm">
+            <svg viewBox="0 0 24 24"><path d="M7 9a5 5 0 0 1 9.6-1.8A4 4 0 0 1 17 15H7.5a3.5 3.5 0 0 1-.5-6.9Z" /><path d="M13 15 L10.5 19.5 L13.5 19.5 L11.5 23" class="mood-bolt"/></svg>
+            <em>翻涌</em>
+          </button>
+        </div>
+
+        <!-- 标题 -->
+        <input
+          class="composer-title-input"
+          id="composerTitleInput"
+          type="text"
+          placeholder="给今天，起一个标题"
+          maxlength="40"
+        />
+
+        <!-- 正文 -->
+        <textarea
+          class="composer-text-input"
+          id="composerTextInput"
+          placeholder="此刻想说的话，落在这里……
+不必修饰，只需真实。"
+          rows="6"
+        ></textarea>
+
+        <!-- ============================================================
+             配图区：图片 + "以文字描述画面" 双栏并行。
+             说明：日记系统底层由文字模型驱动，模型无法直接"看见"图片像素，
+             所以每张配图都强制搭配一段文字描述——描述会作为这张图的
+             机器可读语义（相当于 alt text），随日记一起保存，
+             这样后续 AI 读取这篇日记时，能通过文字"读懂"图片画的是什么。
+        ============================================================ -->
+        <div class="photo-section">
+          <div class="photo-section-label">
+            <span class="psl-line"></span>
+            <span>配一张图</span>
+            <span class="psl-sub">OPTIONAL · 附文字描述</span>
+          </div>
+
+          <div class="photo-slots" id="photoSlots">
+            <!-- 已添加的配图卡片由 JS 动态插入在这里（占位按钮之前） -->
+            <button class="photo-add-btn" id="photoAddBtn" type="button">
+              <span class="pab-ring"></span>
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+              <em>添加配图</em>
+            </button>
+          </div>
+
+          <input type="file" id="photoFileInput" accept="image/*" multiple hidden />
+        </div>
+
+        <!-- 标签：给日记加几个自定义关键词，便于后续检索与语义归纳 -->
+        <div class="tag-section">
+          <div class="photo-section-label">
+            <span class="psl-line"></span>
+            <span>标签</span>
+            <span class="psl-sub">最多 5 个</span>
+          </div>
+          <div class="tag-input-row">
+            <input class="tag-input" id="tagInput" type="text" placeholder="输入后按回车，例如：海边 / 独处 / 小确幸" maxlength="12" />
+          </div>
+          <div class="tag-list" id="tagList"></div>
+        </div>
+
+        <!-- 底部信息条：字数 + 天气占位 + 保存态提示 -->
+        <div class="composer-footbar">
+          <span class="cf-count"><b id="cfCountNum">0</b> 字</span>
+          <span class="cf-sep">·</span>
+          <span class="cf-draft" id="cfDraftHint">尚未落笔</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       配图描述弹层：选择图片后弹出，要求填写画面描述才能确认加入
+  ============================================================ -->
+  <div class="photo-desc-veil" id="photoDescVeil"></div>
+  <div class="photo-desc-modal" id="photoDescModal" aria-hidden="true">
+    <div class="pdm-sheet">
+      <div class="pdm-preview" id="pdmPreview"></div>
+      <div class="pdm-body">
+        <div class="pdm-title">描述这张画面</div>
+        <div class="pdm-hint">日记由文字模型解读，图片本身它读不到——<br/>写下你眼中的画面，AI 才能真正"看见"它。</div>
+        <textarea class="pdm-textarea" id="pdmTextarea" placeholder="例如：傍晚的海边，浪花打在礁石上，天空是橘粉色的晚霞，远处有一艘小船……" rows="4" maxlength="200"></textarea>
+        <div class="pdm-count"><span id="pdmCountNum">0</span>/200</div>
+        <div class="pdm-actions">
+          <button class="pdm-cancel" id="pdmCancelBtn" type="button">取消</button>
+          <button class="pdm-confirm" id="pdmConfirmBtn" type="button" disabled>
+            <span class="cp-glow"></span>
+            <span class="cp-text">确认加入</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 发布成功后的短暂仪式感反馈（印章式浮现后淡出） -->
+  <div class="publish-stamp" id="publishStamp">
+    <div class="stamp-ring"></div>
+    <div class="stamp-text">已收入日记</div>
+  </div>
+
+  <!-- ============================================================
+       ★★★ 日记详情页 —— 全屏华丽卷轴层 ★★★
+       结构：顶部工具条（返回 / 标记 / 更多）→ 日期仪式徽记 →
+             心情天气条 → 标题 → 正文全文 → 配图长廊 → 标签 →
+             四枚功能卡片（共感梦境 / 时空胶囊 / 灵魂回想 / 侧笔记录）
+  ============================================================ -->
+  <div class="detail-veil" id="detailVeil"></div>
+  <div class="detail-page" id="detailPage" aria-hidden="true">
+
+    <!-- 详情页专属状态栏（结构与主状态栏一致，由 diary.js 同步） -->
+    <div class="status-bar detail-status-bar">
+      <div class="status-time" id="detailStatusTime">9:41</div>
+      <div class="status-island" id="detailStatusIsland"></div>
+      <div class="status-right">
+        <div class="signal">
+          <i></i><i></i><i></i><i></i>
+        </div>
+        <div class="battery">
+          <span class="bat-pct" id="detailBatPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="detailBatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 详情页顶部工具条 -->
+    <div class="detail-topbar">
+      <button class="detail-back-btn" id="detailBackBtn" aria-label="返回">
+        <span class="dbb-ring"></span>
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M14.5 6.5 C10.5 8.5 8 10.5 7 12 C8 13.5 10.5 15.5 14.5 17.5" />
+          <path class="dbb-tail" d="M7 12 L11.5 12" />
+        </svg>
+      </button>
+      <div class="detail-topbar-mark">
+        <span class="dtm-dot"></span>
+        <span id="detailTopbarLabel">此刻回望</span>
+      </div>
+      <button class="detail-more-btn" id="detailMoreBtn" aria-label="更多">
+        <span class="dmb-halo"></span>
+        <svg viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="6" r="1.4" fill="currentColor" stroke="none"/>
+          <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+          <circle cx="12" cy="18" r="1.4" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 详情页可滚动主体 -->
+    <div class="detail-scroll" id="detailScroll">
+      <div class="detail-scroll-inner">
+
+        <!-- 日期仪式感徽记 -->
+        <div class="detail-datemark">
+          <div class="ddm-day" id="detailDay">02</div>
+          <div class="ddm-meta">
+            <span class="ddm-weekday" id="detailWeekday">星期日</span>
+            <span class="ddm-month" id="detailMonth">AUGUST 2026</span>
+          </div>
+          <div class="ddm-time" id="detailTime">— 14:26 落笔</div>
+        </div>
+
+        <!-- 心情 · 天气 · 位置 仪式条 -->
+        <div class="detail-condition-row" id="detailConditionRow"></div>
+
+        <!-- 标题 -->
+        <h1 class="detail-title" id="detailTitle">无题</h1>
+
+        <!-- 正文全文 -->
+        <div class="detail-body" id="detailBody"></div>
+
+        <!-- 配图长廊 -->
+        <div class="detail-gallery" id="detailGallery" hidden></div>
+
+        <!-- 标签 -->
+        <div class="detail-tags" id="detailTags" hidden></div>
+
+        <!-- 字数印记 -->
+        <div class="detail-footmark">
+          <span class="dfm-line"></span>
+          <span id="detailWordCount">0 字</span>
+          <span class="dfm-line"></span>
+        </div>
+
+        <!-- ============================================================
+             ★ 功能卡片区 —— 共感梦境 / 时空胶囊 / 灵魂回想 / 侧笔记录 ★
+        ============================================================ -->
+        <div class="feature-section">
+          <div class="feature-section-label">
+            <span class="fsl-line"></span>
+            <span>唤醒这篇日记</span>
+            <span class="fsl-sub">FOUR RITUALS</span>
+          </div>
+
+          <div class="feature-grid">
+
+            <!-- 卡片一：共感梦境 -->
+            <button class="feature-card fc-dream" type="button" data-feature="dream">
+              <div class="fc-aura"></div>
+              <div class="fc-glyph">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3.5c-1 2-1 4 .3 5.3C13.6 10 15.7 10 17.7 9c-.6 2.4-2.6 4.3-5.1 4.7-3.4.5-6.6-1.7-7.3-5C4.7 5.4 8 2.6 12 3.5Z"/>
+                  <circle cx="17" cy="15.5" r="0.9" fill="currentColor" stroke="none"/>
+                  <circle cx="8.5" cy="18.5" r="0.6" fill="currentColor" stroke="none"/>
+                  <circle cx="19.5" cy="19.5" r="0.5" fill="currentColor" stroke="none"/>
+                </svg>
+                <span class="fc-dream-count" id="fcDreamCount" hidden></span>
+              </div>
+              <div class="fc-text">
+                <span class="fc-title">共感梦境</span>
+                <span class="fc-sub">Empathic Reverie</span>
+              </div>
+              <span class="fc-arrow">
+                <svg viewBox="0 0 12 12" fill="none"><path d="M4 2.5 L8 6 L4 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </button>
+
+            <!-- 卡片二：时空胶囊 -->
+            <button class="feature-card fc-capsule" type="button" data-feature="capsule">
+              <div class="fc-aura"></div>
+              <div class="fc-glyph">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <ellipse cx="12" cy="12" rx="7.5" ry="9.5"/>
+                  <path d="M4.5 12h15M12 2.5v19"/>
+                  <path d="M6.3 6.3c2.6 2 8.8 2 11.4 0M6.3 17.7c2.6-2 8.8-2 11.4 0" opacity="0.6"/>
+                </svg>
+                <span class="fc-dream-count" id="fcCapsuleCount" hidden></span>
+              </div>
+              <div class="fc-text">
+                <span class="fc-title">时空胶囊</span>
+                <span class="fc-sub">Time Capsule</span>
+              </div>
+              <span class="fc-arrow">
+                <svg viewBox="0 0 12 12" fill="none"><path d="M4 2.5 L8 6 L4 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </button>
+
+            <!-- 卡片三：灵魂回想 -->
+            <button class="feature-card fc-soul" type="button" data-feature="soul">
+              <div class="fc-aura"></div>
+              <div class="fc-glyph">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M12 20c-.3 0-.6-.1-.8-.3C7.8 16.9 5 14.4 5 11.3 5 9 6.8 7.2 9 7.2c1.1 0 2.2.5 3 1.4.8-.9 1.9-1.4 3-1.4 2.2 0 4 1.8 4 4.1 0 3.1-2.8 5.6-6.2 8.4-.2.2-.5.3-.8.3Z"/>
+                  <path d="M12 4.5V2.5M8.5 5.5 7.3 4M15.5 5.5 16.7 4" opacity="0.55"/>
+                </svg>
+                <span class="fc-dream-count" id="fcSoulCount" hidden></span>
+              </div>
+              <div class="fc-text">
+                <span class="fc-title">灵魂回想</span>
+                <span class="fc-sub">Soul Recall</span>
+              </div>
+              <span class="fc-arrow">
+                <svg viewBox="0 0 12 12" fill="none"><path d="M4 2.5 L8 6 L4 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </button>
+
+            <!-- 卡片四：侧笔记录 -->
+            <button class="feature-card fc-margin" type="button" data-feature="margin">
+              <div class="fc-aura"></div>
+              <div class="fc-glyph">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M5 19 L5.7 15.9C5.8 15.4 6.05 14.95 6.4 14.6 L15.3 5.7C16.1 4.9 17.4 4.9 18.2 5.7L18.3 5.8C19.1 6.6 19.1 7.9 18.3 8.7L9.4 17.6C9.05 17.95 8.6 18.2 8.1 18.3Z"/>
+                  <path d="M13.6 7.4 L16.6 10.4" opacity="0.6"/>
+                  <path d="M4 21.5h6" opacity="0.5"/>
+                </svg>
+              </div>
+              <div class="fc-text">
+                <span class="fc-title">侧笔记录</span>
+                <span class="fc-sub">Margin Notes</span>
+              </div>
+              <span class="fc-arrow">
+                <svg viewBox="0 0 12 12" fill="none"><path d="M4 2.5 L8 6 L4 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </button>
+
+          </div>
+        </div>
+
+        <div class="detail-bottom-pad"></div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       功能卡片点开后的浮层容器（四种功能共用同一层壳，内容按需切换）
+  ============================================================ -->
+  <div class="feature-veil" id="featureVeil"></div>
+  <div class="feature-modal" id="featureModal" aria-hidden="true">
+    <div class="fm-sheet">
+      <div class="fm-handle"></div>
+      <div class="fm-topbar">
+        <div class="fm-topbar-mark">
+          <span class="fm-glyph-mini" id="fmGlyphMini"></span>
+          <span class="fm-topbar-text">
+            <span class="fm-title" id="fmTitle">共感梦境</span>
+            <span class="fm-sub" id="fmSub">Empathic Reverie</span>
+          </span>
+        </div>
+        <button class="fm-close" id="fmCloseBtn" aria-label="关闭">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="fm-body" id="fmBody">
+        <!-- 由 diary.js 按 data-feature 动态填充四种内容 -->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="diary.js"></script>
+</body>
+</html>

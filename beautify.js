@@ -46,10 +46,12 @@ document.getElementById('btBack').addEventListener('click', () => {
 const widgetRoutes = {
   weather: () => openWeatherSettings(),
   music: () => wmOpen(),
+  friends: () => fwOpen(),
   countdown:    () => openCountdownSettings(),
+magazine:     () => mgzOpen(),
   profile:      () => openProfileSettings(),
   chat:         () => showToast('聊天组件设置 — 即将开放'),
-  photodiary:   () => showToast('日记本组件设置 — 即将开放'),
+  photodiary:   () => pdwOpen(),
   lunaprofile:  () => showToast('Luna 名片组件设置 — 即将开放'),
   icons:        () => navigateTo('iconbeauty.html'),
   wallpaper:    () => navigateTo('Wallpaper.html'),
@@ -74,6 +76,7 @@ function navigateTo(url) {
 function openWeatherSettings() { wwOpen(); }
 function openMusicSettings()     { showToast('音乐组件设置 — 即将开放'); }
 function openCountdownSettings() { openCdPanel(); }
+function openMagazineSettings()  { mgzOpen(); }
 
 /* ============ 倒数日面板 ============ */
 let _cd = {};
@@ -224,7 +227,7 @@ async function cdSave() {
   };
   tx.onerror = () => showToast('保存失败');
 }
-function openProfileSettings()   { showToast('名片组件设置 — 即将开放'); }
+function openProfileSettings()   { pwOpen(); }
 
 // ---- 数据管理 ----
 function initData() {
@@ -282,7 +285,7 @@ async function exportData() {
   // 4. 音乐 DB
   try {
     const muDb = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaMusicDB', 2);
+      const req = indexedDB.open('LunaMusicDB', 4);
       req.onsuccess = e => res(e.target.result);
       req.onerror = () => rej();
     });
@@ -385,7 +388,7 @@ function importData(e) {
       if (backup.music && backup.music.length > 0) {
         try {
           const muDb = await new Promise((res, rej) => {
-            const req = indexedDB.open('LunaMusicDB', 2);
+            const req = indexedDB.open('LunaMusicDB', 4);
             req.onsuccess = e => res(e.target.result);
             req.onerror = () => rej();
           });
@@ -546,7 +549,7 @@ async function wwOpen() {
   // 从 IndexedDB 读取已保存的设置（和 wwSave 存的地方一致）
   try {
     const db = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaWeatherDB', 2);
+      const req = indexedDB.open('LunaWeatherDB', 4);
       req.onupgradeneeded = e => {
         if (!e.target.result.objectStoreNames.contains('settings'))
           e.target.result.createObjectStore('settings', { keyPath: 'id' });
@@ -710,7 +713,7 @@ function wwHandleSat(val) {
 }
 
 function wwSave() {
-  const req = indexedDB.open('LunaWeatherDB', 2);
+  const req = indexedDB.open('LunaWeatherDB', 4);
   req.onupgradeneeded = e => {
     const db = e.target.result;
     if (!db.objectStoreNames.contains('settings')) {
@@ -745,7 +748,7 @@ let _wm = { discLeftImage: null, discRightImage: null, bgImage: null, opacity: 1
 async function wmOpen() {
   try {
     const db = await new Promise((res, rej) => {
-      const req = indexedDB.open('LunaMusicDB', 2);
+      const req = indexedDB.open('LunaMusicDB', 4);
       req.onupgradeneeded = e => {
         if (!e.target.result.objectStoreNames.contains('music'))
           e.target.result.createObjectStore('music', { keyPath: 'id' });
@@ -890,7 +893,7 @@ async function wmSave() {
   _wm.song   = document.getElementById('wmSongInput').value.trim();
   _wm.artist = document.getElementById('wmArtistInput').value.trim();
 
-  const req = indexedDB.open('LunaMusicDB', 2);
+  const req = indexedDB.open('LunaMusicDB', 4);
   req.onupgradeneeded = e => {
     if (!e.target.result.objectStoreNames.contains('music'))
       e.target.result.createObjectStore('music', { keyPath: 'id' });
@@ -924,4 +927,876 @@ function wmPreviewSong(val) {
 function wmPreviewArtist(val) {
   const el = document.getElementById('wmPreviewArtist');
   if (el) el.textContent = val || '周杰伦';
+}
+
+/* ============================================
+   好友组件设置面板 — fw
+============================================ */
+let _fw = { avLeft: null, avRight: null, bgImage: null, opacity: 92, date: '', label: 'days together', sig: 'always on the same page' };
+
+async function fwOpen() {
+  try {
+    const db = await new Promise((res, rej) => {
+      const req = indexedDB.open('LunaFriendsDB', 1);
+      req.onupgradeneeded = e => {
+        if (!e.target.result.objectStoreNames.contains('fw'))
+          e.target.result.createObjectStore('fw', { keyPath: 'id' });
+      };
+      req.onsuccess = e => res(e.target.result);
+      req.onerror = () => rej();
+    });
+    const saved = await new Promise(res => {
+      const r = db.transaction('fw').objectStore('fw').get('widget');
+      r.onsuccess = () => res(r.result || {});
+      r.onerror = () => res({});
+    });
+    if (saved.avLeft    !== undefined) _fw.avLeft   = saved.avLeft;
+    if (saved.avRight   !== undefined) _fw.avRight  = saved.avRight;
+    if (saved.bgImage   !== undefined) _fw.bgImage  = saved.bgImage;
+    if (saved.opacity   !== undefined) _fw.opacity  = saved.opacity;
+    if (saved.date)                    _fw.date     = saved.date;
+    if (saved.label)                   _fw.label    = saved.label;
+    if (saved.sig)                     _fw.sig      = saved.sig;
+  } catch(e) {}
+
+  // 填入面板
+  document.getElementById('fwDateInput').value       = _fw.date  || '';
+  document.getElementById('fwLabelInput').value      = _fw.label || '';
+  document.getElementById('fwSigInput').value        = _fw.sig   || '';
+  document.getElementById('fwOpacitySlider').value   = _fw.opacity;
+  document.getElementById('fwOpacityNum').textContent = _fw.opacity;
+
+  if (_fw.avLeft)  { fwApplyAvPreview('left',  _fw.avLeft);  }
+  if (_fw.avRight) { fwApplyAvPreview('right', _fw.avRight); }
+  if (_fw.bgImage) {
+    document.getElementById('fwBgPreview').style.display = 'block';
+    document.getElementById('fwBgThumb').src = _fw.bgImage;
+  } else {
+    document.getElementById('fwBgPreview').style.display = 'none';
+  }
+
+  fwPreviewText();
+  fwCalcDays();
+  fwApplyBg();
+
+  // 同步状态栏
+  fwSyncStatusBar();
+
+  document.getElementById('fwOverlay').style.display = 'block';
+  document.getElementById('fwPanel').style.transform = 'translateX(0)';
+}
+
+function fwClose() {
+  document.getElementById('fwOverlay').style.display = 'none';
+  document.getElementById('fwPanel').style.transform = 'translateX(100%)';
+}
+
+function fwSyncStatusBar() {
+  // 时间
+  const tz  = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('zh-CN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+  const el = document.getElementById('fwStatusTime');
+  if (el) el.textContent = timeStr;
+
+  // 灵动岛
+  const enabled = localStorage.getItem('luna_island_enabled') === 'true';
+  const style   = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('fwStatusIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">${timeStr}</span></div></div>`,
+        pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[style] || styleMap.minimal;
+    }
+  }
+
+  // 电量
+  const batPct = document.getElementById('fwBatPct');
+  const batInner = document.getElementById('fwBatInner');
+  if ('getBattery' in navigator) {
+    navigator.getBattery().then(b => {
+      const p = Math.round(b.level * 100);
+      if (batPct) batPct.textContent = p;
+      if (batInner) {
+        batInner.style.width = p + '%';
+        batInner.style.background = p <= 20 ? 'linear-gradient(90deg,#f87171,#ef4444)' : 'linear-gradient(90deg,#6ee7b7,#34d399)';
+      }
+    });
+  } else {
+    if (batPct) batPct.textContent = '76';
+    if (batInner) { batInner.style.width = '76%'; batInner.style.background = 'linear-gradient(90deg,#6ee7b7,#34d399)'; }
+  }
+}
+
+function fwCalcDays() {
+  const val = document.getElementById('fwDateInput').value;
+  if (!val) return;
+  _fw.date = val;
+  const start = new Date(val);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((today - start) / 86400000);
+  _fw.days = diff;
+  const el = document.getElementById('fwPrevDays');
+  if (el) el.textContent = Math.abs(diff);
+}
+
+function fwPreviewText() {
+  const label = document.getElementById('fwLabelInput').value;
+  const sig   = document.getElementById('fwSigInput').value;
+  if (label) { const el = document.getElementById('fwPrevLbl'); if (el) el.textContent = label; }
+  if (sig)   { const el = document.getElementById('fwPrevSig'); if (el) el.textContent = sig; }
+  _fw.label = label;
+  _fw.sig   = sig;
+}
+
+function fwHandleAv(input, side) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    if (side === 'left')  _fw.avLeft  = url;
+    else                  _fw.avRight = url;
+    fwApplyAvPreview(side, url);
+  };
+  reader.readAsDataURL(file);
+}
+
+function fwApplyAvPreview(side, url) {
+  const previewId = side === 'left' ? 'fwPrevAvL' : 'fwPrevAvR';
+  const thumbId   = side === 'left' ? 'fwAvLThumb' : 'fwAvRThumb';
+  const previewEl = side === 'left' ? 'fwAvLPreview' : 'fwAvRPreview';
+  const prev = document.getElementById(previewId);
+  if (prev) {
+    prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+  }
+  const thumb = document.getElementById(thumbId);
+  if (thumb) thumb.src = url;
+  const previewDiv = document.getElementById(previewEl);
+  if (previewDiv) previewDiv.style.display = 'block';
+}
+
+function fwRemoveAv(side) {
+  if (side === 'left') {
+    _fw.avLeft = null;
+    document.getElementById('fwAvLPreview').style.display = 'none';
+    document.getElementById('fwAvLInput').value = '';
+    const el = document.getElementById('fwPrevAvL');
+    if (el) el.innerHTML = 'L';
+  } else {
+    _fw.avRight = null;
+    document.getElementById('fwAvRPreview').style.display = 'none';
+    document.getElementById('fwAvRInput').value = '';
+    const el = document.getElementById('fwPrevAvR');
+    if (el) el.innerHTML = 'M';
+  }
+}
+
+function fwHandleBg(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _fw.bgImage = e.target.result;
+    document.getElementById('fwBgPreview').style.display = 'block';
+    document.getElementById('fwBgThumb').src = e.target.result;
+    fwApplyBg();
+  };
+  reader.readAsDataURL(file);
+}
+
+function fwRemoveBg() {
+  _fw.bgImage = null;
+  document.getElementById('fwBgPreview').style.display = 'none';
+  document.getElementById('fwBgInput').value = '';
+  fwApplyBg();
+}
+
+function fwPreviewOpacity(val) {
+  _fw.opacity = parseInt(val);
+  document.getElementById('fwOpacityNum').textContent = val;
+  fwApplyBg();
+}
+
+function fwApplyBg() {
+  const bg   = document.getElementById('fwPreviewBg');
+  const mask = document.getElementById('fwPreviewMask');
+  if (!bg || !mask) return;
+  const alpha = _fw.opacity / 100;
+
+  if (_fw.bgImage) {
+    bg.style.backgroundImage    = `url(${_fw.bgImage})`;
+    bg.style.backgroundSize     = 'cover';
+    bg.style.backgroundPosition = 'center';
+    mask.style.background       = `rgba(255,255,255,${alpha})`;
+    mask.style.backdropFilter   = alpha < 0.5 ? `blur(${Math.round((1 - alpha) * 24)}px)` : 'blur(24px)';
+    mask.style.webkitBackdropFilter = mask.style.backdropFilter;
+  } else {
+    bg.style.backgroundImage = 'none';
+    mask.style.background    = `rgba(255,255,255,${alpha})`;
+    mask.style.backdropFilter = `blur(24px)`;
+    mask.style.webkitBackdropFilter = 'blur(24px)';
+  }
+}
+
+async function fwSave() {
+  _fw.label = document.getElementById('fwLabelInput').value.trim();
+  _fw.sig   = document.getElementById('fwSigInput').value.trim();
+  _fw.date  = document.getElementById('fwDateInput').value;
+  _fw.opacity = parseInt(document.getElementById('fwOpacitySlider').value);
+
+  const req = indexedDB.open('LunaFriendsDB', 1);
+  req.onupgradeneeded = e => {
+    if (!e.target.result.objectStoreNames.contains('fw'))
+      e.target.result.createObjectStore('fw', { keyPath: 'id' });
+  };
+  req.onsuccess = e => {
+    const db = e.target.result;
+    const tx = db.transaction('fw', 'readwrite');
+    tx.objectStore('fw').put({
+      id:       'widget',
+      avLeft:   _fw.avLeft,
+      avRight:  _fw.avRight,
+      bgImage:  _fw.bgImage,
+      opacity:  _fw.opacity,
+      date:     _fw.date,
+      label:    _fw.label,
+      sig:      _fw.sig,
+    });
+    tx.oncomplete = () => {
+      localStorage.setItem('luna_friends_widget_update', Date.now().toString());
+      showToast('已保存');
+      setTimeout(() => fwClose(), 800);
+    };
+    tx.onerror = () => showToast('保存失败');
+  };
+  req.onerror = () => showToast('保存失败，无法打开数据库');
+}
+
+/* ============================================
+   杂志组件设置面板 — mgz
+============================================ */
+let _mgz = { photo1:null, photo2:null, photo3:null, bgImage:null, opacity:100,
+             num:'No. 01 · Edition', title1:'Quiet', title2:'Luxury',
+             sub:'Luna · Maison', footerL:'SS · 2026', footerR:'LUNA' };
+
+async function mgzOpen() {
+  try {
+    const db = await new Promise((res,rej) => {
+      const req = indexedDB.open('LunaMagazineDB', 1);
+      req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains('mgz')) e.target.result.createObjectStore('mgz',{keyPath:'id'}); };
+      req.onsuccess = e => res(e.target.result);
+      req.onerror = () => rej();
+    });
+    const saved = await new Promise(res => {
+      const r = db.transaction('mgz').objectStore('mgz').get('widget');
+      r.onsuccess = () => res(r.result || {});
+      r.onerror = () => res({});
+    });
+    ['photo1','photo2','photo3','bgImage','opacity','num','title1','title2','sub','footerL','footerR'].forEach(k => {
+      if (saved[k] !== undefined && saved[k] !== null) _mgz[k] = saved[k];
+    });
+  } catch(e) {}
+
+  // 填入面板
+  document.getElementById('mgzNumInput').value     = _mgz.num     || '';
+  document.getElementById('mgzTitle1Input').value  = _mgz.title1  || '';
+  document.getElementById('mgzTitle2Input').value  = _mgz.title2  || '';
+  document.getElementById('mgzSubInput').value     = _mgz.sub     || '';
+  document.getElementById('mgzFooterLInput').value = _mgz.footerL || '';
+  document.getElementById('mgzFooterRInput').value = _mgz.footerR || '';
+  document.getElementById('mgzOpacitySlider').value    = _mgz.opacity;
+  document.getElementById('mgzOpacityNum').textContent = _mgz.opacity;
+
+  [1,2,3].forEach(i => {
+    if (_mgz['photo'+i]) {
+      document.getElementById('mgzP'+i+'Preview').style.display = 'block';
+      document.getElementById('mgzP'+i+'Thumb').src = _mgz['photo'+i];
+      mgzApplyPhoto(i, _mgz['photo'+i]);
+    }
+  });
+  if (_mgz.bgImage) {
+    document.getElementById('mgzBgPreview').style.display = 'block';
+    document.getElementById('mgzBgThumb').src = _mgz.bgImage;
+  } else {
+    document.getElementById('mgzBgPreview').style.display = 'none';
+  }
+
+  mgzPreviewText();
+  mgzApplyBg();
+  mgzSyncStatusBar();
+
+  document.getElementById('mgzOverlay').style.display = 'block';
+  document.getElementById('mgzPanel').style.transform = 'translateX(0)';
+}
+
+function mgzClose() {
+  document.getElementById('mgzOverlay').style.display = 'none';
+  document.getElementById('mgzPanel').style.transform = 'translateX(100%)';
+}
+
+function mgzSyncStatusBar() {
+  const tz  = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('zh-CN',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false});
+  const el = document.getElementById('mgzStatusTime');
+  if (el) el.textContent = timeStr;
+
+  const enabled = localStorage.getItem('luna_island_enabled') === 'true';
+  const style   = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('mgzStatusIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal:`<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:`<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:`<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">${timeStr}</span></div></div>`,
+        pulse:`<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple:`<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow:`<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:`<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:`<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[style] || styleMap.minimal;
+    }
+  }
+
+  const batPct = document.getElementById('mgzBatPct');
+  const batInner = document.getElementById('mgzBatInner');
+  if ('getBattery' in navigator) {
+    navigator.getBattery().then(b => {
+      const p = Math.round(b.level*100);
+      if (batPct) batPct.textContent = p;
+      if (batInner) { batInner.style.width=p+'%'; batInner.style.background=p<=20?'linear-gradient(90deg,#f87171,#ef4444)':'linear-gradient(90deg,#6ee7b7,#34d399)'; }
+    });
+  } else {
+    if (batPct) batPct.textContent='76';
+    if (batInner) { batInner.style.width='76%'; batInner.style.background='linear-gradient(90deg,#6ee7b7,#34d399)'; }
+  }
+}
+
+function mgzHandlePhoto(input, idx) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    _mgz['photo'+idx] = url;
+    document.getElementById('mgzP'+idx+'Preview').style.display = 'block';
+    document.getElementById('mgzP'+idx+'Thumb').src = url;
+    mgzApplyPhoto(idx, url);
+  };
+  reader.readAsDataURL(file);
+}
+
+function mgzApplyPhoto(idx, url) {
+  const idMap = { 1:'mgzPrevPhoto1', 2:'mgzPrevPhoto2', 3:'mgzPrevPhoto3' };
+  const el = document.getElementById(idMap[idx]);
+  if (!el) return;
+  el.style.backgroundImage = `url(${url})`;
+  el.style.backgroundSize = 'cover';
+  el.style.backgroundPosition = 'center';
+  el.innerHTML = '';
+}
+
+function mgzRemovePhoto(idx) {
+  _mgz['photo'+idx] = null;
+  document.getElementById('mgzP'+idx+'Preview').style.display = 'none';
+  document.getElementById('mgzP'+idx+'Input').value = '';
+  const idMap = {1:'mgzPrevPhoto1',2:'mgzPrevPhoto2',3:'mgzPrevPhoto3'};
+  const placeholderSvg = `<svg viewBox="0 0 40 40" fill="none" width="${idx===1?36:22}" height="${idx===1?36:22}"><rect x="2" y="6" width="36" height="28" rx="3" stroke="rgba(100,92,80,0.35)" stroke-width="1.2"/><circle cx="12" cy="17" r="4" stroke="rgba(100,92,80,0.3)" stroke-width="1"/><path d="M2 28l9-7 7 7 5-5 13 9" stroke="rgba(100,92,80,0.3)" stroke-width="1" stroke-linecap="round"/></svg>`;
+  const el = document.getElementById(idMap[idx]);
+  if (el) { el.style.backgroundImage='none'; el.innerHTML = placeholderSvg; }
+}
+
+function mgzPreviewText() {
+  const map = {
+    mgzNumInput:    'mgzPrevNum',
+    mgzSubInput:    'mgzPrevSub',
+    mgzFooterLInput:'mgzPrevFooterL',
+    mgzFooterRInput:'mgzPrevFooterR',
+  };
+  Object.entries(map).forEach(([inId, outId]) => {
+    const val = document.getElementById(inId).value;
+    if (val) { const el = document.getElementById(outId); if(el) el.textContent = val; }
+  });
+  // 大标题（两行分开）
+  const t1 = document.getElementById('mgzTitle1Input').value;
+  const t2 = document.getElementById('mgzTitle2Input').value;
+  const titleEl = document.getElementById('mgzPrevTitle');
+  if (titleEl) titleEl.innerHTML = `${t1 || 'Quiet'}<br><em style="font-style:italic;color:#4a4540;">${t2 || 'Luxury'}</em>`;
+
+  _mgz.num     = document.getElementById('mgzNumInput').value;
+  _mgz.title1  = document.getElementById('mgzTitle1Input').value;
+  _mgz.title2  = document.getElementById('mgzTitle2Input').value;
+  _mgz.sub     = document.getElementById('mgzSubInput').value;
+  _mgz.footerL = document.getElementById('mgzFooterLInput').value;
+  _mgz.footerR = document.getElementById('mgzFooterRInput').value;
+}
+
+function mgzHandleBg(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _mgz.bgImage = e.target.result;
+    document.getElementById('mgzBgPreview').style.display = 'block';
+    document.getElementById('mgzBgThumb').src = e.target.result;
+    mgzApplyBg();
+  };
+  reader.readAsDataURL(file);
+}
+
+function mgzRemoveBg() {
+  _mgz.bgImage = null;
+  document.getElementById('mgzBgPreview').style.display = 'none';
+  document.getElementById('mgzBgInput').value = '';
+  mgzApplyBg();
+}
+
+function mgzPreviewOpacity(val) {
+  _mgz.opacity = parseInt(val);
+  document.getElementById('mgzOpacityNum').textContent = val;
+  mgzApplyBg();
+}
+
+function mgzApplyBg() {
+  const bg   = document.getElementById('mgzPrevBg');
+  const mask = document.getElementById('mgzPrevMask');
+  if (!bg || !mask) return;
+  const alpha = _mgz.opacity / 100;
+  if (_mgz.bgImage) {
+    bg.style.backgroundImage    = `url(${_mgz.bgImage})`;
+    bg.style.backgroundSize     = 'cover';
+    bg.style.backgroundPosition = 'center';
+    mask.style.background       = `rgba(250,250,248,${alpha})`;
+    mask.style.backdropFilter   = alpha < 0.5 ? `blur(${Math.round((1-alpha)*20)}px)` : 'none';
+    mask.style.webkitBackdropFilter = mask.style.backdropFilter;
+  } else {
+    bg.style.backgroundImage  = 'none';
+    bg.style.backgroundColor  = '#FAFAF8';
+    mask.style.background     = `rgba(250,250,248,${alpha})`;
+    mask.style.backdropFilter = alpha < 0.9 ? `blur(${Math.round((1-alpha)*20)}px)` : 'none';
+    mask.style.webkitBackdropFilter = mask.style.backdropFilter;
+  }
+}
+
+async function mgzSave() {
+  _mgz.num     = document.getElementById('mgzNumInput').value.trim();
+  _mgz.title1  = document.getElementById('mgzTitle1Input').value.trim();
+  _mgz.title2  = document.getElementById('mgzTitle2Input').value.trim();
+  _mgz.sub     = document.getElementById('mgzSubInput').value.trim();
+  _mgz.footerL = document.getElementById('mgzFooterLInput').value.trim();
+  _mgz.footerR = document.getElementById('mgzFooterRInput').value.trim();
+  _mgz.opacity = parseInt(document.getElementById('mgzOpacitySlider').value);
+
+  const req = indexedDB.open('LunaMagazineDB', 1);
+  req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains('mgz')) e.target.result.createObjectStore('mgz',{keyPath:'id'}); };
+  req.onsuccess = e => {
+    const db = e.target.result;
+    const tx = db.transaction('mgz','readwrite');
+    tx.objectStore('mgz').put({ id:'widget', ..._mgz });
+    tx.oncomplete = () => {
+      localStorage.setItem('luna_magazine_widget_update', Date.now().toString());
+      showToast('已保存');
+      setTimeout(() => mgzClose(), 800);
+    };
+    tx.onerror = () => showToast('保存失败');
+  };
+  req.onerror = () => showToast('保存失败，无法打开数据库');
+}
+
+/* ============================================
+   Press 名片组件设置面板 — pw
+============================================ */
+let _pw = { avatar: null, bgImage: null, opacity: 100, band: '', name: '', sub: '', n1: '', l1: '', n2: '', l2: '', n3: '', l3: '' };
+
+async function pwOpen() {
+  try {
+    const db = await new Promise((res,rej) => {
+      const req = indexedDB.open('LunaPressDB', 1);
+      req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains('pw')) e.target.result.createObjectStore('pw',{keyPath:'id'}); };
+      req.onsuccess = e => res(e.target.result);
+      req.onerror = () => rej();
+    });
+    const saved = await new Promise(res => {
+      const r = db.transaction('pw').objectStore('pw').get('widget');
+      r.onsuccess = () => res(r.result || {});
+      r.onerror = () => res({});
+    });
+    ['avatar','bgImage','bgOpacity','band','name','sub','n1','l1','n2','l2','n3','l3'].forEach(k => {
+      if (saved[k] !== undefined && saved[k] !== null) _pw[k] = saved[k];
+    });
+  } catch(e) {}
+
+  document.getElementById('pwBandInput').value = _pw.band || '';
+  document.getElementById('pwNameInput').value = _pw.name || '';
+  document.getElementById('pwSubInput').value  = _pw.sub  || '';
+  document.getElementById('pwN1').value = _pw.n1 || '';
+  document.getElementById('pwL1').value = _pw.l1 || '';
+  document.getElementById('pwN2').value = _pw.n2 || '';
+  document.getElementById('pwL2').value = _pw.l2 || '';
+  document.getElementById('pwN3').value = _pw.n3 || '';
+  document.getElementById('pwL3').value = _pw.l3 || '';
+
+  // 恢复背景图
+  if (_pw.bgImage) {
+    document.getElementById('pwBgThumb').src = _pw.bgImage;
+    document.getElementById('pwBgPreview').style.display = 'block';
+    pwApplyBg();
+  }
+  const opacityVal = _pw.bgOpacity !== undefined ? _pw.bgOpacity : 0;
+  document.getElementById('pwBgOpacity').value = opacityVal;
+  document.getElementById('pwBgOpacityVal').textContent = Math.round(opacityVal * 100) + '%';
+
+  if (_pw.avatar) {
+    document.getElementById('pwAvPreview').style.display = 'block';
+    document.getElementById('pwAvThumb').src = _pw.avatar;
+    const prev = document.getElementById('pwPrevAvatar');
+    if (prev) prev.innerHTML = `<img src="${_pw.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
+  }
+
+  pwPreviewText();
+  pwSyncStatusBar();
+
+  document.getElementById('pwOverlay').style.display = 'block';
+  document.getElementById('pwPanel').style.transform = 'translateX(0)';
+}
+
+function pwClose() {
+  document.getElementById('pwOverlay').style.display = 'none';
+  document.getElementById('pwPanel').style.transform = 'translateX(100%)';
+}
+
+function pwSyncStatusBar() {
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('zh-CN',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false});
+  const el = document.getElementById('pwStatusTime');
+  if (el) el.textContent = timeStr;
+
+  const enabled = localStorage.getItem('luna_island_enabled') === 'true';
+  const style   = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('pwStatusIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal:`<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:`<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:`<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">${timeStr}</span></div></div>`,
+        pulse:`<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple:`<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow:`<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:`<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:`<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[style] || styleMap.minimal;
+    }
+  }
+
+  const batPct = document.getElementById('pwBatPct');
+  const batInner = document.getElementById('pwBatInner');
+  if ('getBattery' in navigator) {
+    navigator.getBattery().then(b => {
+      const p = Math.round(b.level*100);
+      if (batPct) batPct.textContent = p;
+      if (batInner) { batInner.style.width=p+'%'; batInner.style.background=p<=20?'linear-gradient(90deg,#f87171,#ef4444)':'linear-gradient(90deg,#6ee7b7,#34d399)'; }
+    });
+  } else {
+    if (batPct) batPct.textContent='76';
+    if (batInner) { batInner.style.width='76%'; batInner.style.background='linear-gradient(90deg,#6ee7b7,#34d399)'; }
+  }
+}
+
+function pwHandleBg(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    _pw.bgImage = url;
+    document.getElementById('pwBgPreview').style.display = 'block';
+    document.getElementById('pwBgThumb').src = url;
+    pwApplyBg();
+  };
+  reader.readAsDataURL(file);
+}
+
+function pwRemoveBg() {
+  _pw.bgImage = null;
+  document.getElementById('pwBgPreview').style.display = 'none';
+  document.getElementById('pwBgInput').value = '';
+  pwApplyBg();
+}
+
+function pwApplyBg() {
+  const previewCard = document.querySelector('#pwPanel .ww-body > div:nth-child(2) > div');
+  // 找到预览卡片的最外层容器（有background:#ffffff那个）
+  const card = document.getElementById('pwPreviewCard');
+  if (!card) return;
+  const opacity = parseFloat(document.getElementById('pwBgOpacity').value || 0);
+  if (_pw.bgImage) {
+    card.style.backgroundImage = `url(${_pw.bgImage})`;
+    card.style.backgroundSize = 'cover';
+    card.style.backgroundPosition = 'center';
+    card.style.backgroundColor = `rgba(255,255,255,${1 - opacity})`;
+  } else {
+    card.style.backgroundImage = 'none';
+    card.style.backgroundColor = `rgba(255,255,255,1)`;
+  }
+}
+
+function pwHandleAvatar(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    _pw.avatar = url;
+    document.getElementById('pwAvPreview').style.display = 'block';
+    document.getElementById('pwAvThumb').src = url;
+    const prev = document.getElementById('pwPrevAvatar');
+    if (prev) prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function pwRemoveAvatar() {
+  _pw.avatar = null;
+  document.getElementById('pwAvPreview').style.display = 'none';
+  document.getElementById('pwAvInput').value = '';
+  const prev = document.getElementById('pwPrevAvatar');
+  if (prev) prev.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#9a9690" stroke-width="1.3" width="22" height="22"><circle cx="12" cy="8" r="4.5"/><path d="M3 21c0-4.5 4-8 9-8s9 3.5 9 8"/></svg>`;
+}
+
+function pwPreviewText() {
+  const band = document.getElementById('pwBandInput').value;
+  const name = document.getElementById('pwNameInput').value;
+  const sub  = document.getElementById('pwSubInput').value;
+  const n1 = document.getElementById('pwN1').value;
+  const l1 = document.getElementById('pwL1').value;
+  const n2 = document.getElementById('pwN2').value;
+  const l2 = document.getElementById('pwL2').value;
+  const n3 = document.getElementById('pwN3').value;
+  const l3 = document.getElementById('pwL3').value;
+
+  if (band) document.getElementById('pwPrevBandLabel').textContent = band;
+  if (name) document.getElementById('pwPrevName').textContent = name;
+  if (sub)  document.getElementById('pwPrevSub').textContent  = sub;
+  if (n1)   document.getElementById('pwPrevN1').textContent   = n1;
+  if (l1)   document.getElementById('pwPrevL1').textContent   = l1;
+  if (n2)   document.getElementById('pwPrevN2').textContent   = n2;
+  if (l2)   document.getElementById('pwPrevL2').textContent   = l2;
+  if (n3)   document.getElementById('pwPrevN3').textContent   = n3;
+  if (l3)   document.getElementById('pwPrevL3').textContent   = l3;
+
+  Object.assign(_pw, {band,name,sub,n1,l1,n2,l2,n3,l3});
+}
+
+async function pwSave() {
+  pwPreviewText();
+  // 同步透明度到 _pw.bgOpacity（统一用 bgOpacity 0~1 范围）
+  _pw.bgOpacity = parseFloat(document.getElementById('pwBgOpacity').value || 0);
+  const req = indexedDB.open('LunaPressDB', 1);
+  req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains('pw')) e.target.result.createObjectStore('pw',{keyPath:'id'}); };
+  req.onsuccess = e => {
+    const db = e.target.result;
+    const tx = db.transaction('pw','readwrite');
+    tx.objectStore('pw').put({ id:'widget', ..._pw });
+    tx.oncomplete = () => {
+      localStorage.setItem('luna_press_widget_update', Date.now().toString());
+      showToast('已保存');
+      setTimeout(() => pwClose(), 800);
+    };
+    tx.onerror = () => showToast('保存失败');
+  };
+  req.onerror = () => showToast('保存失败，无法打开数据库');
+}
+/* ============================================
+   日记本组件设置面板 — pdw
+============================================ */
+let _pdw = { bgImage: null, opacity: 100, caption: '', name: '', sub: '', stat1: '', stat2: '', stat3: '' };
+
+async function pdwOpen() {
+  try {
+    const db = await new Promise((res, rej) => {
+      const req = indexedDB.open('LunaDiaryDB', 1);
+      req.onupgradeneeded = e => { if (!e.target.result.objectStoreNames.contains('pdw')) e.target.result.createObjectStore('pdw', { keyPath: 'id' }); };
+      req.onsuccess = e => res(e.target.result);
+      req.onerror = () => rej();
+    });
+    const saved = await new Promise(res => {
+      const r = db.transaction('pdw').objectStore('pdw').get('widget');
+      r.onsuccess = () => res(r.result || {});
+      r.onerror = () => res({});
+    });
+    ['bgImage', 'opacity', 'caption', 'name', 'sub', 'stat1', 'stat2', 'stat3'].forEach(k => {
+      if (saved[k] !== undefined && saved[k] !== null) _pdw[k] = saved[k];
+    });
+  } catch(e) {}
+
+  document.getElementById('pdwCaptionInput').value = _pdw.caption || '';
+  document.getElementById('pdwNameInput').value    = _pdw.name    || '';
+  document.getElementById('pdwSubInput').value     = _pdw.sub     || '';
+  document.getElementById('pdwStat1').value        = _pdw.stat1   || '';
+  document.getElementById('pdwStat2').value        = _pdw.stat2   || '';
+  document.getElementById('pdwStat3').value        = _pdw.stat3   || '';
+
+  const opVal = _pdw.opacity !== undefined ? _pdw.opacity : 100;
+  document.getElementById('pdwOpacitySlider').value = opVal;
+  document.getElementById('pdwOpacityNum').textContent = opVal;
+
+  if (_pdw.bgImage) {
+    document.getElementById('pdwBgThumb').src = _pdw.bgImage;
+    document.getElementById('pdwBgPreview').style.display = 'block';
+  } else {
+    document.getElementById('pdwBgPreview').style.display = 'none';
+  }
+
+  pdwApplyBg();
+  pdwPreviewText();
+  pdwSyncStatusBar();
+
+  document.getElementById('pdwOverlay').style.display = 'block';
+  document.getElementById('pdwPanel').style.transform = 'translateX(0)';
+}
+
+function pdwClose() {
+  document.getElementById('pdwOverlay').style.display = 'none';
+  document.getElementById('pdwPanel').style.transform = 'translateX(100%)';
+}
+
+function pdwSyncStatusBar() {
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('zh-CN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+  const el = document.getElementById('pdwStatusTime');
+  if (el) el.textContent = timeStr;
+
+  const enabled = localStorage.getItem('luna_island_enabled') === 'true';
+  const style   = localStorage.getItem('luna_island_style') || 'minimal';
+  const islandEl = document.getElementById('pdwStatusIsland');
+  if (islandEl) {
+    if (!enabled) { islandEl.innerHTML = ''; }
+    else {
+      const styleMap = {
+        minimal: `<div class="si-minimal"><div class="si-capsule"></div></div>`,
+        glow:    `<div class="si-glow"><div class="si-capsule"></div></div>`,
+        clock:   `<div class="si-clock"><div class="si-capsule"><span class="si-clock-text">${timeStr}</span></div></div>`,
+        pulse:   `<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+        ripple:  `<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+        rainbow: `<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+        music:   `<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+        scan:    `<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`,
+      };
+      islandEl.innerHTML = styleMap[style] || styleMap.minimal;
+    }
+  }
+
+  const batPct   = document.getElementById('pdwBatPct');
+  const batInner = document.getElementById('pdwBatInner');
+  if ('getBattery' in navigator) {
+    navigator.getBattery().then(b => {
+      const p = Math.round(b.level * 100);
+      if (batPct)   batPct.textContent = p;
+      if (batInner) { batInner.style.width = p + '%'; batInner.style.background = p <= 20 ? 'linear-gradient(90deg,#f87171,#ef4444)' : 'linear-gradient(90deg,#6ee7b7,#34d399)'; }
+    });
+  } else {
+    if (batPct)   batPct.textContent = '76';
+    if (batInner) { batInner.style.width = '76%'; batInner.style.background = 'linear-gradient(90deg,#6ee7b7,#34d399)'; }
+  }
+}
+
+function pdwHandleBg(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    _pdw.bgImage = url;
+    document.getElementById('pdwBgThumb').src = url;
+    document.getElementById('pdwBgPreview').style.display = 'block';
+    pdwApplyBg();
+  };
+  reader.readAsDataURL(file);
+}
+
+function pdwRemoveBg() {
+  _pdw.bgImage = null;
+  document.getElementById('pdwBgPreview').style.display = 'none';
+  document.getElementById('pdwBgInput').value = '';
+  pdwApplyBg();
+}
+
+function pdwApplyBg() {
+  const imgDiv = document.getElementById('pdwPrevImg');
+  const placeholder = document.getElementById('pdwPrevPlaceholder');
+  if (!imgDiv) return;
+  const alpha = (_pdw.opacity !== undefined ? _pdw.opacity : 100) / 100;
+
+  if (_pdw.bgImage) {
+    imgDiv.style.backgroundImage    = `url(${_pdw.bgImage})`;
+    imgDiv.style.backgroundSize     = 'cover';
+    imgDiv.style.backgroundPosition = 'center';
+    // 用白色叠加层控制透明度，而不是对整个 div 设置 opacity（避免文字也透明）
+    imgDiv.style.backgroundColor    = `rgba(255,255,255,${1 - alpha})`;
+    imgDiv.style.opacity            = '';
+    if (placeholder) placeholder.style.display = 'none';
+  } else {
+    imgDiv.style.backgroundImage = 'none';
+    imgDiv.style.background      = `linear-gradient(160deg,#eae8e2 0%,#d8d4cc 100%)`;
+    imgDiv.style.opacity         = '';
+    if (placeholder) placeholder.style.display = '';
+  }
+  // 渐隐遮罩始终保留
+  const fade = document.getElementById('pdwPrevFade');
+  if (fade) fade.style.background = `linear-gradient(to top, rgba(255,255,255,${0.6 + alpha * 0.3}), transparent)`;
+}
+
+function pdwPreviewText() {
+  const caption = document.getElementById('pdwCaptionInput').value;
+  const name    = document.getElementById('pdwNameInput').value;
+  const sub     = document.getElementById('pdwSubInput').value;
+  const s1      = document.getElementById('pdwStat1').value;
+  const s2      = document.getElementById('pdwStat2').value;
+  const s3      = document.getElementById('pdwStat3').value;
+
+  const cap = document.getElementById('pdwPrevCaption');
+  const nm  = document.getElementById('pdwPrevName');
+  const sb  = document.getElementById('pdwPrevSub');
+  const st1 = document.getElementById('pdwPrevStat1');
+  const st2 = document.getElementById('pdwPrevStat2');
+  const st3 = document.getElementById('pdwPrevStat3');
+
+  if (cap && caption) cap.textContent = `"${caption}"`;
+  if (nm  && name)    nm.textContent  = name;
+  if (sb  && sub)     sb.textContent  = sub;
+  if (st1 && s1)      st1.textContent = s1;
+  if (st2 && s2)      st2.textContent = s2;
+  if (st3 && s3)      st3.textContent = s3;
+
+  Object.assign(_pdw, { caption, name, sub, stat1: s1, stat2: s2, stat3: s3 });
+}
+
+async function pdwSave() {
+  pdwPreviewText();
+  const req = indexedDB.open('LunaDiaryDB', 1);
+  req.onupgradeneeded = e => { if (!e.target.result.objectStoreNames.contains('pdw')) e.target.result.createObjectStore('pdw', { keyPath: 'id' }); };
+  req.onsuccess = e => {
+    const db = e.target.result;
+    const tx = db.transaction('pdw', 'readwrite');
+    tx.objectStore('pdw').put({ id: 'widget', ..._pdw });
+    tx.oncomplete = () => {
+      localStorage.setItem('luna_diary_widget_update', Date.now().toString());
+      showToast('已保存');
+      setTimeout(() => pdwClose(), 800);
+    };
+    tx.onerror = () => showToast('保存失败');
+  };
+  req.onerror = () => showToast('保存失败，无法打开数据库');
 }

@@ -119,6 +119,15 @@
       <!-- 背景层 -->
       <div class="ch-preview-bg" id="previewBg"></div>
       <div class="ch-preview-bg-overlay"></div>
+      <!-- 完整度指示 -->
+      <div class="ch-completeness">
+        <svg class="ch-completeness-ring" viewBox="0 0 16 16">
+          <circle cx="8" cy="8" r="6.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+          <circle id="completenessArc" cx="8" cy="8" r="6.5" fill="none" stroke="#fff" stroke-width="2"
+            stroke-dasharray="40.8" stroke-dashoffset="40.8" transform="rotate(-90 8 8)" stroke-linecap="round"/>
+        </svg>
+        <span class="ch-completeness-text" id="completenessText">0%</span>
+      </div>
       <!-- 内容 -->
       <div class="ch-preview-content">
         <!-- 头像上传 -->
@@ -147,84 +156,410 @@
       </button>
       <input type="file" id="bgInput" accept="image/*" style="display:none" onchange="handleBgUpload(this)"/>
     </div>
+    <!-- 主题色选择 -->
+    <div class="ch-color-row" id="colorRow" style="margin-top:14px;">
+      <div class="ch-color-opt selected" data-color="ink"    style="background:linear-gradient(135deg,#3a3a40,#16161a)" onclick="selectColor(this)"></div>
+      <div class="ch-color-opt" data-color="slate"  style="background:linear-gradient(135deg,#7a7a82,#54545c)" onclick="selectColor(this)"></div>
+      <div class="ch-color-opt" data-color="silver" style="background:linear-gradient(135deg,#b8b8bc,#8c8c92)" onclick="selectColor(this)"></div>
+      <div class="ch-color-opt" data-color="frost"  style="background:linear-gradient(135deg,#c4c8cc,#9aa0a6)" onclick="selectColor(this)"></div>
+      <div class="ch-color-opt" data-color="smoke"  style="background:linear-gradient(135deg,#6a6a70,#3c3c42)" onclick="selectColor(this)"></div>
+      <div class="ch-color-opt" data-color="pearl"  style="background:linear-gradient(135deg,#d6d6d8,#adadb2)" onclick="selectColor(this)"></div>
+    </div>
   </div>
 
-  <!-- 表单 -->
-  <div class="ch-form">
+  <!-- ============ 分组表单 · 角色书完整体系 ============ -->
+  <div class="ch-sections-wrap">
 
-    <!-- 第一行：名称 + 定位 -->
-    <div class="ch-form-row">
-      <div class="ch-form-group">
-        <label class="ch-form-label">
-          <span class="ch-form-label-dot"></span>昵称
-        </label>
-        <input class="ch-form-input" id="formName" type="text" placeholder="Luna"
-          oninput="document.getElementById('previewName').textContent = this.value || '角色名称'"/>
+    <!-- ① 基础身份 -->
+    <div class="ch-form-section open" data-section="identity">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">01</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">基础身份</div>
+          <div class="ch-fs-sub">IDENTITY</div>
+        </div>
+        <div class="ch-fs-required">必填</div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="ch-form-group">
-        <label class="ch-form-label">
-          <span class="ch-form-label-dot"></span>定位
-        </label>
-        <input class="ch-form-input" id="formRole" type="text" placeholder="创作助手"
-          oninput="updatePreviewMeta()"/>
-      </div>
-    </div>
-
-    <!-- 第二行：性别 + 年龄 + 生日 -->
-    <div class="ch-form-row ch-form-row-3">
-      <div class="ch-form-group">
-        <label class="ch-form-label">
-          <span class="ch-form-label-dot"></span>性别
-        </label>
-        <div class="ch-gender-row">
-          <button class="ch-gender-btn active" data-gender="女" onclick="selectGender(this)">♀ 女</button>
-          <button class="ch-gender-btn" data-gender="男" onclick="selectGender(this)">♂ 男</button>
-          <button class="ch-gender-btn" data-gender="未知" onclick="selectGender(this)">? 未</button>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-form-row">
+            <div class="ch-form-group">
+              <label class="ch-form-label"><span class="ch-form-label-dot"></span>昵称 / 角色名</label>
+              <input class="ch-form-input" id="formName" type="text" placeholder="Luna"
+                oninput="document.getElementById('previewName').textContent = this.value || '角色名称'; updateCompleteness();"/>
+            </div>
+            <div class="ch-form-group">
+              <label class="ch-form-label"><span class="ch-form-label-dot"></span>定位 / 身份</label>
+              <input class="ch-form-input" id="formRole" type="text" placeholder="创作助手 / 私人管家 / 挚友"
+                oninput="updatePreviewMeta(); updateCompleteness();"/>
+            </div>
+          </div>
+          <div class="ch-form-row ch-form-row-3">
+            <div class="ch-form-group">
+              <label class="ch-form-label"><span class="ch-form-label-dot"></span>性别</label>
+              <div class="ch-gender-row">
+                <button class="ch-gender-btn active" data-gender="女" onclick="selectGender(this)">♀ 女</button>
+                <button class="ch-gender-btn" data-gender="男" onclick="selectGender(this)">♂ 男</button>
+                <button class="ch-gender-btn" data-gender="未知" onclick="selectGender(this)">? 未</button>
+              </div>
+            </div>
+            <div class="ch-form-group">
+              <label class="ch-form-label"><span class="ch-form-label-dot"></span>年龄</label>
+              <input class="ch-form-input" id="formAge" type="text" placeholder="18 / 不详"
+                oninput="updatePreviewMeta(); updateCompleteness();"/>
+            </div>
+            <div class="ch-form-group">
+              <label class="ch-form-label"><span class="ch-form-label-dot"></span>生日</label>
+              <input class="ch-form-input" id="formBirthday" type="text" placeholder="03/15"/>
+            </div>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>种族 / 身份类型</label>
+            <input class="ch-form-input" id="formSpecies" type="text" placeholder="人类 / AI / 精灵 / 兽人…（选填）"/>
+          </div>
         </div>
       </div>
-      <div class="ch-form-group">
-        <label class="ch-form-label">
-          <span class="ch-form-label-dot"></span>年龄
-        </label>
-        <input class="ch-form-input" id="formAge" type="number" placeholder="18" min="1" max="999"
-          oninput="updatePreviewMeta()"/>
+    </div>
+
+    <!-- ② 外貌描写 -->
+    <div class="ch-form-section" data-section="appearance">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">02</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">外貌描写</div>
+          <div class="ch-fs-sub">APPEARANCE</div>
+        </div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="ch-form-group">
-        <label class="ch-form-label">
-          <span class="ch-form-label-dot"></span>生日
-        </label>
-        <input class="ch-form-input" id="formBirthday" type="text" placeholder="03/15"/>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-fs-hint">越具体的外貌描写，AI 在互动中越能保持视觉一致性，避免"角色形象漂移"。</div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>整体外貌</label>
+            <textarea class="ch-form-textarea" id="formAppearance" placeholder="身高体型、发型发色、瞳色、气质轮廓…"></textarea>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>穿搭 / 标志性物品</label>
+            <textarea class="ch-form-textarea" id="formOutfit" placeholder="常穿服饰风格、配饰、随身物品…"></textarea>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 人设描述 -->
-    <div class="ch-form-group">
-      <label class="ch-form-label">
-        <span class="ch-form-label-dot"></span>人设描述
-        <span class="ch-form-label-count" id="descCount">0</span>
-      </label>
-      <textarea class="ch-form-textarea ch-form-textarea-desc" id="formDesc"
-        placeholder="描述角色的性格、说话风格、背景故事、习惯爱好…不限字数，越详细越好。"
-        oninput="document.getElementById('descCount').textContent = this.value.length"></textarea>
+    <!-- ③ 性格深描 -->
+    <div class="ch-form-section" data-section="personality">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">03</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">性格深描</div>
+          <div class="ch-fs-sub">PERSONALITY</div>
+        </div>
+        <div class="ch-fs-required">必填</div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>性格标签
+              <span class="ch-form-label-hint">逗号分隔</span>
+            </label>
+            <input class="ch-form-input" id="formTraits" type="text" placeholder="温柔, 创意, 感性, 善于倾听" oninput="updateCompleteness()"/>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>人设描述
+              <span class="ch-form-label-count" id="descCount">0</span>
+            </label>
+            <textarea class="ch-form-textarea ch-form-textarea-desc" id="formDesc"
+              placeholder="性格核心特质、行为逻辑、内在动机、习惯反应…不限字数，越详细越好。"
+              oninput="document.getElementById('descCount').textContent = this.value.length; updateCompleteness();"></textarea>
+          </div>
+          <div class="ch-form-row">
+            <div class="ch-form-group">
+              <label class="ch-form-label"><span class="ch-form-label-dot"></span>喜欢</label>
+              <div class="ch-dynlist" id="likesList"></div>
+              <button class="ch-dynlist-add" onclick="addDynItem('likesList','喜欢的事物…')">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>添加
+              </button>
+            </div>
+            <div class="ch-form-group">
+              <label class="ch-form-label"><span class="ch-form-label-dot"></span>不喜欢</label>
+              <div class="ch-dynlist" id="dislikesList"></div>
+              <button class="ch-dynlist-add" onclick="addDynItem('dislikesList','厌恶的事物…')">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>添加
+              </button>
+            </div>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>恐惧 / 弱点 / 隐藏面</label>
+            <textarea class="ch-form-textarea" id="formFears" placeholder="害怕什么、逞强的地方、不轻易展露的一面…（让角色更立体，非必填）"></textarea>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- 性格标签 -->
-    <div class="ch-form-group">
-      <label class="ch-form-label">
-        <span class="ch-form-label-dot"></span>性格标签
-        <span class="ch-form-label-hint">逗号分隔</span>
-      </label>
-      <input class="ch-form-input" id="formTraits" type="text" placeholder="温柔, 创意, 感性, 善于倾听"/>
+    <!-- ④ 语言风格 -->
+    <div class="ch-form-section" data-section="speech">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">04</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">语言风格</div>
+          <div class="ch-fs-sub">SPEECH STYLE</div>
+        </div>
+        <div class="ch-fs-required">重要</div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-fs-hint">语言风格是 AI 最容易"跑偏"的部分。写得越具体，角色语气崩坏的概率越低。</div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>说话方式描述</label>
+            <textarea class="ch-form-textarea" id="formSpeechStyle" placeholder="句式长短、用词习惯、语气词、口头禅、是否用敬语、标点习惯（如爱用省略号/感叹号）…"></textarea>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>口头禅 / 惯用语
+              <span class="ch-form-label-hint">逗号分隔</span>
+            </label>
+            <input class="ch-form-input" id="formCatchphrases" type="text" placeholder="例如：「随你便啦」「哦？是吗」"/>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>语言</label>
+            <div class="ch-pill-select" id="langSelect">
+              <button class="ch-pill-opt active" data-val="中文" onclick="selectPill(this,'langSelect')">中文</button>
+              <button class="ch-pill-opt" data-val="英文" onclick="selectPill(this,'langSelect')">英文</button>
+              <button class="ch-pill-opt" data-val="中英混杂" onclick="selectPill(this,'langSelect')">中英混杂</button>
+              <button class="ch-pill-opt" data-val="随用户" onclick="selectPill(this,'langSelect')">随用户切换</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- 系统提示词 -->
-    <div class="ch-form-group">
-        <label class="ch-form-label">
-            <span class="ch-form-label-dot" style="background:var(--accent)"></span>系统提示词
-            <span class="ch-form-label-hint">选填 · 不填则自动生成</span>
-        </label>
-        <textarea class="ch-form-textarea ch-form-textarea-lg" id="formPrompt"
-            placeholder="留空则根据上方信息自动生成角色指令，也可以在这里手动补充更细节的行为规则..."></textarea>
+    <!-- ⑤ 背景故事 -->
+    <div class="ch-form-section" data-section="backstory">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">05</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">背景故事 · 世界观</div>
+          <div class="ch-fs-sub">BACKSTORY & SCENARIO</div>
+        </div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>背景故事</label>
+            <textarea class="ch-form-textarea" id="formBackstory" placeholder="角色的出身、经历、重要事件…塑造行为逻辑的来源"></textarea>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>当前场景 / 情境设定</label>
+            <textarea class="ch-form-textarea" id="formScenario" placeholder="对话开始时角色所处的场景、时间地点、正在做的事…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑥ 关联世界书 -->
+    <div class="ch-form-section" data-section="worldbook">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">06</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">关联世界书</div>
+          <div class="ch-fs-sub">LINKED WORLDBOOK ENTRIES</div>
+        </div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-fs-hint">勾选的世界书条目会在「应用角色」时随人设一并注入；这里的关联与世界书条目里的「关联角色」双向同步，两边选择保持一致。</div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>选择世界书条目</label>
+            <div class="ch-wb-picker" id="chWbPicker">
+              <div class="ch-wb-empty-hint">暂无世界书条目，请先在世界书中创建</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑦ 与用户的关系 -->
+    <div class="ch-form-section" data-section="relationship">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">07</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">对用户的态度</div>
+          <div class="ch-fs-sub">RELATIONSHIP TO USER</div>
+        </div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>关系设定</label>
+            <input class="ch-form-input" id="formRelation" type="text" placeholder="青梅竹马 / 上司 / 陌生人初遇 / 专属助理…"/>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>对用户的称呼</label>
+            <input class="ch-form-input" id="formCallUser" type="text" placeholder="你 / 主人 / 名字 / 昵称…"/>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>互动细节</label>
+            <textarea class="ch-form-textarea" id="formRelationDetail" placeholder="角色对用户的态度、情感倾向、互动习惯…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑧ 开场白 & 对话示例 -->
+    <div class="ch-form-section" data-section="dialogue">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">08</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">开场白 · 对话示例</div>
+          <div class="ch-fs-sub">FIRST MESSAGE & EXAMPLES</div>
+        </div>
+        <div class="ch-fs-required">重要</div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-fs-hint">对话示例是让 AI 学会角色语气最有效的方式——AI 会模仿示例的句式与节奏，比大段文字描述更管用。</div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>开场白</label>
+            <textarea class="ch-form-textarea" id="formFirstMes" placeholder="对话开始时角色说的第一句话 / 动作描写，为整段对话的节奏定调"></textarea>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>对话示例</label>
+            <div class="ch-dynlist" id="dialogExamples"></div>
+            <button class="ch-dynlist-add" onclick="addDialogExample()">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>添加一组示例对话
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑧ 行为边界与禁止事项 -->
+    <div class="ch-form-section" data-section="rules">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">09</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">行为边界 · 禁止事项</div>
+          <div class="ch-fs-sub">BOUNDARIES & ANTI-OOC RULES</div>
+        </div>
+        <div class="ch-fs-required">防崩坏</div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-fs-hint">这一部分直接决定角色会不会"掉人设"。规则越明确、越具体，AI 越不容易 OOC。建议控制在 8-10 条以内，避免规则过多反而互相干扰。</div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>角色绝不会做的事</label>
+            <div class="ch-dynlist" id="neverList"></div>
+            <button class="ch-dynlist-add" onclick="addDynItem('neverList','例如：绝不会主动提及自己是 AI')">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>添加规则
+            </button>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>情绪/行为边界</label>
+            <textarea class="ch-form-textarea" id="formBoundaries" placeholder="角色可以生气，但绝不会恶语相向；可以调侃，但会把握分寸…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑨ 格式规范 -->
+    <div class="ch-form-section" data-section="format">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">10</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">回复格式规范</div>
+          <div class="ch-fs-sub">OUTPUT FORMAT</div>
+        </div>
+        <div class="ch-fs-required">防掉格式</div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>叙述人称</label>
+            <div class="ch-pill-select" id="povSelect">
+              <button class="ch-pill-opt active" data-val="第一人称" onclick="selectPill(this,'povSelect')">第一人称</button>
+              <button class="ch-pill-opt" data-val="第二人称沉浸" onclick="selectPill(this,'povSelect')">第二人称沉浸</button>
+              <button class="ch-pill-opt" data-val="第三人称" onclick="selectPill(this,'povSelect')">第三人称</button>
+            </div>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>回复长度</label>
+            <div class="ch-pill-select" id="lengthSelect">
+              <button class="ch-pill-opt" data-val="简短" onclick="selectPill(this,'lengthSelect')">简短 · 1-2句</button>
+              <button class="ch-pill-opt active" data-val="适中" onclick="selectPill(this,'lengthSelect')">适中 · 一小段</button>
+              <button class="ch-pill-opt" data-val="详细" onclick="selectPill(this,'lengthSelect')">详细 · 沉浸描写</button>
+            </div>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>动作/心理描写标注</label>
+            <div class="ch-pill-select" id="actionSelect">
+              <button class="ch-pill-opt active" data-val="星号" onclick="selectPill(this,'actionSelect')">*星号包裹*</button>
+              <button class="ch-pill-opt" data-val="括号" onclick="selectPill(this,'actionSelect')">（括号包裹）</button>
+              <button class="ch-pill-opt" data-val="无标注" onclick="selectPill(this,'actionSelect')">融入叙述，不标注</button>
+            </div>
+          </div>
+          <div class="ch-switch-row">
+            <div class="ch-switch-text">
+              <div class="ch-switch-title">保持角色视角，不跳出叙事</div>
+              <div class="ch-switch-desc">禁止出现"作为AI"、"我不能"等跳出角色的表达</div>
+            </div>
+            <div class="ch-switch on" id="swNoBreak" onclick="toggleSwitch(this)"></div>
+          </div>
+          <div class="ch-switch-row">
+            <div class="ch-switch-text">
+              <div class="ch-switch-title">禁止重复用户输入</div>
+              <div class="ch-switch-desc">回复不复述或总结用户刚说的话</div>
+            </div>
+            <div class="ch-switch on" id="swNoRepeat" onclick="toggleSwitch(this)"></div>
+          </div>
+          <div class="ch-switch-row">
+            <div class="ch-switch-text">
+              <div class="ch-switch-title">禁止免责声明/说教口吻</div>
+              <div class="ch-switch-desc">保持角色沉浸，不插入现实世界提醒</div>
+            </div>
+            <div class="ch-switch on" id="swNoDisclaimer" onclick="toggleSwitch(this)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑪ 系统提示词（自动生成 / 手动覆盖） -->
+    <div class="ch-form-section" data-section="prompt">
+      <div class="ch-fs-head" onclick="toggleSection(this)">
+        <div class="ch-fs-num">11</div>
+        <div class="ch-fs-titles">
+          <div class="ch-fs-title">系统提示词</div>
+          <div class="ch-fs-sub">SYSTEM PROMPT</div>
+        </div>
+        <svg class="ch-fs-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ch-fs-body">
+        <div class="ch-fs-inner">
+          <div class="ch-prompt-generate-bar" onclick="generatePromptFromFields()">
+            <div class="ch-prompt-generate-icon">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </div>
+            <div class="ch-prompt-generate-text">
+              <div class="ch-prompt-generate-title">根据以上信息生成完整提示词</div>
+              <div class="ch-prompt-generate-sub">整合全部字段为结构化 System Prompt</div>
+            </div>
+          </div>
+          <div class="ch-form-group">
+            <label class="ch-form-label"><span class="ch-form-label-dot"></span>提示词内容
+              <span class="ch-form-label-hint">留空则应用角色时自动生成</span>
+            </label>
+            <textarea class="ch-form-textarea ch-form-textarea-lg" id="formPrompt"
+              placeholder="点击上方按钮自动生成，或在此手动编写 / 补充更细节的行为规则..."></textarea>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -324,21 +659,13 @@
 
   <!-- 性格标签 -->
   <div class="cv-section">
-    <div class="cv-section-label">
-      <div class="cv-section-label-line"></div>
-      <span>PERSONA</span>
-      <div class="cv-section-label-line"></div>
-    </div>
+    <div class="cv-section-label"><span>PERSONA</span></div>
     <div class="cv-trait-row" id="cvTraits"></div>
   </div>
 
   <!-- 人设描述 -->
   <div class="cv-section">
-    <div class="cv-section-label">
-      <div class="cv-section-label-line"></div>
-      <span>ABOUT</span>
-      <div class="cv-section-label-line"></div>
-    </div>
+    <div class="cv-section-label"><span>ABOUT</span></div>
     <div class="cv-desc-card">
       <span class="cv-desc-quote">"</span>
       <div class="cv-desc-text" id="cvDesc">—</div>
@@ -346,13 +673,139 @@
     </div>
   </div>
 
+  <!-- 外貌 -->
+  <div class="cv-section" id="cvAppearanceSection">
+    <div class="cv-section-label"><span>APPEARANCE</span></div>
+    <div class="cv-kv-grid">
+      <div class="cv-kv-cell full">
+        <div class="cv-kv-key">整体外貌</div>
+        <div class="cv-kv-val" id="cvAppearance">—</div>
+      </div>
+      <div class="cv-kv-cell full">
+        <div class="cv-kv-key">穿搭 · 标志物</div>
+        <div class="cv-kv-val" id="cvOutfit">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cv-ornament-divider"><span class="cv-ornament-diamond"></span></div>
+
+  <!-- 喜好 -->
+  <div class="cv-section" id="cvPrefSection">
+    <div class="cv-section-label"><span>LIKES & DISLIKES</span></div>
+    <div class="cv-pref-grid">
+      <div class="cv-pref-card likes">
+        <div class="cv-pref-label">＋ 喜欢</div>
+        <div class="cv-pref-items" id="cvLikes"></div>
+      </div>
+      <div class="cv-pref-card dislikes">
+        <div class="cv-pref-label">－ 不喜欢</div>
+        <div class="cv-pref-items" id="cvDislikes"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 恐惧/弱点 -->
+  <div class="cv-section" id="cvFearsSection">
+    <div class="cv-section-label"><span>HIDDEN SIDE</span></div>
+    <div class="cv-kv-cell full" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;">
+      <div class="cv-kv-key">恐惧 · 弱点</div>
+      <div class="cv-kv-val" id="cvFears">—</div>
+    </div>
+  </div>
+
+  <!-- 语言风格 -->
+  <div class="cv-section" id="cvSpeechSection">
+    <div class="cv-section-label"><span>SPEECH STYLE</span></div>
+    <div class="cv-kv-grid">
+      <div class="cv-kv-cell full">
+        <div class="cv-kv-key">说话方式</div>
+        <div class="cv-kv-val" id="cvSpeechStyle">—</div>
+      </div>
+      <div class="cv-kv-cell full">
+        <div class="cv-kv-key">口头禅</div>
+        <div class="cv-kv-val" id="cvCatchphrases">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 背景故事 -->
+  <div class="cv-section" id="cvBackstorySection">
+    <div class="cv-section-label"><span>BACKSTORY & SCENARIO</span></div>
+    <div class="cv-kv-cell full" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:8px;">
+      <div class="cv-kv-key">背景故事</div>
+      <div class="cv-kv-val" id="cvBackstory">—</div>
+    </div>
+    <div class="cv-kv-cell full" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;">
+      <div class="cv-kv-key">当前场景</div>
+      <div class="cv-kv-val" id="cvScenario">—</div>
+    </div>
+  </div>
+
+  <!-- 关联世界书 -->
+  <div class="cv-section" id="cvWbSection">
+    <div class="cv-section-label"><span>LINKED WORLDBOOK ENTRIES</span></div>
+    <div class="cv-wb-row" id="cvWbRow"></div>
+  </div>
+
+  <div class="cv-ornament-divider"><span class="cv-ornament-diamond"></span></div>
+
+  <!-- 与用户关系 -->
+  <div class="cv-section" id="cvRelationSection">
+    <div class="cv-section-label"><span>RELATIONSHIP TO USER</span></div>
+    <div class="cv-kv-grid">
+      <div class="cv-kv-cell">
+        <div class="cv-kv-key">关系设定</div>
+        <div class="cv-kv-val" id="cvRelation">—</div>
+      </div>
+      <div class="cv-kv-cell">
+        <div class="cv-kv-key">称呼用户</div>
+        <div class="cv-kv-val" id="cvCallUser">—</div>
+      </div>
+      <div class="cv-kv-cell full">
+        <div class="cv-kv-key">互动细节</div>
+        <div class="cv-kv-val" id="cvRelationDetail">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 开场白 -->
+  <div class="cv-section" id="cvFirstMesSection">
+    <div class="cv-section-label"><span>FIRST MESSAGE</span></div>
+    <div class="cv-desc-card">
+      <span class="cv-desc-quote">"</span>
+      <div class="cv-desc-text" id="cvFirstMes">—</div>
+      <div class="cv-desc-rule"></div>
+    </div>
+  </div>
+
+  <!-- 对话示例 -->
+  <div class="cv-section" id="cvDialogSection">
+    <div class="cv-section-label"><span>EXAMPLE DIALOGUE</span></div>
+    <div id="cvDialogList" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+
+  <div class="cv-ornament-divider"><span class="cv-ornament-diamond"></span></div>
+
+  <!-- 行为边界 -->
+  <div class="cv-section" id="cvRulesSection">
+    <div class="cv-section-label"><span>BOUNDARIES · ANTI-OOC</span></div>
+    <div class="cv-rules-list" id="cvNeverList"></div>
+    <div class="cv-kv-cell full" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-top:8px;" id="cvBoundariesWrap">
+      <div class="cv-kv-key">情绪 / 行为边界</div>
+      <div class="cv-kv-val" id="cvBoundaries">—</div>
+    </div>
+  </div>
+
+  <!-- 格式规范 -->
+  <div class="cv-section" id="cvFormatSection">
+    <div class="cv-section-label"><span>OUTPUT FORMAT</span></div>
+    <div class="cv-format-row" id="cvFormatChips"></div>
+  </div>
+
   <!-- 系统提示词 -->
   <div class="cv-section" id="cvPromptSection">
-    <div class="cv-section-label">
-      <div class="cv-section-label-line"></div>
-      <span>SYSTEM PROMPT</span>
-      <div class="cv-section-label-line"></div>
-    </div>
+    <div class="cv-section-label"><span>SYSTEM PROMPT</span></div>
     <div class="cv-prompt-card">
       <div class="cv-prompt-topbar">
         <div class="cv-prompt-dot"></div>

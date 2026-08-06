@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>书屋 · Luna Phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="bookhouse.css" />
+</head>
+<body>
+<!--
+  说明：本页作为独立子应用，通过 index.html 中的 dock 跳转进入。
+  沿用 index.html 已建立的“冷启动/热返回”约定 —— sessionStorage 里一旦标记过
+  luna_booted=1（首次开机时已经写入），本页就不会、也不需要再放开机动画或锁屏，
+  因为能从桌面点进任何 App，说明系统必然已处于解锁状态。
+  返回桌面固定走 goBack() -> index.html，index.html 自身的冷/热判断逻辑会
+  自动识别这是"热返回"，同样不会重放开机动画或锁屏。
+-->
+<div class="luna-wrap">
+  <div class="luna-frame">
+
+    <div id="bhRoot">
+
+      <!-- ============================================================
+           视图容器：书屋 / 创作工坊 / 个人中心 三个一级页面
+      ============================================================ -->
+      <div class="bh-views">
+
+        <!-- ---------------- 书屋 ---------------- -->
+        <div class="bh-view bh-active" id="view-library" data-view="library">
+
+          <div class="bh-section-head" style="padding-top:2px;">
+            <div class="bh-section-title" id="libraryGreetTitle">书屋</div>
+          </div>
+
+          <!-- 书架 / 书册 二级切换 -->
+          <div class="bh-subtabs">
+            <div class="bh-subtab-flag" id="libSubFlag"></div>
+            <div class="bh-subtab bh-subtab-active" data-sub="shelf" onclick="BH.switchLibSub('shelf')">书架</div>
+            <div class="bh-subtab" data-sub="catalog" onclick="BH.switchLibSub('catalog')">书册</div>
+          </div>
+
+          <!-- ===== 书架面板：想看的书 + 历史记录 ===== -->
+          <div id="pane-shelf">
+            <div class="bh-shelf-group">
+              <div class="bh-shelf-caption">想看的书</div>
+              <div class="bh-shelf-row" id="wishlistRow"></div>
+            </div>
+            <div class="bh-shelf-group">
+              <div class="bh-shelf-caption">历史记录</div>
+              <div id="historyList"></div>
+            </div>
+          </div>
+
+          <!-- ===== 书册面板：候选小说 + 生成入口 ===== -->
+          <div id="pane-catalog" style="display:none;">
+            <div class="bh-shelfbook-grid" id="catalogGrid"></div>
+
+            <!-- 悬浮生成按钮 -->
+            <div class="bh-fab-wrap" id="catalogFabWrap">
+              <div class="bh-fab" id="catalogFabMain" onclick="BH.toggleFab()">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+              </div>
+              <div class="bh-fab-mini" onclick="BH.openGenSheet()">
+                <span class="bh-fab-label">生成新书</span>
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l1.8 5.6L19 9l-5.2 1.4L12 16l-1.8-5.6L5 9l5.2-1.4L12 2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="bh-fab-mini" onclick="BH.openSettingsSheet()">
+                <span class="bh-fab-label">生成设置</span>
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ---------------- 创作工坊（占位） ---------------- -->
+        <div class="bh-view" id="view-studio" data-view="studio">
+          <div class="bh-placeholder-view">
+            <div class="bh-placeholder-icon">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="bh-placeholder-title">创作工坊</div>
+            <div class="bh-placeholder-desc">这里将是你亲手搭建故事的地方，功能正在打磨中，敬请期待。</div>
+          </div>
+        </div>
+
+        <!-- ---------------- 个人中心（占位） ---------------- -->
+        <div class="bh-view" id="view-profile" data-view="profile">
+          <div class="bh-placeholder-view">
+            <div class="bh-placeholder-icon">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.6"/><path d="M4.5 20c1.6-3.6 4.6-5.4 7.5-5.4s5.9 1.8 7.5 5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </div>
+            <div class="bh-placeholder-title">个人中心</div>
+            <div class="bh-placeholder-desc">账户、收藏与阅读足迹将汇聚于此，功能正在打磨中，敬请期待。</div>
+          </div>
+        </div>
+
+        <!-- ---------------- 书籍详情页 ---------------- -->
+        <div class="bh-view" id="view-detail" data-view="detail">
+          <div class="bh-topbar">
+            <div class="bh-back" onclick="BH.backToLibrary()">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="bh-topbar-title">书籍详情</div>
+          </div>
+
+          <div class="bh-detail-hero">
+            <div class="bh-detail-cover" id="detailCover"></div>
+            <div class="bh-detail-info">
+              <div class="bh-detail-title" id="detailTitle">—</div>
+              <div class="bh-detail-author" id="detailAuthor">—</div>
+              <div class="bh-detail-tags" id="detailTags"></div>
+              <div class="bh-detail-status" id="detailStatus"></div>
+            </div>
+          </div>
+
+          <div class="bh-stat-row">
+            <div class="bh-stat"><div class="bh-stat-num" id="statReads">-</div><div class="bh-stat-label">阅读量</div></div>
+            <div class="bh-stat"><div class="bh-stat-num" id="statFavs">-</div><div class="bh-stat-label">收藏量</div></div>
+            <div class="bh-stat"><div class="bh-stat-num" id="statOnline">-</div><div class="bh-stat-label">在线观看</div></div>
+            <div class="bh-stat"><div class="bh-stat-num" id="statWords">-</div><div class="bh-stat-label">字数</div></div>
+          </div>
+
+          <div class="bh-detail-synopsis" id="detailSynopsis">—</div>
+
+          <div class="bh-detail-tabs">
+            <div class="bh-detail-tab bh-detail-tab-active" data-pane="toc" onclick="BH.switchDetailTab('toc')">目录</div>
+            <div class="bh-detail-tab" data-pane="review" onclick="BH.switchDetailTab('review')">书评</div>
+            <div class="bh-detail-tab" data-pane="cast" onclick="BH.switchDetailTab('cast')">角色</div>
+          </div>
+
+          <div class="bh-detail-pane bh-pane-active" id="pane-toc"></div>
+          <div class="bh-detail-pane" id="pane-review"></div>
+          <div class="bh-detail-pane" id="pane-cast"></div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================
+           一级导航栏：悬浮书签式胶囊
+      ============================================================ -->
+      <div class="bh-nav" id="bhMainNav">
+        <div class="bh-nav-flag" id="bhNavFlag"></div>
+        <div class="bh-nav-item bh-nav-active" data-nav="library" onclick="BH.switchMainView('library')">
+          <div class="bh-nav-ic">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 4.5A2.5 2.5 0 016.5 2H20v17H6.5A2.5 2.5 0 004 16.5v-12z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M4 16.5A2.5 2.5 0 016.5 19H20" stroke="currentColor" stroke-width="1.5"/></svg>
+          </div>
+          <div class="bh-nav-label">书屋</div>
+        </div>
+        <div class="bh-nav-item" data-nav="studio" onclick="BH.switchMainView('studio')">
+          <div class="bh-nav-ic">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="bh-nav-label">创作工坊</div>
+        </div>
+        <div class="bh-nav-item" data-nav="profile" onclick="BH.switchMainView('profile')">
+          <div class="bh-nav-ic">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.5"/><path d="M4.5 20c1.6-3.6 4.6-5.4 7.5-5.4s5.9 1.8 7.5 5.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="bh-nav-label">个人中心</div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           生成设置抽屉（世界观 / 文风 / 篇幅 / 完结度 / 字数 / 主题 ...）
+      ============================================================ -->
+      <div class="bh-sheet-mask" id="settingsSheetMask">
+        <div class="bh-sheet">
+          <div class="bh-sheet-handle"></div>
+          <div class="bh-sheet-head">
+            <div class="bh-sheet-title">生成设置</div>
+            <div class="bh-sheet-close" onclick="BH.closeSettingsSheet()">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+          <div class="bh-sheet-body">
+
+            <div class="bh-field-group">
+              <div class="bh-field-label">世界观设定 <span class="bh-field-req">必填</span></div>
+              <textarea class="bh-textarea" id="cfgWorld" placeholder="描述故事发生的世界：时代背景、地域、体系设定等，例如「现代都市 · 隐秘的古老家族与契约」"></textarea>
+            </div>
+
+            <div class="bh-field-group">
+              <div class="bh-field-label">文风 <span class="bh-field-req">必填</span></div>
+              <div class="bh-chip-row" id="cfgStyleChips">
+                <div class="bh-chip" data-val="轻盈细腻">轻盈细腻</div>
+                <div class="bh-chip" data-val="克制冷冽">克制冷冽</div>
+                <div class="bh-chip" data-val="华丽绮丽">华丽绮丽</div>
+                <div class="bh-chip" data-val="幽默诙谐">幽默诙谐</div>
+                <div class="bh-chip" data-val="悬疑紧绷">悬疑紧绷</div>
+                <div class="bh-chip" data-val="治愈温柔">治愈温柔</div>
+              </div>
+              <textarea class="bh-textarea" id="cfgStyleCustom" placeholder="也可以自由描述你想要的文风（可选，补充说明）" style="margin-top:8px;min-height:52px;"></textarea>
+            </div>
+
+            <div class="bh-field-group">
+              <div class="bh-field-label">篇幅</div>
+              <div class="bh-segment" id="cfgLength">
+                <div class="bh-segment-item bh-segment-active" data-val="短篇">短篇</div>
+                <div class="bh-segment-item" data-val="中篇">中篇</div>
+                <div class="bh-segment-item" data-val="长篇">长篇</div>
+              </div>
+            </div>
+
+            <div class="bh-field-group">
+              <div class="bh-field-label">完结程度</div>
+              <div class="bh-segment" id="cfgStatus">
+                <div class="bh-segment-item bh-segment-active" data-val="连载中">连载中 · 持续更新</div>
+                <div class="bh-segment-item" data-val="已完结">已完结</div>
+              </div>
+            </div>
+
+            <div class="bh-field-group">
+              <div class="bh-field-label">每章字数范围</div>
+              <div class="bh-range-row">
+                <input class="bh-input" type="number" id="cfgWordMin" placeholder="最少" value="800" />
+                <span class="bh-range-sep">至</span>
+                <input class="bh-input" type="number" id="cfgWordMax" placeholder="最多" value="1500" />
+                <span class="bh-range-sep" style="flex-shrink:0;">字</span>
+              </div>
+            </div>
+
+            <div class="bh-field-group">
+              <div class="bh-field-label">主题分类</div>
+              <div class="bh-chip-row" id="cfgThemeChips">
+                <div class="bh-chip" data-val="都市情感">都市情感</div>
+                <div class="bh-chip" data-val="古风言情">古风言情</div>
+                <div class="bh-chip" data-val="悬疑推理">悬疑推理</div>
+                <div class="bh-chip" data-val="奇幻冒险">奇幻冒险</div>
+                <div class="bh-chip" data-val="校园青春">校园青春</div>
+                <div class="bh-chip" data-val="职场商战">职场商战</div>
+                <div class="bh-chip" data-val="娱乐圈">娱乐圈</div>
+                <div class="bh-chip" data-val="科幻未来">科幻未来</div>
+              </div>
+            </div>
+
+            <div class="bh-field-group">
+              <div class="bh-field-label">人物关系 / CP 设定</div>
+              <textarea class="bh-textarea" id="cfgCharacters" placeholder="主要角色与关系，例如「男主：冷峻的家族继承人；女主：伪装成助理的调查记者；宿敌转盟友的暗线」" style="min-height:64px;"></textarea>
+            </div>
+
+            <div class="bh-field-group">
+              <div class="bh-field-label">情节走向 / 关键要素</div>
+              <textarea class="bh-textarea" id="cfgPlot" placeholder="希望包含的桥段、反转或禁忌，例如「误会先行、身份反转、结尾团圆」（可选）" style="min-height:64px;"></textarea>
+            </div>
+
+            <div class="bh-field-group">
+              <div class="bh-field-label">禁用元素</div>
+              <textarea class="bh-textarea" id="cfgAvoid" placeholder="不希望出现的情节或元素（可选）" style="min-height:44px;"></textarea>
+            </div>
+
+            <div class="bh-field-group">
+              <div class="bh-field-label">已保存的规则</div>
+              <div class="bh-preset-list" id="cfgPresetList"></div>
+              <div class="bh-field-hint">保存当前设置为一条规则，方便下次快速调回。</div>
+            </div>
+
+          </div>
+          <div class="bh-sheet-foot">
+            <div class="bh-btn bh-btn-ghost" onclick="BH.savePresetPrompt()">保存为规则</div>
+            <div class="bh-btn bh-btn-primary" onclick="BH.confirmSettings()">保存设置</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           视角选择弹层（进入阅读前）
+      ============================================================ -->
+      <div class="bh-sheet-mask" id="povSheetMask">
+        <div class="bh-sheet" style="max-height:70%;">
+          <div class="bh-sheet-handle"></div>
+          <div class="bh-sheet-head">
+            <div class="bh-sheet-title">选择阅读视角</div>
+            <div class="bh-sheet-close" onclick="BH.closePovSheet()">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+          <div class="bh-sheet-body">
+            <div class="bh-field-hint" style="margin-bottom:10px;">你将以谁的视角进入这段故事？</div>
+            <div class="bh-pov-grid" id="povGrid"></div>
+          </div>
+          <div class="bh-sheet-foot">
+            <div class="bh-btn bh-btn-primary" id="povConfirmBtn" onclick="BH.confirmPov()">开始阅读</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           对话式阅读器（全屏覆盖层）
+      ============================================================ -->
+      <div id="bhReader">
+        <div class="bh-reader-topbar">
+          <div class="bh-back" onclick="BH.closeReader()">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <div class="bh-reader-chapter-title" id="readerChapterTitle">第一章</div>
+            <div class="bh-reader-chapter-sub" id="readerChapterSub">—</div>
+          </div>
+          <div class="bh-reader-menu-btn" onclick="BH.jumpToToc()">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+        <div class="bh-reader-body" id="readerBody"></div>
+      </div>
+
+      <!-- Toast -->
+      <div class="bh-toast" id="bhToast"></div>
+
+      <!-- 隐藏的头像上传 input -->
+      <input type="file" accept="image/*" class="bh-cast-file-input" id="castFileInput" />
+
+      <!-- 状态栏：置于 DOM 末尾以保证在阅读器/抽屉等全屏浮层之上始终可见；
+           与 index 完全同构，靠 bookhouse.js 中的 updateTime/updateBattery/applyIsland 同步 -->
+      <div class="status-bar">
+        <div class="status-time" id="statusTime">9:41</div>
+        <div class="status-island" id="statusIsland"></div>
+        <div class="status-right">
+          <div class="signal"><i></i><i></i><i></i><i></i></div>
+          <div class="battery">
+            <span class="bat-pct" id="batPct">76</span>
+            <div class="bat-shell">
+              <div class="bat-inner" id="batInner"></div>
+              <div class="bat-nub"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="bookhouse.js"></script>
+</body>
+</html>

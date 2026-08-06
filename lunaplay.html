@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Lunaplay</title>
+<link rel="stylesheet" href="lunaplay.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- 状态栏：视觉同步 index 主屏（时间 / 信号 / 电量），保留 LUNAPLAY 品牌位 -->
+  <div class="statusbar">
+    <span class="statusbar__time" id="statusbarTime">21:04</span>
+    <span class="statusbar__brand">LUNAPLAY</span>
+    <span class="statusbar__right">
+      <span class="statusbar__signal">
+        <i></i><i></i><i></i><i></i>
+      </span>
+      <span class="statusbar__battery">
+        <span class="statusbar__batpct">76</span>
+        <span class="statusbar__batshell">
+          <span class="statusbar__batinner"></span>
+          <span class="statusbar__batnub"></span>
+        </span>
+      </span>
+    </span>
+  </div>
+
+  <!-- 页面容器 -->
+  <main class="pages" id="pages">
+
+    <section class="page" data-page="recommend" id="page-recommend">
+      <div class="feed" id="feed">
+
+        <!-- 顶部：关注 / 推荐 切换 -->
+        <div class="feed__topbar">
+          <div class="feed__tabs">
+            <button class="feed__tab" data-tab="follow">关注</button>
+            <button class="feed__tab is-active" data-tab="recommend">推荐</button>
+            <button class="feed__tab" data-tab="nearby">同城</button>
+          </div>
+          <button class="feed__search" aria-label="搜索">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M19 19l-3.8-3.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <!-- 视频流：竖向滑动，四种内容形态依次呈现，全部为爱情主题 -->
+        <div class="feed__stream" id="feedStream">
+
+          <!-- 第一张：普通短视频型 —— 标准竖屏播放界面，文字模拟画面内容 -->
+          <article class="feedcard" data-index="0" data-feedtab="recommend">
+            <div class="feedcard__media feedcard__media--1"></div>
+            <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+            <div class="feedcard__scrim"></div>
+
+            <div class="feedcard__typetag"><i></i>短视频</div>
+            <div class="feedcard__soundtag">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+
+            <div class="feedcard__scene">
+              <div class="feedcard__scene-eyebrow">画面 · 旧书店 · 打烊前十分钟</div>
+              <p class="feedcard__scene-line">她伸手去够最高一层的诗集<br><em>一只手比她先碰到了书脊</em><br>两人同时说了句"抱歉"</p>
+              <div class="feedcard__scene-detail">镜头缓慢推近，书店老式吊灯的光晕落在两人交叠的指尖上，背景音是黑胶唱片的沙沙声</div>
+            </div>
+
+            <div class="feedcard__playbar"><div class="feedcard__playbar-fill" style="--pb-start:42%; width:42%"></div></div>
+
+            <div class="feedcard__actions">
+              <button class="actionbtn" data-action="like">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">96.4k</span>
+              </button>
+              <button class="actionbtn" data-action="comment">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">3,782</span>
+              </button>
+              <button class="actionbtn" data-action="collect">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12v17l-6-4-6 4v-17Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">2,559</span>
+              </button>
+              <button class="actionbtn" data-action="share">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 12v6.5c0 .83.67 1.5 1.5 1.5h13c.83 0 1.5-.67 1.5-1.5V12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M12 15.5V3.5M12 3.5L7.5 8M12 3.5l4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">分享</span>
+              </button>
+            </div>
+
+            <div class="feedcard__info">
+              <div class="feedcard__author">
+                <span class="feedcard__avatar"></span>
+                <span class="feedcard__name">旧书店时刻 · 都市小品</span>
+                <button class="feedcard__follow">关注</button>
+              </div>
+              <p class="feedcard__caption">第 3 集 · 有些相遇，从一本没人翻过的诗集开始。</p>
+              <div class="feedcard__meta">
+                <span>#爱情</span><span>#都市</span><span>原创音乐</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- 第二张：互动型 —— 视频中途暂停，观众投票影响后续剧情走向 -->
+          <article class="feedcard" data-index="1" data-feedtab="recommend">
+            <div class="feedcard__media feedcard__media--2"></div>
+            <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+            <div class="feedcard__scrim"></div>
+
+            <div class="feedcard__typetag"><i></i>互动短片</div>
+            <div class="feedcard__soundtag">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+
+            <div class="feedcard__scene feedcard__scene--top">
+              <div class="feedcard__scene-eyebrow">画面 · 末班地铁 · 车厢只剩他们两人</div>
+              <p class="feedcard__scene-line">她把耳机分了一只给他<br><em>"最后一站你要去哪？"</em></p>
+              <div class="feedcard__scene-detail">画面定格在耳机线之间，车厢广播报出下一站，剧情在此暂停，等待观众投票决定他的回答</div>
+            </div>
+
+            <div class="feedcard__interact" id="interactPanel">
+              <div class="feedcard__interact-prompt">观众投票决定他怎么回答 · 15 秒后揭晓并解锁下一幕</div>
+              <button class="interactopt" data-pct="58" type="button">
+                <span class="interactopt__bar" style="--pct:0.58"></span>
+                <span>"随便，只要车还没到站"</span>
+                <span class="interactopt__pct">58%</span>
+              </button>
+              <button class="interactopt" data-pct="42" type="button">
+                <span class="interactopt__bar" style="--pct:0.42"></span>
+                <span>报出和她同一站的名字</span>
+                <span class="interactopt__pct">42%</span>
+              </button>
+            </div>
+
+            <div class="feedcard__actions">
+              <button class="actionbtn" data-action="like">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">51.6k</span>
+              </button>
+              <button class="actionbtn" data-action="comment">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">4,015</span>
+              </button>
+              <button class="actionbtn" data-action="collect">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12v17l-6-4-6 4v-17Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">1,203</span>
+              </button>
+              <button class="actionbtn" data-action="share">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 12v6.5c0 .83.67 1.5 1.5 1.5h13c.83 0 1.5-.67 1.5-1.5V12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M12 15.5V3.5M12 3.5L7.5 8M12 3.5l4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">分享</span>
+              </button>
+            </div>
+
+            <div class="feedcard__info">
+              <div class="feedcard__author">
+                <span class="feedcard__avatar feedcard__avatar--2"></span>
+                <span class="feedcard__name">末班车 · 互动剧</span>
+                <button class="feedcard__follow">关注</button>
+              </div>
+              <p class="feedcard__caption">你的选择，决定他愿不愿意多陪她坐一站。</p>
+              <div class="feedcard__meta">
+                <span>#互动</span><span>#爱情</span><span>观众共创</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- 第三张：结局分支型 —— 片尾出现走向选择面板，两种结局可选 -->
+          <article class="feedcard" data-index="2" data-feedtab="recommend">
+            <div class="feedcard__media feedcard__media--3"></div>
+            <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+            <div class="feedcard__scrim"></div>
+
+            <div class="feedcard__typetag"><i></i>分支结局</div>
+            <div class="feedcard__soundtag">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+
+            <div class="feedcard__scene">
+              <div class="feedcard__scene-eyebrow">画面 · 婚礼后台 · 新娘更衣室</div>
+              <p class="feedcard__scene-line">他站在门外，手里是没送出的捧花<br><em>"仪式还有十分钟开始"</em></p>
+              <div class="feedcard__scene-detail">门缝透出一道光，她的高跟鞋声由远及近又停下，故事在此分岔，去留由你决定</div>
+            </div>
+
+            <div class="feedcard__playbar"><div class="feedcard__playbar-fill" style="--pb-start:91%; width:91%"></div></div>
+
+            <div class="feedcard__branch" id="branchPanel">
+              <div class="feedcard__branch-title">故事走到了分岔口</div>
+              <div class="feedcard__branch-sub">选一个，看看这段感情最后落在哪里</div>
+
+              <button class="branchopt" data-ending="a" type="button">
+                <span class="branchopt__label">结局一</span>
+                <span class="branchopt__text">她推开门，捧花落地，两人在后台走了另一条路</span>
+              </button>
+              <button class="branchopt" data-ending="b" type="button">
+                <span class="branchopt__label">结局二</span>
+                <span class="branchopt__text">他把花放在门口，转身离开，仪式准时开始</span>
+              </button>
+
+              <p class="feedcard__branch-result" id="branchResult"></p>
+            </div>
+
+            <div class="feedcard__actions">
+              <button class="actionbtn" data-action="like">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">203k</span>
+              </button>
+              <button class="actionbtn" data-action="comment">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">8,940</span>
+              </button>
+              <button class="actionbtn" data-action="collect">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12v17l-6-4-6 4v-17Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">5,672</span>
+              </button>
+              <button class="actionbtn" data-action="share">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 12v6.5c0 .83.67 1.5 1.5 1.5h13c.83 0 1.5-.67 1.5-1.5V12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M12 15.5V3.5M12 3.5L7.5 8M12 3.5l4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">分享</span>
+              </button>
+            </div>
+
+            <div class="feedcard__info">
+              <div class="feedcard__author">
+                <span class="feedcard__avatar feedcard__avatar--3"></span>
+                <span class="feedcard__name">更衣室门外 · 分支短片</span>
+                <button class="feedcard__follow">关注</button>
+              </div>
+              <p class="feedcard__caption">同一场婚礼，两种结局，你选的那种最先解锁。</p>
+              <div class="feedcard__meta">
+                <span>#分支剧情</span><span>#爱情</span><span>原创音乐</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- 第四张：纯图文型 —— 多帧静态画面横向轮播，配旁白文字 -->
+          <article class="feedcard" data-index="3" data-feedtab="recommend">
+            <div class="feedcard__gallery" id="galleryStream">
+              <div class="galleryframe">
+                <span class="galleryframe__count">01 / 04</span>
+                <div class="feedcard__media feedcard__media--4a"></div>
+                <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+                <div class="feedcard__scrim"></div>
+                <p class="galleryframe__line">他说要教她骑车<br><em style="color:rgba(255,255,255,0.56)">后座上绑了一个旧枕头当垫子</em></p>
+              </div>
+              <div class="galleryframe">
+                <span class="galleryframe__count">02 / 04</span>
+                <div class="feedcard__media feedcard__media--4b"></div>
+                <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+                <div class="feedcard__scrim"></div>
+                <p class="galleryframe__line">摔了第三次那天<br><em style="color:rgba(255,255,255,0.56)">他蹲在地上笑，没敢说心疼</em></p>
+              </div>
+              <div class="galleryframe">
+                <span class="galleryframe__count">03 / 04</span>
+                <div class="feedcard__media feedcard__media--4c"></div>
+                <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+                <div class="feedcard__scrim"></div>
+                <p class="galleryframe__line">她终于能骑出十米远<br><em style="color:rgba(255,255,255,0.56)">回头喊他快看，他早就在看了</em></p>
+              </div>
+              <div class="galleryframe">
+                <span class="galleryframe__count">04 / 04</span>
+                <div class="feedcard__media feedcard__media--4d"></div>
+                <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+                <div class="feedcard__scrim"></div>
+                <p class="galleryframe__line">后来那辆车一直没扔<br><em style="color:rgba(255,255,255,0.56)">"下次带你去更远的地方"</em></p>
+              </div>
+            </div>
+
+            <div class="feedcard__typetag"><i></i>图文短片</div>
+            <div class="gallerydots" id="galleryDots">
+              <span class="is-active"></span><span></span><span></span><span></span>
+            </div>
+
+            <div class="feedcard__actions">
+              <button class="actionbtn" data-action="like">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">34.8k</span>
+              </button>
+              <button class="actionbtn" data-action="comment">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">912</span>
+              </button>
+              <button class="actionbtn" data-action="collect">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12v17l-6-4-6 4v-17Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">1,540</span>
+              </button>
+              <button class="actionbtn" data-action="share">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 12v6.5c0 .83.67 1.5 1.5 1.5h13c.83 0 1.5-.67 1.5-1.5V12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M12 15.5V3.5M12 3.5L7.5 8M12 3.5l4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">分享</span>
+              </button>
+            </div>
+
+            <div class="feedcard__info">
+              <div class="feedcard__author">
+                <span class="feedcard__avatar"></span>
+                <span class="feedcard__name">旧自行车 · 图文日记</span>
+                <button class="feedcard__follow">关注</button>
+              </div>
+              <p class="feedcard__caption">左右滑动看完学车那个夏天的四个瞬间。</p>
+              <div class="feedcard__meta">
+                <span>#图文</span><span>#爱情</span><span>#日常</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- ===== 关注 Tab 专属卡片 ===== -->
+          <article class="feedcard" data-index="4" data-feedtab="follow">
+            <div class="feedcard__media feedcard__media--2"></div>
+            <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+            <div class="feedcard__scrim"></div>
+
+            <div class="feedcard__typetag"><i></i>短视频</div>
+            <div class="feedcard__soundtag">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+
+            <div class="feedcard__scene">
+              <div class="feedcard__scene-eyebrow">画面 · 天台 · 傍晚六点半</div>
+              <p class="feedcard__scene-line">他把外套披在她肩上<br><em>什么都没说</em><br>风把两人的影子叠成了一个</p>
+              <div class="feedcard__scene-detail">远处城市灯光次第亮起，天台晾着的白衬衫在风里轻轻晃动</div>
+            </div>
+
+            <div class="feedcard__playbar"><div class="feedcard__playbar-fill" style="--pb-start:18%; width:18%"></div></div>
+
+            <div class="feedcard__actions">
+              <button class="actionbtn" data-action="like">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">41.2k</span>
+              </button>
+              <button class="actionbtn" data-action="comment">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">1,096</span>
+              </button>
+              <button class="actionbtn" data-action="collect">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12v17l-6-4-6 4v-17Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">980</span>
+              </button>
+              <button class="actionbtn" data-action="share">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 12v6.5c0 .83.67 1.5 1.5 1.5h13c.83 0 1.5-.67 1.5-1.5V12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M12 15.5V3.5M12 3.5L7.5 8M12 3.5l4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">分享</span>
+              </button>
+            </div>
+
+            <div class="feedcard__info">
+              <div class="feedcard__author">
+                <span class="feedcard__avatar feedcard__avatar--2"></span>
+                <span class="feedcard__name">阿凛 · 已关注三个月</span>
+                <button class="feedcard__follow is-following">已关注</button>
+              </div>
+              <p class="feedcard__caption">今天他更新了，还是老样子，没说破的那种喜欢。</p>
+              <div class="feedcard__meta">
+                <span>#爱情</span><span>#日常</span><span>原创音乐</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="feedcard" data-index="5" data-feedtab="follow">
+            <div class="feedcard__media feedcard__media--3"></div>
+            <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+            <div class="feedcard__scrim"></div>
+
+            <div class="feedcard__typetag"><i></i>短视频</div>
+            <div class="feedcard__soundtag">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+
+            <div class="feedcard__scene">
+              <div class="feedcard__scene-eyebrow">画面 · 便利店 · 深夜十二点</div>
+              <p class="feedcard__scene-line">"这个我请你"<br><em>她把关东煮推回去</em><br>"那下次换我请"</p>
+              <div class="feedcard__scene-detail">收银台的灯是暖黄色的，窗外飘着细雨，玻璃上映出两人并排的轮廓</div>
+            </div>
+
+            <div class="feedcard__playbar"><div class="feedcard__playbar-fill" style="--pb-start:63%; width:63%"></div></div>
+
+            <div class="feedcard__actions">
+              <button class="actionbtn" data-action="like">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">28.7k</span>
+              </button>
+              <button class="actionbtn" data-action="comment">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">754</span>
+              </button>
+              <button class="actionbtn" data-action="collect">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12v17l-6-4-6 4v-17Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">612</span>
+              </button>
+              <button class="actionbtn" data-action="share">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 12v6.5c0 .83.67 1.5 1.5 1.5h13c.83 0 1.5-.67 1.5-1.5V12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M12 15.5V3.5M12 3.5L7.5 8M12 3.5l4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">分享</span>
+              </button>
+            </div>
+
+            <div class="feedcard__info">
+              <div class="feedcard__author">
+                <span class="feedcard__avatar feedcard__avatar--3"></span>
+                <span class="feedcard__name">深夜便利店 · 系列第7集</span>
+                <button class="feedcard__follow is-following">已关注</button>
+              </div>
+              <p class="feedcard__caption">追更两个月了，这对终于要在一起了吧。</p>
+              <div class="feedcard__meta">
+                <span>#爱情</span><span>#连载</span><span>原创音乐</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- ===== 同城 Tab 专属卡片 ===== -->
+          <article class="feedcard" data-index="6" data-feedtab="nearby">
+            <div class="feedcard__media feedcard__media--4a"></div>
+            <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+            <div class="feedcard__scrim"></div>
+
+            <div class="feedcard__typetag"><i></i>短视频</div>
+            <div class="feedcard__soundtag">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+
+            <div class="feedcard__scene">
+              <div class="feedcard__scene-eyebrow">画面 · 城南公园 · 距你2.3公里</div>
+              <p class="feedcard__scene-line">长椅上留了半杯没喝完的奶茶<br><em>旁边坐着一只不认生的猫</em><br>拍到这一幕纯属意外</p>
+              <div class="feedcard__scene-detail">傍晚的树影斜斜打在长椅上，远处有人在放风筝，画面很安静</div>
+            </div>
+
+            <div class="feedcard__playbar"><div class="feedcard__playbar-fill" style="--pb-start:27%; width:27%"></div></div>
+
+            <div class="feedcard__actions">
+              <button class="actionbtn" data-action="like">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">8,940</span>
+              </button>
+              <button class="actionbtn" data-action="comment">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">312</span>
+              </button>
+              <button class="actionbtn" data-action="collect">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12v17l-6-4-6 4v-17Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">205</span>
+              </button>
+              <button class="actionbtn" data-action="share">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 12v6.5c0 .83.67 1.5 1.5 1.5h13c.83 0 1.5-.67 1.5-1.5V12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M12 15.5V3.5M12 3.5L7.5 8M12 3.5l4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">分享</span>
+              </button>
+            </div>
+
+            <div class="feedcard__info">
+              <div class="feedcard__author">
+                <span class="feedcard__avatar"></span>
+                <span class="feedcard__name">路过的路人 · 本地博主</span>
+                <button class="feedcard__follow">关注</button>
+              </div>
+              <p class="feedcard__caption">你们城南公园也有这种不怕人的猫吗？</p>
+              <div class="feedcard__meta">
+                <span>#同城</span><span>#随手拍</span><span>#日常</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="feedcard" data-index="7" data-feedtab="nearby">
+            <div class="feedcard__media feedcard__media--4c"></div>
+            <div class="feedcard__lightdrift"></div>
+            <div class="feedcard__grain"></div>
+            <div class="feedcard__scrim"></div>
+
+            <div class="feedcard__typetag"><i></i>短视频</div>
+            <div class="feedcard__soundtag">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+
+            <div class="feedcard__scene">
+              <div class="feedcard__scene-eyebrow">画面 · 老巷口花店 · 距你890米</div>
+              <p class="feedcard__scene-line">"送女朋友的话推荐这束"<br><em>"其实是求婚"</em><br>老板娘手一抖，多包了一层纸</p>
+              <div class="feedcard__scene-detail">花店不大，铁架上挂满干花，午后的光从卷帘门缝里斜射进来</div>
+            </div>
+
+            <div class="feedcard__playbar"><div class="feedcard__playbar-fill" style="--pb-start:9%; width:9%"></div></div>
+
+            <div class="feedcard__actions">
+              <button class="actionbtn" data-action="like">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">15.3k</span>
+              </button>
+              <button class="actionbtn" data-action="comment">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">889</span>
+              </button>
+              <button class="actionbtn" data-action="collect">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12v17l-6-4-6 4v-17Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">1,204</span>
+              </button>
+              <button class="actionbtn" data-action="share">
+                <span class="actionbtn__icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 12v6.5c0 .83.67 1.5 1.5 1.5h13c.83 0 1.5-.67 1.5-1.5V12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M12 15.5V3.5M12 3.5L7.5 8M12 3.5l4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="actionbtn__num">分享</span>
+              </button>
+            </div>
+
+            <div class="feedcard__info">
+              <div class="feedcard__author">
+                <span class="feedcard__avatar feedcard__avatar--2"></span>
+                <span class="feedcard__name">巷口花店老板娘</span>
+                <button class="feedcard__follow">关注</button>
+              </div>
+              <p class="feedcard__caption">这个月第三次有人来"买花求婚"了，巷口是不是风水好。</p>
+              <div class="feedcard__meta">
+                <span>#同城</span><span>#爱情</span><span>#偶遇</span>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+      </div>
+    </section>
+
+    <section class="page" data-page="friends" id="page-friends">
+      <div class="friends">
+
+        <header class="friends__header">
+          <h1 class="friends__title">好友圈</h1>
+          <button class="friends__camera" aria-label="拍摄">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 8.5C4 7.4 4.9 6.5 6 6.5h1.6l1-1.7c.3-.5.9-.8 1.5-.8h3.8c.6 0 1.2.3 1.5.8l1 1.7H18c1.1 0 2 .9 2 2v9c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2v-9Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+        </header>
+
+        <!-- 故事条：细圆环表示未读，无彩色渐变 -->
+        <div class="stories" id="stories">
+          <button class="story story--me">
+            <span class="story__ring story__ring--add">
+              <span class="story__avatar story__avatar--me"></span>
+              <span class="story__plus">+</span>
+            </span>
+            <span class="story__name">我的故事</span>
+          </button>
+
+          <button class="story is-unread">
+            <span class="story__ring"><span class="story__avatar story__avatar--1"></span></span>
+            <span class="story__name">陈屿</span>
+          </button>
+
+          <button class="story is-unread">
+            <span class="story__ring"><span class="story__avatar story__avatar--2"></span></span>
+            <span class="story__name">林深</span>
+          </button>
+
+          <button class="story">
+            <span class="story__ring"><span class="story__avatar story__avatar--3"></span></span>
+            <span class="story__name">南栀</span>
+          </button>
+
+          <button class="story is-unread">
+            <span class="story__ring"><span class="story__avatar story__avatar--4"></span></span>
+            <span class="story__name">周牧</span>
+          </button>
+
+          <button class="story">
+            <span class="story__ring"><span class="story__avatar story__avatar--5"></span></span>
+            <span class="story__name">夏禾</span>
+          </button>
+        </div>
+
+        <div class="friends__divider"></div>
+
+        <!-- 时间线动态流 -->
+        <div class="timeline">
+
+          <article class="moment">
+            <div class="moment__head">
+              <span class="story__avatar story__avatar--1 moment__avatar"></span>
+              <div class="moment__who">
+                <span class="moment__name">陈屿</span>
+                <span class="moment__time">18分钟前 · 望京</span>
+              </div>
+              <button class="moment__more" aria-label="更多">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></svg>
+              </button>
+            </div>
+            <p class="moment__text">今天的云很低，像是伸手就能摘下来。</p>
+            <div class="moment__media">
+              <span class="moment__img moment__img--a"></span>
+              <span class="moment__img moment__img--b"></span>
+            </div>
+            <div class="moment__foot">
+              <button class="momentbtn" data-action="like">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4"/></svg>
+                <span>52</span>
+              </button>
+              <button class="momentbtn" data-action="comment">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4"/></svg>
+                <span>9</span>
+              </button>
+            </div>
+          </article>
+
+          <article class="moment">
+            <div class="moment__head">
+              <span class="story__avatar story__avatar--2 moment__avatar"></span>
+              <div class="moment__who">
+                <span class="moment__name">林深</span>
+                <span class="moment__time">1小时前</span>
+              </div>
+              <button class="moment__more" aria-label="更多">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></svg>
+              </button>
+            </div>
+            <p class="moment__text">终于把厨房收拾干净了，奖励自己一杯手冲。</p>
+            <div class="moment__media moment__media--single">
+              <span class="moment__img moment__img--c"></span>
+            </div>
+            <div class="moment__foot">
+              <button class="momentbtn" data-action="like">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4"/></svg>
+                <span>26</span>
+              </button>
+              <button class="momentbtn" data-action="comment">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4"/></svg>
+                <span>3</span>
+              </button>
+            </div>
+          </article>
+
+          <article class="moment">
+            <div class="moment__head">
+              <span class="story__avatar story__avatar--4 moment__avatar"></span>
+              <div class="moment__who">
+                <span class="moment__name">周牧</span>
+                <span class="moment__time">3小时前 · 图书馆</span>
+              </div>
+              <button class="moment__more" aria-label="更多">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></svg>
+              </button>
+            </div>
+            <p class="moment__text">读完了这本书的最后一章，合上书的瞬间有点舍不得。</p>
+            <div class="moment__foot">
+              <button class="momentbtn" data-action="like">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.4"/></svg>
+                <span>18</span>
+              </button>
+              <button class="momentbtn" data-action="comment">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4"/></svg>
+                <span>5</span>
+              </button>
+            </div>
+          </article>
+
+        </div>
+
+      </div>
+    </section>
+
+    <section class="page" data-page="messages" id="page-messages">
+      <div class="msgs">
+
+        <header class="msgs__header">
+          <h1 class="msgs__title">私信</h1>
+          <button class="msgs__edit" aria-label="编辑">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5L8 21H3v-5L14.5 4.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </button>
+        </header>
+
+        <div class="msgs__search">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M19 19l-3.8-3.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <input type="text" placeholder="搜索联系人或消息" class="msgs__search-input">
+        </div>
+
+        <!-- 消息类型快捷入口：不用彩色图标，用统一灰阶方块 -->
+        <div class="msgs__quick">
+          <button class="quickitem">
+            <span class="quickitem__icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.2s-7.6-4.7-9.9-9.4C.6 7.1 2.3 3.8 5.7 3.2c2-.35 3.9.5 5 2.15C11.8 3.7 13.7 2.85 15.7 3.2c3.4.6 5.1 3.9 3.6 7.6C17 15.5 12 20.2 12 20.2z" stroke="currentColor" stroke-width="1.3"/></svg>
+            </span>
+            <span class="quickitem__label">收到的赞</span>
+            <span class="quickitem__num">24</span>
+          </button>
+          <button class="quickitem">
+            <span class="quickitem__icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.3"/></svg>
+            </span>
+            <span class="quickitem__label">新增评论</span>
+            <span class="quickitem__num">7</span>
+          </button>
+          <button class="quickitem">
+            <span class="quickitem__icon">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 19c0-3 2.5-5.2 5.5-5.2s5.5 2.2 5.5 5.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </span>
+            <span class="quickitem__label">新增关注</span>
+            <span class="quickitem__num">3</span>
+          </button>
+        </div>
+
+        <div class="msgs__divider"></div>
+
+        <!-- 会话列表：支持左滑呼出操作 -->
+        <div class="convlist" id="convlist">
+
+          <div class="convwrap">
+            <div class="convactions">
+              <button class="convactions__btn convactions__btn--pin">置顶</button>
+              <button class="convactions__btn convactions__btn--del">删除</button>
+            </div>
+            <button class="conv is-unread" data-name="陈屿">
+              <span class="conv__avatar story__avatar--1"></span>
+              <div class="conv__body">
+                <div class="conv__row1">
+                  <span class="conv__name">陈屿</span>
+                  <span class="conv__time">21:02</span>
+                </div>
+                <div class="conv__row2">
+                  <span class="conv__last">照片拍好了，晚点发你</span>
+                  <span class="conv__dot"></span>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div class="convwrap">
+            <div class="convactions">
+              <button class="convactions__btn convactions__btn--pin">置顶</button>
+              <button class="convactions__btn convactions__btn--del">删除</button>
+            </div>
+            <button class="conv is-unread" data-name="林深">
+              <span class="conv__avatar story__avatar--2"></span>
+              <div class="conv__body">
+                <div class="conv__row1">
+                  <span class="conv__name">林深</span>
+                  <span class="conv__time">19:47</span>
+                </div>
+                <div class="conv__row2">
+                  <span class="conv__last">那家手冲店的豆子叫什么来着</span>
+                  <span class="conv__dot"></span>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div class="convwrap">
+            <div class="convactions">
+              <button class="convactions__btn convactions__btn--pin">置顶</button>
+              <button class="convactions__btn convactions__btn--del">删除</button>
+            </div>
+            <button class="conv" data-name="南栀">
+              <span class="conv__avatar story__avatar--3"></span>
+              <div class="conv__body">
+                <div class="conv__row1">
+                  <span class="conv__name">南栀</span>
+                  <span class="conv__time">昨天</span>
+                </div>
+                <div class="conv__row2">
+                  <span class="conv__last">[图片]</span>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div class="convwrap">
+            <div class="convactions">
+              <button class="convactions__btn convactions__btn--pin">置顶</button>
+              <button class="convactions__btn convactions__btn--del">删除</button>
+            </div>
+            <button class="conv is-unread" data-name="周牧">
+              <span class="conv__avatar story__avatar--4"></span>
+              <div class="conv__body">
+                <div class="conv__row1">
+                  <span class="conv__name">周牧</span>
+                  <span class="conv__time">昨天</span>
+                </div>
+                <div class="conv__row2">
+                  <span class="conv__last">书还回来的时候记得带一下</span>
+                  <span class="conv__dot"></span>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div class="convwrap">
+            <div class="convactions">
+              <button class="convactions__btn convactions__btn--pin">置顶</button>
+              <button class="convactions__btn convactions__btn--del">删除</button>
+            </div>
+            <button class="conv" data-name="夏禾">
+              <span class="conv__avatar story__avatar--5"></span>
+              <div class="conv__body">
+                <div class="conv__row1">
+                  <span class="conv__name">夏禾</span>
+                  <span class="conv__time">周二</span>
+                </div>
+                <div class="conv__row2">
+                  <span class="conv__last">好的，到了跟我说</span>
+                </div>
+              </div>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <section class="page" data-page="profile" id="page-profile">
+      <div class="profile">
+
+        <!-- 头图区：杂志封面感 -->
+        <div class="profile__cover" id="profileCover">
+          <button class="profile__settings" id="profileSettingsBtn" aria-label="设置">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.4"/><path d="M19.4 13.5c.06-.5.1-1 .1-1.5s-.04-1-.1-1.5l2-1.6-2-3.4-2.4 1c-.8-.6-1.7-1.1-2.6-1.4L14 2.5h-4l-.4 2.6c-.9.3-1.8.8-2.6 1.4l-2.4-1-2 3.4 2 1.6c-.06.5-.1 1-.1 1.5s.04 1 .1 1.5l-2 1.6 2 3.4 2.4-1c.8.6 1.7 1.1 2.6 1.4l.4 2.6h4l.4-2.6c.9-.3 1.8-.8 2.6-1.4l2.4 1 2-3.4-2-1.6Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="profile__cover-frame" aria-hidden="true">
+            <span class="profile__corner profile__corner--tl"></span>
+            <span class="profile__corner profile__corner--br"></span>
+          </div>
+          <div class="profile__cover-caption">
+            <span class="profile__eyebrow">MEMBER SINCE —</span>
+          </div>
+        </div>
+
+        <!-- 头像与身份信息 -->
+        <div class="profile__id">
+          <span class="profile__avatar" id="profileAvatar"></span>
+          <div class="profile__nameblock">
+            <h1 class="profile__name" id="profileName">未命名用户<span class="verifybadge" id="profileVerifyBadge" hidden></span></h1>
+            <p class="profile__handle" id="profileHandle">@your_id · 添加个性签名</p>
+          </div>
+          <button class="profile__editbtn" id="profileEditBtn">编辑资料</button>
+        </div>
+
+        <p class="profile__bio profile__bio--empty" id="profileBio">写点什么，介绍一下自己吧。</p>
+
+        <!-- 数据：杂志式大数字排版 -->
+        <div class="profile__stats">
+          <div class="statitem">
+            <span class="statitem__num" id="statWorks">0</span>
+            <span class="statitem__label">作品</span>
+          </div>
+          <div class="statitem">
+            <span class="statitem__num" id="statLikes">0</span>
+            <span class="statitem__label">获赞</span>
+          </div>
+          <div class="statitem">
+            <span class="statitem__num" id="statFollowers">0</span>
+            <span class="statitem__label">粉丝</span>
+          </div>
+          <div class="statitem">
+            <span class="statitem__num" id="statFollowing">0</span>
+            <span class="statitem__label">关注</span>
+          </div>
+        </div>
+
+        <!-- 标签化分类 -->
+        <div class="profile__tabs" id="profileTabs">
+          <button class="ptab is-active" data-tab="works">作品</button>
+          <button class="ptab" data-tab="collections">收藏</button>
+          <button class="ptab" data-tab="likes">喜欢</button>
+          <span class="ptab__indicator" id="ptabIndicator"></span>
+        </div>
+
+        <!-- 空状态：留白引导 -->
+        <div class="profile__empty">
+          <span class="profile__empty-mark" aria-hidden="true"></span>
+          <p class="profile__empty-text">还没有发布任何作品</p>
+          <span class="profile__empty-sub">你的第一份创作，会出现在这里</span>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 自定义导航栏：月相导航 -->
+  <nav class="lunanav" id="lunanav">
+    <div class="lunanav__backdrop"></div>
+    <div class="lunanav__track">
+      <div class="lunanav__glow" id="lunanavGlow"></div>
+
+      <button class="lunanav__item is-active" data-target="recommend" aria-label="推荐">
+        <span class="lunanav__icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4L20 12L4 20L7.5 12L4 4Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="lunanav__label">推荐</span>
+      </button>
+
+      <button class="lunanav__item" data-target="friends" aria-label="好友圈">
+        <span class="lunanav__icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M3.5 19c0-3 2.5-5.2 5.5-5.2s5.5 2.2 5.5 5.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <circle cx="17" cy="7.5" r="2.4" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>
+            <path d="M14.8 13.4c2.3 0.15 4.2 2 4.2 4.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+          </svg>
+        </span>
+        <span class="lunanav__label">好友圈</span>
+      </button>
+
+      <button class="lunanav__item" data-target="messages" aria-label="私信">
+        <span class="lunanav__icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v8c0 1.38-1.12 2.5-2.5 2.5H9l-4.2 3.3c-.35.27-.8-.02-.8-.46V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="lunanav__label">私信</span>
+        <span class="lunanav__badge" id="msgBadge">3</span>
+      </button>
+
+      <button class="lunanav__item" data-target="profile" aria-label="我">
+        <span class="lunanav__icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M5 19.5c0-3.6 3.13-6.2 7-6.2s7 2.6 7 6.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="lunanav__label">我</span>
+      </button>
+
+      <div class="lunanav__moon" id="lunanavMoon"></div>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       编辑资料 / 身份创建 弹窗
+       ============================================================ -->
+  <div class="idmodal" id="idModal" aria-hidden="true">
+    <div class="idmodal__backdrop" id="idModalBackdrop"></div>
+
+    <div class="idmodal__panel" role="dialog" aria-modal="true" aria-labelledby="idModalTitle">
+
+      <div class="idmodal__ornament" aria-hidden="true">
+        <span class="idmodal__ornament-line"></span>
+        <span class="idmodal__ornament-dot"></span>
+        <span class="idmodal__ornament-line"></span>
+      </div>
+
+      <button class="idmodal__close" id="idModalClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+
+      <header class="idmodal__head">
+        <span class="idmodal__eyebrow">IDENTITY · 身份档案</span>
+        <h2 class="idmodal__title" id="idModalTitle">创建身份</h2>
+        <p class="idmodal__sub">身份可随时创建、切换，用于展示不同的形象</p>
+      </header>
+
+      <!-- 身份切换条：已创建的身份 + 新建入口 -->
+      <div class="idswitch" id="idSwitchRow">
+        <button class="idswitch__add" id="idSwitchAdd" type="button">
+          <span class="idswitch__addicon">+</span>
+          <span class="idswitch__addlabel">新建身份</span>
+        </button>
+      </div>
+
+      <div class="idmodal__divider"><span></span></div>
+
+      <form class="idform" id="idForm">
+
+        <!-- 背景图 + 头像 上传预览 -->
+        <div class="idform__visuals">
+          <label class="idform__cover" id="idCoverPreview" for="idCoverInput">
+            <span class="idform__cover-hint">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 16.5V6.5C4 5.4 4.9 4.5 6 4.5h12c1.1 0 2 .9 2 2v10" stroke="currentColor" stroke-width="1.3"/><path d="M4 16l4.5-4.8c.6-.6 1.5-.6 2 0L14 15l1.8-1.9c.55-.58 1.45-.58 2 0L20 16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.3" cy="8.3" r="1.3" stroke="currentColor" stroke-width="1.2"/></svg>
+              <span>上传背景图</span>
+            </span>
+            <input type="file" id="idCoverInput" accept="image/*" hidden>
+          </label>
+
+          <label class="idform__avatar" id="idAvatarPreview" for="idAvatarInput">
+            <span class="idform__avatar-hint">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 16.5V6.5C4 5.4 4.9 4.5 6 4.5h12c1.1 0 2 .9 2 2v10" stroke="currentColor" stroke-width="1.2"/><circle cx="12" cy="10" r="2.6" stroke="currentColor" stroke-width="1.2"/></svg>
+            </span>
+            <input type="file" id="idAvatarInput" accept="image/*" hidden>
+          </label>
+        </div>
+
+        <!-- 昵称 -->
+        <div class="idfield">
+          <label class="idfield__label" for="idNickname">昵称</label>
+          <input class="idfield__input" id="idNickname" type="text" placeholder="给这个身份起个名字" maxlength="20">
+        </div>
+
+        <!-- 个性签名 -->
+        <div class="idfield">
+          <label class="idfield__label" for="idBio">个性签名</label>
+          <textarea class="idfield__input idfield__input--area" id="idBio" placeholder="写一句能代表这个身份的话" maxlength="60" rows="2"></textarea>
+        </div>
+
+        <!-- 身份类型：预设 + 自定义 -->
+        <div class="idfield">
+          <span class="idfield__label">身份类型</span>
+          <div class="idchips" id="idRoleChips">
+            <button type="button" class="idchip" data-role="摄影">摄影</button>
+            <button type="button" class="idchip" data-role="手作">手作</button>
+            <button type="button" class="idchip" data-role="美食">美食</button>
+            <button type="button" class="idchip" data-role="旅行">旅行</button>
+            <button type="button" class="idchip" data-role="穿搭">穿搭</button>
+            <button type="button" class="idchip" data-role="音乐">音乐</button>
+            <button type="button" class="idchip" data-role="影视">影视</button>
+            <button type="button" class="idchip idchip--custom" id="idRoleCustomBtn">自定义</button>
+          </div>
+          <input class="idfield__input idfield__input--sub" id="idRoleCustomInput" type="text" placeholder="输入自定义身份类型" hidden maxlength="12">
+        </div>
+
+        <!-- 是否认证 -->
+        <div class="idfield">
+          <span class="idfield__label">认证状态</span>
+          <div class="idtoggle" id="idVerifyToggle">
+            <button type="button" class="idtoggle__opt is-active" data-verify="0">暂不认证</button>
+            <button type="button" class="idtoggle__opt" data-verify="1">申请认证</button>
+          </div>
+        </div>
+
+        <!-- 认证类型：仅认证时展开 -->
+        <div class="idfield idfield--verify" id="idVerifyTypeField" hidden>
+          <span class="idfield__label">认证博主类型</span>
+          <div class="idchips" id="idVerifyChips">
+            <button type="button" class="idchip" data-vtype="旅行博主">旅行博主</button>
+            <button type="button" class="idchip" data-vtype="美食博主">美食博主</button>
+            <button type="button" class="idchip" data-vtype="摄影博主">摄影博主</button>
+            <button type="button" class="idchip" data-vtype="生活方式博主">生活方式博主</button>
+            <button type="button" class="idchip" data-vtype="知识博主">知识博主</button>
+            <button type="button" class="idchip idchip--custom" id="idVerifyCustomBtn">自定义</button>
+          </div>
+          <input class="idfield__input idfield__input--sub" id="idVerifyCustomInput" type="text" placeholder="输入自定义认证类型" hidden maxlength="12">
+        </div>
+
+        <!-- 起始粉丝数 -->
+        <div class="idfield">
+          <label class="idfield__label" for="idFollowers">起始粉丝数</label>
+          <input class="idfield__input" id="idFollowers" type="number" min="0" placeholder="0">
+        </div>
+
+        <div class="idform__foot">
+          <span class="idform__footline"></span>
+          <button type="submit" class="idform__submit">保存身份</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       AI 视频文案方案 · 设计器弹窗
+       ============================================================ -->
+  <div class="schememodal" id="schemeModal" aria-hidden="true">
+    <div class="schememodal__backdrop" id="schemeModalBackdrop"></div>
+
+    <div class="schememodal__panel" role="dialog" aria-modal="true" aria-labelledby="schemeModalTitle">
+
+      <button class="schememodal__close" id="schemeModalClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>
+
+      <header class="schemehead">
+        <span class="schemehead__mark" aria-hidden="true"></span>
+        <span class="schemehead__eyebrow">SCENARIO ARCHIVE</span>
+        <h2 class="schemehead__title" id="schemeModalTitle">内容方案</h2>
+        <p class="schemehead__sub">为 AI 生成的视频文案保存一份可复用的设定</p>
+      </header>
+
+      <!-- 视图切换：列表 / 编辑 -->
+      <div class="schemeview" id="schemeViewList">
+
+        <button class="schemenewbtn" id="schemeNewBtn" type="button">
+          <span class="schemenewbtn__plus"></span>
+          <span>新建方案</span>
+        </button>
+
+        <div class="schemelist" id="schemeList">
+          <!-- 方案卡片由 JS 动态渲染 -->
+          <p class="schemelist__empty" id="schemeListEmpty">还没有保存任何方案<br>点击上方"新建方案"开始创建</p>
+        </div>
+
+      </div>
+
+      <form class="schemeform" id="schemeForm" hidden>
+
+        <div class="schemefield">
+          <label class="schemefield__label" for="scName">方案名称</label>
+          <input class="schemefield__input schemefield__input--name" id="scName" type="text" placeholder="给这个方案起个名字" maxlength="24">
+        </div>
+
+        <div class="schemedivider"><span></span></div>
+
+        <div class="schemefield">
+          <label class="schemefield__label" for="scWorld">世界观</label>
+          <textarea class="schemefield__input schemefield__input--area" id="scWorld" placeholder="故事发生的时代、地理、社会背景……" rows="2" maxlength="200"></textarea>
+        </div>
+
+        <div class="schemefield">
+          <label class="schemefield__label" for="scTheme">主题</label>
+          <textarea class="schemefield__input schemefield__input--area" id="scTheme" placeholder="想表达的核心思想或情感……" rows="2" maxlength="150"></textarea>
+        </div>
+
+        <div class="schemefield">
+          <span class="schemefield__label">内容类型</span>
+          <div class="schemechips" id="scTypeChips">
+            <button type="button" class="schemechip" data-val="剧情">剧情</button>
+            <button type="button" class="schemechip" data-val="美食">美食</button>
+            <button type="button" class="schemechip" data-val="旅行">旅行</button>
+            <button type="button" class="schemechip" data-val="知识">知识</button>
+            <button type="button" class="schemechip" data-val="Vlog">Vlog</button>
+            <button type="button" class="schemechip" data-val="奇幻">奇幻</button>
+            <button type="button" class="schemechip" data-val="纪实">纪实</button>
+            <button type="button" class="schemechip schemechip--custom" id="scTypeCustomBtn">自定义</button>
+          </div>
+          <input class="schemefield__input schemefield__input--sub" id="scTypeCustomInput" type="text" placeholder="输入自定义类型" hidden maxlength="12">
+        </div>
+
+        <!-- 视角：自绘下拉选择器，禁用浏览器原生样式 -->
+        <div class="schemefield">
+          <span class="schemefield__label">叙事视角</span>
+          <div class="scselect" id="scPerspectiveSelect">
+            <button type="button" class="scselect__trigger" id="scPerspectiveTrigger">
+              <span class="scselect__value" id="scPerspectiveValue">选择视角</span>
+              <span class="scselect__arrow"></span>
+            </button>
+            <div class="scselect__panel" id="scPerspectivePanel">
+              <button type="button" class="scselect__opt" data-val="第一人称">第一人称 · 沉浸代入</button>
+              <button type="button" class="scselect__opt" data-val="第三人称">第三人称 · 旁观叙述</button>
+              <button type="button" class="scselect__opt" data-val="全知视角">全知视角 · 上帝视角</button>
+              <button type="button" class="scselect__opt" data-val="多线交叉">多线交叉 · 多角色并行</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 时长体量：自绘选择器 -->
+        <div class="schemefield">
+          <span class="schemefield__label">篇幅体量</span>
+          <div class="scselect" id="scLengthSelect">
+            <button type="button" class="scselect__trigger" id="scLengthTrigger">
+              <span class="scselect__value" id="scLengthValue">选择时长</span>
+              <span class="scselect__arrow"></span>
+            </button>
+            <div class="scselect__panel" id="scLengthPanel">
+              <button type="button" class="scselect__opt" data-val="15秒以内">15 秒以内 · 极短快节奏</button>
+              <button type="button" class="scselect__opt" data-val="15-60秒">15–60 秒 · 标准短视频</button>
+              <button type="button" class="scselect__opt" data-val="1-3分钟">1–3 分钟 · 中等叙事</button>
+              <button type="button" class="scselect__opt" data-val="3分钟以上">3 分钟以上 · 完整短片</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="schemefield">
+          <span class="schemefield__label">情绪基调（可多选）</span>
+          <div class="schemechips" id="scMoodChips">
+            <button type="button" class="schemechip" data-val="治愈">治愈</button>
+            <button type="button" class="schemechip" data-val="悬疑">悬疑</button>
+            <button type="button" class="schemechip" data-val="热血">热血</button>
+            <button type="button" class="schemechip" data-val="怀旧">怀旧</button>
+            <button type="button" class="schemechip" data-val="幽默">幽默</button>
+            <button type="button" class="schemechip" data-val="悲怆">悲怆</button>
+            <button type="button" class="schemechip" data-val="平静">平静</button>
+          </div>
+        </div>
+
+        <div class="schemefield">
+          <label class="schemefield__label" for="scStyle">画面风格关键词</label>
+          <input class="schemefield__input" id="scStyle" type="text" placeholder="如：水墨国风 / 胶片复古 / 写实电影感">
+        </div>
+
+        <div class="schemefield">
+          <label class="schemefield__label" for="scCharacters">人物设定</label>
+          <textarea class="schemefield__input schemefield__input--area" id="scCharacters" placeholder="主要角色的身份、外貌、性格……" rows="2" maxlength="200"></textarea>
+        </div>
+
+        <div class="schemefield">
+          <label class="schemefield__label" for="scConflict">核心冲突 / 看点</label>
+          <textarea class="schemefield__input schemefield__input--area" id="scConflict" placeholder="这条内容最吸引人的地方是什么……" rows="2" maxlength="150"></textarea>
+        </div>
+
+        <!-- 语言风格：自绘选择器 -->
+        <div class="schemefield">
+          <span class="schemefield__label">语言风格</span>
+          <div class="scselect" id="scToneSelect">
+            <button type="button" class="scselect__trigger" id="scToneTrigger">
+              <span class="scselect__value" id="scToneValue">选择语言风格</span>
+              <span class="scselect__arrow"></span>
+            </button>
+            <div class="scselect__panel" id="scTonePanel">
+              <button type="button" class="scselect__opt" data-val="口语化">口语化 · 轻松自然</button>
+              <button type="button" class="scselect__opt" data-val="诗意抒情">诗意抒情 · 文学感</button>
+              <button type="button" class="scselect__opt" data-val="文言半白">文言半白 · 古风韵味</button>
+              <button type="button" class="scselect__opt" data-val="纪实客观">纪实客观 · 冷静克制</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="schemefield">
+          <label class="schemefield__label" for="scNote">附加要求</label>
+          <textarea class="schemefield__input schemefield__input--area" id="scNote" placeholder="其他补充说明（选填）" rows="2" maxlength="150"></textarea>
+        </div>
+
+        <div class="schemeform__foot">
+          <span class="schemeform__footline"></span>
+          <div class="schemeform__btnrow">
+            <button type="button" class="schemeform__back" id="schemeFormBack">返回列表</button>
+            <button type="submit" class="schemeform__submit">保存方案</button>
+          </div>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="lunaplay.js"></script>
+</body>
+</html>

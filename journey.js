@@ -491,6 +491,7 @@ function jnyInjectCharInfo() {
     el.textContent = el.dataset.charName.replace(/Luna/g, charName);
   });
 }
+
 /* ================================================================
    购票页逻辑
 ================================================================ */

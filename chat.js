@@ -8,7 +8,7 @@ function updateTime() {
   const timeStr = new Date().toLocaleTimeString('zh-CN', {
     timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
   });
-  ['statusTime','taStatusTime','anonStatusTime','ncTime','futureStatusTime','storyEditorTime'].forEach(id => {
+  ['statusTime','taStatusTime','anonStatusTime','ncTime','futureStatusTime','storyEditorTime','btStatusTime','btSubStatusTime2'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = timeStr;
   });
@@ -156,65 +156,9 @@ function renderConvList() {
   initSwipe();
 }
 
-function renderMoments() {
-  const data = [
-    { user: '陈晓雨', initial: '陈', time: '10分钟前', text: '今天天气真好，出去走了一圈，整个人都放松了。', likes: 24, comments: 6 },
-    { user: 'Aria',  initial: 'A',  time: '1小时前',  text: '新买的相机，试拍了几张，感觉还不错。',         likes: 58, comments: 12 },
-    { user: '林默',   initial: '林', time: '3小时前',  text: '推荐一本书《置身事内》，读完很有收获。',       likes: 31, comments: 8  },
-  ];
-  const feed = document.getElementById('momentsFeed');
-  if (!feed) return;
-  feed.innerHTML = data.map(d => `
-    <div class="moment-card">
-      <div class="moment-header">
-        <div class="moment-avatar">${d.initial}</div>
-        <div class="moment-user">
-          <div class="moment-username">${d.user}</div>
-          <div class="moment-time">${d.time}</div>
-        </div>
-        <button class="moment-more">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-            <circle cx="5" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="19" cy="12" r="1.5" fill="currentColor"/>
-          </svg>
-        </button>
-      </div>
-      <div class="moment-text">${d.text}</div>
-      <div class="moment-actions">
-        <button class="moment-action-btn" onclick="toggleLike(this)">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="1.6"/>
-          </svg>
-          ${d.likes}
-        </button>
-        <button class="moment-action-btn">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.6"/>
-          </svg>
-          ${d.comments}
-        </button>
-        <button class="moment-action-btn" style="margin-left:auto;">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function toggleLike(btn) {
-  btn.classList.toggle('liked');
-  const svg = btn.querySelector('svg path');
-  if (btn.classList.contains('liked')) {
-    svg.setAttribute('fill', '#f43f5e');
-    svg.setAttribute('stroke', '#f43f5e');
-  } else {
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-  }
-}
+/* renderMoments() / toggleLike() 旧版占位逻辑已移除，
+   实际信息流渲染与点赞逻辑现由 moments-feed.js 中的
+   momentsRenderFeed() / momentsToggleLike() 实现 */
 
 /* ---- 占位函数 ---- */
 function openNewChat()    { console.log('new chat'); }
@@ -446,6 +390,7 @@ const LUNA_STORES = {
   anonCards: { keyPath: 'id', autoIncrement: true },
   taContent: { keyPath: 'charId' },
   groups:    { keyPath: 'id' },
+  moments:   { keyPath: 'id' },
 };
 
 /* ---- 角色头像缓存（name → avatarDataURL 或 null） ---- */
@@ -790,11 +735,16 @@ async function ncImportSelected() {
   await getAvatarCache();
   renderConvList();
   renderStoryRing();
+  renderFriendStories();
   renderFriends();
+  if (typeof momentsSyncWithFriends === 'function') {
+    momentsSyncWithFriends();
+    momentsRenderFeed();
+  }
   closeAddContact();
 }
 
-function openNewPost()    { console.log('new post'); }
+/* openNewPost() 已迁移至 post-editor.js 实现完整发帖页 */
 
 /* ════════════════════════════════════════
    创建方式选择弹窗（单聊 / 群聊）
@@ -806,6 +756,166 @@ function openCreateChoice() {
 function closeCreateChoice() {
   document.getElementById('ccOverlay').classList.remove('show');
   document.getElementById('ccSheet').classList.remove('show');
+}
+
+/* ════════════════════════════════════════
+   输入好友码添加（npcc-）
+   ------------------------------------------
+   这里只负责「添加」，不负责「生成」——NPC 的人设和
+   世界书条目已经在 npc-generator.html 里生成并落库到
+   LunaCharDB / LunaWorldBookDB，本页只需要按好友码
+   查到那条角色记录，同步进聊天的 convData / friendsData。
+════════════════════════════════════════ */
+let _npccMatchedChar = null;
+
+function openNpcCodeSheet() {
+  document.getElementById('npccCodeInput').value = '';
+  document.getElementById('npccPreview').style.display = 'none';
+  document.getElementById('npccHint').style.display = '';
+  document.getElementById('npccSubmitBtn').disabled = false;
+  document.getElementById('npccSubmitBtn').textContent = '添加好友';
+  _npccMatchedChar = null;
+  document.getElementById('npccOverlay').classList.add('show');
+  document.getElementById('npccSheet').classList.add('show');
+  setTimeout(() => document.getElementById('npccCodeInput').focus(), 260);
+}
+function closeNpcCodeSheet() {
+  document.getElementById('npccOverlay').classList.remove('show');
+  document.getElementById('npccSheet').classList.remove('show');
+}
+
+/* 输入时自动格式化成 LUNA-XXXX-XXXX，并在凑够长度时自动查找预览 */
+function npccFormatInput(input) {
+  let raw = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (raw.startsWith('LUNA')) raw = raw.slice(4);
+  raw = raw.slice(0, 8);
+  let formatted = 'LUNA';
+  if (raw.length > 0) formatted += '-' + raw.slice(0, 4);
+  if (raw.length > 4) formatted += '-' + raw.slice(4, 8);
+  input.value = formatted;
+
+  const previewEl = document.getElementById('npccPreview');
+  if (raw.length === 8) {
+    npccLookupCode(formatted);
+  } else {
+    previewEl.style.display = 'none';
+    _npccMatchedChar = null;
+  }
+}
+
+async function npccLookupCode(code) {
+  const previewEl = document.getElementById('npccPreview');
+  const hintEl    = document.getElementById('npccHint');
+  const all = await getAllCharsForNpcc();
+  const match = all.find(c => (c.friendCode || '').toUpperCase() === code);
+
+  if (!match) {
+    _npccMatchedChar = null;
+    previewEl.style.display = 'none';
+    hintEl.style.display = '';
+    hintEl.textContent = '没有找到这个好友码对应的人，检查一下是否输入正确。';
+    return;
+  }
+
+  _npccMatchedChar = match;
+  hintEl.style.display = 'none';
+  previewEl.style.display = 'flex';
+  const letter = (match.name || '?')[0]?.toUpperCase() || '?';
+  document.getElementById('npccPreviewAvatar').innerHTML = match.avatar
+    ? `<img src="${match.avatar}" alt=""/>`
+    : letter;
+  document.getElementById('npccPreviewName').textContent = match.name || '未命名';
+  document.getElementById('npccPreviewRole').textContent = match.matchSignature || match.role || '暂无简介';
+}
+
+/* 复用 openLunaCharDB 打开同一份 LunaCharDB，读全部角色 */
+async function getAllCharsForNpcc() {
+  return new Promise(res => {
+    openLunaCharDB().then(db => {
+      if (!db.objectStoreNames.contains('chars')) { res([]); return; }
+      const r = db.transaction('chars').objectStore('chars').getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror   = () => res([]);
+    }).catch(() => res([]));
+  });
+}
+
+async function npccSubmitCode() {
+  const code = document.getElementById('npccCodeInput').value.trim().toUpperCase();
+  if (!code || code === 'LUNA') {
+    npccToastLocal('请先输入好友码');
+    return;
+  }
+  if (!_npccMatchedChar) {
+    await npccLookupCode(code);
+    if (!_npccMatchedChar) { npccToastLocal('没有找到这个好友码对应的人'); return; }
+  }
+
+  const submitBtn = document.getElementById('npccSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '添加中…';
+
+  const d = _npccMatchedChar;
+  const name = d.name || '未命名';
+
+  if (!convData.find(c => c.name === name)) {
+    convData.unshift({
+      name,
+      initial: name[0],
+      preview: d.role || d.matchSignature || '新添加的好友',
+      time: ncNowTime(),
+      timeVal: Date.now(),
+      createdAt: Date.now(),
+      unread: 0, online: false, pinned: false,
+      type: 'def',
+      charId: d.id,
+    });
+  }
+  if (!friendsData.find(c => c.name === name)) {
+    friendsData.push({
+      name,
+      initial: name[0],
+      bio: d.role || d.matchSignature || '新添加的好友',
+      group: (name[0] || '?').toUpperCase(),
+      style: '',
+      online: false,
+      tag: '',
+    });
+  }
+
+  // 标记这个角色已经加入过聊天（供角色档案 / 生成页展示状态用）
+  try {
+    const db = await openLunaCharDB();
+    const tx = db.transaction('chars', 'readwrite');
+    tx.objectStore('chars').put({ ...d, addedToChat: true });
+  } catch (e) {}
+
+  dbSaveConv();
+  dbSaveFriends();
+  _avatarCache = null;
+  await getAvatarCache();
+  renderConvList();
+  renderStoryRing();
+  renderFriendStories();
+  renderFriends();
+  if (typeof momentsSyncWithFriends === 'function') {
+    momentsSyncWithFriends();
+    momentsRenderFeed();
+  }
+
+  submitBtn.textContent = '已添加';
+  npccToastLocal(`已添加 ${name}，可以开始聊天了`);
+  setTimeout(() => closeNpcCodeSheet(), 700);
+}
+
+/* 轻量 toast，若页面已有全局 showToast 则优先复用 */
+function npccToastLocal(msg) {
+  if (typeof showToast === 'function') { showToast(msg); return; }
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);background:#1a1a16;color:#f7f6f3;font-family:"DM Sans",sans-serif;font-size:12.5px;padding:11px 20px;border-radius:30px;z-index:500;box-shadow:0 12px 30px rgba(0,0,0,.25);';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2400);
 }
 
 /* ════════════════════════════════════════
@@ -1243,7 +1353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   groupsData.push(...savedGroups);
 
   /* renderConvList 由 pageshow 统一调用，这里不重复调用 */
-  renderMoments();
+  if (typeof momentsFeedInit === 'function') momentsFeedInit();
 
   // 等 ProfileSnapshot 加载完再渲染故事环，确保头像已就绪
   loadProfileSnapshot().then(snap => {
@@ -7716,6 +7826,11 @@ async function _svGenerateFriendsList() {
   dbSaveFriends();
   renderFriends();
   renderStoryRing();
+  renderFriendStories();
+  if (typeof momentsSyncWithFriends === 'function') {
+    momentsSyncWithFriends();
+    momentsRenderFeed();
+  }
   return friendsData;
 }
 

@@ -102,46 +102,77 @@ function switchTab(el) {
    颜色方案
 ================================ */
 const COLOR_MAP = {
-  warm:  { strip: 'linear-gradient(180deg,#c9b89a,#a8956e)', topC1:'#f5efe7', topC2:'#ede3d5', avBg:'#1e1a14', avCol:'#c9b89a' },
-  cool:  { strip: 'linear-gradient(180deg,#8fa3a8,#607d85)', topC1:'#e8eef0', topC2:'#d8e6ea', avBg:'#101618', avCol:'#8fa3a8' },
-  gold:  { strip: 'linear-gradient(180deg,#b8a47a,#927d50)', topC1:'#f0eadb', topC2:'#e4d9c4', avBg:'#181410', avCol:'#b8a47a' },
-  ash:   { strip: 'linear-gradient(180deg,#9d9d9d,#707070)', topC1:'#ebebeb', topC2:'#dedede', avBg:'#141414', avCol:'#9d9d9d' },
-  mist:  { strip: 'linear-gradient(180deg,#a8b5a0,#7a8e72)', topC1:'#e5ede2', topC2:'#d5e2d0', avBg:'#111512', avCol:'#a8b5a0' },
-  blush: { strip: 'linear-gradient(180deg,#c4a5a0,#9e7870)', topC1:'#f0e5e3', topC2:'#e4d5d2', avBg:'#180f0e', avCol:'#c4a5a0' },
+  ink:    { strip: 'linear-gradient(180deg,#3a3a40,#16161a)', topC1:'#ececed', topC2:'#dcdcdf', avBg:'#101012', avCol:'#c9c9cd' },
+  slate:  { strip: 'linear-gradient(180deg,#7a7a82,#54545c)', topC1:'#eef0f1', topC2:'#dfe1e3', avBg:'#141416', avCol:'#b8bac0' },
+  silver: { strip: 'linear-gradient(180deg,#b8b8bc,#8c8c92)', topC1:'#f2f2f2', topC2:'#e4e4e4', avBg:'#1a1a1c', avCol:'#d4d4d8' },
+  frost:  { strip: 'linear-gradient(180deg,#c4c8cc,#9aa0a6)', topC1:'#eef1f3', topC2:'#dfe4e7', avBg:'#111316', avCol:'#c8ccd0' },
+  smoke:  { strip: 'linear-gradient(180deg,#6a6a70,#3c3c42)', topC1:'#e9e9ea', topC2:'#dadada', avBg:'#0e0e10', avCol:'#bdbdc2' },
+  pearl:  { strip: 'linear-gradient(180deg,#d6d6d8,#adadb2)', topC1:'#f5f5f5', topC2:'#e8e8e8', avBg:'#1c1c1e', avCol:'#e0e0e3' },
 };
 
 /* ================================
-   IndexedDB
+   IndexedDB — 完全自治，自己建库建 store
+   策略：先不带版本号探测当前版本，
+         再以 当前版本+1 重新打开并在
+         onupgradeneeded 里补建缺失的 store，
+         从而既兼容主应用已有数据，又保证
+         chars / fonts 两个 store 一定存在。
 ================================ */
 let _db = null;
 
 function openCharDB() {
+  if (_db) return Promise.resolve(_db);
+
   return new Promise((res, rej) => {
-    if (_db) return res(_db);
-    const req = indexedDB.open('LunaCharDB', 4);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('chars')) {
-        db.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+    /* 第一步：不带版本号探测，拿到当前真实版本 */
+    const probe = indexedDB.open('LunaCharDB');
+    probe.onsuccess = e => {
+      const cur = e.target.result;
+      const ver = cur.version;
+      const hasChars = cur.objectStoreNames.contains('chars');
+      cur.close();
+
+      if (hasChars) {
+        /* store 已存在 → 直接按当前版本重新打开（不触发 upgrade） */
+        const req2 = indexedDB.open('LunaCharDB', ver);
+        req2.onsuccess = e2 => { _db = e2.target.result; res(_db); };
+        req2.onerror   = e2 => rej(e2.target.error);
+        req2.onupgradeneeded = () => {}; // 防御性空处理
+      } else {
+        /* store 不存在 → 以 ver+1 打开，在 upgrade 里创建 */
+        const req3 = indexedDB.open('LunaCharDB', ver + 1);
+        req3.onupgradeneeded = e3 => {
+          const db3 = e3.target.result;
+          if (!db3.objectStoreNames.contains('chars'))
+            db3.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+        };
+        req3.onsuccess = e3 => { _db = e3.target.result; res(_db); };
+        req3.onerror   = e3 => rej(e3.target.error);
       }
     };
-    req.onsuccess = e => { _db = e.target.result; res(_db); };
-    req.onerror = e => rej(e.target.error);
+    probe.onerror = e => rej(e.target.error);
+    /* probe 本身触发 upgrade 说明是全新 DB，顺手建 store */
+    probe.onupgradeneeded = e => {
+      const db0 = e.target.result;
+      if (!db0.objectStoreNames.contains('chars'))
+        db0.createObjectStore('chars', { keyPath: 'id', autoIncrement: true });
+    };
   });
 }
 
 async function getAllChars() {
-  const db = await openCharDB().catch(err => { console.error('DB打开失败:', err); return null; });
+  const db = await openCharDB().catch(err => { console.error('CharDB打开失败:', err); return null; });
   if (!db) return [];
   return new Promise(res => {
-    const req = db.transaction('chars').objectStore('chars').getAll();
+    const req = db.transaction('chars', 'readonly').objectStore('chars').getAll();
     req.onsuccess = () => res(req.result || []);
-    req.onerror  = () => res([]);
+    req.onerror   = () => res([]);
   });
 }
 
 async function saveChar(data) {
-  const db = await openCharDB();
+  const db = await openCharDB().catch(err => { console.error('CharDB打开失败:', err); return null; });
+  if (!db) return null;
   return new Promise(res => {
     const tx    = db.transaction('chars', 'readwrite');
     const store = tx.objectStore('chars');
@@ -149,6 +180,77 @@ async function saveChar(data) {
     req.onsuccess = () => res(req.result);
     req.onerror   = () => res(null);
   });
+}
+
+/* ================================
+   世界书读写 — 与 worldbook.js 共用同一个
+   IndexedDB「LunaWorldBookDB / entries」store，
+   确保角色档案与世界书两端读到的是同一份数据，
+   而不是各自维护一份互不相干的副本。
+================================ */
+let _wbDb = null;
+
+function openWbDB() {
+  return new Promise((res, rej) => {
+    if (_wbDb) return res(_wbDb);
+    const req = indexedDB.open('LunaWorldBookDB', 2);
+    req.onupgradeneeded = e => {
+      if (!e.target.result.objectStoreNames.contains('entries'))
+        e.target.result.createObjectStore('entries', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = e => { _wbDb = e.target.result; res(_wbDb); };
+    req.onerror   = () => rej('WB DB Error');
+  });
+}
+
+async function getAllWbEntries() {
+  try {
+    const db = await openWbDB();
+    return new Promise(res => {
+      const req = db.transaction('entries', 'readonly').objectStore('entries').getAll();
+      req.onsuccess = () => res(req.result || []);
+      req.onerror   = () => res([]);
+    });
+  } catch (e) { return []; }
+}
+
+async function saveWbEntry_db(entry) {
+  const db = await openWbDB();
+  return new Promise(res => {
+    const tx    = db.transaction('entries', 'readwrite');
+    const store = tx.objectStore('entries');
+    const req   = store.put(entry);
+    req.onsuccess = () => res(req.result);
+    req.onerror   = () => res(null);
+  });
+}
+
+/* 双向同步核心：
+   角色保存时选中的世界书条目 = charId 必须出现在
+   entry.chars 里；未选中的条目里若之前含有该 charId
+   则要摘除。这样无论用户是在「角色档案」还是「世界书」
+   哪一侧做的勾选，两边看到的关联关系永远一致。 */
+async function syncWorldEntriesForChar(charId, selectedEntryIds) {
+  if (charId == null) return; // 新建角色首次保存前没有 id，等下一次编辑再同步
+  const allEntries = await getAllWbEntries();
+  const selectedSet = new Set(selectedEntryIds || []);
+  const writes = [];
+
+  allEntries.forEach(entry => {
+    const chars = Array.isArray(entry.chars) ? entry.chars.slice() : [];
+    const has   = chars.includes(charId);
+    const should = selectedSet.has(entry.id);
+    if (should && !has) {
+      chars.push(charId);
+      writes.push(saveWbEntry_db({ ...entry, chars }));
+    } else if (!should && has) {
+      writes.push(saveWbEntry_db({ ...entry, chars: chars.filter(id => id !== charId) }));
+    }
+  });
+
+  if (writes.length) await Promise.all(writes);
+  /* 通知世界书页（若在其他标签页打开）刷新关联展示 */
+  localStorage.setItem('luna_worldbook_db_update', Date.now());
 }
 
 /* ================================
@@ -198,7 +300,7 @@ async function renderList() {
 }
 
 function buildCard(c, idx) {
-  const col      = COLOR_MAP[c.color] || COLOR_MAP.warm;
+  const col      = COLOR_MAP[c.color] || COLOR_MAP.ink;
   const isActive = c.id === _activeId;
   const letter   = (c.name || '?')[0].toUpperCase();
   const idxStr   = String(idx).padStart(2, '0');
@@ -264,16 +366,64 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+/* 从角色详情页跳转到世界书对应条目 */
+function goToWorldbookEntry(entryId) {
+  window.location.href = `worldbook.html?entry=${entryId}`;
+}
+
+/* ================================
+   世界书内容注入
+   应用角色时，把与该角色关联的「常驻」世界书条目
+   （以及未关联任何角色、对全体角色生效的全局常驻条目）
+   拼接进最终 prompt。关键词触发型条目依赖对话上下文扫描，
+   不在这里做静态注入，交由对话引擎在运行时按关键词命中处理；
+   这里只保证"角色档案页看到关联了什么，应用后 AI 就真的拿到什么"。
+================================ */
+async function buildWorldbookPromptForChar(charId) {
+  const allEntries = await getAllWbEntries();
+  const relevant = allEntries.filter(e => {
+    if (e.enabled === false) return false;
+    if (e.mode !== 'constant') return false; // 关键词触发条目交给对话引擎按需注入
+    const chars = Array.isArray(e.chars) ? e.chars : [];
+    // 未关联任何角色 = 全局常驻，对所有角色生效；否则必须显式关联到当前角色
+    return chars.length === 0 || chars.includes(charId);
+  });
+  if (!relevant.length) return '';
+
+  relevant.sort((a, b) => (b.priority ?? 5) - (a.priority ?? 5));
+
+  let block = `【世界设定 —— 来自关联世界书，请作为背景真实世界规则遵守】\n`;
+  relevant.forEach(e => {
+    block += `◆ ${e.title || '未命名'}`;
+    if (e.sub) block += `（${e.sub}）`;
+    block += `\n${e.detail || ''}\n\n`;
+  });
+  return block.trim();
+}
+
 /* ================================
    应用角色
 ================================ */
-function applyCard(id) {
+async function applyCard(id) {
   const c = _chars.find(x => x.id === id);
   if (!c) return;
   localStorage.setItem('luna_active_char', id);
-  localStorage.setItem('luna_char_prompt', c.prompt || '');
   localStorage.setItem('luna_char_name',   c.name   || '');
+
+  /* ── 拼接记忆档案：从 LunaMemoryDB 读取该角色的记忆，
+     注入到人设 prompt 之后，让 AI 同时拿到"设定"与"记忆" ── */
+  const charKey     = c.id != null ? c.id : c.name;
+  const memoryPrompt = await buildMemoryPromptStandalone(charKey);
+  const worldPrompt  = await buildWorldbookPromptForChar(c.id);
+
+  let fullPrompt = c.prompt || '';
+  if (worldPrompt)  fullPrompt += `\n\n${worldPrompt}`;
+  if (memoryPrompt) fullPrompt += `\n\n${memoryPrompt}`;
+
+  localStorage.setItem('luna_char_prompt', fullPrompt);
   _activeId = id;
+  /* 通知 album 页刷新 char folder */
+  localStorage.setItem('luna_char_db_update', Date.now());
 
   document.querySelectorAll('.ch-card').forEach(card => {
     const cid    = parseInt(card.dataset.id);
@@ -305,14 +455,20 @@ function openNewCard() {
   _formAvatarData = null;
   _formBgData = null;
   _formGender = '女';
+  _formColor = 'ink';
+  _pillState = { langSelect: '中文', povSelect: '第一人称', lengthSelect: '适中', actionSelect: '星号' };
+  _switchState = { swNoBreak: true, swNoRepeat: true, swNoDisclaimer: true };
+  _dialogExampleCount = 0;
+  _selWbEntries = [];
+  buildWbPicker();
+
   document.getElementById('chModalTitle').textContent = '新建角色';
-  document.getElementById('formName').value     = '';
-  document.getElementById('formRole').value     = '';
-  document.getElementById('formDesc').value     = '';
-  document.getElementById('formTraits').value   = '';
-  document.getElementById('formPrompt').value   = '';
-  document.getElementById('formAge').value      = '';
-  document.getElementById('formBirthday').value = '';
+  ['formName','formRole','formDesc','formTraits','formPrompt','formAge','formBirthday',
+   'formSpecies','formAppearance','formOutfit','formFears','formSpeechStyle','formCatchphrases',
+   'formBackstory','formScenario','formRelation','formCallUser','formRelationDetail',
+   'formFirstMes','formBoundaries'
+  ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+
   document.getElementById('previewName').textContent = '角色名称';
   document.getElementById('previewMeta').textContent = '定位 · 性别 · 年龄';
   document.getElementById('previewAvatar').innerHTML = `<svg viewBox="0 0 24 24" width="28" height="28" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
@@ -320,6 +476,26 @@ function openNewCard() {
   document.getElementById('descCount').textContent = '0';
   document.querySelectorAll('.ch-gender-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
   document.querySelectorAll('.ch-color-opt').forEach((o, i) => o.classList.toggle('selected', i === 0));
+
+  clearDynList('likesList');
+  clearDynList('dislikesList');
+  clearDynList('neverList');
+  document.getElementById('dialogExamples').innerHTML = '';
+
+  ['langSelect','povSelect','lengthSelect','actionSelect'].forEach(gid => {
+    const group = document.getElementById(gid);
+    if (!group) return;
+    group.querySelectorAll('.ch-pill-opt').forEach((p, i) => p.classList.toggle('active', p.dataset.val === _pillState[gid]));
+  });
+  ['swNoBreak','swNoRepeat','swNoDisclaimer'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('on');
+  });
+
+  // 只展开第一个分组
+  document.querySelectorAll('.ch-form-section').forEach((s, i) => s.classList.toggle('open', i === 0));
+
+  updateCompleteness();
   showModal();
 }
 
@@ -327,6 +503,7 @@ async function editCard(id) {
   const c = _chars.find(x => x.id === id);
   if (!c) return;
   _editingId = id;
+  _dialogExampleCount = 0;
 
   // 文字字段
   document.getElementById('chModalTitle').textContent  = '编辑角色';
@@ -339,6 +516,20 @@ async function editCard(id) {
   document.getElementById('formBirthday').value        = c.birthday || '';
   document.getElementById('descCount').textContent     = (c.desc || '').length;
 
+  document.getElementById('formSpecies').value         = c.species || '';
+  document.getElementById('formAppearance').value      = c.appearance || '';
+  document.getElementById('formOutfit').value          = c.outfit || '';
+  document.getElementById('formFears').value           = c.fears || '';
+  document.getElementById('formSpeechStyle').value     = c.speechStyle || '';
+  document.getElementById('formCatchphrases').value    = (c.catchphrases || []).join(', ');
+  document.getElementById('formBackstory').value       = c.backstory || '';
+  document.getElementById('formScenario').value        = c.scenario || '';
+  document.getElementById('formRelation').value        = c.relation || '';
+  document.getElementById('formCallUser').value        = c.callUser || '';
+  document.getElementById('formRelationDetail').value  = c.relationDetail || '';
+  document.getElementById('formFirstMes').value        = c.firstMes || '';
+  document.getElementById('formBoundaries').value      = c.boundaries || '';
+
   // 性别按钮
   _formGender = c.gender || '女';
   document.querySelectorAll('.ch-gender-btn').forEach(b => {
@@ -346,8 +537,9 @@ async function editCard(id) {
   });
 
   // 颜色
+  _formColor = c.color || 'ink';
   document.querySelectorAll('.ch-color-opt').forEach(o => {
-    o.classList.toggle('selected', o.dataset.color === (c.color || 'warm'));
+    o.classList.toggle('selected', o.dataset.color === _formColor);
   });
 
   // 头像预览回填
@@ -368,6 +560,55 @@ async function editCard(id) {
   document.getElementById('previewName').textContent = c.name || '角色名称';
   updatePreviewMeta();
 
+  // 喜欢 / 不喜欢 / 绝不会做的事
+  clearDynList('likesList');    (c.likes || []).forEach(v => addDynItem('likesList', '喜欢的事物…', v));
+  clearDynList('dislikesList'); (c.dislikes || []).forEach(v => addDynItem('dislikesList', '厌恶的事物…', v));
+  clearDynList('neverList');    (c.neverList || []).forEach(v => addDynItem('neverList', '例如：绝不会主动提及自己是 AI', v));
+
+  // 对话示例
+  document.getElementById('dialogExamples').innerHTML = '';
+  (c.dialogExamples || []).forEach(d => addDialogExample(d.user, d.char));
+
+  // 关联世界书 —— 优先取角色自身记录的 worldEntries；
+  // 若角色端字段缺失（例如老数据/世界书那边先关联的），
+  // 用世界书条目的 chars 字段反查一次，保证回填结果与
+  // 世界书页看到的关联关系一致，不会出现两边不一样的情况
+  _selWbEntries = Array.isArray(c.worldEntries) ? [...c.worldEntries] : [];
+  if (c.id != null) {
+    const allEntries = await getAllWbEntries();
+    const fromWb = allEntries.filter(e => Array.isArray(e.chars) && e.chars.includes(c.id)).map(e => e.id);
+    fromWb.forEach(id => { if (!_selWbEntries.includes(id)) _selWbEntries.push(id); });
+  }
+  await buildWbPicker();
+
+  // Pill 选择组
+  _pillState = {
+    langSelect: c.lang || '中文',
+    povSelect: c.pov || '第一人称',
+    lengthSelect: c.replyLength || '适中',
+    actionSelect: c.actionMark || '星号'
+  };
+  ['langSelect','povSelect','lengthSelect','actionSelect'].forEach(gid => {
+    const group = document.getElementById(gid);
+    if (!group) return;
+    group.querySelectorAll('.ch-pill-opt').forEach(p => p.classList.toggle('active', p.dataset.val === _pillState[gid]));
+  });
+
+  // 开关
+  _switchState = {
+    swNoBreak: c.noBreak !== false,
+    swNoRepeat: c.noRepeat !== false,
+    swNoDisclaimer: c.noDisclaimer !== false
+  };
+  Object.keys(_switchState).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('on', _switchState[id]);
+  });
+
+  // 只展开第一个分组
+  document.querySelectorAll('.ch-form-section').forEach((s, i) => s.classList.toggle('open', i === 0));
+
+  updateCompleteness();
   showModal();
 }
 
@@ -376,21 +617,81 @@ async function saveCard() {
   const role   = document.getElementById('formRole').value.trim();
   const desc   = document.getElementById('formDesc').value.trim();
   const traits = document.getElementById('formTraits').value.split(',').map(s => s.trim()).filter(Boolean);
-  const prompt = document.getElementById('formPrompt').value.trim();
+  let   prompt = document.getElementById('formPrompt').value.trim();
 
-  if (!name) { document.getElementById('formName').focus(); return; }
+  if (!name) {
+    document.getElementById('formName').focus();
+    document.querySelectorAll('.ch-form-section')[0].classList.add('open');
+    return;
+  }
 
   const age      = document.getElementById('formAge').value.trim();
-    const birthday = document.getElementById('formBirthday').value.trim();
-    const data = { name, role, desc, traits, prompt,
-                gender: _formGender, age, birthday,
-                avatar: _formAvatarData, cardBg: _formBgData };
+  const birthday = document.getElementById('formBirthday').value.trim();
+
+  const data = {
+    name, role, desc, traits, prompt,
+    gender: _formGender, age, birthday,
+    avatar: _formAvatarData, cardBg: _formBgData,
+    color: _formColor,
+
+    species:     document.getElementById('formSpecies').value.trim(),
+    appearance:  document.getElementById('formAppearance').value.trim(),
+    outfit:      document.getElementById('formOutfit').value.trim(),
+
+    likes:       getDynListValues('likesList'),
+    dislikes:    getDynListValues('dislikesList'),
+    fears:       document.getElementById('formFears').value.trim(),
+
+    speechStyle:   document.getElementById('formSpeechStyle').value.trim(),
+    catchphrases:  document.getElementById('formCatchphrases').value.split(',').map(s => s.trim()).filter(Boolean),
+    lang:          _pillState.langSelect,
+
+    backstory:   document.getElementById('formBackstory').value.trim(),
+    scenario:    document.getElementById('formScenario').value.trim(),
+
+    worldEntries: [..._selWbEntries],
+
+    relation:        document.getElementById('formRelation').value.trim(),
+    callUser:        document.getElementById('formCallUser').value.trim(),
+    relationDetail:  document.getElementById('formRelationDetail').value.trim(),
+
+    firstMes:       document.getElementById('formFirstMes').value.trim(),
+    dialogExamples: getDialogExamples(),
+
+    neverList:    getDynListValues('neverList'),
+    boundaries:   document.getElementById('formBoundaries').value.trim(),
+
+    pov:            _pillState.povSelect,
+    replyLength:    _pillState.lengthSelect,
+    actionMark:     _pillState.actionSelect,
+    noBreak:        _switchState.swNoBreak,
+    noRepeat:       _switchState.swNoRepeat,
+    noDisclaimer:   _switchState.swNoDisclaimer,
+  };
+
+  // 若未手动填写/生成提示词，保存时自动生成，确保应用角色时始终有完整指令
+  if (!prompt) {
+    prompt = buildPromptFromFields();
+    data.prompt = prompt;
+  }
+
   if (_editingId) data.id = _editingId;
 
-  await saveChar(data);
+  const savedId = await saveChar(data);
+  const charId  = _editingId || savedId;
+
+  // 把这次勾选结果写回世界书条目的 chars 字段，
+  // 保证「角色档案」和「世界书」两端看到的关联关系始终一致，
+  // 不会出现一边显示关联、另一边显示未关联的情况
+  await syncWorldEntriesForChar(charId, _selWbEntries);
+
   closeModal();
   await renderList();
-  if (_viewingId) openView(_viewingId);  // ← 加这行，刷新详情页数据
+  if (_viewingId) openView(_viewingId);
+  /* 通知 album 页刷新 char folder */
+  localStorage.setItem('luna_char_db_update', Date.now());
+  /* 通知 phone 页联系人同步 */
+  localStorage.setItem('luna_characters_updated', Date.now());
 }
 
 function showModal() {
@@ -430,12 +731,29 @@ async function applyGlobalFont() {
   if (name && id) {
     try {
       const db = await new Promise((res, rej) => {
-        const req = indexedDB.open('LunaFontDB', 4);
-        req.onsuccess = e => res(e.target.result);
-        req.onerror = () => rej();
+        const probe = indexedDB.open('LunaFontDB');
+        probe.onupgradeneeded = e => {
+          if (!e.target.result.objectStoreNames.contains('fonts'))
+            e.target.result.createObjectStore('fonts', { keyPath: 'id', autoIncrement: true });
+        };
+        probe.onsuccess = e => {
+          const cur = e.target.result;
+          const ver = cur.version;
+          const has = cur.objectStoreNames.contains('fonts');
+          cur.close();
+          const req2 = indexedDB.open('LunaFontDB', has ? ver : ver + 1);
+          req2.onupgradeneeded = e2 => {
+            if (!e2.target.result.objectStoreNames.contains('fonts'))
+              e2.target.result.createObjectStore('fonts', { keyPath: 'id', autoIncrement: true });
+          };
+          req2.onsuccess = e2 => res(e2.target.result);
+          req2.onerror   = () => rej(new Error('LunaFontDB open failed'));
+        };
+        probe.onerror = () => rej(new Error('LunaFontDB probe failed'));
       });
       const all = await new Promise(res => {
-        const r = db.transaction('fonts').objectStore('fonts').getAll();
+        if (!db.objectStoreNames.contains('fonts')) return res([]);
+        const r = db.transaction('fonts', 'readonly').objectStore('fonts').getAll();
         r.onsuccess = () => res(r.result || []);
         r.onerror   = () => res([]);
       });
@@ -471,6 +789,223 @@ function toggleCard(el) {
 let _formAvatarData = null;
 let _formBgData = null;
 let _formGender = '女';
+let _formColor = 'ink';
+let _selWbEntries = []; // 当前编辑角色所勾选的世界书条目 id 列表
+let _pillState = { langSelect: '中文', povSelect: '第一人称', lengthSelect: '适中', actionSelect: '星号' };
+let _switchState = { swNoBreak: true, swNoRepeat: true, swNoDisclaimer: true };
+
+/* ---- 分组折叠 ---- */
+function toggleSection(headEl) {
+  const section = headEl.closest('.ch-form-section');
+  section.classList.toggle('open');
+}
+
+/* ---- 主题色选择 ---- */
+function selectColor(el) {
+  document.querySelectorAll('.ch-color-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  _formColor = el.dataset.color;
+}
+
+/* ---- Pill 单选组 ---- */
+function selectPill(el, groupId) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.ch-pill-opt').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  _pillState[groupId] = el.dataset.val;
+}
+
+/* ---- 开关 Toggle ---- */
+function toggleSwitch(el) {
+  const isOn = el.classList.toggle('on');
+  _switchState[el.id] = isOn;
+}
+
+/* ---- 动态列表（喜欢/不喜欢/绝不会做的事）---- */
+function addDynItem(listId, placeholder, value) {
+  const list = document.getElementById(listId);
+  const row = document.createElement('div');
+  row.className = 'ch-dynlist-row';
+  row.innerHTML = `
+    <input class="ch-form-input" type="text" placeholder="${escHtml(placeholder)}" value="${value ? escHtml(value) : ''}"/>
+    <button class="ch-dynlist-del" onclick="this.parentElement.remove()">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>`;
+  list.appendChild(row);
+}
+function getDynListValues(listId) {
+  return Array.from(document.querySelectorAll(`#${listId} input`))
+    .map(i => i.value.trim()).filter(Boolean);
+}
+function clearDynList(listId) {
+  document.getElementById(listId).innerHTML = '';
+}
+
+/* ---- 对话示例（用户/角色 成对）---- */
+let _dialogExampleCount = 0;
+function addDialogExample(userVal, charVal) {
+  _dialogExampleCount++;
+  const list = document.getElementById('dialogExamples');
+  const pair = document.createElement('div');
+  pair.className = 'ch-dialog-pair';
+  pair.innerHTML = `
+    <div class="ch-dialog-pair-head">
+      <span class="ch-dialog-pair-label">EXAMPLE ${String(_dialogExampleCount).padStart(2,'0')}</span>
+      <button class="ch-dynlist-del" onclick="this.closest('.ch-dialog-pair').remove()">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="ch-dialog-pair-body">
+      <div class="ch-dialog-line">
+        <span class="ch-dialog-tag">用户</span>
+        <textarea class="ch-form-textarea dlg-user" style="min-height:44px;" placeholder="用户可能说的话…">${userVal ? escHtml(userVal) : ''}</textarea>
+      </div>
+      <div class="ch-dialog-line">
+        <span class="ch-dialog-tag char">角色</span>
+        <textarea class="ch-form-textarea dlg-char" style="min-height:56px;" placeholder="角色的回应，展示语气与用词风格…">${charVal ? escHtml(charVal) : ''}</textarea>
+      </div>
+    </div>`;
+  list.appendChild(pair);
+}
+function getDialogExamples() {
+  return Array.from(document.querySelectorAll('#dialogExamples .ch-dialog-pair')).map(pair => ({
+    user: pair.querySelector('.dlg-user').value.trim(),
+    char: pair.querySelector('.dlg-char').value.trim()
+  })).filter(d => d.user || d.char);
+}
+
+/* ---- 完整度计算（预览卡圆环）---- */
+function updateCompleteness() {
+  const fields = ['formName','formRole','formDesc','formTraits'];
+  let filled = 0;
+  fields.forEach(id => { if (document.getElementById(id) && document.getElementById(id).value.trim()) filled++; });
+  const extra = ['formAppearance','formSpeechStyle','formBackstory','formFirstMes'];
+  extra.forEach(id => { if (document.getElementById(id) && document.getElementById(id).value.trim()) filled += 0.5; });
+  const pct = Math.min(100, Math.round((filled / (fields.length + extra.length * 0.5)) * 100));
+  const circumference = 40.8;
+  const offset = circumference - (circumference * pct / 100);
+  const arc = document.getElementById('completenessArc');
+  if (arc) arc.style.strokeDashoffset = offset;
+  const txt = document.getElementById('completenessText');
+  if (txt) txt.textContent = pct + '%';
+}
+
+/* ---- 自动生成系统提示词 ---- */
+function buildPromptFromFields() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const name = g('formName') || '该角色';
+  const role = g('formRole');
+  const gender = _formGender;
+  const age = g('formAge');
+  const species = g('formSpecies');
+  const appearance = g('formAppearance');
+  const outfit = g('formOutfit');
+  const desc = g('formDesc');
+  const traits = g('formTraits');
+  const likes = getDynListValues('likesList');
+  const dislikes = getDynListValues('dislikesList');
+  const fears = g('formFears');
+  const speechStyle = g('formSpeechStyle');
+  const catchphrases = g('formCatchphrases');
+  const lang = _pillState.langSelect;
+  const backstory = g('formBackstory');
+  const scenario = g('formScenario');
+  const relation = g('formRelation');
+  const callUser = g('formCallUser');
+  const relationDetail = g('formRelationDetail');
+  const firstMes = g('formFirstMes');
+  const dialogs = getDialogExamples();
+  const neverList = getDynListValues('neverList');
+  const boundaries = g('formBoundaries');
+  const pov = _pillState.povSelect;
+  const length = _pillState.lengthSelect;
+  const actionMark = _pillState.actionSelect;
+
+  let p = '';
+  p += `你将完全代入并扮演角色"${name}"，在整个对话中始终保持第一人称的角色身份，不得跳出角色、不得以"AI助手"的身份自称或解释。\n\n`;
+
+  p += `【角色身份】\n`;
+  p += `姓名：${name}\n`;
+  if (role) p += `定位：${role}\n`;
+  p += `性别：${gender}${age ? ' ｜ 年龄：' + age : ''}\n`;
+  if (species) p += `身份类型：${species}\n`;
+  p += `\n`;
+
+  if (appearance || outfit) {
+    p += `【外貌】\n`;
+    if (appearance) p += `${appearance}\n`;
+    if (outfit) p += `穿搭/标志物：${outfit}\n`;
+    p += `\n`;
+  }
+
+  p += `【性格】\n`;
+  if (traits) p += `核心特质：${traits}\n`;
+  if (desc) p += `${desc}\n`;
+  if (likes.length) p += `喜欢：${likes.join('、')}\n`;
+  if (dislikes.length) p += `不喜欢：${dislikes.join('、')}\n`;
+  if (fears) p += `隐藏面/弱点：${fears}\n`;
+  p += `\n`;
+
+  if (speechStyle || catchphrases) {
+    p += `【语言风格】\n`;
+    if (speechStyle) p += `${speechStyle}\n`;
+    if (catchphrases) p += `常用口头禅：${catchphrases}\n`;
+    p += `使用语言：${lang}\n`;
+    p += `\n`;
+  }
+
+  if (backstory || scenario) {
+    p += `【背景与场景】\n`;
+    if (backstory) p += `背景故事：${backstory}\n`;
+    if (scenario) p += `当前场景：${scenario}\n`;
+    p += `\n`;
+  }
+
+  if (relation || callUser || relationDetail) {
+    p += `【与用户的关系】\n`;
+    if (relation) p += `关系：${relation}\n`;
+    if (callUser) p += `对用户的称呼：${callUser}\n`;
+    if (relationDetail) p += `${relationDetail}\n`;
+    p += `\n`;
+  }
+
+  if (dialogs.length) {
+    p += `【对话示例 —— 请模仿以下语气、句式与节奏】\n`;
+    dialogs.forEach(d => {
+      if (d.user) p += `用户：${d.user}\n`;
+      if (d.char) p += `${name}：${d.char}\n`;
+    });
+    p += `\n`;
+  }
+
+  p += `【格式规范】\n`;
+  p += `- 叙事视角：${pov}\n`;
+  p += `- 回复长度：${length}\n`;
+  p += `- 动作/心理描写：${actionMark === '星号' ? '使用 *星号* 包裹' : actionMark === '括号' ? '使用（括号）包裹' : '融入叙述文字中，不额外标注'}\n`;
+  if (_switchState.swNoBreak) p += `- 全程保持角色视角，禁止出现"作为AI"、"我不能"、"我是语言模型"等跳出角色的表达\n`;
+  if (_switchState.swNoRepeat) p += `- 回复中不复述或总结用户刚说过的话，直接以角色身份回应/推进对话\n`;
+  if (_switchState.swNoDisclaimer) p += `- 不插入现实世界的免责声明、安全提示或说教口吻，保持角色沉浸感\n`;
+  p += `\n`;
+
+  if (neverList.length || boundaries) {
+    p += `【绝对禁止事项】\n`;
+    neverList.forEach((n, i) => { p += `${i + 1}. ${n}\n`; });
+    if (boundaries) p += `情绪/行为边界：${boundaries}\n`;
+    p += `\n`;
+  }
+
+  p += `请严格依据以上设定进行角色扮演，保持人设的连贯性与一致性，不随对话拉长而"失忆"或"人设漂移"。`;
+
+  return p;
+}
+
+function generatePromptFromFields() {
+  const prompt = buildPromptFromFields();
+  document.getElementById('formPrompt').value = prompt;
+  // 展开提示词分组，滚动到可见
+  const section = document.querySelector('.ch-form-section[data-section="prompt"]');
+  if (section && !section.classList.contains('open')) section.classList.add('open');
+}
 
 function handleAvatarUpload(input) {
   const file = input.files[0];
@@ -509,11 +1044,45 @@ function updatePreviewMeta() {
 }
 
 /* ================================
+   关联世界书 — 表单选择器
+   与 worldbook.js 的 buildCharPicker / toggleCharSel 对称实现，
+   保证两侧的交互体验和数据结构完全一致
+================================ */
+async function buildWbPicker() {
+  const entries = await getAllWbEntries();
+  const picker = document.getElementById('chWbPicker');
+  if (!picker) return;
+  if (entries.length === 0) {
+    picker.innerHTML = `<div class="ch-wb-empty-hint">暂无世界书条目，请先在世界书中创建</div>`;
+    return;
+  }
+  picker.innerHTML = entries.map(e => {
+    const selected = _selWbEntries.includes(e.id);
+    const isConst  = e.mode === 'constant';
+    return `
+      <div class="ch-wb-chip ${selected ? 'selected' : ''}" onclick="toggleWbSel(this, ${e.id})">
+        <span class="ch-wb-chip-dot"></span>
+        ${escHtml(e.title || '未命名')}
+        ${isConst ? `<span class="ch-wb-chip-const">常驻</span>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function toggleWbSel(el, id) {
+  el.classList.toggle('selected');
+  if (el.classList.contains('selected')) {
+    if (!_selWbEntries.includes(id)) _selWbEntries.push(id);
+  } else {
+    _selWbEntries = _selWbEntries.filter(x => x !== id);
+  }
+}
+
+/* ================================
    详情页
 ================================ */
 let _viewingId = null;
 
-function openView(id) {
+async function openView(id) {
   const c = _chars.find(x => x.id === id);
   if (!c) return;
   _viewingId = id;
@@ -523,7 +1092,7 @@ function openView(id) {
   if (c.cardBg) {
     bg.style.backgroundImage = `url(${c.cardBg})`;
   } else {
-    const col = COLOR_MAP[c.color] || COLOR_MAP.warm;
+    const col = COLOR_MAP[c.color] || COLOR_MAP.ink;
     bg.style.backgroundImage = 'none';
     bg.style.background = `linear-gradient(135deg, ${col.topC1}, ${col.topC2})`;
   }
@@ -533,7 +1102,7 @@ function openView(id) {
   if (c.avatar) {
     av.innerHTML = `<img src="${c.avatar}" alt="avatar"/>`;
   } else {
-    const col = COLOR_MAP[c.color] || COLOR_MAP.warm;
+    const col = COLOR_MAP[c.color] || COLOR_MAP.ink;
     av.innerHTML = `<div class="cv-hero-avatar-letter" style="color:${col.avCol}">${(c.name||'?')[0].toUpperCase()}</div>`;
     av.style.background = col.avBg;
   }
@@ -566,10 +1135,109 @@ function openView(id) {
   const traitsEl = document.getElementById('cvTraits');
   traitsEl.innerHTML = (c.traits||[]).map(t =>
     `<span class="cv-trait">${escHtml(t)}</span>`
-  ).join('');
+  ).join('') || `<span class="cv-section-empty">暂未设置性格标签</span>`;
+
+  // 外貌
+  const showOrEmpty = (id, val, empty) => {
+    const el = document.getElementById(id);
+    if (val) { el.textContent = val; el.classList.remove('cv-kv-empty'); }
+    else { el.textContent = empty; el.classList.add('cv-kv-empty'); }
+  };
+  showOrEmpty('cvAppearance', c.appearance, '暂未填写');
+  showOrEmpty('cvOutfit', c.outfit, '暂未填写');
+  toggleSectionVisible('cvAppearanceSection', c.appearance || c.outfit);
+
+  // 喜欢 / 不喜欢
+  const likesEl = document.getElementById('cvLikes');
+  const dislikesEl = document.getElementById('cvDislikes');
+  likesEl.innerHTML = (c.likes||[]).map(v => `<div class="cv-pref-item">${escHtml(v)}</div>`).join('') || `<span class="cv-section-empty">暂无</span>`;
+  dislikesEl.innerHTML = (c.dislikes||[]).map(v => `<div class="cv-pref-item">${escHtml(v)}</div>`).join('') || `<span class="cv-section-empty">暂无</span>`;
+  toggleSectionVisible('cvPrefSection', (c.likes && c.likes.length) || (c.dislikes && c.dislikes.length));
+
+  // 恐惧/弱点
+  showOrEmpty('cvFears', c.fears, '暂未填写');
+  toggleSectionVisible('cvFearsSection', c.fears);
+
+  // 语言风格
+  showOrEmpty('cvSpeechStyle', c.speechStyle, '暂未填写');
+  showOrEmpty('cvCatchphrases', (c.catchphrases||[]).join(' ／ '), '暂无');
+  toggleSectionVisible('cvSpeechSection', c.speechStyle || (c.catchphrases && c.catchphrases.length));
+
+  // 背景故事
+  showOrEmpty('cvBackstory', c.backstory, '暂未填写');
+  showOrEmpty('cvScenario', c.scenario, '暂未填写');
+  toggleSectionVisible('cvBackstorySection', c.backstory || c.scenario);
+
+  // 关联世界书 —— 与世界书页的关联角色展示保持同源同构：
+  // 都是从「世界书条目.chars 是否包含当前角色id」这个唯一
+  // 真值来源判断，而不是分别读两份可能不一致的数据
+  const allWbEntries = await getAllWbEntries();
+  const linkedWb = allWbEntries.filter(e => Array.isArray(e.chars) && e.chars.includes(c.id));
+  const wbRow = document.getElementById('cvWbRow');
+  if (wbRow) {
+    wbRow.innerHTML = linkedWb.length
+      ? linkedWb.map(e => `
+          <div class="cv-wb-chip" onclick="goToWorldbookEntry(${e.id})">
+            <span class="cv-wb-chip-cat">${escHtml(e.cat || '其他')}</span>
+            <span class="cv-wb-chip-title">${escHtml(e.title || '未命名')}</span>
+            ${e.mode === 'constant' ? `<span class="cv-wb-chip-const">常驻</span>` : ''}
+          </div>`).join('')
+      : `<span class="cv-section-empty">暂未关联世界书条目</span>`;
+  }
+  toggleSectionVisible('cvWbSection', linkedWb.length);
+
+  // 与用户关系
+  showOrEmpty('cvRelation', c.relation, '暂未设置');
+  showOrEmpty('cvCallUser', c.callUser, '暂未设置');
+  showOrEmpty('cvRelationDetail', c.relationDetail, '暂未填写');
+  toggleSectionVisible('cvRelationSection', c.relation || c.callUser || c.relationDetail);
+
+  // 开场白
+  document.getElementById('cvFirstMes').textContent = c.firstMes || '暂未设置开场白';
+  toggleSectionVisible('cvFirstMesSection', c.firstMes);
+
+  // 对话示例
+  const dlgList = document.getElementById('cvDialogList');
+  if (c.dialogExamples && c.dialogExamples.length) {
+    dlgList.innerHTML = c.dialogExamples.map(d => `
+      <div class="cv-dialog-card">
+        ${d.user ? `<div class="cv-dialog-bubble user"><div class="cv-dialog-avatar user">U</div><div class="cv-dialog-text">${escHtml(d.user)}</div></div>` : ''}
+        ${d.char ? `<div class="cv-dialog-bubble char"><div class="cv-dialog-avatar char">${escHtml((c.name||'?')[0])}</div><div class="cv-dialog-text">${escHtml(d.char)}</div></div>` : ''}
+      </div>`).join('');
+  } else {
+    dlgList.innerHTML = `<span class="cv-section-empty">暂无对话示例</span>`;
+  }
+  toggleSectionVisible('cvDialogSection', c.dialogExamples && c.dialogExamples.length);
+
+  // 行为边界
+  const neverEl = document.getElementById('cvNeverList');
+  neverEl.innerHTML = (c.neverList||[]).map((n,i) => `
+    <div class="cv-rule-item"><span class="cv-rule-num">${String(i+1).padStart(2,'0')}</span><span>${escHtml(n)}</span></div>
+  `).join('') || `<span class="cv-section-empty">暂未设置禁止事项</span>`;
+  showOrEmpty('cvBoundaries', c.boundaries, '暂未填写');
+  document.getElementById('cvBoundariesWrap').style.display = c.boundaries ? '' : 'none';
+  toggleSectionVisible('cvRulesSection', (c.neverList && c.neverList.length) || c.boundaries);
+
+  // 格式规范
+  const fmtEl = document.getElementById('cvFormatChips');
+  const fmtChips = [];
+  if (c.pov) fmtChips.push(c.pov);
+  if (c.replyLength) fmtChips.push(c.replyLength);
+  if (c.actionMark) fmtChips.push(c.actionMark === '星号' ? '*星号*标注' : c.actionMark === '括号' ? '（括号）标注' : '无标注融入叙述');
+  if (c.noBreak) fmtChips.push('禁止跳出角色');
+  if (c.noRepeat) fmtChips.push('禁止复述输入');
+  if (c.noDisclaimer) fmtChips.push('禁止说教/免责声明');
+  fmtEl.innerHTML = fmtChips.map(f => `<span class="cv-format-chip">${escHtml(f)}</span>`).join('') || `<span class="cv-section-empty">使用默认格式规范</span>`;
 
   // 打开页面
   document.getElementById('cvPage').classList.add('show');
+}
+
+function toggleSectionVisible(sectionId, hasContent) {
+  const el = document.getElementById(sectionId);
+  if (!el) return;
+  // 始终显示分区标题以保持结构完整感，仅当完全无内容时才淡化（不隐藏，保持可预期的信息架构）
+  el.style.opacity = hasContent ? '1' : '0.55';
 }
 
 function closeView() {
@@ -597,14 +1265,18 @@ function closeDeleteConfirm() {
 
 async function confirmDelete() {
   if (!_viewingId) return;
+  const deletedId = _viewingId;
   const db = await openCharDB();
   await new Promise(res => {
     const tx = db.transaction('chars', 'readwrite');
-    tx.objectStore('chars').delete(_viewingId);
+    tx.objectStore('chars').delete(deletedId);
     tx.oncomplete = res;
   });
+  // 角色被删后，把它从所有世界书条目的 chars 里摘除，
+  // 否则世界书那边会残留一个指向已删除角色的死引用
+  await syncWorldEntriesForChar(deletedId, []);
   // 如果删的是激活角色，清掉 localStorage
-  if (_viewingId === _activeId) {
+  if (deletedId === _activeId) {
     localStorage.removeItem('luna_active_char');
     localStorage.removeItem('luna_char_prompt');
     localStorage.removeItem('luna_char_name');
@@ -612,6 +1284,10 @@ async function confirmDelete() {
   closeDeleteConfirm();
   closeView();
   await renderList();
+  /* 通知 album 页刷新 char folder */
+  localStorage.setItem('luna_char_db_update', Date.now());
+  /* 通知 phone 页联系人同步 */
+  localStorage.setItem('luna_characters_updated', Date.now());
 }
 
 function openEditFromView() {
@@ -625,4 +1301,87 @@ function applyFromView() {
   applyCard(_viewingId);
   // 刷新详情页状态
   openView(_viewingId);
+}
+
+/* ================================================
+   记忆档案 · 独立读取版（characters.js 不加载 memory.js，
+   因此这里镜像同一套逻辑，直接读取 LunaMemoryDB）
+   —— 保证「应用角色」时，记忆与人设被拼接为同一份 prompt
+================================================ */
+function _openMemDBStandalone() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('LunaMemoryDB', 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('memories')) {
+        const store = db.createObjectStore('memories', { keyPath: 'id' });
+        store.createIndex('charId', 'charId', { unique: false });
+        store.createIndex('type',   'type',   { unique: false });
+      }
+    };
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+
+async function _getAllMemoriesStandalone() {
+  try {
+    const db = await _openMemDBStandalone();
+    return new Promise((res, rej) => {
+      if (!db.objectStoreNames.contains('memories')) { res([]); return; }
+      const req = db.transaction('memories', 'readonly').objectStore('memories').getAll();
+      req.onsuccess = () => res(req.result || []);
+      req.onerror   = () => rej(req.error);
+    });
+  } catch (e) { return []; }
+}
+
+function _memTypeLabelStandalone(type) {
+  return { core: '核心记忆', relation: '关系', emotion: '情绪', event: '事件' }[type] || '记忆';
+}
+
+async function buildMemoryPromptStandalone(charId) {
+  const all = await _getAllMemoriesStandalone();
+  const mems = all.filter(m => m.charId === charId || m.charName === charId);
+  if (!mems.length) return '';
+
+  const alwaysOn = mems.filter(m => m.alwaysOn);
+  const rest     = mems.filter(m => !m.alwaysOn);
+  const byType = t => rest
+    .filter(m => (m.type || 'core') === t)
+    .sort((a, b) => (b.intensity || 0) - (a.intensity || 0));
+
+  const relationMems = byType('relation').slice(0, 3);
+  const emotionMems  = byType('emotion').slice(0, 3);
+  const eventMems    = byType('event').concat(byType('core')).slice(0, 5);
+
+  const lines = [`[记忆档案注入 · ${charId}]`];
+
+  if (alwaysOn.length) {
+    lines.push('\n【核心常驻记忆 · 每次对话必定生效，具有最高优先级】');
+    alwaysOn.slice(0, 6).forEach(m => {
+      lines.push(`- ${m.title}（${_memTypeLabelStandalone(m.type)}）`);
+      if (m.prompt) lines.push(`  → ${m.prompt}`);
+      else if (m.content) lines.push(`  → ${m.content.slice(0, 120)}`);
+    });
+  }
+  if (relationMems.length) {
+    lines.push('\n【当前关系状态 · 请据此判断称呼与亲密程度，不要回退到更早的关系阶段】');
+    relationMems.forEach(m => lines.push(`- ${m.title}：${(m.prompt || m.content || '').slice(0, 90)}`));
+  }
+  if (emotionMems.length) {
+    lines.push('\n【近期情绪基调 · 情绪表达应与此保持连贯，不要无故跳变】');
+    emotionMems.forEach(m => lines.push(`- ${m.title}（强度${m.intensity || 3}/5）：${(m.prompt || m.content || '').slice(0, 70)}`));
+  }
+  if (eventMems.length) {
+    lines.push('\n【背景记忆参考 · 可作为细节引用，非必须逐条复述】');
+    eventMems.forEach(m => lines.push(`- ${m.title}：${(m.prompt || m.content || '').slice(0, 70)}`));
+  }
+
+  lines.push('\n【格式与人设锚点 · 无论对话进行多久都必须遵守】');
+  lines.push('- 全程保持第一人称的角色身份，不得以"AI助手""语言模型"等身份自称或跳出角色解释');
+  lines.push('- 以上记忆是角色本身已知的过去，不是外部资料，回应时应像自然想起，而非罗列信息');
+  lines.push('- 若记忆与用户当前所说内容冲突，以维持角色人设一致性为优先，不随意"失忆"或人设漂移');
+
+  return lines.join('\n');
 }

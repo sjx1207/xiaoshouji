@@ -1,0 +1,573 @@
+/* =========================================================================
+   VENUE — 局 / 我
+   墨白灰 · 折扇时轴 · 韩系高级留白美学
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@200;300;400;500&display=swap');
+
+:root{
+  /* ---- 墨白灰阶（无米色/无暖调）---- */
+  --void:        #0d0d0d;
+  --ink:         #1b1b1a;
+  --ink-soft:    #4a4947;
+  --graphite:    #757371;
+  --silver:      #a9a7a3;
+  --mist:        #d4d2ce;
+  --hairline:    #e6e4e0;
+  --cloud:       #f0efec;
+  --paper:       #f8f7f5;
+  --white:       #ffffff;
+
+  /* ---- 单一高级点缀：拉丝银线 ---- */
+  --line-accent: #b9b6b0;
+
+  --status-h: 52px;
+  --nav-h: 64px;
+
+  --ease-fan:   cubic-bezier(.22,1,.36,1);
+  --ease-soft:  cubic-bezier(.4,0,.2,1);
+  --ease-snap:  cubic-bezier(.65,0,.35,1);
+}
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; padding:0; }
+
+body{
+  font-family:'Jost', -apple-system, sans-serif;
+  background:var(--void);
+  color:var(--ink);
+  overflow:hidden;
+}
+
+button{ font-family:inherit; border:none; background:none; cursor:pointer; color:inherit; }
+
+.phone-shell{
+  position:relative;
+  width:100%;
+  height:100svh;
+  overflow:hidden;
+  background:
+    radial-gradient(ellipse 120% 60% at 50% -10%, rgba(255,255,255,0.06), transparent 55%),
+    var(--void);
+}
+
+/* =========================================================================
+   状态栏
+   ========================================================================= */
+.status-bar{
+  position:absolute; top:0; left:0; right:0; height:var(--status-h);
+  display:flex; align-items:flex-end; justify-content:space-between;
+  padding:0 22px 8px; z-index:90;
+}
+.status-time{ font-size:14px; font-weight:400; color:var(--white); letter-spacing:0.5px; font-family:'Jost'; }
+.status-right{ display:flex; align-items:center; gap:7px; }
+.signal{ display:flex; align-items:flex-end; gap:2px; height:12px; }
+.signal i{ display:block; width:2.5px; border-radius:1px; background:rgba(255,255,255,0.75); }
+.signal i:nth-child(1){ height:4px; } .signal i:nth-child(2){ height:7px; }
+.signal i:nth-child(3){ height:10px; } .signal i:nth-child(4){ height:12px; }
+.battery{ display:flex; align-items:center; gap:3px; }
+.bat-pct{ font-size:13px; color:rgba(255,255,255,0.7); }
+.bat-shell{ width:23px; height:11px; border:1.5px solid rgba(255,255,255,0.45); border-radius:3.5px; padding:1.5px; position:relative; }
+.bat-inner{ width:76%; height:100%; border-radius:1.5px; background:var(--white); }
+.bat-nub{ position:absolute; right:-4px; top:50%; transform:translateY(-50%); width:2.5px; height:5px; background:rgba(255,255,255,0.4); border-radius:0 2px 2px 0; }
+
+/* =========================================================================
+   顶部导航 — 液态形变分段器
+   ========================================================================= */
+.hub-nav{
+  position:absolute; top:var(--status-h); left:0; right:0; height:var(--nav-h);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 22px; z-index:70;
+}
+.hub-nav__mark{ display:flex; flex-direction:column; line-height:1; }
+.mark-glyph{
+  font-family:'Cormorant Garamond', serif; font-style:italic; font-weight:500;
+  font-size:22px; color:var(--white); letter-spacing:0.5px;
+}
+.mark-text{
+  font-family:'Jost'; font-size:8px; font-weight:300; letter-spacing:4px;
+  color:rgba(255,255,255,0.4); margin-top:1px;
+}
+
+/* --- 液态导航核心 --- */
+.tab-switch{
+  position:relative;
+  display:flex;
+  align-items:center;
+  height:38px;
+  isolation:isolate;
+}
+.tab-switch__filter{ position:absolute; inset:-20px; pointer-events:none; z-index:-1; }
+
+.tab-switch__blob{
+  position:absolute;
+  top:0; left:0;
+  width:64px; height:38px;
+  border-radius:19px;
+  background:var(--white);
+  transition: transform .62s var(--ease-fan), width .5s var(--ease-fan), border-radius .5s var(--ease-fan);
+  filter: url(#liquidGoo);
+}
+.tab-switch[data-active="profile"] .tab-switch__blob{ transform: translateX(64px); }
+
+.tab-switch__item{
+  position:relative; z-index:2;
+  width:64px; height:38px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Noto Serif SC', serif; font-size:13px; font-weight:400;
+  letter-spacing:3px;
+  color:rgba(255,255,255,0.55);
+  transition: color .4s var(--ease-soft);
+}
+.tab-switch__item.is-active{ color:var(--void); font-weight:600; }
+
+.hub-nav__seal{
+  width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+  border:1px solid rgba(255,255,255,0.18); border-radius:50%;
+  color:rgba(255,255,255,0.75);
+  transition: border-color .3s ease, transform .3s var(--ease-soft);
+}
+.hub-nav__seal:active{ transform:scale(0.9) rotate(90deg); border-color:rgba(255,255,255,0.5); }
+
+/* =========================================================================
+   页面容器
+   ========================================================================= */
+.hub-pages{
+  position:absolute; top:calc(var(--status-h) + var(--nav-h)); bottom:0; left:0;
+  width:200%; display:flex;
+  transition: transform .55s var(--ease-fan);
+  z-index:5;
+  background:var(--paper);
+  border-radius:28px 28px 0 0;
+}
+.hub-pages[data-active="profile"]{ transform:translateX(-50%); }
+.hub-page{ position:relative; width:50%; height:100%; overflow:hidden; }
+
+.hub-scroll{
+  height:100%; overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch; scrollbar-width:none;
+}
+.hub-scroll::-webkit-scrollbar{ display:none; }
+
+/* =========================================================================
+   大厅 — 折扇时轴
+   ========================================================================= */
+.hall-hero{
+  padding:26px 26px 4px;
+  position:relative;
+}
+.hall-hero__eyebrow{
+  margin:0 0 10px; font-family:'Jost'; font-size:10px; font-weight:300;
+  letter-spacing:5px; color:var(--graphite); text-transform:uppercase;
+}
+.hall-hero__title{
+  margin:0; font-family:'Noto Serif SC', serif; font-weight:700; font-size:34px;
+  letter-spacing:2px; color:var(--ink); line-height:1.2;
+  position:relative; display:inline-block;
+}
+.hall-hero__title::after{
+  content:'';
+  position:absolute; left:1px; bottom:-8px;
+  width:38px; height:1px;
+  background:var(--line-accent);
+}
+.hall-hero__sub{
+  margin:16px 0 0; font-family:'Cormorant Garamond', serif; font-style:italic;
+  font-size:15px; color:var(--graphite); line-height:1.6; max-width:230px;
+}
+
+/* --- 扇轴指示（替代分类标签）：以当前展开局目为轴心的折页刻度 --- */
+.fan-gauge{
+  display:flex; align-items:center; gap:5px;
+  padding:0 26px; margin:22px 0 6px;
+}
+.fan-gauge__blade{
+  height:2px; flex:1; background:var(--hairline); border-radius:2px;
+  transition: background .5s var(--ease-soft), flex .5s var(--ease-soft);
+}
+.fan-gauge__blade.is-past{ background:var(--mist); }
+.fan-gauge__blade.is-current{ background:var(--ink); flex:2.2; }
+
+/* --- 扇形卡组舞台 --- */
+.fan-stage{
+  position:relative;
+  height:478px;
+  margin-top:8px;
+  perspective:1400px;
+  perspective-origin:50% 30%;
+  overflow:visible;
+  touch-action: pan-y;
+}
+.fan-track{
+  position:relative;
+  width:100%; height:100%;
+  transform-style:preserve-3d;
+}
+
+.gcard{
+  position:absolute;
+  top:14px; left:50%;
+  width:248px; height:420px;
+  margin-left:-124px;
+  cursor:pointer;
+  transform-origin:50% 115%;
+  transition: transform .68s var(--ease-fan), filter .5s ease, opacity .5s ease;
+  will-change: transform;
+}
+.gcard.is-hidden{ opacity:0; pointer-events:none; }
+
+.gcard__frame{
+  position:relative;
+  width:100%; height:100%;
+  border-radius:6px 6px 60px 6px;
+  overflow:hidden;
+  display:flex; flex-direction:column; justify-content:flex-end;
+  padding:26px 22px 24px;
+  box-shadow:
+    0 2px 3px rgba(0,0,0,0.04),
+    0 30px 50px -20px rgba(20,20,20,0.28);
+  border:1px solid rgba(0,0,0,0.06);
+}
+
+/* --- 每张卡独立底纹（黑白灰阶多元素纹样，非同款模板）--- */
+.gcard__frame::before{
+  content:''; position:absolute; inset:0; z-index:0;
+}
+.gcard__frame::after{
+  content:'';
+  position:absolute; inset:0; z-index:1;
+  background:linear-gradient(185deg, transparent 38%, rgba(13,13,13,0.86) 100%);
+}
+
+.gcard__rank{
+  position:absolute; top:20px; left:22px; z-index:3;
+  font-family:'Cormorant Garamond', serif; font-style:italic; font-size:13px;
+  color:rgba(255,255,255,0.65); letter-spacing:1px;
+}
+.gcard__motif{
+  position:absolute; z-index:2; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0.9;
+}
+.gcard__motif svg{ width:78%; height:78%; }
+
+.gcard__foot{ position:relative; z-index:3; }
+.gcard__title{
+  margin:0 0 6px; font-family:'Noto Serif SC', serif; font-weight:700; font-size:22px;
+  color:var(--white); letter-spacing:1px; line-height:1.3;
+}
+.gcard__desc{
+  margin:0 0 14px; font-family:'Cormorant Garamond', serif; font-style:italic; font-size:13.5px;
+  color:rgba(255,255,255,0.72); line-height:1.6;
+}
+.gcard__line{
+  display:flex; align-items:center; gap:8px;
+}
+.gcard__line-rule{ width:16px; height:1px; background:rgba(255,255,255,0.5); }
+.gcard__line-text{
+  font-family:'Jost'; font-size:9.5px; letter-spacing:2.5px; color:rgba(255,255,255,0.55);
+  text-transform:uppercase;
+}
+
+/* 各卡独立几何纹样底色（灰阶层次，无重复） */
+.gcard[data-key="bomb-number"] .gcard__frame::before{ background:
+  repeating-linear-gradient(115deg, #232322 0 2px, #1a1a19 2px 34px); }
+.gcard[data-key="monopoly"] .gcard__frame::before{ background:
+  repeating-linear-gradient(90deg, #201f1e 0 1px, transparent 1px 28px),
+  repeating-linear-gradient(0deg, #201f1e 0 1px, transparent 1px 28px), #2c2b29; }
+.gcard[data-key="bomb-cat"] .gcard__frame::before{ background:
+  radial-gradient(circle at 30% 25%, #35322e 0, #171716 60%); }
+.gcard[data-key="blackjack"] .gcard__frame::before{ background:
+  linear-gradient(135deg, #262523 25%, #1a1918 25%, #1a1918 50%, #262523 50%, #262523 75%, #1a1918 75%);
+  background-size:26px 26px; }
+.gcard[data-key="high-low"] .gcard__frame::before{ background:
+  conic-gradient(from 45deg at 50% 40%, #2a2927, #171716, #2a2927); }
+.gcard[data-key="kitchen-split"] .gcard__frame::before{ background:
+  repeating-radial-gradient(circle at 50% 100%, #292826 0 3px, #191918 3px 22px); }
+.gcard[data-key="memory-flip"] .gcard__frame::before{ background:
+  linear-gradient(45deg,#211f1e 25%,transparent 25%,transparent 75%,#211f1e 75%),
+  linear-gradient(45deg,#211f1e 25%,transparent 25%,transparent 75%,#211f1e 75%), #2b2a28;
+  background-size:24px 24px; background-position:0 0,12px 12px; }
+.gcard[data-key="whisper-relay"] .gcard__frame::before{ background:
+  repeating-linear-gradient(0deg, #232220 0 1px, transparent 1px 12px), #1c1b1a; }
+.gcard[data-key="mind-match"] .gcard__frame::before{ background:
+  radial-gradient(circle at 65% 30%, #302e2c 0, #161615 65%); }
+
+/* =========================================================================
+   底部详情面板（随扇心卡牌切换，非固定信息条）
+   ========================================================================= */
+.fan-detail{
+  padding:34px 26px 20px;
+  min-height:96px;
+}
+.fan-detail__title{
+  margin:0 0 6px; font-family:'Noto Serif SC', serif; font-weight:600; font-size:15px;
+  color:var(--ink); letter-spacing:0.5px;
+  opacity:0; transform:translateY(6px);
+  animation: detailRise .5s var(--ease-soft) forwards;
+}
+.fan-detail__body{
+  margin:0; font-size:13px; line-height:1.75; color:var(--ink-soft);
+  max-width:300px;
+  opacity:0; transform:translateY(6px);
+  animation: detailRise .5s var(--ease-soft) .06s forwards;
+}
+@keyframes detailRise{ to{ opacity:1; transform:translateY(0); } }
+
+.fan-detail__enter{
+  margin-top:16px;
+  display:inline-flex; align-items:center; gap:10px;
+  font-family:'Jost'; font-size:10.5px; letter-spacing:3px; color:var(--ink);
+  text-transform:uppercase;
+  padding-bottom:3px;
+  border-bottom:1px solid var(--ink);
+  opacity:0; animation: detailRise .5s var(--ease-soft) .12s forwards;
+}
+.fan-detail__enter svg{ transition: transform .3s var(--ease-soft); }
+.fan-detail__enter:active svg{ transform:translateX(4px); }
+
+/* --- 侧滑提示墨迹 --- */
+.fan-hint{
+  display:flex; align-items:center; justify-content:center; gap:14px;
+  padding:6px 0 30px;
+}
+.fan-hint__arc{
+  width:30px; height:1px; background:var(--hairline); position:relative;
+}
+.fan-hint span{
+  font-family:'Cormorant Garamond', serif; font-style:italic; font-size:11.5px; color:var(--silver);
+  letter-spacing:0.5px;
+}
+
+/* =========================================================================
+   我的 — 名片 / 游戏库 / 游玩记录
+   ========================================================================= */
+.profile-open{
+  min-height:100%;
+  padding:26px 24px 40px;
+}
+
+/* ---- 名片：可点击进入编辑 ---- */
+.id-card{
+  width:100%;
+  display:block;
+  text-align:left;
+  border:1px solid var(--hairline);
+  border-radius:2px 22px 2px 22px;
+  padding:22px 20px;
+  background:var(--white);
+  position:relative;
+  transition: transform .25s var(--ease-soft), border-color .25s ease, box-shadow .3s ease;
+}
+.id-card:active{ transform:scale(0.985); border-color:var(--mist); }
+.id-card__seal-mark{
+  position:absolute; top:14px; right:18px;
+  font-family:'Noto Serif SC', serif; font-size:11px; color:var(--mist); letter-spacing:2px;
+}
+.id-row{ display:flex; align-items:center; gap:14px; }
+.avatar-wrap{ position:relative; width:54px; height:54px; flex-shrink:0; }
+.avatar-wrap--lg{ width:76px; height:76px; }
+.avatar-wrap--lg .avatar-ring{ width:76px; height:76px; }
+.avatar-ring{
+  width:54px; height:54px; border-radius:50%; padding:1.5px;
+  background:linear-gradient(135deg, var(--ink), var(--silver));
+  display:flex; align-items:center; justify-content:center;
+}
+.avatar-core{
+  width:100%; height:100%; border-radius:50%; background:var(--cloud);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.avatar-core svg{ width:56%; height:56%; color:var(--graphite); }
+.avatar-core img{ width:100%; height:100%; object-fit:cover; }
+.avatar-edit{
+  position:absolute; right:-2px; bottom:-2px; width:22px; height:22px; border-radius:50%;
+  background:var(--ink); border:2px solid var(--white);
+  display:flex; align-items:center; justify-content:center; color:var(--white);
+  transition: transform .2s var(--ease-soft);
+}
+.id-copy{ flex:1; min-width:0; }
+.id-name{
+  margin:0; font-family:'Noto Serif SC', serif; font-weight:600; font-size:16.5px; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.id-tag{
+  margin:4px 0 0; font-family:'Cormorant Garamond', serif; font-style:italic; font-size:12.5px;
+  color:var(--graphite); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.id-card__edit-hint{
+  flex-shrink:0; color:var(--mist); display:flex; align-items:center; justify-content:center;
+  width:26px; height:26px; border:1px solid var(--hairline); border-radius:50%;
+}
+
+/* ---- 分区通用 ---- */
+.profile-section{ margin-top:30px; }
+.profile-section__head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:12px;
+}
+.profile-section__title{
+  margin:0 0 12px 2px; font-family:'Jost'; font-size:9.5px; letter-spacing:3px;
+  color:var(--graphite); text-transform:uppercase;
+}
+.profile-section__head .profile-section__title{ margin-bottom:0; }
+
+.section-add{
+  width:26px; height:26px; border-radius:50%;
+  border:1px solid var(--ink);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--ink);
+  transition: transform .25s var(--ease-soft), background .25s ease, color .25s ease;
+}
+.section-add:active{ transform:rotate(90deg) scale(0.92); background:var(--ink); color:var(--white); }
+
+/* ---- 游戏库：空态 ---- */
+.lib-empty{
+  border:1px dashed var(--mist);
+  border-radius:2px 16px 2px 16px;
+  padding:26px 20px;
+  display:flex; flex-direction:column; align-items:center;
+  text-align:center;
+}
+.lib-empty__rule{ width:22px; height:1px; background:var(--mist); margin-bottom:14px; }
+.lib-empty__text{
+  margin:0 0 14px; font-family:'Cormorant Garamond', serif; font-style:italic; font-size:13.5px;
+  color:var(--graphite);
+}
+.lib-empty__cta{
+  font-family:'Jost'; font-size:10px; letter-spacing:2px; color:var(--ink);
+  text-transform:uppercase; padding-bottom:3px; border-bottom:1px solid var(--ink);
+}
+
+/* ---- 游戏库：条目 ---- */
+.lib-item{
+  display:flex; align-items:center; gap:12px;
+  padding:14px 14px; margin-bottom:9px;
+  border:1px solid var(--hairline); border-radius:2px 14px 2px 14px;
+  background:var(--white);
+  animation: libItemRise .4s var(--ease-soft) both;
+}
+@keyframes libItemRise{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+.lib-item__glyph{
+  width:38px; height:38px; border-radius:50%; flex-shrink:0;
+  background:var(--ink); color:var(--white);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Noto Serif SC', serif; font-size:14px;
+}
+.lib-item__body{ flex:1; min-width:0; }
+.lib-item__name{
+  margin:0; font-family:'Noto Serif SC', serif; font-size:13.5px; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.lib-item__meta{
+  margin:3px 0 0; font-family:'Jost'; font-size:9.5px; letter-spacing:1.5px; color:var(--silver);
+  text-transform:uppercase;
+}
+.lib-item__remove{
+  flex-shrink:0; width:22px; height:22px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; color:var(--mist);
+  transition: color .2s ease, transform .2s ease;
+}
+.lib-item__remove:active{ color:var(--ink); transform:scale(0.85); }
+
+/* ---- 游玩记录：空态 ---- */
+.record-empty{
+  border:1px dashed var(--mist);
+  border-radius:2px 16px 2px 16px;
+  padding:26px 20px;
+  display:flex; flex-direction:column; align-items:center;
+  text-align:center;
+}
+.record-empty__rule{ width:22px; height:1px; background:var(--mist); margin-bottom:14px; }
+.record-empty__text{
+  margin:0; font-family:'Cormorant Garamond', serif; font-style:italic; font-size:13.5px;
+  color:var(--graphite);
+}
+.record-list{ display:flex; flex-direction:column; gap:9px; }
+.record-row{
+  display:flex; align-items:center; gap:12px; padding:13px 14px;
+  background:var(--white); border:1px solid var(--hairline); border-radius:2px 14px 2px 14px;
+}
+.record-row__icon{
+  width:36px; height:36px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--cloud); color:var(--ink);
+}
+.record-row__body{ flex:1; min-width:0; }
+.record-row__title{ margin:0; font-family:'Noto Serif SC', serif; font-size:13px; color:var(--ink); }
+.record-row__meta{ margin:2px 0 0; font-family:'Jost'; font-size:10px; letter-spacing:0.5px; color:var(--silver); }
+.record-row__result{
+  font-family:'Jost'; font-size:9.5px; letter-spacing:1.5px; padding:4px 10px;
+  border-radius:999px; flex-shrink:0; text-transform:uppercase;
+}
+.record-row__result--win{ background:var(--ink); color:var(--white); }
+.record-row__result--lose{ background:var(--cloud); color:var(--graphite); }
+.record-row__result--draw{ background:var(--paper); color:var(--silver); border:1px solid var(--hairline); }
+
+.hub-footer-note{
+  text-align:center; font-family:'Cormorant Garamond', serif; font-style:italic; font-size:12px;
+  color:var(--silver); margin:30px 0 6px;
+}
+
+/* =========================================================================
+   名片编辑 — 底部弹层
+   ========================================================================= */
+.sheet-overlay{
+  position:fixed; inset:0; z-index:200;
+  background:rgba(13,13,13,0.5);
+  backdrop-filter: blur(3px);
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none;
+  transition: opacity .3s var(--ease-soft);
+}
+.sheet-overlay.is-open{ opacity:1; pointer-events:auto; }
+
+.sheet-panel{
+  width:100%; max-width:420px;
+  background:var(--paper);
+  border-radius:26px 26px 0 0;
+  padding:12px 26px 32px;
+  transform:translateY(100%);
+  transition: transform .45s var(--ease-fan);
+  box-shadow: 0 -20px 60px rgba(0,0,0,0.35);
+}
+.sheet-overlay.is-open .sheet-panel{ transform:translateY(0); }
+
+.sheet-panel__grip{
+  width:36px; height:3px; border-radius:2px; background:var(--mist);
+  margin:6px auto 18px;
+}
+.sheet-panel__title{
+  margin:0 0 22px; text-align:center; font-family:'Noto Serif SC', serif; font-weight:600;
+  font-size:15px; letter-spacing:1px; color:var(--ink);
+}
+
+.sheet-avatar-row{ display:flex; flex-direction:column; align-items:center; margin-bottom:24px; }
+.sheet-avatar-hint{
+  margin:10px 0 0; font-family:'Jost'; font-size:9.5px; letter-spacing:1.5px; color:var(--silver);
+  text-transform:uppercase;
+}
+
+.sheet-field{ display:block; margin-bottom:16px; }
+.sheet-field__label{
+  display:block; margin:0 0 7px 2px; font-family:'Jost'; font-size:9.5px; letter-spacing:2px;
+  color:var(--graphite); text-transform:uppercase;
+}
+.sheet-field__input{
+  width:100%; border:none; border-bottom:1px solid var(--hairline);
+  background:transparent; padding:8px 2px;
+  font-family:'Noto Serif SC', serif; font-size:14.5px; color:var(--ink);
+  transition: border-color .25s ease;
+}
+.sheet-field__input:focus{ outline:none; border-color:var(--ink); }
+.sheet-field__input::placeholder{ color:var(--mist); font-family:'Cormorant Garamond', serif; font-style:italic; }
+
+.sheet-actions{ display:flex; gap:10px; margin-top:22px; }
+.sheet-btn{
+  flex:1; padding:13px 0; text-align:center;
+  font-family:'Jost'; font-size:11px; letter-spacing:2px; text-transform:uppercase;
+  border-radius:2px 14px 2px 14px;
+  transition: transform .2s var(--ease-soft), background .2s ease, color .2s ease;
+}
+.sheet-btn:active{ transform:scale(0.97); }
+.sheet-btn--ghost{ border:1px solid var(--hairline); color:var(--graphite); }
+.sheet-btn--solid{ background:var(--ink); color:var(--white); }

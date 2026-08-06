@@ -116,6 +116,32 @@ function stopTyping() {
 let _messages = [];
 let _nextId   = 100;
 let _groupData = null;
+let _userIdentity = null;   // active user persona loaded from LunaIdentityDB
+
+/* Load active identity from IndexedDB (same logic as groupanon.js) */
+async function loadUserIdentity() {
+  try {
+    const db = await new Promise((res, rej) => {
+      const req = indexedDB.open('LunaIdentityDB');
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = () => rej(new Error('no db'));
+    });
+    if (!db.objectStoreNames.contains('identities')) { db.close(); return null; }
+    const list = await new Promise(res => {
+      const r = db.transaction('identities').objectStore('identities').getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror   = () => res([]);
+    });
+    db.close();
+    if (!list.length) return null;
+    return list.find(i => i.active !== false) || list[0];
+  } catch(e) { return null; }
+}
+
+/* Returns the user's display name */
+function userSelfName() {
+  return _userIdentity?.name || 'ME';
+}
 
 /* ================================================================
    IndexedDB: open LunaChatDB (read-only, no version bump needed)
@@ -366,8 +392,10 @@ function sendMessage() {
   input.value = '';
   document.getElementById('sendBtn')?.classList.remove('active');
 
+  const selfName = userSelfName();
+  const selfInitial = selfName.length > 2 ? selfName.slice(0, 2).toUpperCase() : selfName.toUpperCase();
   const timeStr = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false });
-  _messages.push({ id: _nextId++, side:'r', sender:'ME', initial:'ME', bubbles:[text], time:timeStr, read:'' });
+  _messages.push({ id: _nextId++, side:'r', sender: selfName, initial: selfInitial, bubbles:[text], time:timeStr, read:'' });
   renderMessages();
   simulateReply();
 }
@@ -421,8 +449,10 @@ function handleImgUpload(input) {
   const file = input.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
+    const selfName    = userSelfName();
+    const selfInitial = selfName.length > 2 ? selfName.slice(0, 2).toUpperCase() : selfName.toUpperCase();
     const timeStr = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false });
-    _messages.push({ id:_nextId++, side:'r', sender:'ME', initial:'ME',
+    _messages.push({ id:_nextId++, side:'r', sender: selfName, initial: selfInitial,
       img:{ src:e.target.result, name:file.name, size:(file.size/1024).toFixed(0)+' KB' }, time:timeStr });
     renderMessages();
     input.value = '';
@@ -570,6 +600,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateBattery();
   applyIsland();
   initDate();
+
+  /* Load user identity so we know the user's name and gender */
+  _userIdentity = await loadUserIdentity();
 
   /* Load group record from DB; match by groupId field, not DB primary key */
   const group = await loadGroupRecord();

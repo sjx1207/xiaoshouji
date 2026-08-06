@@ -1875,76 +1875,152 @@ window.addEventListener('storage', e => {
 });
 /* ================================================================
    世界书设置面板 · WORLD BOOK SETTINGS
+   数据源改为与 worldbook.js 一致的 IndexedDB(LunaWorldBookDB)，
+   通过 LunaWorldBookRuntime 共享模块读取，不再使用过时的
+   localStorage('luna_worldbook') 缓存，避免两边数据不同步。
+   所有配置与「单条目开关」均按当前角色 id 单独保存
+   （key: luna_wb_config_<charId>），实现「专属于角色」的世界书。
 ================================================================ */
 
-/* ── 初始化：从 localStorage 读取世界书数据，渲染统计 + 条目列表 ── */
-function wbSetInit() {
-  /* 统计数字 */
-  const raw = localStorage.getItem('luna_worldbook');
-  const entries = raw ? JSON.parse(raw) : [];
-  const active = entries.filter(e => e.enabled !== false).length;
-  const types  = [...new Set(entries.map(e => e.cat || '其他'))].length;
+let _wbSetCharId   = null;   // 当前角色在 LunaCharDB 中的 id
+let _wbSetCharName = null;   // 当前角色名（luna_current_chat）
+let _wbSetEntries  = [];     // 与当前角色相关的条目缓存（全局条目 + 绑定该角色的条目）
+let _wbSetDisabled = [];     // 当前角色下被单独关闭的条目 id 列表
+
+/* ── 打开 LunaCharDB，按名字找到角色 id（与 chatroom.js 的 crLoadCharProfile 逻辑一致） ── */
+function wbSetOpenCharDB() {
+  return new Promise((resolve, reject) => {
+    const probe = indexedDB.open('LunaCharDB');
+    probe.onsuccess = e => resolve(e.target.result);
+    probe.onerror   = e => reject(e.target.error);
+  });
+}
+
+async function wbSetResolveCurrentChar() {
+  _wbSetCharName = localStorage.getItem('luna_current_chat') || null;
+  _wbSetCharId   = null;
+  if (!_wbSetCharName) return;
+  try {
+    const db = await wbSetOpenCharDB();
+    if (!db.objectStoreNames.contains('chars')) return;
+    const found = await new Promise(res => {
+      const r = db.transaction('chars').objectStore('chars').getAll();
+      r.onsuccess = () => res((r.result || []).find(c => c.name === _wbSetCharName) || null);
+      r.onerror   = () => res(null);
+    });
+    if (found) _wbSetCharId = found.id;
+  } catch (e) { _wbSetCharId = null; }
+}
+
+/* ── 初始化：从 IndexedDB 读取世界书数据（按当前角色过滤），渲染统计 + 条目列表 ──
+   注：不再管「全局作用范围」「关键词触发扫描」「插入位置」——这些已经是
+   每条目自己的 mode / pos 字段在决定，这里重复设一层总开关只会互相打架，
+   已删除对应 UI 与字段，这个面板现在只做「角色绑定」这一件事：
+   角色总开关 enabled、去重 dedup、注入上限 maxEntries/maxToken、
+   以及逐条目在本角色下的启用/禁用（disabledIds）。 */
+async function wbSetInit() {
+  await wbSetResolveCurrentChar();
+
+  if (!window.LunaWorldBookRuntime) {
+    // 极端情况下 worldbook-runtime.js 未加载，直接给出空态，不再报错阻塞其它设置模块
+    wbSetRenderEntries([], 'all');
+    return;
+  }
+
+  const cfg = window.LunaWorldBookRuntime.getConfig(_wbSetCharId);
+  _wbSetDisabled = cfg.disabledIds || [];
+
+  // 与当前角色相关的条目：全局条目 + 专属该角色绑定的条目
+  _wbSetEntries = await window.LunaWorldBookRuntime.getForChar(_wbSetCharId);
+
+  /* 统计数字（仅统计该角色可见的条目，而不是世界书里的全部条目） */
+  const active = _wbSetEntries.filter(e => e.enabled !== false && !_wbSetDisabled.includes(e.id)).length;
+  const types  = [...new Set(_wbSetEntries.map(e => e.cat || '其他'))].length;
 
   const elCount  = document.getElementById('wbSetStatCount');
   const elActive = document.getElementById('wbSetStatActive');
   const elTypes  = document.getElementById('wbSetStatTypes');
-  if (elCount)  elCount.textContent  = String(entries.length).padStart(2,'0');
+  if (elCount)  elCount.textContent  = String(_wbSetEntries.length).padStart(2,'0');
   if (elActive) elActive.innerHTML   = `<em>${String(active).padStart(2,'0')}</em>`;
   if (elTypes)  elTypes.textContent  = String(types).padStart(2,'0');
 
-  /* 全局开关 */
-  const cfg = JSON.parse(localStorage.getItem('luna_wb_config') || '{}');
+  /* 角色总开关 / 去重 */
   const setChk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val !== false; };
   setChk('wbSetEnabled', cfg.enabled);
-  setChk('wbSetGlobal',  cfg.global);
-  setChk('wbSetTrigger', cfg.trigger !== false);
-  setChk('wbSetDedup',   cfg.dedup   !== false);
+  setChk('wbSetDedup',   cfg.dedup);
 
   /* 注入数量 / token */
   const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  setVal('wbSetMaxEntries', cfg.maxEntries || 10);
-  setVal('wbSetMaxToken',   cfg.maxToken   || 2000);
+  setVal('wbSetMaxEntries', cfg.maxEntries);
+  setVal('wbSetMaxToken',   cfg.maxToken);
 
-  /* 插入位置 */
-  const posMap = { before:'对话前', after:'对话后', system:'系统层' };
-  const posEl = document.getElementById('wbSetPosVal');
-  if (posEl) posEl.textContent = posMap[cfg.position] || '对话前';
+  /* 角色标识提示：让用户清楚这份设置是绑定到哪个角色的 */
+  wbSetRenderCharBadge();
 
   /* 渲染条目列表 */
-  wbSetRenderEntries(entries, 'all');
+  wbSetRenderEntries(_wbSetEntries, 'all');
 }
 
-/* ── 渲染条目列表 ── */
+/* ── 顶部角色标识（若页面上已有 hero 区域，插入一行小提示；没有则跳过，不强行改动结构） ── */
+function wbSetRenderCharBadge() {
+  const hero = document.querySelector('.wb-set-hero-sub');
+  if (!hero) return;
+  const name = _wbSetCharName || '未选择角色';
+  const scope = _wbSetCharId ? `当前绑定角色：${name}` : `未识别到角色，条目将作为全局设置`;
+  let badge = document.getElementById('wbSetCharBadge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'wbSetCharBadge';
+    badge.style.cssText = 'margin-top:8px;font-size:12px;opacity:0.65;';
+    hero.parentNode.insertBefore(badge, hero.nextSibling);
+  }
+  badge.textContent = scope;
+}
+
+/* ── 渲染条目列表（带每条目的启用开关，点击即可单独为当前角色关闭/开启某条世界书） ── */
 function wbSetRenderEntries(entries, cat) {
   const list = document.getElementById('wbSetEntryList');
   if (!list) return;
   const filtered = cat === 'all' ? entries : entries.filter(e => (e.cat || '其他') === cat);
   if (!filtered.length) {
-    list.innerHTML = '<div class="wb-entry-empty">暂无条目 · 前往世界书添加</div>';
+    list.innerHTML = '<div class="wb-entry-empty">暂无条目 · 前往世界书添加，或在条目编辑页勾选关联当前角色</div>';
     return;
   }
-  list.innerHTML = filtered.map(e => `
-    <div class="wb-entry-card">
+  const posLabelMap = { before: '对话前', after: '对话后', system: '系统层' };
+  list.innerHTML = filtered.map(e => {
+    const isOff = e.enabled === false || _wbSetDisabled.includes(e.id);
+    const scopeTag = (e.chars && e.chars.length) ? '专属' : '全局';
+    const modeTag = e.mode === 'constant' ? '常驻' : '触发';
+    const posTag = posLabelMap[e.pos] || '对话前';
+    return `
+    <div class="wb-entry-card" data-id="${e.id}" onclick="wbSetToggleEntry(${e.id})" style="cursor:pointer">
       <div>
-        <div class="wb-entry-cat">${e.cat || '其他'} · ${catEnMap(e.cat)}</div>
-        <div class="wb-entry-name">${e.title || '未命名'}</div>
+        <div class="wb-entry-cat">${e.cat || '其他'} · ${catEnMap(e.cat)} · ${scopeTag} · ${modeTag} · ${posTag}</div>
+        <div class="wb-entry-name">${(e.title || '未命名').replace(/</g,'&lt;')}</div>
       </div>
-      <div class="wb-entry-dot${e.enabled === false ? ' off' : ''}"></div>
-    </div>
-  `).join('');
+      <div class="wb-entry-dot${isOff ? ' off' : ''}"></div>
+    </div>`;
+  }).join('');
+}
+
+/* ── 点击条目卡片：切换该条目在「当前角色」下的启用状态（不影响其它角色/全局原始 enabled 字段） ── */
+function wbSetToggleEntry(id) {
+  const idx = _wbSetDisabled.indexOf(id);
+  if (idx >= 0) _wbSetDisabled.splice(idx, 1);
+  else _wbSetDisabled.push(id);
+  const activeFilter = document.querySelector('.wb-filter-btn.wb-filter-on')?.dataset.cat || 'all';
+  wbSetRenderEntries(_wbSetEntries, activeFilter);
 }
 
 function catEnMap(cat) {
-  return {地点:'PLACE',势力:'FACTION',事件:'EVENT',规则:'RULE',其他:'OTHER'}[cat] || 'ENTRY';
+  return {人物:'CHAR',地点:'PLACE',势力:'FACTION',事件:'EVENT',关系:'REL',物品:'ITEM',规则:'RULE',其他:'OTHER'}[cat] || 'ENTRY';
 }
 
 /* ── 分类筛选 ── */
 function wbSetFilter(btn) {
   document.querySelectorAll('.wb-filter-btn').forEach(b => b.classList.remove('wb-filter-on'));
   btn.classList.add('wb-filter-on');
-  const raw = localStorage.getItem('luna_worldbook');
-  const entries = raw ? JSON.parse(raw) : [];
-  wbSetRenderEntries(entries, btn.dataset.cat);
+  wbSetRenderEntries(_wbSetEntries, btn.dataset.cat);
 }
 
 /* ── 开关同步 ── */
@@ -1968,52 +2044,136 @@ function wbStepToken(delta) {
   el.textContent = v;
 }
 
-/* ── 插入位置切换 ── */
-function wbTogglePosOpts() {
-  const el = document.getElementById('wbPosOpts');
-  if (!el) return;
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-function wbSetPos(opt, label) {
-  document.querySelectorAll('.wb-pos-opt').forEach(o => o.classList.remove('wb-pos-on'));
-  opt.classList.add('wb-pos-on');
-  const el = document.getElementById('wbSetPosVal');
-  if (el) el.textContent = label;
-  document.getElementById('wbPosOpts').style.display = 'none';
-}
-
-/* ── 保存 ── */
+/* ── 保存：写入 luna_wb_config_<charId>，实现「保存后专属于该角色」
+   注：global / trigger / position 字段已删除——这三者本就是条目自身
+   mode / pos 的重复，交由每条目自己决定即可，设置页不再管。 ── */
 function wbSetSave() {
-  const posMap = { '对话前':'before','对话后':'after','系统层':'system' };
-  const posTxt = document.getElementById('wbSetPosVal')?.textContent || '对话前';
   const cfg = {
-    enabled:    document.getElementById('wbSetEnabled')?.checked !== false,
-    global:     document.getElementById('wbSetGlobal')?.checked  !== false,
-    trigger:    document.getElementById('wbSetTrigger')?.checked !== false,
-    dedup:      document.getElementById('wbSetDedup')?.checked   !== false,
-    maxEntries: parseInt(document.getElementById('wbSetMaxEntries')?.textContent) || 10,
-    maxToken:   parseInt(document.getElementById('wbSetMaxToken')?.textContent)   || 2000,
-    position:   posMap[posTxt] || 'before',
+    enabled:     document.getElementById('wbSetEnabled')?.checked !== false,
+    dedup:       document.getElementById('wbSetDedup')?.checked   !== false,
+    maxEntries:  parseInt(document.getElementById('wbSetMaxEntries')?.textContent) || 10,
+    maxToken:    parseInt(document.getElementById('wbSetMaxToken')?.textContent)   || 2000,
+    disabledIds: [..._wbSetDisabled],
   };
-  localStorage.setItem('luna_wb_config', JSON.stringify(cfg));
+
+  if (window.LunaWorldBookRuntime) {
+    window.LunaWorldBookRuntime.setConfig(_wbSetCharId, cfg);
+  } else {
+    // 兜底：即使共享模块未加载也不丢数据
+    const key = _wbSetCharId ? `luna_wb_config_${_wbSetCharId}` : 'luna_wb_config_global';
+    localStorage.setItem(key, JSON.stringify(cfg));
+  }
+
+  // 广播给聊天页：世界书设置变了，若聊天页正开着可以据此判断是否需要重新读取（不强制刷新，避免打断对话）
+  try {
+    localStorage.setItem('luna_wb_config_update', String(Date.now()));
+  } catch (e) {}
+
   /* 复用现有保存提示逻辑 */
   const btn = document.querySelector('button[onclick="wbSetSave()"]');
   if (btn) {
     const orig = btn.textContent;
-    btn.textContent = '已保存';
+    btn.textContent = _wbSetCharId ? `已保存到「${_wbSetCharName}」` : '已保存（全局）';
     btn.style.background = '#4a9a6a';
-    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1500);
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1600);
   }
 }
 
-/* ── 点击外部关闭位置选项 ── */
-document.addEventListener('click', e => {
-  const opts = document.getElementById('wbPosOpts');
-  if (!opts) return;
-  if (!opts.contains(e.target) && !e.target.closest('.wb-row-item--last')) {
-    opts.style.display = 'none';
-  }
-});
+/* ================================================================
+   数据管理：导出 / 导入 / 清空当前角色条目
+   均以「当前角色可见范围」为边界，不触碰其他角色的数据：
+   - 导出：只导出当前角色能看到的条目（全局 + 专属该角色）
+   - 导入：新条目会自动打上「专属当前角色」标记（chars: [_wbSetCharId]），
+     不会污染成全局条目，避免误关联到其它角色身上
+   - 清空：不是删库，而是解除「当前角色」与这些条目的关联——
+     全局条目会被加入 disabledIds（仅本角色下不再生效），
+     专属条目若只绑定了当前角色则物理删除，若同时绑定了别的角色
+     则只从 chars[] 里摘掉当前角色，不影响其他角色继续使用
+================================================================ */
+
+/* ── 导出：当前角色可见范围内的条目 ── */
+async function wbSetExport() {
+  if (!window.LunaWorldBookRuntime) { showToast('世界书模块未加载'); return; }
+  const entries = await window.LunaWorldBookRuntime.getForChar(_wbSetCharId);
+  if (!entries.length) { showToast('当前角色暂无可导出的条目'); return; }
+
+  const payload = {
+    app: 'LunaWorldBook',
+    version: 2,
+    scopeChar: _wbSetCharName || null,
+    exportedAt: new Date().toISOString(),
+    entries
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  const namePart = _wbSetCharName ? `-${_wbSetCharName}` : '';
+  a.href = url;
+  a.download = `worldbook${namePart}-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`已导出 ${entries.length} 条条目`);
+}
+
+/* ── 导入：触发隐藏的 file input ── */
+function wbSetTriggerImport() {
+  document.getElementById('wbSetImportFile')?.click();
+}
+
+/* ── 导入：解析 JSON，新条目自动关联当前角色，避免误变成全局条目 ── */
+function wbSetImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const list = Array.isArray(data) ? data : (data.entries || []);
+      if (!Array.isArray(list) || !list.length) {
+        showToast('文件中没有可导入的条目');
+        return;
+      }
+      if (!window.LunaWorldBookRuntime) {
+        showToast('世界书模块未加载，无法导入');
+        return;
+      }
+      let count = 0;
+      for (const item of list) {
+        const clean = { ...item };
+        delete clean.id; // 避免与现有条目 id 冲突，作为新条目导入
+        if (!clean.title) continue;
+        // 关联到当前角色，而不是变成影响所有角色的全局条目
+        clean.chars = _wbSetCharId ? [_wbSetCharId] : (Array.isArray(clean.chars) ? clean.chars : []);
+        await window.LunaWorldBookRuntime._saveEntry(clean);
+        count++;
+      }
+      await wbSetInit();
+      showToast(_wbSetCharId ? `已导入 ${count} 条，并关联到「${_wbSetCharName}」` : `已导入 ${count} 条`);
+    } catch (err) {
+      showToast('导入失败，文件格式不正确');
+    } finally {
+      input.value = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ── 清空当前角色条目：先二次确认，避免误触 ── */
+function wbSetClearConfirm() {
+  const name = _wbSetCharName || '当前角色';
+  if (!confirm(`确定要清空「${name}」下的所有世界书条目关联吗？\n· 全局条目仅在该角色下不再生效，不影响其他角色\n· 仅绑定了该角色的专属条目会被彻底删除\n· 同时绑定了其他角色的专属条目只会解除与该角色的关联\n此操作不可撤销。`)) return;
+  wbSetClearForChar();
+}
+
+async function wbSetClearForChar() {
+  if (!window.LunaWorldBookRuntime) { showToast('世界书模块未加载'); return; }
+  const result = await window.LunaWorldBookRuntime.clearForChar(_wbSetCharId);
+  await wbSetInit();
+  showToast(`已清空「${_wbSetCharName || '当前角色'}」的世界书关联（${result.affected} 条）`);
+}
 
 /* ── 页面加载 ── */
 document.addEventListener('DOMContentLoaded', () => {

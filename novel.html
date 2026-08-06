@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Luna Reader</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="novel.css" />
+</head>
+<body>
+
+<div class="luna-wrap">
+<div class="luna-frame">
+
+  <!-- ==================== 环境氛围层（缓慢漂移的柔光 + 细颗粒） ==================== -->
+  <div class="amb amb-a"></div>
+  <div class="amb amb-b"></div>
+  <div class="amb amb-c"></div>
+  <div class="amb-grain"></div>
+  <div class="amb-rule"></div>
+
+  <!-- ==================== 状态栏（与 index.html 完全同步） ==================== -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 顶栏 ==================== -->
+  <header class="topbar" id="topbar">
+    <button class="icon-btn" id="btnBack" aria-label="返回桌面">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <div class="tb-center">
+      <span class="tb-kicker" id="tbKicker">LUNA READER</span>
+      <span class="tb-name" id="tbName">书架</span>
+    </div>
+
+    <div class="tb-actions">
+      <button class="icon-btn" id="btnSearch" aria-label="搜索">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.4" stroke="currentColor" stroke-width="1.6"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" id="btnAdd" aria-label="添加书籍">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 5.4v13.2M5.4 12h13.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <!-- 多选模式下替换顶栏 -->
+    <div class="tb-select" id="tbSelect">
+      <button class="txt-btn" id="btnSelAll">全选</button>
+      <span class="sel-count"><b id="selCount">0</b> 本已选</span>
+      <button class="txt-btn" id="btnSelDone">完成</button>
+    </div>
+  </header>
+
+  <!-- 搜索抽屉 -->
+  <div class="search-drawer" id="searchDrawer">
+    <div class="sd-field">
+      <svg viewBox="0 0 24 24" fill="none" class="sd-ico"><circle cx="11" cy="11" r="6.4" stroke="currentColor" stroke-width="1.6"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <input id="searchInput" type="text" placeholder="搜索书名、作者或标签" autocomplete="off" />
+      <button class="sd-clear" id="sdClear" aria-label="清空">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="sd-line"></div>
+  </div>
+
+  <!-- ==================== 页面堆栈 ==================== -->
+  <main class="page-stack" id="pageStack">
+
+    <!-- ---------- 小说 · 创作台 ---------- -->
+    <section class="page" id="pgNovel" data-index="0">
+      <div class="scroller" id="novelScroller">
+
+        <div class="masthead reveal">
+          <div class="mh-top">
+            <span class="mh-tag">WRITE ONE TONIGHT</span>
+            <span class="mh-dot"></span>
+            <span class="mh-date">ORIGINALS</span>
+          </div>
+          <h1 class="mh-title">小说</h1>
+          <div class="mh-en">Write your own</div>
+          <div class="mh-meta">改下面那句话里的词，剩下的交给模型</div>
+          <div class="mh-rule"><i></i></div>
+        </div>
+
+        <!-- 稿纸：整段句子就是表单，点带线的词就能改 -->
+        <article class="studio reveal" style="--d:.06s">
+          <div class="st-lines"></div>
+          <div class="st-corner"></div>
+
+          <div class="st-head">
+            <span class="st-kicker">MANUSCRIPT</span>
+            <span class="st-dice" id="stDice">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="4" stroke="currentColor" stroke-width="1.4"/><circle cx="9.4" cy="9.4" r="1.15" fill="currentColor"/><circle cx="14.6" cy="14.6" r="1.15" fill="currentColor"/><circle cx="14.6" cy="9.4" r="1.15" fill="currentColor"/><circle cx="9.4" cy="14.6" r="1.15" fill="currentColor"/></svg>
+              <span>换一套</span>
+            </span>
+          </div>
+
+          <h2 class="st-h">今晚想读一个<br/>什么样的故事</h2>
+
+          <div class="st-sent-wrap">
+            <p class="st-sent" id="stSentence"></p>
+
+            <!-- 点词之后落下来的选项纸片 -->
+            <div class="st-picker" id="stPicker">
+              <div class="st-pick-head"><span id="stPickLabel"></span><span class="st-pick-hint">选一个</span></div>
+              <div class="st-pick-list" id="stPickList"></div>
+            </div>
+          </div>
+
+          <!-- 抽一根线，展开细节 -->
+          <div class="st-thread" id="stThread">
+            <span class="th-line"></span>
+            <span class="th-txt" id="stThreadTxt">再多说一点</span>
+            <span class="th-line"></span>
+          </div>
+
+          <div class="st-extra" id="stExtra">
+            <label class="st-fld">
+              <span>脑子里已经有的画面</span>
+              <textarea id="stIdea" rows="3" placeholder="比如：她推开门，看见十年没见的人正在给她的猫喂食。"></textarea>
+            </label>
+            <label class="st-fld">
+              <span>一定要出现</span>
+              <input id="stWant" type="text" placeholder="雨夜、久别重逢、一封没寄出的信" maxlength="60"/>
+            </label>
+            <label class="st-fld">
+              <span>请绕开</span>
+              <input id="stAvoid" type="text" placeholder="不想看到的情节、设定或雷点" maxlength="60"/>
+            </label>
+          </div>
+
+          <!-- 落笔：一条压着光的纸边 -->
+          <div class="st-seal" id="stSeal">
+            <span class="sl-sweep"></span>
+            <span class="sl-row"><span class="sl-rule"></span><span class="sl-txt">落 笔</span><span class="sl-rule"></span></span>
+            <span class="sl-hint">模型会写出书名 · 笔名 · 简介 · 全书大纲</span>
+          </div>
+        </article>
+
+        <!-- 最近创作 -->
+        <div class="st-sec reveal" style="--d:.12s">
+          <div class="st-sec-head">
+            <h3>写过的书</h3>
+            <span class="st-sec-n"><b id="stDraftCount">0</b> 本</span>
+          </div>
+          <div class="st-drafts" id="stDrafts"></div>
+        </div>
+
+        <div class="shelf-foot">— 长按一本可以删掉 · LUNA READER —</div>
+      </div>
+    </section>
+
+    <!-- ---------- 同人 · FAN WORKS ---------- -->
+    <section class="page" id="pgFan" data-index="1">
+      <div class="scroller fan-scroller" id="fanScroller">
+
+        <!-- 报头 -->
+        <div class="masthead reveal">
+          <div class="mh-top">
+            <span class="mh-tag">CHAPTER 02 — FAN WORKS</span>
+            <span class="mh-dot"></span>
+            <span class="mh-date" id="fanDate">—</span>
+          </div>
+          <h1 class="mh-title">同人</h1>
+          <div class="mh-en">Fan Works</div>
+          <div class="mh-meta">已建 <b id="fanCircleN">0</b> 个圈 · 存稿 <b id="fanWorkN">0</b> 篇</div>
+          <div class="mh-rule"><i></i></div>
+        </div>
+
+        <!-- ===== 广场入口：一扇门，而不是一颗按钮 ===== -->
+        <section class="portal reveal" id="fanPortal" style="--d:.05s">
+          <div class="pt-aperture"><i></i><i></i><i></i><i></i></div>
+          <div class="pt-veil"></div>
+
+          <div class="pt-top">
+            <span class="pt-k">THE SQUARE</span>
+            <span class="pt-dot"></span>
+            <span class="pt-live"><b></b><span id="ptLiveTxt">今天有 0 个圈亮着灯</span></span>
+          </div>
+
+          <h2 class="pt-title">同人广场</h2>
+          <div class="pt-en">where every pairing keeps a house</div>
+          <p class="pt-desc">你建过的每一个 CP 都在这里有自己的门牌。推门进去，看它们各自长成了什么样子。</p>
+
+          <div class="pt-strip">
+            <div class="pt-rail" id="ptRail"></div>
+          </div>
+
+          <div class="pt-foot">
+            <div class="pt-stats">
+              <div class="pt-st"><b id="ptC1">0</b><span>圈子</span></div>
+              <div class="pt-st"><b id="ptC2">0</b><span>作品</span></div>
+              <div class="pt-st"><b id="ptC3">0</b><span>章节</span></div>
+            </div>
+            <div class="pt-enter">
+              <span class="pt-enter-t">推门</span>
+              <span class="pt-enter-l"><i></i></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== 配对台 ===== -->
+        <article class="fcard reveal" style="--d:.1s">
+          <span class="fc-corner"></span>
+          <div class="fc-head">
+            <div>
+              <div class="fc-k">CASTING</div>
+              <h3 class="fc-h">先把人凑齐</h3>
+              <div class="fc-note">从角色档案里挑，AI 会照着档案里的说话方式、软肋、口头禅来写。</div>
+            </div>
+          </div>
+
+          <div class="pair-stage">
+            <div class="pslot" id="pslotA" data-slot="a">
+              <span class="pslot-plus"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5.6v12.8M5.6 12h12.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+              <span class="pslot-hint">选第一个人</span>
+              <span class="pslot-role">SIDE A</span>
+            </div>
+
+            <div class="pair-x">
+              <i></i>
+              <b>&times;</b>
+              <span class="pair-swap" id="pairSwap" aria-label="对调">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M7 8h11l-3-3M17 16H6l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <i></i>
+            </div>
+
+            <div class="pslot" id="pslotB" data-slot="b">
+              <span class="pslot-plus"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5.6v12.8M5.6 12h12.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+              <span class="pslot-hint">选第二个人</span>
+              <span class="pslot-role">SIDE B</span>
+            </div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>配角 / 路人</b><i></i><em>OPTIONAL</em></div>
+            <div class="cast-row" id="castRow"></div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>关系动力</b><i></i><em>DYNAMIC</em></div>
+            <div class="chips" id="chDyn"></div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>他们现在是什么关系</b><i></i><em>STATUS</em></div>
+            <div class="chips" id="chStage"></div>
+          </div>
+        </article>
+
+        <!-- ===== 设定 ===== -->
+        <article class="fcard reveal" style="--d:.14s">
+          <span class="fc-corner"></span>
+          <div class="fc-head">
+            <div>
+              <div class="fc-k">THE BRIEF</div>
+              <h3 class="fc-h">你想看的那一版</h3>
+              <div class="fc-note">填得越具体，写出来越像你脑子里的那一篇。</div>
+            </div>
+            <span class="fc-dice" id="fanDice">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="4" stroke="currentColor" stroke-width="1.4"/><circle cx="9.4" cy="9.4" r="1.15" fill="currentColor"/><circle cx="14.6" cy="14.6" r="1.15" fill="currentColor"/><circle cx="14.6" cy="9.4" r="1.15" fill="currentColor"/><circle cx="9.4" cy="14.6" r="1.15" fill="currentColor"/></svg>
+              <span>抽一套</span>
+            </span>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>世界设定 / AU</b><i></i><em>SETTING</em></div>
+            <div class="chips" id="chAu"></div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>题材类型</b><i></i><em>GENRE</em></div>
+            <div class="chips" id="chGenre"></div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>基调</b><i></i><em>TONE</em></div>
+            <div class="chips" id="chTone"></div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>叙事视角</b><i></i><em>POV</em></div>
+            <div class="chips" id="chPov"></div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>文体</b><i></i><em>FORM</em></div>
+            <div class="chips" id="chForm"></div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>结局</b><i></i><em>ENDING</em></div>
+            <div class="chips" id="chEnd"></div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>尺度</b><i></i><em>RATING</em></div>
+            <div class="chips" id="chRate"></div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>甜度 · 虐度</b><i></i><em>BALANCE</em></div>
+            <div class="frange">
+              <div class="fr-top"><span>越往右越甜</span><b id="sweetVal">50</b></div>
+              <input type="range" id="sweetRange" min="0" max="100" value="50" class="fr-in" />
+            </div>
+            <div class="frange" style="margin-top:14px">
+              <div class="fr-top"><span>单章字数</span><b id="lenVal">2200</b></div>
+              <input type="range" id="lenRange" min="800" max="5000" step="200" value="2200" class="fr-in" />
+            </div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>标签</b><i></i><em>TAGS</em></div>
+            <div class="chips" id="chTags"></div>
+            <div class="ftxt" style="margin-top:10px">
+              <input id="fanTagIn" type="text" placeholder="自己补几个标签，逗号分隔" maxlength="60" />
+            </div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>我想看的那一幕</b><i></i><em>THE SCENE</em></div>
+            <div class="ftxt">
+              <textarea id="fanScene" rows="4" maxlength="600" placeholder="例：暴雨夜，他把伞整个偏过去，自己半边肩膀全湿了，却还在说“我不冷”。她第一次没有拆穿他。"></textarea>
+              <div class="ftxt-foot"><span>写一句就够，写十句更好</span><span><b id="sceneN">0</b>/600</span></div>
+            </div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>必须发生 / 绝对不要</b><i></i><em>RULES</em></div>
+            <div class="ftxt">
+              <textarea id="fanMust" rows="3" maxlength="400" placeholder="必须发生：一定要有一次当面的坦白。"></textarea>
+            </div>
+            <div class="ftxt" style="margin-top:9px">
+              <textarea id="fanNever" rows="3" maxlength="400" placeholder="绝对不要：不要第三者插足，不要任何一方死亡。"></textarea>
+            </div>
+          </div>
+
+          <div class="fgroup">
+            <div class="fg-k"><b>还有什么要交代的</b><i></i><em>FREE NOTES</em></div>
+            <div class="ftxt">
+              <textarea id="fanFree" rows="4" maxlength="900" placeholder="时间、地点、天气、他们各自称呼对方什么、前情提要、你希望的文风参考……想到什么写什么，这一栏最自由。"></textarea>
+              <div class="ftxt-foot"><span>这一栏会被原样交给模型</span><span><b id="freeN">0</b>/900</span></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- ===== 是否建圈 ===== -->
+        <article class="fcard reveal" style="--d:.18s">
+          <span class="fc-corner"></span>
+          <div class="fswitch">
+            <div class="fsw-l">
+              <b>给这对 CP 开一个圈</b>
+              <span>开了圈，这一篇和以后所有同一对的稿子都会归进去，在广场上有自己的门牌。</span>
+            </div>
+            <div class="fsw-btn" id="circSw"><i></i></div>
+          </div>
+
+          <div class="circ-body" id="circBody">
+            <div class="circ-line"></div>
+
+            <div class="fgroup">
+              <div class="fg-k"><b>圈名</b><i></i><em>NAME</em></div>
+              <div class="ftxt">
+                <input id="circName" type="text" maxlength="18" placeholder="留空的话，交给模型起" />
+              </div>
+            </div>
+
+            <div class="fgroup">
+              <div class="fg-k"><b>圈子宣言</b><i></i><em>MANIFESTO</em></div>
+              <div class="ftxt">
+                <textarea id="circMani" rows="3" maxlength="220" placeholder="一句话说清这个圈是干嘛的。留空也会自动生成。"></textarea>
+              </div>
+            </div>
+
+            <div class="fgroup">
+              <div class="fg-k"><b>圈徽配色</b><i></i><em>THEME</em></div>
+              <div class="theme-row" id="circTheme"></div>
+            </div>
+
+            <div class="fgroup">
+              <div class="fg-k"><b>可见范围</b><i></i><em>VISIBILITY</em></div>
+              <div class="chips" id="chVis"></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- ===== 落笔 ===== -->
+        <div class="reveal" style="--d:.22s">
+          <div class="fgo" id="fanGo">
+            <em></em>
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4.6 19.4l3-.7 10-10a2.1 2.1 0 0 0-3-3l-10 10-.7 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14.2 5.8l4 4" stroke="currentColor" stroke-width="1.5"/></svg>
+            <span>开始写</span>
+          </div>
+          <div class="fgo-hint" id="fanGoHint">还没选人 · 至少要有一位主角</div>
+        </div>
+
+        <!-- ===== 我的同人 ===== -->
+        <div class="fsec-head reveal" style="--d:.26s">
+          <div class="fsec-l">
+            <div class="fsec-k">MY DRAFTS</div>
+            <div class="fsec-t">我写下的</div>
+            <div class="fsec-s">长按一篇可以删掉</div>
+          </div>
+          <span class="fsec-r" id="fanAllLink">
+            <span>全部</span>
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6.5l5.5 5.5L13 17.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+        <div class="wlist" id="fanMyList"></div>
+        <div class="fempty" id="fanMyEmpty" hidden>
+          <div class="fe-art"><i></i><i></i><i></i><b></b></div>
+          <div class="fe-t">还没有稿子</div>
+          <div class="fe-d">上面把人选好、把想看的那一幕写下来，剩下的交给模型。</div>
+        </div>
+
+        <div class="shelf-foot">— 同人区 · LUNA READER —</div>
+      </div>
+    </section>
+
+    <!-- ---------- 书架（主页面） ---------- -->
+    <section class="page is-active" id="pgShelf" data-index="2">
+      <div class="scroller" id="shelfScroller">
+
+        <!-- 报头 -->
+        <div class="masthead reveal">
+          <div class="mh-top">
+            <span class="mh-tag">PRIVATE COLLECTION</span>
+            <span class="mh-dot"></span>
+            <span class="mh-date" id="mhDate">—</span>
+          </div>
+          <h1 class="mh-title">书架</h1>
+          <div class="mh-en">Bookshelf</div>
+          <div class="mh-meta"><b id="mhCount">0</b> 册在列 · 已读 <b id="mhRead">0</b> 章</div>
+          <div class="mh-rule"><i></i></div>
+        </div>
+
+        <!-- 继续阅读 -->
+        <article class="now-card reveal" id="nowCard" style="--d:.06s">
+          <div class="nc-decor">
+            <span class="nc-arc a1"></span><span class="nc-arc a2"></span>
+            <span class="nc-dots"></span>
+          </div>
+          <div class="nc-label">NOW READING</div>
+
+          <div class="nc-body">
+            <div class="nc-cover" id="ncCover"></div>
+            <div class="nc-info">
+              <h3 class="nc-title" id="ncTitle">—</h3>
+              <div class="nc-author" id="ncAuthor">—</div>
+              <div class="nc-chap" id="ncChap">—</div>
+
+              <div class="nc-prog">
+                <div class="np-track"><div class="np-fill" id="ncFill"></div></div>
+                <span class="np-pct" id="ncPct">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="nc-go" id="ncGo">
+            <span class="ncg-sweep"></span>
+            <span class="ncg-text">继续阅读</span>
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6.5l5.5 5.5L13 17.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </article>
+
+        <!-- 三格数据 -->
+        <div class="stat-row reveal" style="--d:.12s">
+          <div class="stat"><b id="stReading">0</b><span>在读</span></div>
+          <div class="stat"><b id="stFinish">0</b><span>读完</span></div>
+          <div class="stat"><b id="stFav">0</b><span>收藏</span></div>
+        </div>
+
+        <!-- 筛选 + 工具 -->
+        <div class="filter-bar reveal" style="--d:.16s">
+          <div class="ftabs" id="ftabs">
+            <button class="ftab is-on" data-filter="all">全部<i id="cAll">0</i></button>
+            <button class="ftab" data-filter="reading">在读<i id="cReading">0</i></button>
+            <button class="ftab" data-filter="fav">收藏<i id="cFav">0</i></button>
+            <button class="ftab" data-filter="done">读完<i id="cDone">0</i></button>
+            <span class="ftab-ul" id="ftabUl"></span>
+          </div>
+
+          <div class="ftools">
+            <button class="tool-btn" id="btnSort">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M6 8h12M8 12h8M10 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <span id="sortLabel">最近阅读</span>
+            </button>
+            <button class="tool-btn sq" id="btnView" aria-label="切换视图">
+              <svg viewBox="0 0 24 24" fill="none" id="viewIcon"><rect x="4.5" y="4.5" width="6" height="6" rx="1.4" stroke="currentColor" stroke-width="1.5"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.4" stroke="currentColor" stroke-width="1.5"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.4" stroke="currentColor" stroke-width="1.5"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.4" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 书籍容器 -->
+        <div class="grid" id="bookGrid"></div>
+
+        <!-- 空状态 -->
+        <div class="empty" id="emptyState" hidden>
+          <div class="em-art">
+            <span class="em-shelf"></span>
+            <span class="em-bk b1"></span><span class="em-bk b2"></span><span class="em-bk b3"></span>
+          </div>
+          <div class="em-title">书架还空着</div>
+          <div class="em-desc">去「小说」写一本新的，或从这里导入你自己的书。</div>
+          <button class="em-btn" id="emAdd">添加书籍</button>
+        </div>
+
+        <div class="shelf-foot">— 藏书已全部载入 · LUNA READER —</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== 详情页（覆盖式视图） ==================== -->
+  <section class="vpage" id="pgDetail">
+    <header class="vp-top">
+      <button class="icon-btn" id="dtBack" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="vp-title" id="dtVpTitle">—</span>
+      <button class="icon-btn" id="dtRefresh" aria-label="重新取数据">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M19 12a7 7 0 1 1-2.1-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M19.4 4.6V9h-4.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </header>
+
+    <div class="vp-scroll" id="detailScroll">
+
+      <!-- 主视觉 -->
+      <div class="dt-hero">
+        <div class="dt-glow"></div>
+        <div class="dt-cover" id="dtCover"></div>
+        <h1 class="dt-title" id="dtTitle">—</h1>
+        <div class="dt-by">
+          <span id="dtAuthor">—</span><i></i><span id="dtCat">连载中</span><i></i><span id="dtChaps">—</span>
+        </div>
+        <div class="dt-hook" id="dtHook"></div>
+      </div>
+
+      <!-- 在线 / 热度 -->
+      <div class="dt-live" id="dtLive">
+        <div class="dl-row">
+          <span class="dl-pulse"></span>
+          <span class="dl-num" id="dtOnline">—</span>
+          <span class="dl-lb">人正在读</span>
+          <span class="dl-rank" id="dtRank"></span>
+        </div>
+        <div class="dl-heat">
+          <div class="dh-track"><i id="dtHeatFill"></i></div>
+          <span class="dh-txt" id="dtHeatTxt">正在取站内数据…</span>
+        </div>
+        <div class="dl-sub">
+          <span id="dtWords">—</span><i></i><span id="dtToday">—</span><i></i><span id="dtUpdate"></span>
+        </div>
+        <div class="dl-tags" id="dtHotTags"></div>
+      </div>
+
+      <!-- 四格数据 -->
+      <div class="dt-nums">
+        <div class="dn"><b id="numFav">—</b><span>收藏</span></div>
+        <div class="dn"><b id="numLike">—</b><span>点赞</span></div>
+        <div class="dn"><b id="numSub">—</b><span>订阅</span></div>
+        <div class="dn score"><b id="numScore">—</b><span id="numScoreSub">评分</span></div>
+      </div>
+
+      <!-- 简介 -->
+      <section class="dt-sec">
+        <div class="dt-k"><span class="dk-line"></span>简介</div>
+        <p class="dt-desc" id="dtDesc">—</p>
+        <div class="dt-tags" id="dtTags"></div>
+      </section>
+
+      <!-- 人物 -->
+      <section class="dt-sec" id="dtRolesWrap">
+        <div class="dt-k"><span class="dk-line"></span>这本书里的人</div>
+        <div class="dt-roles" id="dtRoles"></div>
+      </section>
+
+      <!-- 大纲 -->
+      <section class="dt-sec" id="dtOutlineWrap">
+        <div class="dt-k"><span class="dk-line"></span>全书大纲</div>
+        <div class="dt-outline" id="dtOutline"></div>
+      </section>
+
+      <!-- 目录入口 -->
+      <div class="dt-toc" id="dtTocEntry">
+        <div class="dtc-l">
+          <div class="dtc-k">目录</div>
+          <div class="dtc-s"><span id="dtTocCount">—</span><i></i><span id="dtRead">还没开始读</span></div>
+        </div>
+        <span class="dtc-go"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5.5l6.5 6.5L9 18.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+
+      <!-- 评论 -->
+      <section class="dt-sec">
+        <div class="dt-k"><span class="dk-line"></span>书评区 <span class="dk-n" id="dtCmtCount"></span></div>
+        <div class="dt-cmts" id="dtComments"></div>
+      </section>
+
+      <!-- 推荐 -->
+      <section class="dt-sec">
+        <div class="dt-k"><span class="dk-line"></span>读过这本的人还在看</div>
+        <div class="dt-recos" id="dtRecos"></div>
+        <div class="dt-reco-tip">点一本，模型会把它整本写出来</div>
+      </section>
+
+      <div class="shelf-foot">— LUNA READER · ORIGINALS —</div>
+    </div>
+
+    <!-- 底部操作条 -->
+    <div class="dt-bar">
+      <div class="dt-act" id="dtFav">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 4.8l2.3 4.7 5.2.8-3.8 3.6.9 5.1-4.6-2.4-4.6 2.4.9-5.1L4.5 10.3l5.2-.8L12 4.8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span id="dtFavTxt">收藏</span>
+      </div>
+      <div class="dt-act" id="dtLike">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 20s-6.6-4.2-8.6-8A4.7 4.7 0 0 1 12 7.4 4.7 4.7 0 0 1 20.6 12c-2 3.8-8.6 8-8.6 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span>点赞</span>
+      </div>
+      <div class="dt-act" id="dtSub">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 19.4V6.6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12.8l-6-3.2-6 3.2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span id="dtSubTxt">订阅</span>
+      </div>
+      <div class="dt-act shelf" id="dtShelf">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 5.6v12.8M5.6 12h12.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span id="dtShelfTxt">加入书架</span>
+      </div>
+      <div class="dt-start" id="dtStart">
+        <span class="ds-sweep"></span>
+        <span id="dtStartTxt">从第一章开始</span>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6.5l5.5 5.5L13 17.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 阅读器 ==================== -->
+  <section class="vpage reader bars" id="pgReader" data-theme="paper" data-font="serif">
+    <div class="rd-scroll" id="rdScroll">
+      <div class="rd-page">
+        <div class="rd-kicker"><span id="rdBookName">—</span><i></i><span id="rdNo">—</span></div>
+        <h2 class="rd-title" id="rdTitle">—</h2>
+        <div class="rd-orn"><span></span><i></i><span></span></div>
+        <div class="rd-body" id="rdBody"></div>
+        <div class="rd-end" id="rdEnd"></div>
+      </div>
+    </div>
+
+    <header class="rd-top">
+      <button class="icon-btn" id="rdBack" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="rd-top-hint">点空白处收起</span>
+      <div class="rd-top-r">
+        <button class="icon-btn" id="rdToc" aria-label="目录">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <button class="icon-btn" id="rdGear" aria-label="阅读设置">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 8h12M6 12h12M6 16h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="15.5" cy="16" r="2.2" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="rd-panel" id="rdPanel">
+      <div class="rp-row">
+        <span class="rp-k">字号</span>
+        <div class="rp-step"><span class="rp-m" id="rdSizeMinus">−</span><b id="rdSizeVal">17</b><span class="rp-p" id="rdSizePlus">+</span></div>
+      </div>
+      <div class="rp-row">
+        <span class="rp-k">行距</span>
+        <div class="rp-step"><span class="rp-m" id="rdLeadMinus">−</span><b id="rdLeadVal">2.05</b><span class="rp-p" id="rdLeadPlus">+</span></div>
+      </div>
+      <div class="rp-row">
+        <span class="rp-k">纸色</span>
+        <div class="rp-themes" id="rdThemes">
+          <span class="rd-th is-on" data-theme="paper">素白</span>
+          <span class="rd-th" data-theme="mist">雾青</span>
+          <span class="rd-th" data-theme="night">墨夜</span>
+        </div>
+      </div>
+      <div class="rp-row">
+        <span class="rp-k">字体</span>
+        <div class="rp-themes" id="rdFonts">
+          <span class="rd-fo is-on" data-font="serif">宋体</span>
+          <span class="rd-fo" data-font="sans">黑体</span>
+        </div>
+      </div>
+      <div class="rp-line"></div>
+      <div class="rd-act" id="rdRegen">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M19 12a7 7 0 1 1-2.1-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M19.4 4.6V9h-4.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>重写这一章</span>
+      </div>
+    </div>
+
+    <div class="rd-prog"><i id="rdProgFill"></i></div>
+  </section>
+
+  <!-- ==================== 同人广场 ==================== -->
+  <section class="vpage" id="pgSquare">
+    <header class="vp-top">
+      <button class="icon-btn" id="sqBack" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="vp-title">同人广场</span>
+      <button class="icon-btn" id="sqNew" aria-label="新建圈子">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 5.4v13.2M5.4 12h13.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+
+    <div class="vp-scroll" id="squareScroll">
+      <div class="sq-hero">
+        <div class="sq-k"><span>THE SQUARE</span><i></i><em id="sqDate">—</em></div>
+        <h1 class="sq-t">同人广场</h1>
+        <div class="sq-en">every pairing keeps a house</div>
+        <p class="sq-d">这里只放你自己建起来的圈。每一个门牌背后，是一对被你反复写过的人。</p>
+        <div class="sq-rule"></div>
+      </div>
+
+      <div class="fsec-head" style="margin-top:6px">
+        <div class="fsec-l">
+          <div class="fsec-k">CIRCLES</div>
+          <div class="fsec-t">圈子</div>
+          <div class="fsec-s"><b id="sqCircleN">0</b> 个门牌亮着</div>
+        </div>
+      </div>
+
+      <div class="sq-bar" id="sqBar"></div>
+      <div class="cgrid" id="sqCircles"></div>
+      <div class="fempty" id="sqCircleEmpty" hidden>
+        <div class="fe-art"><i></i><i></i><i></i><b></b></div>
+        <div class="fe-t">广场还没有门牌</div>
+        <div class="fe-d">回到同人页，把「给这对 CP 开一个圈」打开，写完第一篇就会立起来。</div>
+      </div>
+
+      <div class="fsec-head">
+        <div class="fsec-l">
+          <div class="fsec-k">LATEST</div>
+          <div class="fsec-t">最新落笔</div>
+          <div class="fsec-s">按写下的时间排</div>
+        </div>
+      </div>
+      <div class="sq-flow" id="sqFlow"></div>
+      <div class="fempty" id="sqFlowEmpty" hidden>
+        <div class="fe-art"><i></i><i></i><i></i><b></b></div>
+        <div class="fe-t">还没有作品</div>
+        <div class="fe-d">写第一篇，它会出现在这里。</div>
+      </div>
+
+      <div class="fsec-head">
+        <div class="fsec-l">
+          <div class="fsec-k">MOST READ</div>
+          <div class="fsec-t">被翻得最多的</div>
+          <div class="fsec-s">按你自己打开的次数排</div>
+        </div>
+      </div>
+      <div class="rank" id="sqRank"></div>
+
+      <div class="shelf-foot">— 广场已全部载入 · LUNA READER —</div>
+    </div>
+  </section>
+
+  <!-- ==================== 圈子详情 ==================== -->
+  <section class="vpage" id="pgCircle">
+    <header class="vp-top">
+      <button class="icon-btn" id="cirBack" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="vp-title" id="cirVpTitle">—</span>
+      <button class="icon-btn" id="cirMore" aria-label="更多">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5.6" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="18.4" r="1.5" fill="currentColor"/></svg>
+      </button>
+    </header>
+
+    <div class="vp-scroll" id="circleScroll">
+      <div class="cir-hero" id="cirHero">
+        <span class="cir-arc c1"></span><span class="cir-arc c2"></span><span class="cir-arc c3"></span>
+        <div class="cir-faces" id="cirFaces"></div>
+        <h1 class="cir-n" id="cirName">—</h1>
+        <div class="cir-en" id="cirEn">—</div>
+        <div class="cir-mani"><b>MANIFESTO</b><span id="cirMani">—</span></div>
+        <div class="cir-stats">
+          <div class="cir-st"><b id="cirWorks">0</b><span>作品</span></div>
+          <div class="cir-st"><b id="cirChaps">0</b><span>章节</span></div>
+          <div class="cir-st"><b id="cirWords">0</b><span>字</span></div>
+        </div>
+      </div>
+
+      <div class="fr-tags" id="cirTags" style="margin-top:18px"></div>
+
+      <div class="cir-acts">
+        <button class="sha primary" id="cirWrite"><span class="sha-sweep"></span>在这个圈里再写一篇</button>
+        <button class="sha" id="cirRename">改圈名</button>
+        <button class="sha ghost" id="cirDel">解散这个圈</button>
+      </div>
+
+      <div class="fsec-head">
+        <div class="fsec-l">
+          <div class="fsec-k">WORKS</div>
+          <div class="fsec-t">圈内作品</div>
+          <div class="fsec-s">长按一篇可以删掉</div>
+        </div>
+      </div>
+      <div class="wlist" id="cirList"></div>
+      <div class="fempty" id="cirEmpty" hidden>
+        <div class="fe-art"><i></i><i></i><i></i><b></b></div>
+        <div class="fe-t">这个圈还空着</div>
+        <div class="fe-d">点上面那颗按钮，给它添第一篇。</div>
+      </div>
+
+      <div class="shelf-foot">— 本圈已全部载入 —</div>
+    </div>
+  </section>
+
+  <!-- ==================== 同人作品详情 ==================== -->
+  <section class="vpage" id="pgFanWork">
+    <header class="vp-top">
+      <button class="icon-btn" id="fwBack" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="vp-title" id="fwVpTitle">—</span>
+      <button class="icon-btn" id="fwFav" aria-label="收藏">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 4.8l2.3 4.7 5.2.8-3.8 3.6.9 5.1-4.6-2.4-4.6 2.4.9-5.1L4.5 10.3l5.2-.8L12 4.8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </button>
+    </header>
+
+    <div class="vp-scroll" id="fanWorkScroll">
+      <div class="fr-hero">
+        <div class="fr-kk"><span id="fwKk">FAN WORK</span><i></i><span id="fwDate">—</span></div>
+        <h1 class="fr-t" id="fwTitle">—</h1>
+        <div class="fr-sub" id="fwSub">—</div>
+        <div class="fr-cast" id="fwCast"></div>
+        <div class="fr-tags" id="fwTags"></div>
+        <div class="fr-intro"><b>SYNOPSIS</b><span id="fwIntro">—</span></div>
+        <div class="fr-brief" id="fwBrief"></div>
+      </div>
+
+      <div class="fr-acts">
+        <button class="sha primary" id="fwRead"><span class="sha-sweep"></span>开始读</button>
+        <button class="sha" id="fwMore">续写一章</button>
+        <button class="sha" id="fwCopy">复制全文</button>
+        <button class="sha" id="fwToShelf">加入书架</button>
+        <button class="sha ghost" id="fwDel">删掉</button>
+      </div>
+
+      <div class="fr-chaps">
+        <div class="fsec-head" style="margin-top:10px">
+          <div class="fsec-l">
+            <div class="fsec-k">CONTENTS</div>
+            <div class="fsec-t">目录</div>
+            <div class="fsec-s"><b id="fwChapN">0</b> 章 · <b id="fwWordN">0</b> 字</div>
+          </div>
+        </div>
+        <div id="fwChapList"></div>
+      </div>
+
+      <div class="shelf-foot">— 这一篇到此为止 —</div>
+    </div>
+  </section>
+
+  <!-- ==================== 同人阅读器 ==================== -->
+  <section class="vpage reader bars" id="pgFanRead" data-theme="paper" data-font="serif">
+    <div class="rd-scroll" id="fxScroll">
+      <div class="rd-page">
+        <div class="rd-kicker"><span id="fxWorkName">—</span><i></i><span id="fxNo">—</span></div>
+        <h2 class="rd-title" id="fxTitle">—</h2>
+        <div class="rd-orn"><span></span><i></i><span></span></div>
+        <div class="rd-body" id="fxBody"></div>
+        <div class="rd-end" id="fxEnd"></div>
+      </div>
+    </div>
+
+    <header class="rd-top">
+      <button class="icon-btn" id="fxBack" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="rd-top-hint">点空白处收起</span>
+      <div class="rd-top-r">
+        <button class="icon-btn" id="fxToc" aria-label="目录">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <button class="icon-btn" id="fxGear" aria-label="阅读设置">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 8h12M6 12h12M6 16h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="15.5" cy="16" r="2.2" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="rd-panel" id="fxPanel">
+      <div class="rp-row">
+        <span class="rp-k">字号</span>
+        <div class="rp-step"><span class="rp-m" id="fxSizeMinus">−</span><b id="fxSizeVal">17</b><span class="rp-p" id="fxSizePlus">+</span></div>
+      </div>
+      <div class="rp-row">
+        <span class="rp-k">行距</span>
+        <div class="rp-step"><span class="rp-m" id="fxLeadMinus">−</span><b id="fxLeadVal">2.05</b><span class="rp-p" id="fxLeadPlus">+</span></div>
+      </div>
+      <div class="rp-row">
+        <span class="rp-k">纸色</span>
+        <div class="rp-themes" id="fxThemes">
+          <span class="rd-th is-on" data-theme="paper">素白</span>
+          <span class="rd-th" data-theme="mist">雾青</span>
+          <span class="rd-th" data-theme="night">墨夜</span>
+        </div>
+      </div>
+      <div class="rp-row">
+        <span class="rp-k">字体</span>
+        <div class="rp-themes" id="fxFonts">
+          <span class="rd-fo is-on" data-font="serif">宋体</span>
+          <span class="rd-fo" data-font="sans">黑体</span>
+        </div>
+      </div>
+      <div class="rp-line"></div>
+      <div class="rd-act" id="fxRegen">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M19 12a7 7 0 1 1-2.1-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M19.4 4.6V9h-4.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>重写这一章</span>
+      </div>
+    </div>
+
+    <div class="rd-prog"><i id="fxProgFill"></i></div>
+  </section>
+
+  <!-- ==================== 底部导航（非胶囊：整幅玻璃条 + 滑动光柱） ==================== -->
+  <nav class="dock" id="dock">
+    <span class="dock-hair"></span>
+    <span class="dock-beam" id="dockBeam"><i class="db-line"></i><i class="db-glow"></i></span>
+
+    <button class="dock-item" data-page="novel">
+      <span class="di-ico">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 7.2C10 5.9 7.8 5.5 5.6 6v11.4c2.2-.5 4.4-.1 6.4 1.2 2-1.3 4.2-1.7 6.4-1.2V6c-2.2-.5-4.4-.1-6.4 1.2z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+          <path d="M12 7.2v11.4" stroke="currentColor" stroke-width="1.45"/>
+        </svg>
+      </span>
+      <span class="di-cn">小说</span>
+      <span class="di-en">ORIGINALS</span>
+    </button>
+
+    <button class="dock-item" data-page="fan">
+      <span class="di-ico">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M18.4 5.6c-3.2.4-7 2.2-9.4 5.4-1.7 2.3-2.4 4.7-2.6 6.8" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+          <path d="M18.4 5.6c.9 4.1-.3 8.6-3.4 11.2-2.3 2-5.5 2.4-8.6 2" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+          <path d="M5.4 19.2l2.6-2.6" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="di-cn">同人</span>
+      <span class="di-en">FAN WORKS</span>
+    </button>
+
+    <button class="dock-item is-on" data-page="shelf">
+      <span class="di-ico">
+        <svg viewBox="0 0 24 24" fill="none">
+          <rect x="4.4" y="5" width="3.8" height="13" rx="1" stroke="currentColor" stroke-width="1.45"/>
+          <rect x="9.6" y="7.4" width="3.8" height="10.6" rx="1" stroke="currentColor" stroke-width="1.45"/>
+          <path d="M16.2 6.6l3.4.9-2.5 10.2-3.4-.9 2.5-10.2z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+          <path d="M3.4 20.4h17.2" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="di-cn">书架</span>
+      <span class="di-en">BOOKSHELF</span>
+    </button>
+  </nav>
+
+  <!-- ==================== 多选操作条 ==================== -->
+  <div class="selbar" id="selbar">
+    <button class="sb-item" data-act="fav">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 4.8l2.3 4.7 5.2.8-3.8 3.6.9 5.1-4.6-2.4-4.6 2.4.9-5.1L4.5 10.3l5.2-.8L12 4.8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      <span>收藏</span>
+    </button>
+    <button class="sb-item" data-act="done">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5.5 12.4l4.2 4.2 8.8-9.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>标为读完</span>
+    </button>
+    <button class="sb-item danger" data-act="del">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5.6 7.4h12.8M9.6 7.4V5.6h4.8v1.8M7.4 7.4l.8 11h7.6l.8-11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>移出书架</span>
+    </button>
+  </div>
+
+  <!-- ==================== 排序菜单 ==================== -->
+  <div class="menu" id="sortMenu">
+    <button class="mi is-on" data-sort="recent">最近阅读</button>
+    <button class="mi" data-sort="added">加入时间</button>
+    <button class="mi" data-sort="progress">阅读进度</button>
+    <button class="mi" data-sort="title">书名笔画</button>
+  </div>
+
+  <!-- ==================== 遮罩 ==================== -->
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ==================== 书籍详情面板 ==================== -->
+  <div class="sheet" id="sheet">
+    <div class="sh-grip"></div>
+    <div class="sh-head">
+      <div class="sh-cover" id="shCover"></div>
+      <div class="sh-meta">
+        <div class="sh-cat" id="shCat">连载中</div>
+        <h3 class="sh-title" id="shTitle">—</h3>
+        <div class="sh-author" id="shAuthor">—</div>
+        <div class="sh-tags" id="shTags"></div>
+      </div>
+    </div>
+
+    <p class="sh-desc" id="shDesc">—</p>
+
+    <div class="sh-prog">
+      <div class="shp-top">
+        <span class="shp-label">阅读进度</span>
+        <span class="shp-val"><b id="shRead">0</b> / <span id="shTotal">0</span> 章</span>
+      </div>
+      <input type="range" id="shRange" min="0" max="100" value="0" class="shp-range" />
+      <div class="shp-bottom"><span id="shPct">0%</span><span>拖动可更新进度</span></div>
+    </div>
+
+    <div class="sh-acts">
+      <button class="sha primary" id="shGo"><span class="sha-sweep"></span>继续阅读</button>
+      <button class="sha" id="shFav">收藏</button>
+      <button class="sha" id="shInfo">详情</button>
+      <button class="sha" id="shEdit">编辑</button>
+      <button class="sha ghost" id="shDel">移出书架</button>
+    </div>
+  </div>
+
+  <!-- ==================== 目录面板 ==================== -->
+  <div class="sheet toc-sheet" id="tocSheet">
+    <div class="sh-grip"></div>
+    <div class="toc-head">
+      <div>
+        <div class="ed-kicker">CONTENTS</div>
+        <h3 class="ed-title" id="tocTitle">目录</h3>
+        <div class="toc-sub" id="tocSub">—</div>
+      </div>
+      <button class="icon-btn" id="tocClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="toc-list" id="tocList"></div>
+    <div class="toc-more" id="tocMore">
+      <span class="tm-line"></span>
+      <span class="tm-txt" id="tocMoreTxt">继续列出后面 30 章</span>
+      <span class="tm-line"></span>
+    </div>
+    <div class="toc-foot" id="tocFoot"></div>
+  </div>
+
+  <!-- ==================== 新增 / 编辑 ==================== -->
+  <div class="sheet editor" id="editor" data-mode="manual">
+    <div class="sh-grip"></div>
+    <div class="ed-head">
+      <div>
+        <div class="ed-kicker">ADD TO SHELF</div>
+        <h3 class="ed-title" id="edTitleTxt">添加书籍</h3>
+      </div>
+      <button class="icon-btn" id="edClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="ed-body">
+      <div class="seg mode-seg" id="edMode">
+        <button class="seg-i is-on" data-mode="manual">手动登记</button>
+        <button class="seg-i" data-mode="import">导入文件</button>
+        <span class="seg-ul" id="modeUl"></span>
+      </div>
+
+      <!-- 导入区 -->
+      <div class="imp-wrap">
+        <div class="imp-drop" id="impDrop">
+          <span class="imp-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 16.4V5.6M8.2 9.4L12 5.6l3.8 3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.8 15.2v2.2a1.6 1.6 0 0 0 1.6 1.6h11.2a1.6 1.6 0 0 0 1.6-1.6v-2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <div class="imp-t">选一个文件，或直接拖进来</div>
+          <div class="imp-s">txt · md · html · epub · docx · json</div>
+          <input type="file" id="impFile" accept=".txt,.md,.markdown,.html,.htm,.xhtml,.epub,.docx,.json" hidden />
+        </div>
+        <div class="imp-state" id="impState"></div>
+        <div class="imp-note">目录会自动从文件里拆出来；书名、作者、封面在下面填。</div>
+      </div>
+
+      <label class="fld"><span>书名</span><input id="fTitle" type="text" placeholder="例如：雾中山茶" maxlength="24"/></label>
+      <label class="fld"><span>作者</span><input id="fAuthor" type="text" placeholder="例如：沈砚知" maxlength="18"/></label>
+      <label class="fld"><span>简介</span><textarea id="fDesc" rows="3" placeholder="写一句让你想翻开它的话" maxlength="160"></textarea></label>
+
+      <div class="fld-row ed-manual-only">
+        <label class="fld half"><span>总章节</span><input id="fTotal" type="number" min="1" value="100"/></label>
+        <label class="fld half"><span>已读</span><input id="fRead" type="number" min="0" value="0"/></label>
+      </div>
+
+      <label class="fld"><span>标签（用空格分隔）</span><input id="fTags" type="text" placeholder="古言 群像 温柔" maxlength="40"/></label>
+
+      <div class="fld"><span>状态</span>
+        <div class="seg" id="fCat">
+          <button class="seg-i is-on" data-cat="serial">连载中</button>
+          <button class="seg-i" data-cat="end">已完结</button>
+          <button class="seg-i" data-cat="plan">待读</button>
+          <span class="seg-ul" id="segUl"></span>
+        </div>
+      </div>
+
+      <div class="fld"><span>封面</span>
+        <div class="cover-row">
+          <div class="cover-prev" id="coverPrev"></div>
+          <div class="cover-right">
+            <div class="cover-pick" id="coverPick">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="4.4" y="5.6" width="15.2" height="12.8" rx="2.6" stroke="currentColor" stroke-width="1.5"/><circle cx="9.2" cy="10.2" r="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5.4 16.4l4.4-4 3.2 2.8 2.6-2.2 3 3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span>上传一张封面</span>
+            </div>
+            <div class="swatches" id="fPalette"></div>
+          </div>
+        </div>
+        <input type="file" id="coverFile" accept="image/*" hidden />
+      </div>
+    </div>
+
+    <div class="ed-foot">
+      <button class="sha" id="edCancel">取消</button>
+      <button class="sha primary" id="edSave"><span class="sha-sweep"></span>保存到书架</button>
+    </div>
+  </div>
+
+  <!-- ==================== 角色选择面板（读 LunaCharDB） ==================== -->
+  <div class="sheet cpick" id="charPick">
+    <div class="sh-grip"></div>
+    <div class="cp-head">
+      <div>
+        <div class="ed-kicker">CAST FROM ARCHIVE</div>
+        <h3 class="ed-title" id="cpTitle">选一个人</h3>
+      </div>
+      <button class="icon-btn" id="cpClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="cp-search">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.4" stroke="currentColor" stroke-width="1.6"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <input id="cpSearch" type="text" placeholder="搜角色名、身份或标签" autocomplete="off" />
+    </div>
+
+    <div class="cp-list" id="cpList"></div>
+
+    <div class="cp-custom">
+      <div class="cp-cu-k">档案里没有？现填一个</div>
+      <div class="cp-cu-row">
+        <input id="cpCuName" type="text" placeholder="名字" maxlength="12" />
+        <input id="cpCuRole" type="text" placeholder="身份 / 一句话人设" maxlength="24" />
+        <button class="cp-cu-btn" id="cpCuAdd">用它</button>
+      </div>
+      <div class="cp-cu-note">临时角色只在这一篇里生效，不会写进角色档案。</div>
+    </div>
+  </div>
+
+  <!-- ==================== 同人目录面板 ==================== -->
+  <div class="sheet toc-sheet" id="fxTocSheet">
+    <div class="sh-grip"></div>
+    <div class="toc-head">
+      <div>
+        <div class="ed-kicker">CONTENTS</div>
+        <h3 class="ed-title" id="fxTocTitle">目录</h3>
+        <div class="toc-sub" id="fxTocSub">—</div>
+      </div>
+      <button class="icon-btn" id="fxTocClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="toc-list" id="fxTocList"></div>
+    <div class="toc-foot" id="fxTocFoot"></div>
+  </div>
+
+  <!-- ==================== 确认弹窗 ==================== -->
+  <div class="dialog" id="dialog">
+    <div class="dg-inner">
+      <div class="dg-line"></div>
+      <h4 id="dgTitle">移出书架</h4>
+      <p id="dgDesc">这本书会从书架移除，阅读进度也会一并清空。</p>
+      <div class="dg-acts">
+        <button class="sha" id="dgNo">取消</button>
+        <button class="sha primary" id="dgYes"><span class="sha-sweep"></span>确认移出</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 生成浮层 ==================== -->
+  <div class="gen" id="genOverlay">
+    <div class="gen-inner">
+      <div class="gen-ink"><span class="gi-drop"></span><span class="gi-ring r1"></span><span class="gi-ring r2"></span></div>
+      <div class="gen-kicker">WRITING</div>
+      <h4 class="gen-title" id="genTitle">正在落笔</h4>
+      <div class="gen-steps" id="genSteps"></div>
+      <div class="gen-hint">第一次生成大约需要十几秒，先别退出</div>
+    </div>
+  </div>
+
+  <!-- ==================== 提示 ==================== -->
+  <div class="toast" id="toast"><i></i><span id="toastTxt">已保存</span></div>
+
+</div>
+</div>
+
+<script src="novel.js"></script>
+</body>
+</html>

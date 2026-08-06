@@ -1,0 +1,632 @@
+/* ================================
+   Luna Phone — 主屏编辑模式
+   长按拖拽排序 + 添加组件
+================================ */
+
+/* ---- 编辑模式：抖动动画 ---- */
+@keyframes ib-jiggle-a {
+  0%   { transform: rotate(-1.6deg) translate(0,0); }
+  50%  { transform: rotate(1.6deg) translate(0,0.5px); }
+  100% { transform: rotate(-1.6deg) translate(0,0); }
+}
+@keyframes ib-jiggle-b {
+  0%   { transform: rotate(1.4deg) translate(0,0.5px); }
+  50%  { transform: rotate(-1.4deg) translate(0,0); }
+  100% { transform: rotate(1.4deg) translate(0,0.5px); }
+}
+
+.home-editing .app,
+.home-editing .widget-time-weather,
+.home-editing .widget-friends,
+.home-editing .widget-profile,
+.home-editing .widget-notif,
+.home-editing .widget-duo,
+.home-editing .widget-chat,
+.home-editing .home-widget {
+  animation: ib-jiggle-a 0.26s ease-in-out infinite;
+  will-change: transform;
+}
+.home-editing .app:nth-child(even),
+.home-editing .widget-friends,
+.home-editing .widget-duo {
+  animation-name: ib-jiggle-b;
+  animation-duration: 0.24s;
+}
+
+/* Dock 里的图标同样进入编辑模式抖动，和主屏一致的视觉语言，
+   提示用户"这里也能拖动/删除" */
+.home-editing-dock .dock-app {
+  animation: ib-jiggle-a 0.26s ease-in-out infinite;
+  will-change: transform;
+  position: relative;
+}
+.home-editing-dock .dock-app:nth-child(even) {
+  animation-name: ib-jiggle-b;
+  animation-duration: 0.24s;
+}
+.home-editing-dock .dock-app.ib-dragging {
+  animation: none !important;
+}
+
+/* 拖拽中的元素禁用抖动，提升到最上层 */
+.home-editing .ib-dragging,
+.home-editing .ib-dragging.app:nth-child(even) {
+  animation: none !important;
+  z-index: 999 !important;
+  transform: scale(1.08) !important;
+  box-shadow: 0 18px 34px rgba(20,20,40,0.28);
+  transition: box-shadow 0.15s ease;
+}
+
+/* 编辑模式下点击不打开 App（含 Dock 图标） */
+.home-editing .app,
+.home-editing .home-widget,
+.home-editing [class^="widget-"],
+.home-editing-dock .dock-app {
+  cursor: grab;
+  /* 关键修复：编辑模式下禁止浏览器把长按/移动手指识别成滚动或翻页手势，
+     否则触屏上拖拽会被系统手势抢走，表现为"图标/组件拖不动"。 */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.home-editing .ib-dragging,
+.home-editing-dock .ib-dragging {
+  cursor: grabbing;
+}
+
+/* Dock 悬停接收态：拖拽 App 靠近 dock 时给出轻微高亮提示，
+   告诉用户"松手会把图标放进 dock" */
+body.ib-drag-lock .luna-dock {
+  transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+
+/* 拖拽进行中：整页锁定手势，防止 pages-wrap 的翻页滑动和拖拽互相打架 */
+body.ib-drag-lock {
+  touch-action: none;
+  overscroll-behavior: none;
+}
+body.ib-drag-lock .pages-wrap {
+  transition: none !important;
+}
+
+/* ---- 删除角标（App / 写死组件 / 自建组件 通用） ---- */
+.ib-remove-badge {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #3a3a3a;
+  border: 2px solid rgba(255,255,255,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  animation: none !important;
+}
+.ib-remove-badge::before {
+  content: '';
+  width: 9px;
+  height: 1.6px;
+  background: #fff;
+  border-radius: 1px;
+}
+/* 编辑模式下所有项目类型都要有定位上下文，删除角标才能正确贴在左上角 */
+.home-editing .app,
+.home-editing .home-widget,
+.home-editing [class^="widget-"],
+.home-editing-dock .dock-app {
+  position: relative;
+}
+
+/* ---- 空白格占位高亮（拖拽悬停时显示落点） ---- */
+.ib-drop-ghost {
+  border-radius: 16px;
+  background: rgba(120,140,220,0.16);
+  border: 1.5px dashed rgba(120,140,220,0.5);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---- 底部编辑工具条 ---- */
+.ib-edit-toolbar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--dock-h) + var(--dock-bottom) + 14px);
+  transform: translate(-50%, 20px);
+  display: flex;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  z-index: 500;
+}
+.ib-edit-toolbar::-webkit-scrollbar { display: none; }
+.ib-edit-toolbar.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: all;
+}
+.ib-edit-btn {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  box-shadow: 0 6px 18px rgba(30,30,60,0.16);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ib-edit-btn.primary {
+  background: rgba(40,40,70,0.88);
+  color: #fff;
+  border-color: rgba(40,40,70,0.9);
+}
+
+/* ---- 添加组件面板 ---- */
+.ib-widget-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,10,20,0.42);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 800;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s ease;
+}
+.ib-widget-overlay.show { opacity: 1; pointer-events: all; }
+
+.ib-widget-sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  max-height: 78vh;
+  background: rgba(250,250,252,0.98);
+  border-radius: 26px 26px 0 0;
+  box-shadow: 0 -12px 40px rgba(20,20,40,0.3);
+  z-index: 801;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ib-widget-sheet.show { transform: translateY(0); }
+
+.ib-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 3px;
+  background: rgba(30,30,50,0.18);
+  margin: 10px auto 6px;
+}
+.ib-sheet-header {
+  padding: 4px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ib-sheet-title {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+.ib-sheet-close {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6a6a8a;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+.ib-sheet-body {
+  overflow-y: auto;
+  padding: 4px 16px 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ib-widget-option {
+  border-radius: 18px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(30,30,50,0.08);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ib-widget-option:active {
+  transform: scale(0.96);
+}
+.ib-widget-option-preview {
+  width: 100%;
+  height: 64px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(30,30,50,0.35);
+}
+.ib-widget-option-name {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+.ib-widget-option-size {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: rgba(30,30,50,0.42);
+  letter-spacing: 0.03em;
+}
+
+/* "自定义设计"入口卡片：和其他预设组件区分开，用虚线边框+强调色提示"这是创作入口" */
+.ib-widget-option-custom {
+  border: 1.5px dashed rgba(90,90,180,0.35);
+  background: rgba(245,245,255,0.9);
+}
+.ib-widget-option-custom .ib-widget-option-preview {
+  color: rgba(90,90,180,0.55);
+}
+
+/* ================================
+   自定义组件设计器（上传/编写 HTML+CSS）
+================================ */
+.ib-custom-builder-sheet {
+  max-height: 92vh;
+}
+.ib-custom-body {
+  overflow-y: auto;
+  padding: 4px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ib-custom-guide {
+  border-radius: 14px;
+  background: rgba(90,90,180,0.08);
+  border: 1px solid rgba(90,90,180,0.18);
+  padding: 12px 14px;
+}
+.ib-custom-guide-title {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #2a2a4a;
+  margin-bottom: 4px;
+}
+.ib-custom-guide-text {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12px;
+  line-height: 1.55;
+  color: rgba(30,30,50,0.62);
+}
+
+/* 尺寸参考选择网格：每一档都用一个和实际比例一致的小方块示意，
+   用户不需要自己心算 4×4 / 2×2 到底是什么形状 */
+.ib-custom-size-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.ib-custom-size-opt {
+  border-radius: 14px;
+  background: rgba(255,255,255,0.9);
+  border: 1.5px solid rgba(30,30,50,0.08);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: 'Inter', -apple-system, sans-serif;
+  text-align: center;
+}
+.ib-custom-size-opt.active {
+  border-color: rgba(90,90,180,0.6);
+  background: rgba(90,90,180,0.08);
+  box-shadow: 0 0 0 2px rgba(90,90,180,0.15) inset;
+}
+.ib-custom-size-ratio {
+  background: rgba(30,30,50,0.14);
+  border-radius: 5px;
+  width: 44px;
+}
+.ib-custom-size-ratio-4x4 { aspect-ratio: 4/4; }
+.ib-custom-size-ratio-2x2 { aspect-ratio: 2/2; }
+.ib-custom-size-ratio-4x2 { aspect-ratio: 4/2; width: 56px; }
+.ib-custom-size-ratio-2x4 { aspect-ratio: 2/4; width: 28px; }
+.ib-custom-size-ratio-4x1 { aspect-ratio: 4/1; width: 56px; }
+.ib-custom-size-ratio-2x1 { aspect-ratio: 2/1; width: 44px; }
+.ib-custom-size-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+.ib-custom-size-desc {
+  font-size: 10.5px;
+  color: rgba(30,30,50,0.5);
+  line-height: 1.4;
+}
+
+.ib-custom-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ib-custom-field-label {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(30,30,50,0.7);
+}
+.ib-custom-textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  border-radius: 12px;
+  border: 1.5px solid rgba(30,30,50,0.12);
+  background: rgba(255,255,255,0.9);
+  padding: 10px 12px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #1a1a2e;
+}
+.ib-custom-textarea:focus {
+  outline: none;
+  border-color: rgba(90,90,180,0.5);
+}
+#ibCustomCssFile {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12px;
+}
+
+.ib-custom-preview-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+.ib-custom-preview-frame {
+  width: 100%;
+  max-width: 240px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1.5px solid rgba(30,30,50,0.12);
+  background:
+    repeating-conic-gradient(rgba(30,30,50,0.05) 0% 25%, transparent 0% 50%) 0 0 / 16px 16px;
+  box-shadow: 0 8px 24px rgba(20,20,40,0.1);
+}
+.ib-custom-preview-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.ib-custom-actions {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(30,30,50,0.08);
+}
+/* 注意：这里不复用 iconbeauty.css 里的 .ib-btn-save/.ib-btn-reset——
+   主屏（index.html）只加载了 style.css + home-edit.css，并没有引入
+   iconbeauty.css，如果直接借用那两个类名会因为找不到基础样式定义而显示错乱。
+   这里在 home-edit.css 内自带一套等价的按钮样式，保证独立可用。 */
+.ib-custom-actions button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+}
+.ib-custom-actions #ibCustomCancelBtn {
+  background: rgba(30,30,50,0.06);
+  color: rgba(30,30,50,0.65);
+}
+.ib-custom-actions #ibCustomAddBtn {
+  background: rgba(40,40,70,0.9);
+  color: #fff;
+}
+.ib-custom-actions #ibCustomAddBtn:active,
+.ib-custom-actions #ibCustomCancelBtn:active {
+  transform: scale(0.97);
+}
+
+/* ---- 自建轻量组件（时钟/便签/相册占位等）---- */
+.home-widget {
+  border-radius: 20px;
+  background: rgba(255,255,255,0.32);
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.9),
+    0 8px 28px rgba(140,150,200,0.16);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+.home-widget .hw-title {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(30,30,50,0.5);
+  letter-spacing: 0.02em;
+  position: absolute;
+  top: 10px;
+  left: 12px;
+}
+.home-widget .hw-clock-time {
+  font-family: 'DM Serif Display', serif;
+  font-size: 30px;
+  color: #23233a;
+}
+.home-widget .hw-clock-date {
+  font-family: 'Space Mono', monospace;
+  font-size: 10.5px;
+  color: rgba(30,30,50,0.5);
+  margin-top: 2px;
+}
+.home-widget .hw-note-text {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12px;
+  color: rgba(30,30,50,0.65);
+  text-align: center;
+  padding: 0 8px;
+  line-height: 1.4;
+}
+.home-widget .hw-battery-pct {
+  font-family: 'DM Serif Display', serif;
+  font-size: 26px;
+  color: #23233a;
+}
+
+/* 自定义设计组件：让用户的设计完全铺满卡片（去掉默认的居中+内边距），
+   内容本身的留白交给用户自己在 CSS 里控制。卡片圆角/毛玻璃边框仍保留，
+   和其他系统组件维持统一的"卡片语言"，只是内容区域完全由用户掌控。 */
+.home-widget-custom {
+  padding: 0;
+  align-items: stretch;
+  justify-content: stretch;
+}
+.home-widget-custom .hw-custom-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  background: transparent;
+}
+/* 关键：iframe 内部是独立文档，指针事件不会跨文档冒泡到外层卡片，
+   如果编辑模式下 iframe 照常接收指针事件，长按进入编辑/拖拽排序会
+   在自定义组件上完全失效（手指按在 iframe 里，外层永远收不到事件）。
+   编辑模式期间让 iframe 本身不拦截指针，把手势交还给外层 .home-widget 卡片；
+   退出编辑模式后恢复正常，用户设计里如果放了可交互内容仍然能正常使用。 */
+.home-editing .home-widget-custom .hw-custom-iframe {
+  pointer-events: none;
+}
+
+@media (max-width: 400px) {
+  .ib-sheet-body { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---- 已删除项目召回面板 ---- */
+.ib-removed-body {
+  overflow-y: auto;
+  padding: 4px 16px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ib-removed-empty {
+  padding: 30px 0;
+  text-align: center;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 13px;
+  color: rgba(30,30,50,0.4);
+}
+.ib-removed-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(30,30,50,0.08);
+  padding: 10px 14px;
+}
+.ib-removed-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ib-removed-name {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ib-removed-from {
+  font-family: 'Space Mono', monospace;
+  font-size: 10.5px;
+  color: rgba(30,30,50,0.42);
+}
+.ib-removed-restore {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(40,40,70,0.88);
+  color: #fff;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ib-removed-restore:active {
+  transform: scale(0.95);
+}
+
+/* ---- 页面指示点：要浮在 pages-wrap（z-index:5）之上才看得见/点得到 ---- */
+.page-dots {
+  z-index: 20;
+}
+
+/* ---- "恢复默认" 按钮：工具条内的次要样式，和"+ 添加组件"区分开但不抢主按钮风头 ---- */
+#ibResetDefaultBtn {
+  color: #7a3030;
+  border-color: rgba(160,70,70,0.35);
+  background: rgba(255,244,244,0.65);
+}
+
+/* ---- "+ 新增页面" 悬浮按钮：编辑模式下常驻在右上角，随时可以新建空白页 ---- */
+.ib-add-page-btn {
+  position: fixed;
+  top: calc(var(--status-h) + 10px);
+  right: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  z-index: 500;
+}
+.ib-add-page-btn.show {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
