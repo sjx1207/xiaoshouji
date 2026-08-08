@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<title>夜话馆</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Space+Mono:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Noto+Serif+SC:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&family=Long+Cang&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="yeyuguan.css" />
+</head>
+<body>
+
+<div class="yh-app" id="yhApp">
+
+  <!-- ── 背景三层：图 / 白纱 / 细颗粒 ── -->
+  <div class="yh-wall" id="yhWall"></div>
+  <div class="yh-veil" id="yhVeil"></div>
+  <div class="yh-grain"></div>
+  <div class="yh-vignette"></div>
+
+  <!-- ── 顶部基座：状态栏 + 顶栏 同板一体，杜绝墙纸割裂 ── -->
+  <div class="yh-head-plate">
+
+  <!-- ── 状态栏 ── -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell"><div class="bat-inner" id="batInner"></div><div class="bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 顶栏 ── -->
+  <header class="yh-top" id="yhTop">
+
+    <div class="yh-top-row">
+      <button class="yh-brand" id="yhBrand">
+        <span class="yh-seal">
+          <span class="seal-ch">夜话馆</span>
+        </span>
+        <span class="yh-brand-txt">
+          <b class="yh-brand-cn" id="yhTitle">广场</b>
+          <span class="yh-brand-en-row">
+            <i class="yh-brand-en" id="yhSub">THE SQUARE</i>
+            <span class="yh-brand-chev" id="yhBrandChev">
+              <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg>
+            </span>
+          </span>
+        </span>
+      </button>
+
+      <!-- 灯火 / 语言 / 外观 / 设置 已收纳到「我的」页的 Preferences 菜单里，
+           顶栏只保留品牌区，二级页自带返回按钮，无需在这里重复放关闭键 -->
+    </div>
+
+    <!-- 隐藏分类：默认折叠，只露一条发丝提手 -->
+    <div class="cat-wrap" id="catWrap">
+      <div class="cat-rail" id="catRail"></div>
+    </div>
+
+    <div class="yh-topline"></div>
+  </header>
+
+  </div>
+  <!-- /yh-head-plate -->
+
+  <!-- ── 三个主屏 ── -->
+  <main class="yh-screens">
+    <section class="scr is-active" data-scr="feed"><div class="scroll" id="feedScroll"></div></section>
+    <section class="scr" data-scr="dm"><div class="scroll" id="dmScroll"></div></section>
+    <section class="scr" data-scr="me"><div class="scroll" id="meScroll"></div></section>
+  </main>
+
+  <!-- ── 发布浮钮 ── -->
+  <button class="yh-fab" id="yhFab" aria-label="compose">
+    <span class="fab-ring"></span>
+    <svg viewBox="0 0 24 24"><path d="M12 5.6v12.8M5.6 12h12.8"/></svg>
+  </button>
+
+  <!-- ── 底部导航 ── -->
+  <nav class="yh-nav" id="yhNav">
+    <div class="yh-nav-plate"></div>
+    <div class="yh-nav-row">
+      <button class="nav-i is-active" data-scr="feed">
+        <span class="nav-n">i</span>
+        <span class="nav-w" data-i18n="nav.feed">广场</span>
+        <span class="nav-u"></span>
+      </button>
+      <span class="nav-sep"></span>
+      <button class="nav-i" data-scr="dm">
+        <span class="nav-n">ii</span>
+        <span class="nav-w" data-i18n="nav.dm">私语</span>
+        <span class="nav-u"></span>
+        <span class="nav-dot" id="dmDot" hidden></span>
+      </button>
+      <span class="nav-sep"></span>
+      <button class="nav-i" data-scr="me">
+        <span class="nav-n">iii</span>
+        <span class="nav-w" data-i18n="nav.me">我的</span>
+        <span class="nav-u"></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── 页面栈 ── -->
+  <div class="page-stack" id="pageStack"></div>
+
+  <!-- ── 底部抽屉（尽量少用） ── -->
+  <div class="sheet-host" id="sheetHost"></div>
+
+  <!-- ── 留影卡大图 ── -->
+  <div class="cc-zoom" id="ccZoomHost" hidden></div>
+
+  <!-- ── 轻提示 / 忙碌 ── -->
+  <div class="yh-toast" id="yhToast"></div>
+  <div class="yh-busy" id="yhBusy">
+    <div class="busy-card">
+      <div class="busy-ring"><i></i><i></i><i></i></div>
+      <div class="busy-txt" id="busyTxt">正在落笔</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 主题变量注入点（由外观系统写入） -->
+<style id="yhThemeVars"></style>
+<!-- 用户自定义 CSS 注入点 -->
+<style id="ccUserStyle"></style>
+
+<script src="yeyuguan.js"></script>
+</body>
+</html>
