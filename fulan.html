@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#F4F9F5">
+<title>浮岚 · 剧场</title>
+<link rel="stylesheet" href="fulan.css">
+</head>
+<body data-theme-page="default">
+
+<!-- ══════════ 状态栏（与 index 同步：FL.Status.sync 会克隆 index 的 .status-bar） ══════════ -->
+<header class="fl-status" id="flStatus">
+  <div class="fl-status__l"><span class="fl-status__time" id="flClock">9:41</span></div>
+  <div class="fl-status__c"><i class="fl-status__island"></i></div>
+  <div class="fl-status__r">
+    <svg class="fl-status__ic" viewBox="0 0 20 12" aria-hidden="true"><path d="M1 9h2v3H1zM5.5 6.5h2V12h-2zM10 4h2v8h-2zM14.5 1h2v11h-2z"/></svg>
+    <svg class="fl-status__ic" viewBox="0 0 16 12" aria-hidden="true"><path d="M8 11.2 5.6 8.6a3.4 3.4 0 0 1 4.8 0zM8 6.6a5.6 5.6 0 0 0-4 1.6L2.6 6.8a7.6 7.6 0 0 1 10.8 0L12 8.2a5.6 5.6 0 0 0-4-1.6zM8 2.4a9.8 9.8 0 0 0-7 2.8L-.4 3.8a11.8 11.8 0 0 1 16.8 0L15 5.2a9.8 9.8 0 0 0-7-2.8z"/></svg>
+    <span class="fl-status__bat"><i style="width:78%"></i></span>
+  </div>
+</header>
+
+<!-- ══════════ 页面容器 ══════════ -->
+<main class="fl-stagewrap" id="flStage">
+
+  <!-- ───── 大厅 ───── -->
+  <section class="fl-page is-active" data-page="hall">
+    <div class="fl-page__bg" data-bg="hall"></div>
+    <div class="fl-scroll">
+      <div class="fl-hero">
+        <div class="fl-hero__arch">
+          <svg class="fl-hero__veins" viewBox="0 0 320 400" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M160 400V90M160 210c-40-18-70-42-86-78M160 250c44-16 76-44 92-84M160 300c-32-14-56-32-70-58M160 160c30-12 52-30 64-52"/>
+          </svg>
+          <p class="fl-eyebrow">FULAN&nbsp;·&nbsp;DRIFTING MIST THEATRE</p>
+          <h1 class="fl-hero__title">浮<span>岚</span></h1>
+          <p class="fl-hero__sub">把想看的那一幕，交给雾里的人去演</p>
+          <div class="fl-hero__seal"><span id="flHeroRank">初雾·一</span></div>
+        </div>
+      </div>
+
+      <div class="fl-rankstrip" id="flRankStrip"></div>
+
+      <div class="fl-gate">
+        <button class="fl-gate__card fl-gate__card--weave">
+          <span class="fl-gate__num">壹</span>
+          <span class="fl-gate__name">织叙</span>
+          <span class="fl-gate__en">CUSTOM SCRIPT</span>
+          <span class="fl-gate__desc">你写设定，你的角色下场演。文风、世界观、视角全在你手里。</span>
+          <span class="fl-gate__go">进入设定 →</span>
+        </button>
+        <button class="fl-gate__card fl-gate__card--ens" data-go="ensemble">
+          <span class="fl-gate__num">贰</span>
+          <span class="fl-gate__name">群像</span>
+          <span class="fl-gate__en">ENSEMBLE STAGE</span>
+          <span class="fl-gate__desc">给一个主题，生成一整台有血有肉的他人故事，一幕一幕慢慢看。</span>
+          <span class="fl-gate__go">付费剧场 →</span>
+        </button>
+      </div>
+
+      <div class="fl-sec">
+        <div class="fl-sec__hd"><h2>最近的戏</h2><button class="fl-txtbtn" data-go="archives">全部存档</button></div>
+        <div class="fl-rail" id="flRecent"></div>
+      </div>
+
+      <div class="fl-sec">
+        <div class="fl-sec__hd"><h2>戏后笺</h2><button class="fl-txtbtn" data-go="notes">全部</button></div>
+        <div class="fl-rail" id="flRecentNotes"></div>
+      </div>
+
+      <div class="fl-quad">
+        <button class="fl-quad__i" data-go="styles"><b>文风阁</b><span>内置十体 · 自定义 · 接收测试</span></button>
+        <button class="fl-quad__i" data-go="boudoir"><b>妆匣</b><span>主题 · 背景 · 自写 CSS</span></button>
+        <button class="fl-quad__i" data-go="wallet"><b>露匣</b><span>岚露 · 绑定 · 支付密码</span></button>
+        <button class="fl-quad__i" data-go="ranks"><b>阶位</b><span>五十阶 · 徽记 · 权益</span></button>
+      </div>
+      <div class="fl-foot">浮岚 v1.0 · <button class="fl-txtbtn" data-go="guide">全部规则与说明</button></div>
+    </div>
+  </section>
+
+  <!-- ───── 织叙设定 ───── -->
+  <section class="fl-page" data-page="studio">
+    <div class="fl-page__bg" data-bg="studio"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>织叙 · 开台设定</h2><button class="fl-txtbtn" id="flStudioDraft">存草稿</button></div>
+    <div class="fl-steps" id="flSteps"></div>
+    <div class="fl-scroll fl-scroll--bar">
+      <div class="fl-step" data-step="0">
+        <div class="fl-card fl-card--form">
+          <p class="fl-eyebrow">STEP 01 / 演员</p><h3 class="fl-h3">谁来演这场</h3>
+          <label class="fl-lb">出演角色（char）<em>生成时全量读取，铁律不 OOC</em></label>
+          <div id="flPickChar"></div>
+          <label class="fl-lb">我的身份（user）<em>若该角色已绑定 user，会自动带入；冲突时以 char 为准</em></label>
+          <div id="flPickUser"></div>
+          <div class="fl-bindnote" id="flBindNote"></div>
+        </div>
+      </div>
+
+      <div class="fl-step" data-step="1">
+        <div class="fl-card fl-card--form">
+          <p class="fl-eyebrow">STEP 02 / 笔触</p><h3 class="fl-h3">文风</h3>
+          <div class="fl-styleslot" id="flStyleSlot"></div>
+          <button class="fl-ghost" data-go="styles">去文风阁挑选 / 新建</button>
+          <label class="fl-lb">叠加微调<em>可与主文风叠加，不冲突</em></label>
+          <div class="fl-chips" id="flStyleMods"></div>
+        </div>
+      </div>
+
+      <div class="fl-step" data-step="2">
+        <div class="fl-card fl-card--form">
+          <p class="fl-eyebrow">STEP 03 / 世界</p><h3 class="fl-h3">世界观</h3>
+          <div class="fl-chips" id="flWorldPresets"></div>
+          <label class="fl-lb">时代与地域</label><input class="fl-in" id="flWorldEra" placeholder="例：架空南朝 · 临水郡 · 雨季">
+          <label class="fl-lb">世界规则<em>能力体系 / 阶级 / 禁忌 / 科技或灵力上限</em></label>
+          <textarea class="fl-in fl-in--ta" id="flWorldRule" rows="4" placeholder="例：以「香」通灵，制香师可留存亡者一段记忆；私制禁香者流放。"></textarea>
+          <label class="fl-lb">当下局势<em>故事开场时，这个世界正在发生什么</em></label>
+          <textarea class="fl-in fl-in--ta" id="flWorldNow" rows="3" placeholder="例：城中连续七夜有人失眠，医官束手，只有制香司知道原因。"></textarea>
+        </div>
+      </div>
+
+      <div class="fl-step" data-step="3">
+        <div class="fl-card fl-card--form">
+          <p class="fl-eyebrow">STEP 04 / 想看的戏</p><h3 class="fl-h3">剧情意向</h3>
+          <p class="fl-hint">填得越具体，生成越准。下面每一项都会进提示词，空着就由 AI 自行推演。</p>
+          <label class="fl-lb">一句话愿望<em>最想看到的那个画面或那句台词</em></label>
+          <textarea class="fl-in fl-in--ta" id="flPlotWish" rows="2" placeholder="例：他终于在雨里叫住我，问那句迟了三年的话。"></textarea>
+          <label class="fl-lb">题材<em>可多选</em></label><div class="fl-chips" id="flGenres"></div>
+          <label class="fl-lb">我与他的关系 / 立场差</label><input class="fl-in" id="flRelation" placeholder="例：他是审我的官，我是他要保的人">
+          <label class="fl-lb">开场：时间 · 地点 · 正在发生的事</label><textarea class="fl-in fl-in--ta" id="flOpening" rows="2" placeholder="例：子夜，制香司值房，我把最后一支禁香推到他面前"></textarea>
+          <label class="fl-lb">冲突来源</label><div class="fl-chips" id="flConflict"></div>
+          <label class="fl-lb">必须出现的元素<em>道具 / 场景 / 台词，用顿号分隔</em></label><input class="fl-in" id="flMust" placeholder="例：断簪、屋顶、"我不问了"">
+          <label class="fl-lb">雷点与禁止<em>绝对不写的内容，会硬拦截</em></label><input class="fl-in" id="flTaboo" placeholder="例：不写背叛、不写死亡、不写第三者">
+          <label class="fl-lb">结局倾向</label><div class="fl-chips" id="flEnding"></div>
+          <div class="fl-sliders">
+            <div class="fl-sl" data-k="sweet"><span>甜度</span><input type="range" min="0" max="100" value="60"><b>60</b></div>
+            <div class="fl-sl" data-k="pain"><span>虐度</span><input type="range" min="0" max="100" value="30"><b>30</b></div>
+            <div class="fl-sl" data-k="pace"><span>节奏</span><input type="range" min="0" max="100" value="50"><b>50</b></div>
+            <div class="fl-sl" data-k="detail"><span>细节密度</span><input type="range" min="0" max="100" value="65"><b>65</b></div>
+            <div class="fl-sl" data-k="choice"><span>选项密度</span><input type="range" min="0" max="100" value="55"><b>55</b></div>
+          </div>
+          <label class="fl-lb">尺度分级</label><div id="flRating"></div>
+        </div>
+      </div>
+
+      <div class="fl-step" data-step="4">
+        <div class="fl-card fl-card--form">
+          <p class="fl-eyebrow">STEP 05 / 镜头</p><h3 class="fl-h3">视角与人称</h3>
+          <label class="fl-lb">主叙述者</label><div id="flNarrator"></div>
+          <label class="fl-lb">写「我方（user）」时用</label><div id="flPovUser"></div>
+          <label class="fl-lb">写「对方（char）」时用</label><div id="flPovChar"></div>
+          <label class="fl-lb">时态语感</label><div id="flTense"></div>
+          <label class="fl-lb">称呼方式</label><input class="fl-in" id="flAddress" placeholder="例：他唤我「阿檀」，我直呼其名">
+          <div class="fl-povdemo" id="flPovDemo"></div>
+        </div>
+      </div>
+
+      <div class="fl-step" data-step="5">
+        <div class="fl-card fl-card--form">
+          <p class="fl-eyebrow">STEP 06 / 长度与记忆</p><h3 class="fl-h3">篇幅、续写与防 OOC</h3>
+          <label class="fl-lb">单条目标字数<em>决定每次生成的 token 预算</em></label><div id="flSegLen"></div>
+          <label class="fl-lb">计划章节数</label><div id="flChapters"></div>
+          <label class="fl-lb">记忆策略<em>长文不失忆、不跑格式的关键</em></label><div id="flMemory"></div>
+          <div class="fl-switches" id="flSwitches"></div>
+          <div class="fl-budget" id="flBudget"></div>
+          <label class="fl-lb">这场戏的名字</label><input class="fl-in" id="flTitle" placeholder="留空则由 AI 起名">
+        </div>
+      </div>
+    </div>
+    <div class="fl-stepnav"><button class="fl-ghost" id="flPrev">上一步</button><button class="fl-solid" id="flNext">下一步</button></div>
+  </section>
+
+  <!-- ───── 文风阁 ───── -->
+  <section class="fl-page" data-page="styles">
+    <div class="fl-page__bg" data-bg="styles"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>文风阁</h2><button class="fl-txtbtn" id="flNewStyle">新建</button></div>
+    <div class="fl-tabs" id="flStyleTabs"></div>
+    <div class="fl-scroll fl-scroll--bar"><div id="flStyleList" class="fl-stylelist"></div></div>
+  </section>
+
+  <!-- ───── 演绎阅读器（织叙专用） ───── -->
+  <section class="fl-page fl-page--reader" data-page="reader">
+    <div class="fl-page__bg" data-bg="reader"></div>
+    <div class="fl-topbar fl-topbar--reader">
+      <button class="fl-back" data-back></button>
+      <div class="fl-topbar__t"><h2 id="flReadTitle">未命名</h2><span id="flReadSub"></span></div>
+      <button class="fl-iconbtn" id="flReadMenu" aria-label="本场设置"><i></i><i></i><i></i></button>
+    </div>
+    <div class="fl-meters" id="flMeters"></div>
+    <div class="fl-scroll fl-scroll--read" id="flReadScroll"><div class="fl-thread" id="flThread"></div><div class="fl-choices" id="flChoices"></div></div>
+    <div class="fl-compose">
+      <button class="fl-cbtn" id="flRegen" title="重生成当前条">重生</button>
+      <input class="fl-cin" id="flAct" placeholder="写下我的行动或台词…">
+      <button class="fl-cbtn fl-cbtn--go" id="flSend">推进</button>
+      <button class="fl-cbtn" id="flCont" title="接着上一条继续写">续</button>
+    </div>
+  </section>
+
+  <!-- ───── 织叙存档 ───── -->
+  <section class="fl-page" data-page="archives">
+    <div class="fl-page__bg" data-bg="archives"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>织叙存档</h2><button class="fl-txtbtn" data-go="studio">开新台</button></div>
+    <div class="fl-scroll fl-scroll--bar"><div class="fl-archgrid" id="flArchList"></div></div>
+  </section>
+
+  <!-- ───── 戏后笺 ───── -->
+  <section class="fl-page" data-page="notes">
+    <div class="fl-page__bg" data-bg="notes"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>戏后笺</h2><span class="fl-count" id="flNoteCount"></span></div>
+    <p class="fl-pagelead">每演完一幕，角色会以自己的口吻写下没说出口的部分。</p>
+    <div class="fl-tabs" id="flNoteTabs"></div>
+    <div class="fl-scroll fl-scroll--bar"><div class="fl-notegrid" id="flNoteList"></div></div>
+  </section>
+
+  <!-- ───── 戏后笺详情 ───── -->
+  <section class="fl-page" data-page="note">
+    <div class="fl-page__bg" data-bg="note"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>笺</h2><button class="fl-txtbtn" id="flNoteShare">存为图</button></div>
+    <div class="fl-scroll fl-scroll--bar"><div id="flNoteDetail" class="fl-letter"></div></div>
+  </section>
+
+  <!-- ───── 群像剧场入口 ───── -->
+  <section class="fl-page" data-page="ensemble">
+    <div class="fl-page__bg" data-bg="ensemble"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>群像剧场</h2><button class="fl-txtbtn" data-go="ensembleArchives">我的剧目</button></div>
+    <div class="fl-scroll fl-scroll--bar">
+      <div class="fl-curtain">
+        <p class="fl-eyebrow">ENSEMBLE&nbsp;·&nbsp;付费剧场</p>
+        <h3 class="fl-curtain__t">别人的故事，也值得你磕一口糖</h3>
+        <p class="fl-curtain__d">这里不写你和你的角色，这里生成一整台<em>陌生人</em>的群像。每个人都有执念、软肋和说不出口的那句话。一幕一幕慢慢走，能磕、能评、能标心动。</p>
+        <div class="fl-curtain__diff"><b>与同人板块的分界</b><span>群像剧场只生成原创人物与原创关系网，不接入任何既有作品的角色、设定或称谓；你的 char 在这里只能是「观戏人」，不下场。</span></div>
+        <button class="fl-solid fl-solid--wide" data-go="ensembleForge">开一台新剧目</button>
+      </div>
+      <div class="fl-sec"><div class="fl-sec__hd"><h2>正在上演</h2></div><div class="fl-ensgrid" id="flEnsList"></div></div>
+    </div>
+  </section>
+
+  <!-- ───── 群像创建 ───── -->
+  <section class="fl-page" data-page="ensembleForge">
+    <div class="fl-page__bg" data-bg="ensembleForge"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>开台 · 群像</h2></div>
+    <div class="fl-scroll fl-scroll--bar">
+      <div class="fl-card fl-card--form fl-card--ens">
+        <label class="fl-lb">主题<em>一句话，一个意象，或一个处境都行</em></label>
+        <textarea class="fl-in fl-in--ta" id="flEnsTheme" rows="2" placeholder="例：一间凌晨还亮着灯的旧唱片行，和四个不肯回家的人"></textarea>
+        <label class="fl-lb">年代与场域</label><input class="fl-in" id="flEnsEra" placeholder="例：世纪末的海边小城">
+        <label class="fl-lb">糖点偏好<em>可多选，决定关系网怎么长</em></label><div class="fl-chips" id="flEnsTropes"></div>
+        <label class="fl-lb">出场人数</label><div id="flEnsCount"></div>
+        <label class="fl-lb">情感浓度</label><div class="fl-sl fl-sl--solo" data-k="ensHeat"><span>浓度</span><input type="range" min="0" max="100" value="70"><b>70</b></div>
+        <label class="fl-lb">雷点</label><input class="fl-in" id="flEnsTaboo" placeholder="例：不要出轨、不要死人">
+        <label class="fl-lb">带一位 char 一起看戏<em>他会在幕间锐评，也会在评论区发言</em></label><div id="flEnsWatcher"></div>
+        <div class="fl-price" id="flEnsPrice"></div>
+        <button class="fl-solid fl-solid--wide" id="flEnsCreate">解锁并开演</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── 群像阅读器（独立于织叙） ───── -->
+  <section class="fl-page fl-page--stage" data-page="stage">
+    <div class="fl-page__bg" data-bg="stage"></div>
+    <div class="fl-topbar fl-topbar--stage">
+      <button class="fl-back" data-back></button>
+      <div class="fl-topbar__t"><h2 id="flStageTitle">剧目</h2><span id="flStageSub"></span></div>
+      <button class="fl-iconbtn" id="flStageMenu" aria-label="剧目设置"><i></i><i></i><i></i></button>
+    </div>
+    <div class="fl-castrail" id="flCast"></div>
+    <div class="fl-scroll fl-scroll--read" id="flStageScroll">
+      <div class="fl-acts" id="flActs"></div>
+      <div class="fl-stageops" id="flStageOps"></div>
+      <div class="fl-cmts" id="flCmts"></div>
+    </div>
+    <div class="fl-compose fl-compose--stage">
+      <button class="fl-cbtn" id="flSugar">磕糖</button>
+      <input class="fl-cin" id="flCmtIn" placeholder="说点什么…">
+      <button class="fl-cbtn fl-cbtn--go" id="flCmtSend">发布</button>
+    </div>
+  </section>
+
+  <!-- ───── 群像存档 ───── -->
+  <section class="fl-page" data-page="ensembleArchives">
+    <div class="fl-page__bg" data-bg="ensembleArchives"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>我的剧目</h2></div>
+    <div class="fl-scroll fl-scroll--bar"><div class="fl-ensarch" id="flEnsArch"></div></div>
+  </section>
+
+  <!-- ───── 妆匣（美化中心） ───── -->
+  <section class="fl-page" data-page="boudoir">
+    <div class="fl-page__bg" data-bg="boudoir"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>妆匣</h2><button class="fl-txtbtn" id="flThemeNew">新建主题</button></div>
+    <div class="fl-tabs" id="flBoudoirTabs"></div>
+    <div class="fl-scroll fl-scroll--bar">
+      <div class="fl-bd" data-bd="theme"><div id="flThemeList" class="fl-themegrid"></div></div>
+      <div class="fl-bd" data-bd="bg" hidden><div id="flBgList" class="fl-bglist"></div></div>
+      <div class="fl-bd" data-bd="css" hidden><div id="flCssPanel"></div></div>
+      <div class="fl-bd" data-bd="manifest" hidden><div id="flManifest"></div></div>
+    </div>
+  </section>
+
+  <!-- ───── 露匣（钱包） ───── -->
+  <section class="fl-page" data-page="wallet">
+    <div class="fl-page__bg" data-bg="wallet"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>露匣</h2><button class="fl-txtbtn" data-go="ledger">明细</button></div>
+    <div class="fl-scroll fl-scroll--bar"><div id="flWalletPanel"></div></div>
+  </section>
+
+  <!-- ───── 消费记录 ───── -->
+  <section class="fl-page" data-page="ledger">
+    <div class="fl-page__bg" data-bg="ledger"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>流水</h2></div>
+    <div class="fl-scroll fl-scroll--bar"><div id="flLedger"></div></div>
+  </section>
+
+  <!-- ───── 阶位 ───── -->
+  <section class="fl-page" data-page="ranks">
+    <div class="fl-page__bg" data-bg="ranks"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>阶位</h2><button class="fl-txtbtn" data-go="guide">规则</button></div>
+    <div class="fl-scroll fl-scroll--bar"><div id="flRankPanel"></div></div>
+  </section>
+
+  <!-- ───── 说明 ───── -->
+  <section class="fl-page" data-page="guide">
+    <div class="fl-page__bg" data-bg="guide"></div>
+    <div class="fl-topbar"><button class="fl-back" data-back></button><h2>规则与说明</h2></div>
+    <div class="fl-scroll fl-scroll--bar"><div id="flGuide"></div></div>
+  </section>
+
+</main>
+
+<!-- ══════════ 坞（导航）：弧形花坞，非常规导航 ══════════ -->
+<nav class="fl-dock" id="flDock" aria-label="主导航">
+  <svg class="fl-dock__arc" viewBox="0 0 390 96" preserveAspectRatio="none" aria-hidden="true">
+    <path class="fl-dock__fill" d="M0 30 C 70 30, 108 6, 195 6 C 282 6, 320 30, 390 30 L390 96 L0 96 Z"/>
+    <path class="fl-dock__edge" d="M0 30 C 70 30, 108 6, 195 6 C 282 6, 320 30, 390 30"/>
+  </svg>
+  <button class="fl-dock__p" data-go="archives"><span class="fl-dock__gl" data-gl="scroll"></span><em>存档</em></button>
+  <button class="fl-dock__p" data-go="notes"><span class="fl-dock__gl" data-gl="letter"></span><em>戏后笺</em></button>
+  <button class="fl-dock__seal" data-go="hall"><span class="fl-dock__sealring"></span><span class="fl-dock__sealtxt">岚</span></button>
+  <button class="fl-dock__p" data-go="ensemble"><span class="fl-dock__gl" data-gl="curtain"></span><em>群像</em></button>
+  <button class="fl-dock__p" data-go="boudoir"><span class="fl-dock__gl" data-gl="case"></span><em>妆匣</em></button>
+</nav>
+
+<!-- ══════════ 自绘组件层：模态 / 选择器 / 吐司 / 数字键盘 ══════════ -->
+<div class="fl-modal" id="flModal" hidden><div class="fl-modal__veil"></div><div class="fl-modal__box" role="dialog" aria-modal="true"><div class="fl-modal__hd"><h4 id="flModalT"></h4></div><div class="fl-modal__bd" id="flModalB"></div><div class="fl-modal__ft" id="flModalF"></div></div></div>
+<div class="fl-sheet" id="flSheet" hidden><div class="fl-sheet__veil"></div><div class="fl-sheet__box"><span class="fl-sheet__grab"></span><h4 id="flSheetT"></h4><div id="flSheetB"></div></div></div>
+<div class="fl-pop" id="flPop" hidden><div class="fl-pop__bx"><b id="flPopT"></b><p id="flPopB"></p></div></div>
+<div class="fl-toasts" id="flToasts"></div>
+<div class="fl-loading" id="flLoading" hidden><div class="fl-loading__mist"></div><p id="flLoadingT">起雾中…</p></div>
+
+<script src="fulan.js"></script>
+</body>
+</html>
