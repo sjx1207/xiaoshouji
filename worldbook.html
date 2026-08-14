@@ -38,11 +38,20 @@
         </svg>
       </button>
       <div class="wb-nav-title">World Book</div>
-      <button class="wb-add-btn" onclick="openNewEntry()">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
-          <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-        </svg>
-      </button>
+      <div class="wb-nav-actions">
+        <button class="wb-help-btn" onclick="openHelp()" aria-label="使用说明">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M9.5 9.2a2.5 2.5 0 014.9.8c0 1.7-2.4 2-2.4 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="16.8" r="1" fill="currentColor"/>
+          </svg>
+        </button>
+        <button class="wb-add-btn" onclick="openNewEntry()">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -409,6 +418,278 @@
       </svg>
       保存条目
     </button>
+  </div>
+</div>
+
+<!-- ================================
+   使用说明书
+================================ -->
+<div class="wb-modal-overlay" id="wbHelpOverlay" onclick="closeHelp()"></div>
+<div class="wb-modal wb-help-sheet" id="wbHelpSheet">
+  <div class="wb-modal-handle"></div>
+  <div class="wb-modal-header">
+    <div>
+      <div class="wb-modal-eyebrow">Guide</div>
+      <div class="wb-modal-title">使用说明书</div>
+    </div>
+    <button class="wb-modal-close" onclick="closeHelp()">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 分节导航：点击滚动定位，不隐藏内容，滚动时自动高亮当前分节 -->
+  <div class="wb-help-tabs" id="wbHelpTabs">
+    <button class="wb-help-tab active" data-sec="help-sec-1" onclick="jumpHelpSection(this)">基本概念</button>
+    <button class="wb-help-tab" data-sec="help-sec-2" onclick="jumpHelpSection(this)">首页功能</button>
+    <button class="wb-help-tab" data-sec="help-sec-3" onclick="jumpHelpSection(this)">新建条目</button>
+    <button class="wb-help-tab" data-sec="help-sec-4" onclick="jumpHelpSection(this)">详情页</button>
+    <button class="wb-help-tab" data-sec="help-sec-5" onclick="jumpHelpSection(this)">导入导出</button>
+    <button class="wb-help-tab" data-sec="help-sec-6" onclick="jumpHelpSection(this)">常见问题</button>
+  </div>
+
+  <div class="wb-help-body" id="wbHelpBody">
+
+    <!-- 1. 基本概念 -->
+    <section class="wb-help-sec active" id="help-sec-1">
+      <div class="wb-help-sec-head">
+        <div class="wb-help-sec-icon cat-char">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9" r="2.3" stroke="currentColor" stroke-width="1.7"/></svg>
+        </div>
+        <div>
+          <div class="wb-help-sec-title">基本概念</div>
+          <div class="wb-help-sec-sub">世界书是干什么用的</div>
+        </div>
+      </div>
+
+      <p class="wb-help-p">世界书是给 AI 角色扮演准备的「设定资料库」——把人物、地点、规则写进去，AI 聊天时会自动把相关内容读进提示词，让它知道该怎么演、演谁、守什么规矩。</p>
+      <p class="wb-help-p">你创建的每一条设定叫一个<b>条目</b>。每条条目有两种生效方式：</p>
+
+      <div class="wb-help-mode-cards">
+        <div class="wb-help-mode-card">
+          <div class="wb-help-mode-tag kw">关键词触发</div>
+          <div class="wb-help-mode-desc">对话里出现设置的关键词才会注入，省 Token</div>
+          <div class="wb-help-mode-fit">适合：次要角色 · 地点 · 道具</div>
+        </div>
+        <div class="wb-help-mode-card">
+          <div class="wb-help-mode-tag const">常驻注入</div>
+          <div class="wb-help-mode-desc">不管聊什么，条目启用就一直生效</div>
+          <div class="wb-help-mode-fit">适合：人设铁律 · 格式规范</div>
+        </div>
+      </div>
+
+      <div class="wb-help-cat-strip">
+        <div class="wb-help-cat-chip cat-char">人物</div>
+        <div class="wb-help-cat-chip cat-location">地点</div>
+        <div class="wb-help-cat-chip cat-faction">势力</div>
+        <div class="wb-help-cat-chip cat-event">事件</div>
+        <div class="wb-help-cat-chip cat-rel">关系</div>
+        <div class="wb-help-cat-chip cat-item">物品</div>
+        <div class="wb-help-cat-chip cat-rule">规则</div>
+        <div class="wb-help-cat-chip cat-other">其他</div>
+      </div>
+      <p class="wb-help-p-sm">条目按这 8 种分类整理，可以搜索、筛选、导入导出、批量管理。</p>
+    </section>
+
+    <!-- 2. 首页功能 -->
+    <section class="wb-help-sec" id="help-sec-2">
+      <div class="wb-help-sec-head">
+        <div class="wb-help-sec-icon cat-place2">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M3 9h18M8 4v5" stroke="currentColor" stroke-width="1.7"/></svg>
+        </div>
+        <div>
+          <div class="wb-help-sec-title">首页功能</div>
+          <div class="wb-help-sec-sub">顶部统计 · 工具条 · 搜索筛选</div>
+        </div>
+      </div>
+
+      <div class="wb-help-stat-grid">
+        <div class="wb-help-stat-item"><b>Entries</b><span>条目总数</span></div>
+        <div class="wb-help-stat-item"><b>Types</b><span>用到几种分类</span></div>
+        <div class="wb-help-stat-item"><b>Active</b><span>已启用条目数</span></div>
+        <div class="wb-help-stat-item"><b>Constant</b><span>已启用常驻条目数</span></div>
+      </div>
+
+      <div class="wb-help-feat-row">
+        <div class="wb-help-feat-icon">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><b>导入存档</b> — 读取之前导出的 .json 文件，把条目新增进来，不覆盖已有条目</div>
+      </div>
+      <div class="wb-help-feat-row">
+        <div class="wb-help-feat-icon">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M12 15V3m0 0l-4 4m4-4l4 4M5 21h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><b>导出存档</b> — 把所有条目打包成 .json 下载，用于备份或迁移</div>
+      </div>
+      <div class="wb-help-feat-row">
+        <div class="wb-help-feat-icon">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg>
+        </div>
+        <div><b>条目模板</b> — 5 种预设模板自动填好结构和引导文字，照着填空即可</div>
+      </div>
+      <div class="wb-help-feat-row">
+        <div class="wb-help-feat-icon">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </div>
+        <div><b>搜索 + 分类筛选</b> — 按标题/关键词/描述实时过滤，点分类只看该类，点"全部"恢复</div>
+      </div>
+    </section>
+
+    <!-- 3. 新建条目 -->
+    <section class="wb-help-sec" id="help-sec-3">
+      <div class="wb-help-sec-head">
+        <div class="wb-help-sec-icon cat-item2">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <div class="wb-help-sec-title">新建条目</div>
+          <div class="wb-help-sec-sub">编辑窗口每个字段说明</div>
+        </div>
+      </div>
+
+      <div class="wb-help-step">
+        <div class="wb-help-step-num">1</div>
+        <div class="wb-help-step-body">
+          <div class="wb-help-step-title">基础信息</div>
+          <div class="wb-help-step-desc"><b>条目名称</b>必填；<b>分类</b>决定卡片颜色；<b>简短描述</b>显示在卡片上；<b>关联角色</b>可选，和角色档案双向同步。</div>
+        </div>
+      </div>
+      <div class="wb-help-step">
+        <div class="wb-help-step-num">2</div>
+        <div class="wb-help-step-body">
+          <div class="wb-help-step-title">触发机制</div>
+          <div class="wb-help-step-desc">选<b>关键词触发</b>还是<b>常驻注入</b>。关键词模式下，<b>主要关键词</b>逗号分隔、命中任一即触发；<b>次要关键词</b>选填，需与主词同时命中（AND逻辑），用于精确指代。</div>
+        </div>
+      </div>
+      <div class="wb-help-step">
+        <div class="wb-help-step-num">3</div>
+        <div class="wb-help-step-body">
+          <div class="wb-help-step-title">内容主体</div>
+          <div class="wb-help-step-desc"><b>详细设定</b>是真正喂给 AI 的正文。人物建议写"外貌/性格/说话方式/行为模式/绝对底线/关系锚点"；规则建议写"人设铁律/格式规范/禁止行为/语气基调"。别贪长，费 Token。</div>
+        </div>
+      </div>
+      <div class="wb-help-step">
+        <div class="wb-help-step-num">4</div>
+        <div class="wb-help-step-body">
+          <div class="wb-help-step-title">高级注入控制（新手可跳过，默认值就够用）</div>
+          <div class="wb-help-param-grid">
+            <div class="wb-help-param"><span class="wb-help-param-k">插入位置</span><span class="wb-help-param-v">对话前 / 对话后 / 系统层</span></div>
+            <div class="wb-help-param"><span class="wb-help-param-k">优先级</span><span class="wb-help-param-v">0–10，Token 不够时优先保留高的</span></div>
+            <div class="wb-help-param"><span class="wb-help-param-k">触发概率</span><span class="wb-help-param-v">0–100%，命中后仍按概率决定是否注入</span></div>
+            <div class="wb-help-param"><span class="wb-help-param-k">扫描深度</span><span class="wb-help-param-v">1–20，往前检查几条消息匹配关键词</span></div>
+            <div class="wb-help-param"><span class="wb-help-param-k">递归触发</span><span class="wb-help-param-v">内容含其他条目关键词时联动展开</span></div>
+            <div class="wb-help-param"><span class="wb-help-param-k">互斥分组</span><span class="wb-help-param-v">同组只生效优先级最高的一条</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="wb-help-step">
+        <div class="wb-help-step-num">5</div>
+        <div class="wb-help-step-body">
+          <div class="wb-help-step-title">启用此条目</div>
+          <div class="wb-help-step-desc">关掉后条目不参与注入，但存档保留，随时能重新打开。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 详情页 -->
+    <section class="wb-help-sec" id="help-sec-4">
+      <div class="wb-help-sec-head">
+        <div class="wb-help-sec-icon cat-rel2">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.7"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <div class="wb-help-sec-title">条目详情页</div>
+          <div class="wb-help-sec-sub">点卡片进入后能做什么</div>
+        </div>
+      </div>
+      <p class="wb-help-p">点首页任意卡片进入详情页，能看到分类/位置/激活方式速览、关联角色头像、关键词标签、高级参数一览和完整正文。</p>
+      <div class="wb-help-feat-row">
+        <div class="wb-help-feat-icon">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><b>启用 / 禁用</b> — 一键切换开关状态</div>
+      </div>
+      <div class="wb-help-feat-row">
+        <div class="wb-help-feat-icon">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><b>编辑</b> — 回到编辑窗口修改</div>
+      </div>
+      <div class="wb-help-feat-row">
+        <div class="wb-help-feat-icon">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div><b>复制</b> — 创建"标题 副本"，基于现有设定改出变体</div>
+      </div>
+      <div class="wb-help-feat-row danger">
+        <div class="wb-help-feat-icon">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><b>删除</b> — 需二次确认，不可恢复，自动清理关联角色那边的引用</div>
+      </div>
+    </section>
+
+    <!-- 5. 导入导出 -->
+    <section class="wb-help-sec" id="help-sec-5">
+      <div class="wb-help-sec-head">
+        <div class="wb-help-sec-icon cat-faction2">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="wb-help-sec-title">导入导出</div>
+          <div class="wb-help-sec-sub">备份与迁移</div>
+        </div>
+      </div>
+      <div class="wb-help-io-card">
+        <div class="wb-help-io-label">导出</div>
+        <p class="wb-help-p-sm">文件名格式为 <span class="wb-help-code">worldbook-年-月-日.json</span>，包含所有条目的完整数据。</p>
+      </div>
+      <div class="wb-help-io-card">
+        <div class="wb-help-io-label">导入</div>
+        <p class="wb-help-p-sm">可选任意来源的 .json（含 entries 数组，或本身就是条目数组），自动跳过没有标题的无效条目，并提示成功导入多少条。</p>
+      </div>
+      <div class="wb-mode-hint">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span>导入是「追加」，不会清空现有条目，也不会自动去重，同名条目会变成两条，注意自己检查。</span>
+      </div>
+    </section>
+
+    <!-- 6. 常见问题 -->
+    <section class="wb-help-sec" id="help-sec-6">
+      <div class="wb-help-sec-head">
+        <div class="wb-help-sec-icon cat-rule2">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 9.2a2.5 2.5 0 014.9.8c0 1.7-2.4 2-2.4 3.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="16.8" r="1" fill="currentColor"/></svg>
+        </div>
+        <div>
+          <div class="wb-help-sec-title">常见问题</div>
+          <div class="wb-help-sec-sub">新手最容易卡住的地方</div>
+        </div>
+      </div>
+      <div class="wb-help-qa">
+        <div class="wb-help-q">关键词触发 vs 常驻注入选哪个？</div>
+        <div class="wb-help-a">不确定就选关键词触发，确认这条设定每次对话都要用（人设铁律、格式规范）再改常驻。常驻开太多会白白消耗 Token。</div>
+      </div>
+      <div class="wb-help-qa">
+        <div class="wb-help-q">触发概率不到 100% 是不是 bug？</div>
+        <div class="wb-help-a">不是，是特意设计的功能，模拟"角色不是每次都想起某个细节"的自然感。不需要就保持 100% 别碰。</div>
+      </div>
+      <div class="wb-help-qa">
+        <div class="wb-help-q">次要关键词一定要填吗？</div>
+        <div class="wb-help-a">不用，大部分条目只用主关键词就够，次要关键词只在需要精确排除歧义时才用。</div>
+      </div>
+      <div class="wb-help-qa">
+        <div class="wb-help-q">背景图有什么用？</div>
+        <div class="wb-help-a">只是给自己看的展示效果，AI 读不到图片内容。</div>
+      </div>
+      <div class="wb-help-qa">
+        <div class="wb-help-q">删除能恢复吗？</div>
+        <div class="wb-help-a">不能，目前没有回收站，重要设定建议先导出备份一份。</div>
+      </div>
+    </section>
+
+    <div style="height:24px"></div>
   </div>
 </div>
 

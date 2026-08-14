@@ -9,16 +9,44 @@
 </head>
 <body data-theme-page="default">
 
-<!-- ══════════ 状态栏（与 index 同步：FL.Status.sync 会克隆 index 的 .status-bar） ══════════ -->
-<header class="fl-status" id="flStatus">
-  <div class="fl-status__l"><span class="fl-status__time" id="flClock">9:41</span></div>
-  <div class="fl-status__c"><i class="fl-status__island"></i></div>
-  <div class="fl-status__r">
-    <svg class="fl-status__ic" viewBox="0 0 20 12" aria-hidden="true"><path d="M1 9h2v3H1zM5.5 6.5h2V12h-2zM10 4h2v8h-2zM14.5 1h2v11h-2z"/></svg>
-    <svg class="fl-status__ic" viewBox="0 0 16 12" aria-hidden="true"><path d="M8 11.2 5.6 8.6a3.4 3.4 0 0 1 4.8 0zM8 6.6a5.6 5.6 0 0 0-4 1.6L2.6 6.8a7.6 7.6 0 0 1 10.8 0L12 8.2a5.6 5.6 0 0 0-4-1.6zM8 2.4a9.8 9.8 0 0 0-7 2.8L-.4 3.8a11.8 11.8 0 0 1 16.8 0L15 5.2a9.8 9.8 0 0 0-7-2.8z"/></svg>
-    <span class="fl-status__bat"><i style="width:78%"></i></span>
+<!-- ══════════ 状态栏：与 index.html / wallet.js / user.js 完全同构 —— 同一套 DOM 结构与 id（statusTime / statusIsland / batPct / batInner），
+     本地各自计算真实时间与电量，不依赖跨窗口读取（本 app 走整页跳转，没有 parent/opener 关系，跨窗口读取本来就读不到）。══════════ -->
+<div class="status-bar" id="flStatus">
+  <div class="status-time" id="statusTime">9:41</div>
+  <div class="status-island" id="statusIsland"></div>
+  <div class="status-right">
+    <div class="signal">
+      <i></i><i></i><i></i><i></i>
+    </div>
+    <div class="battery">
+      <span class="bat-pct" id="batPct">76</span>
+      <div class="bat-shell">
+        <div class="bat-inner" id="batInner"></div>
+        <div class="bat-nub"></div>
+      </div>
+    </div>
   </div>
-</header>
+</div>
+
+<!-- ══════════ 华彩顶饰：状态栏与织叙大厅之间的衔接层，取代原本生硬的空隙 ══════════ -->
+<div class="fl-crown" id="flCrown" aria-hidden="true">
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="flGiltGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#C6AC72" stop-opacity=".2"/>
+        <stop offset="18%" stop-color="#E4CD94" stop-opacity=".95"/>
+        <stop offset="50%" stop-color="#C6AC72" stop-opacity=".55"/>
+        <stop offset="82%" stop-color="#E4CD94" stop-opacity=".95"/>
+        <stop offset="100%" stop-color="#C6AC72" stop-opacity=".2"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  <svg class="fl-crown__sw" viewBox="0 0 390 30" preserveAspectRatio="none"><path d="M0 2c48 14 97 14 145 2 46-11 100-11 145 2 42 12 78 10 100-2" /></svg>
+  <svg class="fl-crown__sw fl-crown__sw--fine" viewBox="0 0 390 30" preserveAspectRatio="none"><path d="M0 6c48 12 97 12 145 2 46-9 100-9 145 2 42 10 78 8 100-2" /></svg>
+  <svg class="fl-crown__wisp fl-crown__wisp--l" viewBox="0 0 40 20"><path d="M1 15c6 2 11 0 13-4 3 4 7 5 12 2 4 5 9 5 12 1M30 4c2-2 5-2 6 0"/></svg>
+  <svg class="fl-crown__wisp fl-crown__wisp--r" viewBox="0 0 40 20"><path d="M1 15c6 2 11 0 13-4 3 4 7 5 12 2 4 5 9 5 12 1M30 4c2-2 5-2 6 0"/></svg>
+  <span class="fl-crown__seal"></span>
+</div>
 
 <!-- ══════════ 页面容器 ══════════ -->
 <main class="fl-stagewrap" id="flStage">
@@ -127,7 +155,7 @@
           <label class="fl-lb">我与他的关系 / 立场差</label><input class="fl-in" id="flRelation" placeholder="例：他是审我的官，我是他要保的人">
           <label class="fl-lb">开场：时间 · 地点 · 正在发生的事</label><textarea class="fl-in fl-in--ta" id="flOpening" rows="2" placeholder="例：子夜，制香司值房，我把最后一支禁香推到他面前"></textarea>
           <label class="fl-lb">冲突来源</label><div class="fl-chips" id="flConflict"></div>
-          <label class="fl-lb">必须出现的元素<em>道具 / 场景 / 台词，用顿号分隔</em></label><input class="fl-in" id="flMust" placeholder="例：断簪、屋顶、"我不问了"">
+          <label class="fl-lb">必须出现的元素<em>道具 / 场景 / 台词，用顿号分隔</em></label><input class="fl-in" id="flMust" placeholder="例：断簪、屋顶、「我不问了」">
           <label class="fl-lb">雷点与禁止<em>绝对不写的内容，会硬拦截</em></label><input class="fl-in" id="flTaboo" placeholder="例：不写背叛、不写死亡、不写第三者">
           <label class="fl-lb">结局倾向</label><div class="fl-chips" id="flEnding"></div>
           <div class="fl-sliders">
@@ -328,7 +356,8 @@
 <nav class="fl-dock" id="flDock" aria-label="主导航">
   <svg class="fl-dock__arc" viewBox="0 0 390 96" preserveAspectRatio="none" aria-hidden="true">
     <path class="fl-dock__fill" d="M0 30 C 70 30, 108 6, 195 6 C 282 6, 320 30, 390 30 L390 96 L0 96 Z"/>
-    <path class="fl-dock__edge" d="M0 30 C 70 30, 108 6, 195 6 C 282 6, 320 30, 390 30"/>
+    <path class="fl-dock__hi" d="M0 30 C 70 30, 108 6, 195 6 C 282 6, 320 30, 390 30" opacity=".9"/>
+    <path class="fl-dock__edge" d="M0 31.4 C 70 31.4, 108 7.4, 195 7.4 C 282 7.4, 320 31.4, 390 31.4"/>
   </svg>
   <button class="fl-dock__p" data-go="archives"><span class="fl-dock__gl" data-gl="scroll"></span><em>存档</em></button>
   <button class="fl-dock__p" data-go="notes"><span class="fl-dock__gl" data-gl="letter"></span><em>戏后笺</em></button>
@@ -342,7 +371,10 @@
 <div class="fl-sheet" id="flSheet" hidden><div class="fl-sheet__veil"></div><div class="fl-sheet__box"><span class="fl-sheet__grab"></span><h4 id="flSheetT"></h4><div id="flSheetB"></div></div></div>
 <div class="fl-pop" id="flPop" hidden><div class="fl-pop__bx"><b id="flPopT"></b><p id="flPopB"></p></div></div>
 <div class="fl-toasts" id="flToasts"></div>
-<div class="fl-loading" id="flLoading" hidden><div class="fl-loading__mist"></div><p id="flLoadingT">起雾中…</p></div>
+<div class="fl-loading" id="flLoading" hidden><div class="fl-loading__mist"></div><p id="flLoadingT">起雾中…</p><span class="fl-loading__s" id="flLoadingS"></span></div>
+
+<!-- 兜底：若 JS 在启动阶段就崩了，这块会顶上来说明原因，而不是永远停在「起雾中」 -->
+<div class="fl-fatal" id="flFatal" hidden><div class="fl-fatal__bx"><b>雾没散开</b><p id="flFatalT"></p><button class="fl-solid" onclick="location.reload()">重新载入</button></div></div>
 
 <script src="fulan.js"></script>
 </body>

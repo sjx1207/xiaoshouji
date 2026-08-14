@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Lunaplay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Space+Mono:wght@400;700&family=Noto+Sans+SC:wght@200;300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lunaplay.css">
+</head>
+<body>
+
+<div class="lp-app" id="lpApp">
+
+  <!-- ============ 共享背景层：个人中心封面在此渗透到状态栏 ============ -->
+  <div class="lp-bleed" id="lpBleed"><div class="lp-bleed-img" id="lpBleedImg"></div><div class="lp-bleed-veil"></div></div>
+
+  <!-- ============ 状态栏（全局唯一 · 悬浮于所有页面之上 · 同步 index） ============ -->
+  <div class="status-bar" id="lpStatusBar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell"><div class="bat-inner" id="batInner"></div><div class="bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 舞台 ============ -->
+  <main class="lp-stage" id="lpStage">
+
+    <!-- ================= 推荐页 ================= -->
+    <section class="lp-screen is-on" id="scHome">
+
+      <!-- 顶部：光弦（不是按钮的入口） -->
+      <header class="hm-top">
+        <div class="hm-brandline">
+          <span class="hm-brand">LUNAPLAY</span>
+          <span class="hm-hair"></span>
+          <span class="hm-sub" id="hmChannel">FOR&nbsp;YOU</span>
+        </div>
+        <div class="hm-chord" id="hmChord" title="下拉光弦">
+          <span class="chord-line"></span>
+          <span class="chord-bead"><i></i></span>
+          <span class="chord-ripple"></span>
+          <span class="chord-word">拉动光弦 · 生成你想看的</span>
+        </div>
+      </header>
+
+      <div class="feed" id="feedTrack">
+        <div class="feed-empty" id="feedEmpty">
+          <div class="fe-orb"><span></span><span></span><span></span></div>
+          <div class="fe-t">此刻还没有流动的影像</div>
+          <div class="fe-d">向下拉动顶部的光弦，写下你想看的世界</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 好友圈 ================= -->
+    <section class="lp-screen" id="scCircle">
+      <header class="cir-top">
+        <div class="cir-title-wrap">
+          <div class="cir-title">好友圈</div>
+          <div class="cir-sub" id="cirSub">CIRCLE · 关系流</div>
+        </div>
+        <div class="cir-spark" id="cirSpark" title="生成新动态">
+          <span class="cs-halo"></span>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M12 3.6l1.9 4.6 4.6 1.9-4.6 1.9L12 16.6l-1.9-4.6L5.5 10.1l4.6-1.9L12 3.6z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M18.6 15.4l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8.8-1.9z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
+        </div>
+      </header>
+
+      <div class="ring-rail" id="ringRail"></div>
+
+      <div class="cir-feed" id="cirFeed">
+        <div class="feed-empty small">
+          <div class="fe-orb"><span></span><span></span><span></span></div>
+          <div class="fe-t">关系网还很安静</div>
+          <div class="fe-d">点击右上角的星芒，让认识的人开始发布</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 私信 ================= -->
+    <section class="lp-screen" id="scDM">
+      <header class="dm-top">
+        <div class="dm-title-wrap">
+          <div class="dm-title">私信</div>
+          <div class="dm-sub"><span id="dmCountTxt">0</span> 条会话 · 星链已连接</div>
+        </div>
+        <!-- 不明显的交互：静默信号点 -->
+        <div class="dm-signal" id="dmSignal" title="拾取陌生信号">
+          <span class="sg-dot"></span>
+          <span class="sg-w1"></span><span class="sg-w2"></span><span class="sg-w3"></span>
+        </div>
+      </header>
+
+      <div class="dm-search">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <input id="dmSearchInput" placeholder="搜索会话或角色" oninput="LP.renderDMList()">
+      </div>
+
+      <div class="dm-list" id="dmList"></div>
+    </section>
+
+    <!-- ================= 个人中心 ================= -->
+    <section class="lp-screen" id="scMe">
+      <div class="me-cover" id="meCover">
+        <div class="me-cover-img" id="meCoverImg"></div>
+        <div class="me-cover-grain"></div>
+        <div class="me-cover-arc"></div>
+        <div class="me-cover-edit" id="meCoverEdit">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M4 17.5V20h2.5L17 9.5 14.5 7 4 17.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M15.8 5.7l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span>封面</span>
+        </div>
+      </div>
+
+      <div class="me-body">
+        <div class="me-head">
+          <div class="me-av-wrap" id="meAvWrap">
+            <div class="me-av-ring"></div>
+            <div class="me-av" id="meAv"><span id="meAvLetter">L</span></div>
+            <div class="me-av-cam">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none"><path d="M4 8.5h3l1.4-2h7.2L17 8.5h3v10H4v-10z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.1" stroke="currentColor" stroke-width="1.4"/></svg>
+            </div>
+          </div>
+
+          <div class="me-name-row">
+            <span class="me-name" id="meName">未命名</span>
+            <span class="me-verify" id="meVerify"></span>
+          </div>
+          <div class="me-handle" id="meHandle">@lunaplay</div>
+          <div class="me-verify-text" id="meVerifyText"></div>
+
+          <div class="me-nums" id="meNums">
+            <div class="mn"><b id="mnFollow">0</b><span>关注</span></div>
+            <div class="mn-div"></div>
+            <div class="mn"><b id="mnFans">0</b><span>粉丝</span></div>
+            <div class="mn-div"></div>
+            <div class="mn"><b id="mnLiked">0</b><span>获赞</span></div>
+            <div class="mn-div"></div>
+            <div class="mn"><b id="mnCoin">0</b><span>星光币</span></div>
+          </div>
+
+          <div class="me-bio" id="meBio">还没有写下任何一句话。</div>
+          <div class="me-tags" id="meTags"></div>
+
+          <!-- 进入功能的入口：光缝（非按钮） -->
+          <div class="me-seam" id="meSeam">
+            <span class="seam-line"></span>
+            <span class="seam-core"></span>
+            <span class="seam-text">档案室 · ARCHIVE</span>
+            <span class="seam-hint">轻触展开</span>
+          </div>
+        </div>
+
+        <div class="me-tabs" id="meTabs">
+          <div class="mt on" data-t="like"><span>点赞</span><i></i></div>
+          <div class="mt" data-t="fav"><span>收藏</span><i></i></div>
+          <div class="mt" data-t="rec"><span>推荐</span><i></i></div>
+          <div class="mt-ink" id="mtInk"></div>
+        </div>
+        <div class="me-grid" id="meGrid"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= 导航：光弧轨道坞 ================= -->
+  <nav class="lp-dock" id="lpDock">
+    <svg class="dock-arc" viewBox="0 0 360 74" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="arcG" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"  stop-color="rgba(124,108,245,0)"/>
+          <stop offset="22%" stop-color="rgba(124,108,245,.55)"/>
+          <stop offset="52%" stop-color="rgba(197,140,245,.75)"/>
+          <stop offset="80%" stop-color="rgba(255,159,192,.5)"/>
+          <stop offset="100%" stop-color="rgba(255,159,192,0)"/>
+        </linearGradient>
+      </defs>
+      <path class="arc-p" d="M6 56 C 70 22, 290 22, 354 56" fill="none" stroke="url(#arcG)" stroke-width="1.1"/>
+      <path class="arc-p2" d="M6 60 C 70 28, 290 28, 354 60" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="1"/>
+    </svg>
+    <div class="dock-blob" id="dockBlob"></div>
+    <div class="dock-beam" id="dockBeam"></div>
+    <div class="dock-items">
+      <button class="dk on" data-s="scHome">
+        <span class="dk-orb">
+          <span class="orb-halo"></span><span class="orb-core"></span>
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none"><path d="M4.2 10.4L12 4.2l7.8 6.2v8.1c0 .8-.6 1.4-1.4 1.4h-4v-5.3H9.6v5.3h-4c-.8 0-1.4-.6-1.4-1.4v-8.1z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="dk-lb">推荐</span>
+      </button>
+      <button class="dk" data-s="scCircle">
+        <span class="dk-orb">
+          <span class="orb-halo"></span><span class="orb-core"></span>
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none"><circle cx="12" cy="12" r="7.6" stroke="currentColor" stroke-width="1.35"/><ellipse cx="12" cy="12" rx="3.4" ry="7.6" stroke="currentColor" stroke-width="1.35"/><path d="M4.6 12h14.8" stroke="currentColor" stroke-width="1.35"/></svg>
+        </span>
+        <span class="dk-lb">好友圈</span>
+      </button>
+      <button class="dk" data-s="scDM">
+        <span class="dk-orb">
+          <span class="orb-halo"></span><span class="orb-core"></span>
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none"><path d="M4 6.6c0-.9.7-1.6 1.6-1.6h12.8c.9 0 1.6.7 1.6 1.6v8.2c0 .9-.7 1.6-1.6 1.6H9.4L5.2 19.6a.6.6 0 01-1-.5v-2.7H5.6c-.9 0-1.6-.7-1.6-1.6V6.6z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="dk-lb">私信</span>
+        <span class="dk-badge" id="dkBadge"></span>
+      </button>
+      <button class="dk" data-s="scMe">
+        <span class="dk-orb">
+          <span class="orb-halo"></span><span class="orb-core"></span>
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none"><circle cx="12" cy="8.4" r="3.7" stroke="currentColor" stroke-width="1.35"/><path d="M4.8 20c.5-4 3.5-6.2 7.2-6.2s6.7 2.2 7.2 6.2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></svg>
+        </span>
+        <span class="dk-lb">我</span>
+      </button>
+    </div>
+    <div class="dock-dust" id="dockDust"></div>
+  </nav>
+</div>
+
+<!-- ======================================================================
+     浮层页（全部位于状态栏之下，共享顶部 52px 安全区）
+====================================================================== -->
+
+<!-- ============ 光弦生成台 ============ -->
+<div class="lp-sheet" id="shComposer">
+  <div class="sh-mask" data-close="shComposer"></div>
+  <div class="sh-card sh-tall">
+    <div class="sh-grip"></div>
+    <div class="sh-hd">
+      <div class="sh-hd-t">光弦 · 生成</div>
+      <div class="sh-hd-d">写下想看的世界，Lunaplay 会为你织出影像</div>
+    </div>
+    <div class="sh-scroll">
+      <div class="cp-block">
+        <div class="cp-lb">你想看什么<span>THEME</span></div>
+        <textarea id="cpTheme" class="cp-ta" rows="3" placeholder="例：雨夜便利店，值夜班的女孩和一位不肯离开的客人"></textarea>
+      </div>
+
+      <div class="cp-block">
+        <div class="cp-lb">影像形态<span>FORMAT</span></div>
+        <div class="cp-types" id="cpTypes"></div>
+      </div>
+
+      <div class="cp-block">
+        <div class="cp-lb">气质<span>MOOD</span></div>
+        <div class="cp-chips" id="cpMoods"></div>
+      </div>
+
+      <div class="cp-block">
+        <div class="cp-lb">时长<span>LENGTH</span></div>
+        <div class="cp-chips" id="cpLens"></div>
+      </div>
+
+      <div class="cp-block">
+        <div class="cp-lb">条数<span>COUNT</span></div>
+        <div class="cp-chips" id="cpCounts"></div>
+      </div>
+
+      <div class="cp-note" id="cpUniverseNote"></div>
+    </div>
+    <div class="sh-foot">
+      <div class="sh-ghost" data-close="shComposer">取消</div>
+      <div class="sh-primary" id="cpGo"><span>开始生成</span><i></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 档案室 ============ -->
+<div class="lp-page" id="pgArchive">
+  <div class="pg-hd">
+    <div class="pg-back" data-back="pgArchive"><svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M14.5 5.5L8 12l6.5 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="pg-ti"><b>档案室</b><span>ARCHIVE ROOM</span></div>
+    <div class="pg-x"></div>
+  </div>
+  <div class="pg-bd">
+    <div class="ar-intro">
+      <div class="ar-intro-l">这里存放你在 Lunaplay 的一切：身份、痕迹、勋章与消耗。</div>
+      <div class="ar-intro-r" id="arStamp">SEALED</div>
+    </div>
+    <div class="ar-cards" id="arCards"></div>
+  </div>
+</div>
+
+<!-- ============ 查看信息 · 资料档案 ============ -->
+<div class="lp-page" id="pgInfo">
+  <div class="pg-hd">
+    <div class="pg-back" data-back="pgInfo"><svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M14.5 5.5L8 12l6.5 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="pg-ti"><b>查看信息</b><span>PROFILE ARCHIVE</span></div>
+    <div class="pg-save" id="infoSave">存档</div>
+  </div>
+
+  <div class="seg" id="infoSeg">
+    <div class="sg on" data-g="mine">我的资料</div>
+    <div class="sg" data-g="role">角色同步</div>
+    <div class="sg-ink" id="segInk"></div>
+  </div>
+
+  <div class="pg-bd" id="infoBody">
+
+    <!-- 我的资料 -->
+    <div class="ig-pane on" id="paneMine">
+      <div class="fld-card">
+        <div class="fld-hd">身份 <em>IDENTITY</em></div>
+        <div class="fld"><label>昵称</label><input id="fName" placeholder="你的名字"></div>
+        <div class="fld"><label>ID</label><input id="fHandle" placeholder="lunaplay"></div>
+        <div class="fld"><label>性别</label><div class="opt-row" id="fGender"></div></div>
+        <div class="fld"><label>生日</label><input id="fBirth" placeholder="03.14"></div>
+        <div class="fld"><label>所在地</label><input id="fLoc" placeholder="城市"></div>
+        <div class="fld"><label>职业</label><input id="fJob" placeholder="做什么的"></div>
+      </div>
+
+      <div class="fld-card">
+        <div class="fld-hd">表达 <em>EXPRESSION</em></div>
+        <div class="fld col"><label>简介</label><textarea id="fBio" rows="3" placeholder="一句话，或者很多句"></textarea></div>
+        <div class="fld col"><label>标签（逗号分隔）</label><input id="fTags" placeholder="夜行,胶片,慢速"></div>
+        <div class="fld"><label>主页色</label><div class="opt-row" id="fTheme"></div></div>
+      </div>
+
+      <div class="fld-card">
+        <div class="fld-hd">认证 <em>VERIFICATION</em></div>
+        <div class="vf-note">认证与否完全由你决定，样式、文案都可以改。</div>
+        <div class="vf-row" id="fVerify"></div>
+        <div class="fld col"><label>认证说明</label><input id="fVerifyTxt" placeholder="例：Lunaplay 年度影像创作者"></div>
+      </div>
+
+      <div class="fld-card">
+        <div class="fld-hd">数据（可自定）<em>NUMBERS</em></div>
+        <div class="fld"><label>关注</label><input id="fFollow" inputmode="numeric" placeholder="0"></div>
+        <div class="fld"><label>粉丝</label><input id="fFans" inputmode="numeric" placeholder="0"></div>
+        <div class="fld"><label>获赞</label><input id="fLiked" inputmode="numeric" placeholder="0"></div>
+      </div>
+
+      <div class="fld-card">
+        <div class="fld-hd">形象 <em>VISUAL</em></div>
+        <div class="up-row">
+          <div class="up-box" id="upAvatar"><div class="up-prev" id="upAvatarPrev"></div><span>上传头像</span></div>
+          <div class="up-box" id="upCover"><div class="up-prev" id="upCoverPrev"></div><span>上传封面</span></div>
+        </div>
+        <div class="fld col"><label>封面链接（可选）</label><input id="fCoverUrl" placeholder="https://..."></div>
+        <div class="fld"><label>状态栏字色</label><div class="opt-row" id="fSbTone"></div></div>
+        <div class="fld"><label>头像形状</label><div class="opt-row" id="fAvShape"></div></div>
+      </div>
+
+      <div class="save-log">
+        <div class="sl-hd">存档记录 <em>AUTOSAVE</em></div>
+        <div class="sl-list" id="slList"></div>
+      </div>
+    </div>
+
+    <!-- 角色同步 -->
+    <div class="ig-pane" id="paneRole">
+      <div class="rl-bar">
+        <div class="rl-sync" id="rlSync"><span class="rls-dot"></span>同步角色书</div>
+        <div class="rl-rand" id="rlRand">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M4 7h4l8 10h4M4 17h4l2.2-2.8M20 7h-4l-1.6 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 4.6L20.4 7 18 9.4M18 14.6L20.4 17 18 19.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          随机名片
+        </div>
+      </div>
+      <div class="rl-count" id="rlCount">尚未同步</div>
+      <div class="rl-list" id="rlList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 随机名片：右侧滑入 -->
+<div class="card-rail" id="cardRail">
+  <div class="cr-mask" data-close="cardRail"></div>
+  <div class="cr-card" id="crCard"></div>
+</div>
+
+<!-- 角色身份编辑 -->
+<div class="lp-sheet" id="shRole">
+  <div class="sh-mask" data-close="shRole"></div>
+  <div class="sh-card sh-tall">
+    <div class="sh-grip"></div>
+    <div class="sh-hd"><div class="sh-hd-t" id="shRoleName">角色</div><div class="sh-hd-d">这个角色在 Lunaplay 里的身份，完全由你定义</div></div>
+    <div class="sh-scroll">
+      <div class="fld"><label>App 昵称</label><input id="rfNick" placeholder="在 Lunaplay 显示的名字"></div>
+      <div class="fld"><label>App ID</label><input id="rfHandle" placeholder="@handle"></div>
+      <div class="fld"><label>身份</label><div class="opt-row wrap" id="rfIdentity"></div></div>
+      <div class="fld"><label>关系</label><div class="opt-row wrap" id="rfRelation"></div></div>
+      <div class="fld"><label>认证</label><div class="opt-row wrap" id="rfVerify"></div></div>
+      <div class="fld col"><label>认证说明</label><input id="rfVerifyTxt" placeholder="例：影像作者"></div>
+      <div class="fld col"><label>个性签名</label><textarea id="rfBio" rows="2" placeholder="他在这个 App 上写的一句话"></textarea></div>
+      <div class="fld"><label>粉丝</label><input id="rfFans" inputmode="numeric" placeholder="随机"></div>
+      <div class="fld"><label>是否互相关注</label><div class="opt-row" id="rfMutual"></div></div>
+      <div class="fld"><label>在私信可见</label><div class="opt-row" id="rfInDM"></div></div>
+      <div class="fld"><label>在好友圈可见</label><div class="opt-row" id="rfInCircle"></div></div>
+      <div class="fld col"><label>认识的人（逗号分隔，决定谁能给谁推荐）</label><input id="rfKnows" placeholder="留空则由系统按关系网推断"></div>
+    </div>
+    <div class="sh-foot">
+      <div class="sh-ghost" data-close="shRole">取消</div>
+      <div class="sh-primary" id="rfSave"><span>保存身份</span><i></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 数据信息 ============ -->
+<div class="lp-page" id="pgData">
+  <div class="pg-hd">
+    <div class="pg-back" data-back="pgData"><svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M14.5 5.5L8 12l6.5 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="pg-ti"><b>数据信息</b><span>YOUR TRACES</span></div>
+    <div class="pg-x"></div>
+  </div>
+  <div class="pg-bd" id="dataBody"></div>
+</div>
+
+<!-- ============ 星链 · 等级与勋章 ============ -->
+<div class="lp-page" id="pgLink">
+  <div class="pg-hd">
+    <div class="pg-back" data-back="pgLink"><svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M14.5 5.5L8 12l6.5 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="pg-ti"><b>星链</b><span>STELLAR LINK</span></div>
+    <div class="pg-x"></div>
+  </div>
+  <div class="seg" id="linkSeg">
+    <div class="sg on" data-g="me">我的星阶</div>
+    <div class="sg" data-g="bond">羁绊</div>
+    <div class="sg" data-g="task">任务</div>
+    <div class="sg" data-g="rule">规则</div>
+    <div class="sg-ink" id="linkInk"></div>
+  </div>
+  <div class="pg-bd" id="linkBody"></div>
+</div>
+
+<!-- ============ 星光币 ============ -->
+<div class="lp-page" id="pgCoin">
+  <div class="pg-hd">
+    <div class="pg-back" data-back="pgCoin"><svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M14.5 5.5L8 12l6.5 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="pg-ti"><b>星光币</b><span>STARLIGHT</span></div>
+    <div class="pg-x"></div>
+  </div>
+  <div class="seg" id="coinSeg">
+    <div class="sg on" data-g="wallet">资产</div>
+    <div class="sg" data-g="level">消费等级</div>
+    <div class="sg" data-g="bill">流水</div>
+    <div class="sg-ink" id="coinInk"></div>
+  </div>
+  <div class="pg-bd" id="coinBody"></div>
+</div>
+
+<!-- 充值面板 -->
+<div class="lp-sheet" id="shTopup">
+  <div class="sh-mask" data-close="shTopup"></div>
+  <div class="sh-card">
+    <div class="sh-grip"></div>
+    <div class="sh-hd"><div class="sh-hd-t">兑换星光币</div><div class="sh-hd-d">1 Lune = 10 星光币 · 从 Luna 钱包主余额扣款</div></div>
+    <div class="sh-scroll">
+      <div class="tp-bal">
+        <div class="tpb"><span>钱包余额</span><b id="tpWalletBal">--</b></div>
+        <div class="tpb"><span>当前星光币</span><b id="tpCoinBal">--</b></div>
+      </div>
+      <div class="tp-grid" id="tpGrid"></div>
+      <div class="fld col"><label>自定义星光币数量</label><input id="tpCustom" inputmode="numeric" placeholder="必须是 10 的倍数"></div>
+      <div class="tp-calc" id="tpCalc">将扣款 0.00 Lune</div>
+    </div>
+    <div class="sh-foot">
+      <div class="sh-ghost" data-close="shTopup">取消</div>
+      <div class="sh-primary" id="tpGo"><span>确认兑换</span><i></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- 支付密码键盘（复用钱包同一套 PIN） -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-sheet" id="pinSheet">
+    <div class="pin-hd">支付密码</div>
+    <div class="pin-hint" id="pinHint">请输入支付密码完成扣款</div>
+    <div class="pin-cells"><div class="pin-cell" id="pc0"></div><div class="pin-cell" id="pc1"></div><div class="pin-cell" id="pc2"></div><div class="pin-cell" id="pc3"></div></div>
+    <div class="pin-pad" id="pinPad"></div>
+    <div class="pin-cancel" id="pinCancel">取消</div>
+  </div>
+</div>
+
+<!-- ============ 内容宇宙 ============ -->
+<div class="lp-page" id="pgUniverse">
+  <div class="pg-hd">
+    <div class="pg-back" data-back="pgUniverse"><svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M14.5 5.5L8 12l6.5 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="pg-ti"><b>内容宇宙</b><span>THE UNIVERSE</span></div>
+    <div class="pg-save" id="uvSave">保存</div>
+  </div>
+  <div class="pg-bd" id="uvBody"></div>
+</div>
+
+<!-- ============ 聊天页 ============ -->
+<div class="lp-page chat-page" id="pgChat">
+  <div class="chat-bg" id="chatBg"></div>
+  <div class="chat-hd" id="chatHd">
+    <div class="pg-back" id="chatBack"><svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M14.5 5.5L8 12l6.5 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="ch-who">
+      <div class="ch-av" id="chatAv"></div>
+      <div class="ch-meta">
+        <div class="ch-nm"><span id="chatName">—</span><i id="chatVerify"></i></div>
+        <div class="ch-st" id="chatState">在线</div>
+      </div>
+    </div>
+    <div class="ch-bond" id="chatBond"></div>
+    <div class="ch-more" id="chatMore"><svg viewBox="0 0 24 24" width="17" height="17" fill="none"><circle cx="5.5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="18.5" cy="12" r="1.5" fill="currentColor"/></svg></div>
+  </div>
+
+  <div class="chat-scroll" id="chatScroll"></div>
+
+  <div class="chat-dock" id="chatDock">
+    <div class="cd-echo" id="cdEcho" title="召回一次回复">
+      <span class="echo-ring"></span>
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M12 4.4a7.6 7.6 0 107.4 9.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M19.6 5.2v4.2h-4.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <b>回声</b>
+    </div>
+    <div class="cd-input"><textarea id="cdText" rows="1" placeholder="说点什么"></textarea></div>
+    <div class="cd-send" id="cdSend"><svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M4.6 11.8L19.4 5l-6.8 14.8-1.9-6.2-6.1-1.8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="chat-lock" id="chatLock"></div>
+</div>
+
+<!-- 聊天设置 -->
+<div class="lp-sheet" id="shChatSet">
+  <div class="sh-mask" data-close="shChatSet"></div>
+  <div class="sh-card sh-tall">
+    <div class="sh-grip"></div>
+    <div class="sh-hd"><div class="sh-hd-t">聊天设置</div><div class="sh-hd-d">背景全屏清晰显示 · 不加模糊与遮罩</div></div>
+    <div class="sh-scroll">
+      <div class="cp-lb">内置背景<span>PRESET</span></div>
+      <div class="bg-grid" id="bgGrid"></div>
+      <div class="cp-lb">自定义<span>CUSTOM</span></div>
+      <div class="up-row">
+        <div class="up-box wide" id="upChatBg"><div class="up-prev" id="upChatBgPrev"></div><span>上传背景图</span></div>
+      </div>
+      <div class="fld col"><label>背景链接</label><input id="chatBgUrl" placeholder="https://..."></div>
+      <div class="fld"><label>气泡与文字</label><div class="opt-row" id="chatTone"></div></div>
+      <div class="fld"><label>气泡装饰</label><div class="opt-row wrap" id="chatDeco"></div></div>
+      <div class="fld"><label>回复长度</label><div class="opt-row" id="chatLen"></div></div>
+      <div class="danger" id="chatClear">清空该会话</div>
+    </div>
+    <div class="sh-foot"><div class="sh-primary wide" data-close="shChatSet"><span>完成</span><i></i></div></div>
+  </div>
+</div>
+
+<!-- 转发到私信 -->
+<div class="lp-sheet" id="shShare">
+  <div class="sh-mask" data-close="shShare"></div>
+  <div class="sh-card">
+    <div class="sh-grip"></div>
+    <div class="sh-hd"><div class="sh-hd-t">转发到私信</div><div class="sh-hd-d">选择一个会话，把这条影像递过去</div></div>
+    <div class="sh-scroll"><div class="share-list" id="shareList"></div></div>
+  </div>
+</div>
+
+<!-- 推荐语 -->
+<div class="lp-sheet" id="shRec">
+  <div class="sh-mask" data-close="shRec"></div>
+  <div class="sh-card">
+    <div class="sh-grip"></div>
+    <div class="sh-hd"><div class="sh-hd-t">推荐这条影像</div><div class="sh-hd-d">写点什么，或者什么都不写</div></div>
+    <div class="sh-scroll"><textarea id="recTxt" class="cp-ta" rows="3" placeholder="留空则只显示「推荐」"></textarea></div>
+    <div class="sh-foot"><div class="sh-ghost" data-close="shRec">取消</div><div class="sh-primary" id="recGo"><span>确认推荐</span><i></i></div></div>
+  </div>
+</div>
+
+<!-- 推荐者名片浮层 -->
+<div class="rec-pop" id="recPop"><div class="rp-mask" data-close="recPop"></div><div class="rp-card" id="rpCard"></div></div>
+
+<!-- 通用确认 -->
+<div class="lp-sheet" id="shConfirm">
+  <div class="sh-mask" data-close="shConfirm"></div>
+  <div class="sh-card">
+    <div class="sh-grip"></div>
+    <div class="sh-hd"><div class="sh-hd-t" id="cfTitle">确认</div><div class="sh-hd-d" id="cfDesc"></div></div>
+    <div class="sh-foot"><div class="sh-ghost" data-close="shConfirm">取消</div><div class="sh-primary" id="cfGo"><span>确认</span><i></i></div></div>
+  </div>
+</div>
+
+<!-- 全屏加载 -->
+<div class="lp-loading" id="lpLoading">
+  <div class="ld-orb"><span></span><span></span><span></span><b></b></div>
+  <div class="ld-t" id="ldText">正在织出影像</div>
+</div>
+
+<!-- Toast -->
+<div class="lp-toast" id="lpToast"></div>
+
+<input type="file" id="fileInput" accept="image/*" style="display:none">
+
+<script src="lunaplay.js"></script>
+</body>
+</html>

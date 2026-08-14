@@ -50,10 +50,19 @@
 
   --fl-safe-t:env(safe-area-inset-top,0px);
   --fl-safe-b:env(safe-area-inset-bottom,0px);
-  --fl-status-h:44px; --fl-dock-h:78px;
+  --fl-status-h:calc(52px + 28px); --fl-dock-h:82px; /* 状态栏 52px + 华彩顶饰 28px，两者作为一个整体参与所有页面的顶部避让计算 */
 }
 
 *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+/* ★ 关键修复 ────────────────────────────────────────────────
+   .fl-loading / .fl-modal / .fl-sheet / .fl-pop 都写了 display:grid|flex，
+   而它们靠 hidden 属性收起。作者样式表的 display 会整体压过浏览器默认的
+   [hidden]{display:none}，导致遮罩永远铺在最上层 —— 表现就是「起雾中…」
+   一直转、整页被 blur 盖住、点哪都没反应。下面这条必须保留。
+   ──────────────────────────────────────────────────────── */
+[hidden]{display:none!important}
+
 html,body{height:100%}
 body{
   margin:0;padding:0;overflow:hidden;
@@ -70,24 +79,112 @@ p{margin:0}
 ::selection{background:rgba(169,205,183,.5)}
 :focus-visible{outline:2px solid var(--fl-moss);outline-offset:3px;border-radius:8px}
 
-/* ─────────────── 状态栏 ─────────────── */
-.fl-status{
-  position:fixed;top:0;left:0;right:0;height:calc(var(--fl-status-h) + var(--fl-safe-t));
-  padding:var(--fl-safe-t) 22px 0;z-index:120;
-  display:flex;align-items:center;justify-content:space-between;
-  font-family:var(--fl-f-util);font-size:13.5px;font-weight:600;letter-spacing:.02em;
-  color:var(--fl-ink);pointer-events:none;
-  background:linear-gradient(180deg,rgba(244,249,245,.94),rgba(244,249,245,0));
-  backdrop-filter:saturate(1.4) blur(2px);
+/* ═══════════ 玉牌系统 fl-jade：状态栏 / 顶栏 / 坞 三处的统一材质 ═══════════
+   概念：不是"半透明白条"，是一整块螺钿玉牌——有雕工厚度、暗面亮面、
+   金丝错彩镶边。核心手法：
+   1) 双层渐变模拟"玉石打磨面"：主色层 + 一层极浅的珠光扫光（45° 高光带）
+   2) 金丝纹样不再是细线，而是有粗细变化的错金卷草，转角处收成如意云头
+   3) 暗面阴影用主题墨色而非黑，边缘一圈内凹描边做出"嵌入感"
+   全部颜色从 --fl-jade-* 派生，暗色主题/深色背景会整体换色，而不是变透明度。 */
+:root{
+  --fl-jade-1:255,255,255;   /* 玉面主色（亮） */
+  --fl-jade-2:232,242,235;   /* 玉面次色（略深，做出扫光层次） */
+  --fl-jade-ink:30,50,39;    /* 玉牌暗面阴影色，来自 --fl-ink 的 rgb */
+  --fl-jade-a:.96;           /* 玉面不透明度 */
+  --fl-jade-gilt:198,172,114;/* 错金色 rgb（--fl-gilt 的分量） */
 }
-.fl-status__l,.fl-status__r{flex:1;display:flex;align-items:center;gap:6px}
-.fl-status__r{justify-content:flex-end}
-.fl-status__c{flex:0 0 auto}
-.fl-status__island{display:block;width:78px;height:22px;border-radius:14px;background:rgba(30,50,39,.9);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
-.fl-status__ic{width:17px;height:12px;fill:currentColor;filter:drop-shadow(0 1px 1px rgba(255,255,255,.6))}
-.fl-status__bat{position:relative;width:25px;height:12px;border-radius:4px;box-shadow:inset 0 0 0 1.3px currentColor;opacity:.9;padding:2px}
-.fl-status__bat::after{content:"";position:absolute;right:-3.5px;top:4px;width:2px;height:4px;border-radius:0 2px 2px 0;background:currentColor}
-.fl-status__bat i{display:block;height:100%;border-radius:2px;background:currentColor}
+body[data-theme-page="th_yeyu"]{--fl-jade-1:38,54,46;--fl-jade-2:26,39,31;--fl-jade-ink:8,14,11;--fl-jade-a:.92}
+:root{ --fl-header-h:calc(var(--fl-status-h) + var(--fl-safe-t)); }
+
+.status-bar{
+  position:fixed;top:0;left:0;right:0;
+  height:calc(52px + var(--fl-safe-t));
+  padding:calc(var(--fl-safe-t) + 0px) 22px 9px;
+  z-index:120;display:flex;align-items:flex-end;justify-content:space-between;
+  pointer-events:none;
+  background:transparent;
+}
+/* 玉面主层：主色渐变 + 一道 115° 斜向珠光扫光，模拟打磨玉面的侧光高光走向，
+   不再是"一块平色"，扫光带让它读出"有反光的固体表面"。 */
+.status-bar::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:var(--fl-header-h);
+  background:
+    linear-gradient(115deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 26%,rgba(255,255,255,0) 100%),
+    linear-gradient(180deg,
+      rgba(var(--fl-jade-1),var(--fl-jade-a)) 0%,
+      rgba(var(--fl-jade-2),calc(var(--fl-jade-a) - .04)) 44%,
+      rgba(var(--fl-jade-2),calc(var(--fl-jade-a) * .5)) 78%,
+      rgba(var(--fl-jade-2),0) 100%);
+  backdrop-filter:saturate(1.35) blur(16px);
+  -webkit-backdrop-filter:saturate(1.35) blur(16px);
+  z-index:-1;
+}
+.status-time{font-size:15px;font-weight:600;letter-spacing:.2px;color:var(--fl-ink);text-shadow:var(--fl-ts)}
+.status-right{display:flex;align-items:center;gap:7px}
+.signal{display:flex;align-items:flex-end;gap:2px;height:13px}
+.signal i{display:block;width:2.5px;border-radius:1px;background:var(--fl-ink);opacity:.82}
+.signal i:nth-child(1){height:4px}.signal i:nth-child(2){height:7px}
+.signal i:nth-child(3){height:10px}.signal i:nth-child(4){height:13px}
+.battery{display:flex;align-items:center;gap:3px}
+.bat-pct{font-size:14px;font-weight:600;color:var(--fl-ink);opacity:.82}
+.bat-shell{width:24px;height:12px;border:1.5px solid rgba(30,50,39,.42);border-radius:3.5px;padding:1.5px;position:relative}
+.bat-inner{width:76%;height:100%;border-radius:1.5px;background:linear-gradient(90deg,#8FBFA3,#5F9077)}
+.bat-nub{position:absolute;right:-4px;top:50%;transform:translateY(-50%);width:2.5px;height:5px;background:rgba(30,50,39,.35);border-radius:0 2px 2px 0}
+
+/* 灵动岛：结构与 style.css 的 .status-island / .si-* 完全一致，胶囊本体统一用墨绿玻璃质感覆盖原来的纯黑，贴合浮岚基调 */
+.status-island{position:absolute;left:50%;transform:translateX(-50%);bottom:6px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.si-capsule{background:linear-gradient(160deg,#20372A,#16261C);border-radius:24px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 4px 14px -6px rgba(15,35,25,.6);transition:all .4s cubic-bezier(.34,1.2,.64,1)}
+.si-minimal .si-capsule{width:110px;height:32px}
+.si-glow .si-capsule{width:110px;height:32px;box-shadow:0 0 10px 4px rgba(143,191,163,.4);animation:siGlow 2s ease-in-out infinite}
+.si-clock .si-capsule{width:130px;height:32px;gap:6px;padding:0 10px}
+.si-pulse .si-capsule{width:72px;height:32px;gap:12px}
+.si-ripple .si-capsule{width:110px;height:32px;overflow:visible}
+.si-rainbow .si-capsule{width:110px;height:32px}
+.si-music .si-capsule{width:110px;height:32px;gap:3px;padding:0 12px;align-items:flex-end;padding-bottom:5px}
+.si-scan .si-capsule{width:110px;height:32px;overflow:hidden}
+@keyframes siGlow{0%,100%{box-shadow:0 0 10px 4px rgba(143,191,163,.4)}50%{box-shadow:0 0 4px 1px rgba(143,191,163,.12)}}
+.si-clock-text{font-size:13px;font-weight:600;color:#EAF4ED;letter-spacing:-.3px;font-family:-apple-system,sans-serif;white-space:nowrap}
+.si-dot{width:7px;height:7px;border-radius:50%;background:#EAF4ED;opacity:.92}
+.si-dot-l{animation:siPulse 1.4s ease-in-out infinite}.si-dot-r{animation:siPulse 1.4s ease-in-out .7s infinite}
+@keyframes siPulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(.4);opacity:.2}}
+.si-ring{position:absolute;inset:-1px;border-radius:20px;border:1.5px solid rgba(234,244,237,.55);animation:siRipple 1.8s ease-out infinite;pointer-events:none}
+@keyframes siRipple{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.6);opacity:0}}
+.si-rainbow .si-capsule{background:linear-gradient(90deg,#C6AC72,#8FBFA3,#5F9077,#A9CDB7,#DFA2B4,#C6AC72);background-size:300% 100%;animation:siRainbow 2.5s linear infinite}
+@keyframes siRainbow{0%{background-position:0% 0}100%{background-position:300% 0}}
+.si-bar{width:3px;background:#EAF4ED;border-radius:2px;opacity:.92}
+.si-bar:nth-child(1){animation:siBar .9s ease-in-out infinite}.si-bar:nth-child(2){animation:siBar .9s ease-in-out .15s infinite}
+.si-bar:nth-child(3){animation:siBar .9s ease-in-out .3s infinite}.si-bar:nth-child(4){animation:siBar .9s ease-in-out .45s infinite}
+.si-bar:nth-child(5){animation:siBar .9s ease-in-out .6s infinite}
+@keyframes siBar{0%,100%{height:5px}50%{height:20px}}
+.si-scanline{position:absolute;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,rgba(234,244,237,.9),transparent);animation:siScan 1.6s linear infinite}
+@keyframes siScan{0%{top:0}100%{top:100%}}
+
+/* ─────────────── 华彩顶饰 fl-crown：嵌在同一块玉罩里的纹样层 ───────────────
+/* ─────────────── 华彩顶饰 fl-crown：错金卷草纹 + 中央玉璧印 ───────────────
+   金线用渐变描边（linearGradient）取代纯色描边，转角处粗细有变化，
+   读出"錾刻"的手工感而不是矢量线条。中央不再是空心小圆点，
+   而是一枚有环形回纹的玉璧印章，两侧卷云纹终结成如意云头。 ─────────────── */
+.fl-crown{position:fixed;left:0;right:0;top:calc(52px + var(--fl-safe-t) - 1px);height:28px;z-index:119;pointer-events:none;overflow:visible;color:var(--fl-ink)}
+.fl-crown__sw{width:100%;height:100%;fill:none;stroke:url(#flGiltGrad);stroke-width:1.1;opacity:.7;stroke-linecap:round;
+  filter:drop-shadow(0 1px 1.5px rgba(255,255,255,.6))}
+.fl-crown__sw--fine{opacity:.32;stroke-width:.6;transform:translateY(4px)}
+/* 两侧如意云头：比原来更大更立体，末端收成卷云勾，呼应"浮岚"雾意，同时体量感撑起两端的空 */
+.fl-crown__wisp{position:absolute;top:3px;width:40px;height:20px;opacity:.5;stroke:var(--fl-gilt);fill:none;stroke-width:1.2;stroke-linecap:round}
+.fl-crown__wisp--l{left:14px}
+.fl-crown__wisp--r{right:14px;transform:scaleX(-1)}
+/* 中央玉璧印：外圈错金环纹 + 内圈墨色璧心，比原来的小圆点厚重得多，是这条装饰带真正的视觉锚点 */
+.fl-crown__seal{position:absolute;left:50%;top:0;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;
+  background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.9),rgba(var(--fl-jade-2),.7) 60%,rgba(var(--fl-jade-ink),.14) 100%);
+  box-shadow:0 0 0 1px rgba(var(--fl-jade-gilt),.55),0 2px 6px -2px rgba(var(--fl-jade-ink),.4),inset 0 1px 1px rgba(255,255,255,.8);
+  display:grid;place-content:center}
+.fl-crown__seal::before{content:"";width:14px;height:14px;border-radius:50%;border:1px dashed rgba(var(--fl-jade-gilt),.6)}
+.fl-crown__seal::after{content:"岚";position:absolute;font-family:var(--fl-f-display);font-size:10px;font-weight:600;color:var(--fl-moss-d);text-shadow:none}
+/* 收口三线：主金线 + 伴线 + 极细底线，层次比原来更丰富，读出"镶边有厚度" */
+.fl-crown::after{content:"";position:absolute;left:10%;right:10%;bottom:2px;height:1.4px;
+  background:linear-gradient(90deg,transparent,rgba(198,172,114,.65) 18%,rgba(198,172,114,.92) 50%,rgba(198,172,114,.65) 82%,transparent)}
+.fl-crown::before{content:"";position:absolute;left:20%;right:20%;bottom:6px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(198,172,114,.35) 30%,rgba(198,172,114,.5) 50%,rgba(198,172,114,.35) 70%,transparent)}
 
 /* ─────────────── 页容器 ─────────────── */
 .fl-stagewrap{position:fixed;inset:0}
@@ -101,7 +198,7 @@ p{margin:0}
 .fl-page.is-active{display:block;animation:flIn .42s cubic-bezier(.22,.75,.3,1)}
 @keyframes flIn{from{opacity:0;transform:scale(.985);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
 .fl-page__bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;pointer-events:none}
-.fl-page__bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(240,248,243,.5) 55%,rgba(232,242,235,.72));opacity:var(--fl-bg-veil,1)}
+.fl-page[data-has-bg="1"] .fl-page__bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(240,248,243,.5) 55%,rgba(232,242,235,.72));opacity:var(--fl-bg-veil,1)}
 .fl-page[data-has-bg="1"]{background-image:none}
 .fl-page::before{ /* 叶脉水印 */
   content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5;
@@ -114,22 +211,42 @@ p{margin:0}
 .fl-scroll--read{padding-top:calc(var(--fl-status-h) + var(--fl-safe-t) + 104px);padding-bottom:150px}
 .fl-scroll::-webkit-scrollbar{width:0}
 
-/* ─────────────── 顶栏 ─────────────── */
+/* ─────────────── 顶栏 ───────────────
+   顶栏是玉牌的下半段，同一色源（--fl-jade-*）往下浮起，同时叠一层斜向
+   扫光延续状态栏的"打磨面"质感，不是两段各自取色的接续。
+   底部收边不再是单一细线，而是金线 + 极浅投影两层，读出真实厚度。 */
 .fl-topbar{
   position:absolute;z-index:12;top:calc(var(--fl-status-h) + var(--fl-safe-t));left:0;right:0;height:56px;
   display:flex;align-items:center;gap:12px;padding:0 16px;
-  background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(255,255,255,.42) 70%,rgba(255,255,255,0));
+  background:
+    linear-gradient(115deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 30%,rgba(255,255,255,0) 100%),
+    linear-gradient(180deg,
+      rgba(var(--fl-jade-1),0) 0%,
+      rgba(var(--fl-jade-2),calc(var(--fl-jade-a) * .55)) 30%,
+      rgba(var(--fl-jade-2),calc(var(--fl-jade-a) * .96)) 66%,
+      rgba(var(--fl-jade-2),calc(var(--fl-jade-a) * .96)) 100%);
   backdrop-filter:var(--fl-glass);
+  box-shadow:0 1px 0 rgba(var(--fl-jade-gilt),.28),0 10px 20px -14px rgba(var(--fl-jade-ink),.5);
 }
 .fl-topbar h2{font-family:var(--fl-f-display);font-size:21px;letter-spacing:.16em;font-weight:600;flex:1}
 .fl-topbar__t{flex:1;min-width:0}
 .fl-topbar__t h2{font-size:18px;letter-spacing:.1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fl-topbar__t span{display:block;font-family:var(--fl-f-util);font-size:10.5px;letter-spacing:.18em;color:var(--fl-ink-3);text-transform:uppercase}
-.fl-back{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.8);box-shadow:inset 0 0 0 1px var(--fl-line),var(--fl-sh-1);position:relative;flex:0 0 auto}
+/* 返回键与操作图标：不再是"贴在玉牌上的白色贴纸"，而是玉牌本身凹雕出来的一枚圆钮——
+   同色系但略深一阶，内凹阴影 + 边缘一圈错金描边，像是从玉牌上直接雕出来的按钮 */
+.fl-back{width:36px;height:36px;border-radius:50%;position:relative;flex:0 0 auto;
+  background:linear-gradient(160deg,rgba(var(--fl-jade-1),.9),rgba(var(--fl-jade-2),.75));
+  box-shadow:0 0 0 1px rgba(var(--fl-jade-gilt),.35),inset 0 1px 1px rgba(255,255,255,.7),inset 0 -2px 4px rgba(var(--fl-jade-ink),.14),0 3px 8px -4px rgba(var(--fl-jade-ink),.4);
+  transition:transform .18s cubic-bezier(.3,.8,.4,1.4),box-shadow .18s}
+.fl-back:active{transform:scale(.9);box-shadow:0 0 0 1px rgba(var(--fl-jade-gilt),.5),inset 0 2px 5px rgba(var(--fl-jade-ink),.3)}
 .fl-back::before{content:"";position:absolute;left:14px;top:12px;width:9px;height:9px;border-left:1.6px solid var(--fl-moss-d);border-bottom:1.6px solid var(--fl-moss-d);transform:rotate(45deg)}
 .fl-txtbtn{font-family:var(--fl-f-util);font-size:12.5px;letter-spacing:.12em;color:var(--fl-moss-d);padding:6px 10px;border-radius:12px;position:relative}
 .fl-txtbtn::after{content:"";position:absolute;left:10px;right:10px;bottom:4px;height:1px;background:linear-gradient(90deg,transparent,var(--fl-celadon),transparent)}
-.fl-iconbtn{width:36px;height:36px;border-radius:50%;display:grid;place-content:center;gap:3.5px;background:rgba(255,255,255,.8);box-shadow:inset 0 0 0 1px var(--fl-line)}
+.fl-iconbtn{width:36px;height:36px;border-radius:50%;display:grid;place-content:center;gap:3.5px;position:relative;
+  background:linear-gradient(160deg,rgba(var(--fl-jade-1),.9),rgba(var(--fl-jade-2),.75));
+  box-shadow:0 0 0 1px rgba(var(--fl-jade-gilt),.35),inset 0 1px 1px rgba(255,255,255,.7),inset 0 -2px 4px rgba(var(--fl-jade-ink),.14);
+  transition:transform .18s cubic-bezier(.3,.8,.4,1.4)}
+.fl-iconbtn:active{transform:scale(.9)}
 .fl-iconbtn i{display:block;width:14px;height:1.6px;border-radius:2px;background:var(--fl-moss-d)}
 .fl-iconbtn i:nth-child(2){width:9px;margin-left:5px}
 .fl-count{font-family:var(--fl-f-util);font-size:12px;color:var(--fl-ink-3);letter-spacing:.1em}
@@ -390,7 +507,8 @@ p{margin:0}
 /* 行内 */
 .fl-em{color:var(--fl-em);font-weight:600;background:linear-gradient(180deg,transparent 62%,rgba(169,205,183,.5) 62%);padding:0 2px;border-radius:2px}
 .fl-note-chip{display:inline;color:var(--fl-moss-d);border-bottom:1px dashed var(--fl-moss);cursor:pointer;padding:0 1px}
-.fl-note-chip::after{content:"◇";font-size:.7em;vertical-align:super;margin-left:1px;color:var(--fl-celadon)}
+.fl-note-chip::after{content:"";display:inline-block;width:4.5px;height:4.5px;margin-left:4px;vertical-align:.42em;
+  background:var(--fl-celadon);transform:rotate(45deg);box-shadow:0 0 0 1px rgba(255,255,255,.7)}
 .fl-tts{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;margin-left:6px;vertical-align:middle;
   background:rgba(255,255,255,.9);box-shadow:inset 0 0 0 1px var(--fl-line)}
 .fl-tts svg{width:11px;height:11px;fill:var(--fl-moss-d)}
@@ -652,32 +770,57 @@ p{margin:0}
 .fl-guide p{font-size:12.8px;line-height:2.05;color:var(--fl-ink-2);margin-bottom:8px}
 .fl-guide .fl-card{margin-bottom:14px}
 
-/* ─────────────── 坞（导航） ─────────────── */
+/* ─────────────── 坞（导航） ───────────────
+   材质：与状态栏/顶栏同一套 --fl-jade-* 玉牌系统，不再各自取色。
+   新增的"华丽感"来自三处：
+   1) 弧顶錾一圈错金描边 + 内侧一道珠光高光，读出实体厚度而非纸片
+   2) 每个 tab 激活时有一次"印泥落款"式的上浮 + 底部微光展开动画（非默认的纯变色）
+   3) 中央印玺按钮按下时有墨晕扩散涟漪 + 回弹，是整条坞唯一的高光交互 */
 .fl-dock{position:fixed;left:0;right:0;bottom:0;height:calc(var(--fl-dock-h) + var(--fl-safe-b));z-index:100;
   padding-bottom:var(--fl-safe-b);display:flex;align-items:flex-end;justify-content:space-around}
 .fl-dock__arc{position:absolute;inset:0;width:100%;height:100%}
-.fl-dock__fill{fill:rgba(255,255,255,.9)}
-.fl-dock__edge{fill:none;stroke:rgba(95,144,119,.3);stroke-width:1}
+.fl-dock__fill{fill:rgba(var(--fl-jade-1),var(--fl-jade-a))}
+.fl-dock__edge{fill:none;stroke:url(#flGiltGrad);stroke-width:1.3;opacity:.85}
+.fl-dock__hi{fill:none;stroke:rgba(255,255,255,.6);stroke-width:1}
 .fl-dock::before{content:"";position:absolute;inset:0;backdrop-filter:var(--fl-glass);
+  background:linear-gradient(115deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 40%);
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 96' preserveAspectRatio='none'%3E%3Cpath d='M0 30 C 70 30, 108 6, 195 6 C 282 6, 320 30, 390 30 L390 96 L0 96 Z' fill='%23000'/%3E%3C/svg%3E") center/100% 100% no-repeat;
   mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 96' preserveAspectRatio='none'%3E%3Cpath d='M0 30 C 70 30, 108 6, 195 6 C 282 6, 320 30, 390 30 L390 96 L0 96 Z' fill='%23000'/%3E%3C/svg%3E") center/100% 100% no-repeat}
-.fl-dock__p{position:relative;z-index:2;flex:1;display:grid;justify-items:center;gap:5px;padding-bottom:12px;color:var(--fl-ink-3)}
-.fl-dock__p em{font-style:normal;font-family:var(--fl-f-util);font-size:9.5px;letter-spacing:.16em}
+.fl-dock__p{position:relative;z-index:2;flex:1;display:grid;justify-items:center;gap:5px;padding-bottom:12px;color:var(--fl-ink-3);
+  transition:transform .32s cubic-bezier(.22,1.4,.36,1),color .25s}
+.fl-dock__p em{position:relative;font-style:normal;font-family:var(--fl-f-util);font-size:9.5px;letter-spacing:.16em}
 .fl-dock__gl{width:23px;height:23px;display:block;background:currentColor;
-  -webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+  -webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;
+  transition:transform .32s cubic-bezier(.22,1.4,.36,1)}
 .fl-dock__gl[data-gl="scroll"]{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.4'%3E%3Cpath d='M6 4h10a2 2 0 012 2v14H8a2 2 0 01-2-2z'/%3E%3Cpath d='M6 4a2 2 0 00-2 2v2h2M9 9h6M9 13h6'/%3E%3C/g%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.4'%3E%3Cpath d='M6 4h10a2 2 0 012 2v14H8a2 2 0 01-2-2z'/%3E%3Cpath d='M6 4a2 2 0 00-2 2v2h2M9 9h6M9 13h6'/%3E%3C/g%3E%3C/svg%3E")}
 .fl-dock__gl[data-gl="letter"]{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.4'%3E%3Crect x='3' y='6' width='18' height='13' rx='2'/%3E%3Cpath d='M3 8l9 6 9-6'/%3E%3C/g%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.4'%3E%3Crect x='3' y='6' width='18' height='13' rx='2'/%3E%3Cpath d='M3 8l9 6 9-6'/%3E%3C/g%3E%3C/svg%3E")}
 .fl-dock__gl[data-gl="curtain"]{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.4'%3E%3Cpath d='M3 4h18M6 4v16c3 0 4-4 4-8s-1-8-4-8zM18 4v16c-3 0-4-4-4-8s1-8 4-8z'/%3E%3C/g%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.4'%3E%3Cpath d='M3 4h18M6 4v16c3 0 4-4 4-8s-1-8-4-8zM18 4v16c-3 0-4-4-4-8s1-8 4-8z'/%3E%3C/g%3E%3C/svg%3E")}
 .fl-dock__gl[data-gl="case"]{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.4'%3E%3Crect x='3' y='8' width='18' height='12' rx='2.5'/%3E%3Cpath d='M9 8V6a3 3 0 016 0v2M3 13h18'/%3E%3C/g%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.4'%3E%3Crect x='3' y='8' width='18' height='12' rx='2.5'/%3E%3Cpath d='M9 8V6a3 3 0 016 0v2M3 13h18'/%3E%3C/g%3E%3C/svg%3E")}
-.fl-dock__p.is-on{color:var(--fl-moss-d)}
-.fl-dock__p.is-on .fl-dock__gl{filter:drop-shadow(0 2px 6px rgba(95,144,119,.7))}
-.fl-dock__seal{position:relative;z-index:3;flex:0 0 auto;width:64px;height:64px;margin-bottom:20px;border-radius:50%;display:grid;place-content:center;
+/* 激活态：整个 tab 轻轻上浮 + 图标"落章"式微弹，下方浮出一小片金色印泥光晕，
+   取代原本"只是变个颜色"的默认交互 */
+.fl-dock__p.is-on{color:var(--fl-moss-d);transform:translateY(-3px)}
+.fl-dock__p.is-on .fl-dock__gl{filter:drop-shadow(0 3px 8px rgba(95,144,119,.55));animation:dockSeat .42s cubic-bezier(.3,1.6,.4,1)}
+.fl-dock__p.is-on em::before{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;
+  background:var(--fl-gilt);box-shadow:0 0 6px 1px rgba(198,172,114,.8);animation:dockDot .3s ease .1s both}
+@keyframes dockSeat{0%{transform:scale(1)}40%{transform:scale(.82) translateY(2px)}70%{transform:scale(1.1)}100%{transform:scale(1)}}
+@keyframes dockDot{from{opacity:0;transform:translateX(-50%) scale(0)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+/* 中央印玺按钮：按下时墨晕从中心扩散 + 轻微回弹，模拟"落印"的触感反馈——
+   这是整条坞里唯一的重手笔交互，克制地只放在一个最该有分量的地方 */
+.fl-dock__seal{position:relative;z-index:3;flex:0 0 auto;width:64px;height:64px;margin-bottom:20px;border-radius:50%;display:grid;place-content:center;overflow:hidden;
   background:radial-gradient(circle at 34% 28%,#FFFFFF,#E4F1E8 58%,#C9E1D4);
-  box-shadow:0 0 0 1px var(--fl-line),0 14px 30px -14px rgba(47,90,68,.9),inset 0 -6px 14px rgba(95,144,119,.18),inset 0 2px 4px rgba(255,255,255,.9)}
+  box-shadow:0 0 0 1.5px rgba(198,172,114,.5),0 14px 30px -14px rgba(47,90,68,.9),inset 0 -6px 14px rgba(95,144,119,.18),inset 0 2px 4px rgba(255,255,255,.9);
+  transition:transform .3s cubic-bezier(.3,1.5,.4,1)}
+.fl-dock__seal:active{transform:scale(.9)}
+.fl-dock__seal::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(95,144,119,.35),transparent 70%);
+  opacity:0;transform:scale(0);transition:none}
+.fl-dock__seal:active::after{opacity:1;transform:scale(1);transition:transform .55s cubic-bezier(.16,.9,.24,1),opacity .55s ease .1s}
 .fl-dock__sealring{position:absolute;inset:6px;border-radius:50%;border:1px dashed rgba(95,144,119,.4)}
-.fl-dock__sealtxt{font-family:var(--fl-f-display);font-size:23px;color:var(--fl-moss-d);letter-spacing:0}
+.fl-dock__sealtxt{position:relative;z-index:1;font-family:var(--fl-f-display);font-size:23px;color:var(--fl-moss-d);letter-spacing:0}
 body[data-mode="ens"] .fl-dock__seal{background:radial-gradient(circle at 34% 28%,#FFFFFF,#FAEDF1 58%,#EBD3DC)}
 body[data-mode="ens"] .fl-dock__sealtxt{color:var(--fl-sakura-d)}
+@media (prefers-reduced-motion:reduce){
+  .fl-dock__p,.fl-dock__gl,.fl-dock__seal{transition-duration:.01ms!important;animation-duration:.01ms!important}
+}
 
 /* ─────────────── 自绘 模态 / 抽屉 / 吐司 / 悬浮注 ─────────────── */
 .fl-modal,.fl-sheet{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:26px}
@@ -730,6 +873,15 @@ body[data-mode="ens"] .fl-dock__sealtxt{color:var(--fl-sakura-d)}
 .fl-loading__mist{width:74px;height:74px;border-radius:50%;background:conic-gradient(from 0deg,transparent,rgba(169,205,183,.9),transparent 70%);
   animation:flSpin 1.15s linear infinite;box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)}
 .fl-loading p{font-family:var(--fl-f-util);font-size:11px;letter-spacing:.3em;color:var(--fl-moss-d)}
+.fl-tagline--br{color:var(--fl-sakura-d);box-shadow:inset 0 0 0 1px rgba(185,113,138,.42)}
+.fl-loading__s{font-size:11px;letter-spacing:.08em;color:var(--fl-ink-3);max-width:250px;text-align:center;line-height:1.8;min-height:1em}
+
+/* 启动兜底层：只有在 JS 崩溃时才会出现 */
+.fl-fatal{position:fixed;inset:0;z-index:400;display:grid;place-content:center;padding:34px;background:linear-gradient(160deg,#F4F9F5,#E1EDE6)}
+.fl-fatal__bx{max-width:320px;text-align:center;padding:30px 26px;border-radius:26px;background:rgba(255,255,255,.95);
+  box-shadow:inset 0 0 0 1px var(--fl-line),0 30px 60px -26px rgba(24,60,42,.55)}
+.fl-fatal__bx b{display:block;font-family:var(--fl-f-display);font-size:21px;letter-spacing:.2em;color:var(--fl-moss-d);margin-bottom:12px}
+.fl-fatal__bx p{font-size:12px;line-height:1.9;color:var(--fl-ink-2);word-break:break-all;margin-bottom:20px}
 
 /* 空态 */
 .fl-empty{text-align:center;padding:52px 24px;color:var(--fl-ink-3)}

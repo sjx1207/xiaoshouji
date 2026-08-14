@@ -2,11 +2,10 @@
    档案袋 · dossier.js
    —— 与 characters.html 共用同一份 LunaCharDB / chars store
    —— 仅读取并展示基础资料字段，绝不触碰人设/性格/背景故事等机密字段
-   —— 「纸品档案室」重设计版：架上总览网格 + 单卷详读双视图，
-      六色卷宗轮换、搜索筛选、关系圈全部升级为独立整页并自带状态栏
+   —— 单一珠光白 ins 风档案卡（重设计版，替换原 20 种材质拼贴风格）
 ================================================================ */
 
-/* ---------------- 状态栏：完整同步主应用逻辑（支持页面内多个副本） ---------------- */
+/* ---------------- 状态栏：完整同步主应用逻辑 ---------------- */
 function updateTime() {
   const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
   const now = new Date();
@@ -24,7 +23,7 @@ function updateBattery() {
       el.style.width      = p + '%';
       el.style.background = p <= 20
         ? 'linear-gradient(90deg,#f3b8c4,#e88ba0)'
-        : 'linear-gradient(90deg,#a8e0c4,#7fd09f)';
+        : 'linear-gradient(90deg,#b7e3c9,#8fd6ac)';
     });
   }
   if ('getBattery' in navigator) {
@@ -150,18 +149,6 @@ function avatarInner(c) {
   return escHtml(letterOf(c));
 }
 
-/* ---------------- 卷宗色系分配：按角色 id/name 哈希稳定分配 folio-0 ~ folio-5 ---------------- */
-function hashStr(str) {
-  let h = 0;
-  const s = String(str);
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
-function folioClass(c) {
-  const key = (c.id != null ? c.id : c.name) || 'x';
-  return 'folio-' + (hashStr(key) % 6);
-}
-
 const LOCK_SVG = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none"><rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 
 function lockNote() {
@@ -195,15 +182,12 @@ function kvRowsHtml(c) {
 const TAP_SVG = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 /* ================================================================
-   单一档案卡渲染 —— 卷宗标签夹：顶部丝带头像 + 状态徽标 + 资料行 + 特质
-   —— 底部改为明确的可点按按钮，取代原先容易失手的手势判定
+   单一档案卡渲染 —— 珠光白卡片：顶部丝带头像 + 状态徽标 + 资料行 + 特质
 ================================================================ */
 function renderCardHtml(c, isActive) {
   return `
-    <div class="ds-card-shell ${folioClass(c)}">
-      <div class="ds-card-spine"></div>
-      <div class="ds-card-tab">
-        <div class="ds-card-tab-corner"></div>
+    <div class="ds-card-shell">
+      <div class="ds-card-ribbon">
         <div class="ds-avatar-seal">${avatarInner(c)}</div>
       </div>
       <div class="ds-card-body">
@@ -215,9 +199,7 @@ function renderCardHtml(c, isActive) {
         ${kvRowsHtml(c)}
         ${traitChips(c)}
         ${lockNote()}
-        <button type="button" class="ds-tap-hint" id="dsOpenRcBtn">
-          <span>进入关系圈</span>${TAP_SVG}
-        </button>
+        <div class="ds-tap-hint"><span>轻触查看关系圈</span>${TAP_SVG}</div>
       </div>
     </div>`;
 }
@@ -228,143 +210,167 @@ function renderCardHtml(c, isActive) {
 let _chars = [];
 let _activeCharId = null;
 let _curIndex = 0;
-let _viewMode = 'shelf';       // 'shelf' 架上总览 | 'stage' 单卷详读
+let _viewMode = 'stage';   // 'stage' 单卷详读 | 'shelf' 架上总览
 let _searchQuery = '';
-let _activeFilterOn = false;
-let _tagFilter = null;
+let _activeOnly = false;
+let _activeTag = null;
 
 async function loadAndRender() {
   _chars = await getAllChars();
   _activeCharId = parseInt(localStorage.getItem('luna_active_char')) || null;
 
   if (!_chars.length) {
-    showEmptyState(true);
+    document.getElementById('dsStage').innerHTML = '';
+    document.getElementById('dsStage').style.display = 'none';
+    document.getElementById('dsEmpty').style.display = '';
+    document.querySelector('.ds-control').style.display = 'none';
+    document.getElementById('dsFilmstrip').style.display = 'none';
+    document.getElementById('dsShelf').style.display = 'none';
+    document.getElementById('dsSearchRow').style.display = 'none';
+    document.getElementById('dsTagScroll').style.display = 'none';
     return;
   }
-  showEmptyState(false);
-
+  document.getElementById('dsEmpty').style.display = 'none';
   if (_curIndex >= _chars.length) _curIndex = 0;
-  renderCurrentView();
+
+  applyViewModeDisplay();
+  renderStage();
+  renderFilmstrip();
+  renderDots();
+  updateIndexLabel();
+  renderShelf();
+  renderTagScroll();
 }
 
-function showEmptyState(isEmpty) {
-  document.getElementById('dsEmpty').style.display = isEmpty ? '' : 'none';
-  const hide = isEmpty ? 'none' : '';
-  document.getElementById('dsSearchRow').style.display = isEmpty ? 'none' : (_viewMode === 'shelf' ? 'flex' : 'none');
-  if (isEmpty) {
-    document.getElementById('dsShelf').style.display = 'none';
-    document.getElementById('dsStage').style.display = 'none';
-    document.getElementById('dsControl').style.display = 'none';
-    document.getElementById('dsFilmstrip').style.display = 'none';
-    document.getElementById('dsTagScroll').style.display = 'none';
-  }
-}
+/* ---------------- 架上总览 / 单卷详读 切换 ---------------- */
+function applyViewModeDisplay() {
+  const stage  = document.getElementById('dsStage');
+  const ctrl   = document.querySelector('.ds-control');
+  const film   = document.getElementById('dsFilmstrip');
+  const shelf  = document.getElementById('dsShelf');
+  const searchRow = document.getElementById('dsSearchRow');
+  const tagScroll  = document.getElementById('dsTagScroll');
+  const multi = _chars.length > 1;
 
-function allTags() {
-  const set = new Set();
-  _chars.forEach(c => (Array.isArray(c.traits) ? c.traits : []).forEach(t => set.add(t)));
-  return Array.from(set).slice(0, 14);
-}
+  document.getElementById('btnViewShelf').classList.toggle('active', _viewMode === 'shelf');
+  document.getElementById('btnViewStage').classList.toggle('active', _viewMode === 'stage');
 
-function filteredChars() {
-  let list = _chars;
-  if (_activeFilterOn && _activeCharId != null) {
-    list = list.filter(c => c.id === _activeCharId);
-  }
-  if (_tagFilter) {
-    list = list.filter(c => Array.isArray(c.traits) && c.traits.includes(_tagFilter));
-  }
-  const q = _searchQuery.trim().toLowerCase();
-  if (q) {
-    list = list.filter(c => {
-      const hay = [c.name, c.role, c.species, ...(Array.isArray(c.traits) ? c.traits : [])]
-        .filter(Boolean).join(' ').toLowerCase();
-      return hay.includes(q);
-    });
-  }
-  return list;
-}
-
-/* ---------------- 视图切换：架上总览 / 单卷详读 ---------------- */
-function setViewMode(mode) {
-  _viewMode = mode;
-  document.getElementById('btnViewShelf').classList.toggle('active', mode === 'shelf');
-  document.getElementById('btnViewStage').classList.toggle('active', mode === 'stage');
-  renderCurrentView();
-}
-
-function renderCurrentView() {
-  if (!_chars.length) { showEmptyState(true); return; }
-  showEmptyState(false);
-
-  const isShelf = _viewMode === 'shelf';
-  document.getElementById('dsSearchRow').style.display = isShelf ? 'flex' : 'none';
-  document.getElementById('dsTagScroll').style.display = isShelf ? 'flex' : 'none';
-  document.getElementById('dsShelf').style.display = isShelf ? 'grid' : 'none';
-  document.getElementById('dsStage').style.display = isShelf ? 'none' : 'flex';
-  document.getElementById('dsControl').style.display = isShelf ? 'none' : 'flex';
-  document.getElementById('dsFilmstrip').style.display = isShelf ? 'none' : 'flex';
-
-  if (isShelf) {
-    renderTagScroll();
-    renderShelf();
+  if (_viewMode === 'shelf') {
+    stage.style.display = 'none';
+    ctrl.style.display = 'none';
+    film.style.display = 'none';
+    shelf.style.display = '';
+    searchRow.style.display = '';
+    tagScroll.style.display = '';
   } else {
-    renderStage();
-    renderFilmstrip();
-    renderDots();
-    updateIndexLabel();
+    stage.style.display = '';
+    ctrl.style.display = multi ? '' : 'none';
+    film.style.display = multi ? '' : 'none';
+    shelf.style.display = 'none';
+    searchRow.style.display = 'none';
+    tagScroll.style.display = 'none';
   }
 }
 
-function renderTagScroll() {
-  const wrap = document.getElementById('dsTagScroll');
-  const tags = allTags();
-  if (!tags.length) { wrap.innerHTML = ''; return; }
-  wrap.innerHTML = `<button class="ds-tag-pill${!_tagFilter?' active':''}" onclick="setTagFilter(null)">全部</button>` +
-    tags.map(t => `<button class="ds-tag-pill${_tagFilter===t?' active':''}" onclick="setTagFilter('${t.replace(/'/g,"\\'")}')">${escHtml(t)}</button>`).join('');
-}
-function setTagFilter(tag) { _tagFilter = tag; renderCurrentView(); }
-
-function toggleActiveFilter() {
-  _activeFilterOn = !_activeFilterOn;
-  document.getElementById('btnActiveFilter').classList.toggle('active', _activeFilterOn);
-  renderCurrentView();
+function setViewMode(mode) {
+  if (mode === _viewMode) return;
+  _viewMode = mode;
+  applyViewModeDisplay();
+  if (mode === 'shelf') renderShelf();
 }
 
 function onSearchInput() {
-  _searchQuery = document.getElementById('dsSearchInput').value;
+  _searchQuery = (document.getElementById('dsSearchInput').value || '').trim().toLowerCase();
   renderShelf();
+}
+
+function toggleActiveFilter() {
+  _activeOnly = !_activeOnly;
+  document.getElementById('btnActiveFilter').classList.toggle('active', _activeOnly);
+  renderShelf();
+}
+
+function toggleTagFilter(tag) {
+  _activeTag = (_activeTag === tag) ? null : tag;
+  renderTagScroll();
+  renderShelf();
+}
+
+function allTagsInUse() {
+  const set = new Set();
+  _chars.forEach(c => (Array.isArray(c.traits) ? c.traits : []).forEach(t => set.add(t)));
+  return Array.from(set).slice(0, 16);
+}
+
+function renderTagScroll() {
+  const el = document.getElementById('dsTagScroll');
+  const tags = allTagsInUse();
+  if (!tags.length) { el.innerHTML = ''; return; }
+  el.innerHTML = tags.map(t => `
+    <button class="ds-tag-pill${t === _activeTag ? ' active' : ''}" onclick="toggleTagFilter('${escHtml(t).replace(/'/g,"\\'")}')">${escHtml(t)}</button>
+  `).join('');
+}
+
+function filteredChars() {
+  return _chars.filter(c => {
+    if (_activeOnly && c.id !== _activeCharId) return false;
+    if (_activeTag && !(Array.isArray(c.traits) && c.traits.includes(_activeTag))) return false;
+    if (_searchQuery) {
+      const hay = [c.name, c.role, ...(Array.isArray(c.traits) ? c.traits : [])].join(' ').toLowerCase();
+      if (!hay.includes(_searchQuery)) return false;
+    }
+    return true;
+  });
+}
+
+function folioClass(c, i) {
+  const idx = Math.abs(relationHashSafe(c.id != null ? String(c.id) : String(i))) % 6;
+  return `folio-${idx}`;
+}
+function relationHashSafe(str) {
+  let h = 0;
+  const s = String(str);
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
 }
 
 function renderShelf() {
   const shelf = document.getElementById('dsShelf');
+  if (_viewMode !== 'shelf') return;
   const list = filteredChars();
   if (!list.length) {
-    shelf.innerHTML = `<div class="ds-shelf-empty-hint">未找到匹配的档案，换个关键词试试</div>`;
+    shelf.innerHTML = `<div class="ds-shelf-empty-hint">没有匹配的档案</div>`;
     return;
   }
   shelf.innerHTML = list.map((c, i) => {
     const isActive = c.id === _activeCharId;
     const realIndex = _chars.indexOf(c);
     return `
-    <div class="ds-folio-tile ${folioClass(c)}" style="animation-delay:${Math.min(i,8)*0.04}s" onclick="openStageAt(${realIndex})" tabindex="0" role="button" aria-label="打开 ${escHtml(c.name||'未命名')} 的档案">
-      <div class="ds-folio-tab">
-        <div class="ds-folio-tab-corner"></div>
-        ${isActive ? '<div class="ds-folio-active-dot" title="当前激活"></div>' : ''}
-        <div class="ds-folio-avatar">${avatarInner(c)}</div>
-      </div>
-      <div class="ds-folio-body">
-        <div class="ds-folio-name">${escHtml(c.name||'未命名')}</div>
-        <div class="ds-folio-role">${c.role ? escHtml(c.role) : '定位未设置'}</div>
-        <div class="ds-folio-no">No.${String(c.id||0).padStart(4,'0')}</div>
+    <div class="ds-folio-tile ${folioClass(c, i)}" style="animation-delay:${i * 0.04}s" onclick="openFromShelf(${realIndex})" tabindex="0">
+      <div class="ds-folio-tab-ear"></div>
+      <div class="ds-folio-body-wrap">
+        <div class="ds-folio-tab">
+          ${isActive ? '<div class="ds-folio-active-dot"></div>' : ''}
+          <div class="ds-folio-avatar">${avatarInner(c)}</div>
+        </div>
+        <div class="ds-folio-body">
+          <div class="ds-folio-name">${escHtml(c.name || '未命名')}</div>
+          <div class="ds-folio-role">${fmtVal(c.role, '定位未设置')}</div>
+          <div class="ds-folio-no">NO.${String(c.id || 0).padStart(4, '0')}</div>
+        </div>
       </div>
     </div>`;
   }).join('');
 }
 
-function openStageAt(index) {
-  _curIndex = index;
-  setViewMode('stage');
+function openFromShelf(i) {
+  _curIndex = i;
+  _viewMode = 'stage';
+  applyViewModeDisplay();
+  renderStage();
+  renderFilmstrip();
+  renderDots();
+  updateIndexLabel();
 }
 
 function renderStage() {
@@ -383,13 +389,32 @@ function renderStage() {
   stage.appendChild(shadow);
   stage.appendChild(card);
 
-  const openBtn = card.querySelector('#dsOpenRcBtn');
-  if (openBtn) openBtn.addEventListener('click', () => openRelationCircle());
+  bindCardTapToOpen(card);
 
   const prevBtn = document.getElementById('btnPrev');
   const nextBtn = document.getElementById('btnNext');
   prevBtn.disabled = _chars.length <= 1;
   nextBtn.disabled = _chars.length <= 1;
+}
+
+/* 点击档案袋卡片本身 → 进入该角色的关系圈整页（与左右滑动切换手势不冲突：
+   仅在按下与抬起位置几乎未移动时才判定为"点击"，否则视为滑动手势） */
+function bindCardTapToOpen(card) {
+  let downX = 0, downY = 0, moved = false;
+  const THRESHOLD = 8;
+  const onDown = (x, y) => { downX = x; downY = y; moved = false; };
+  const onMove = (x, y) => { if (Math.abs(x - downX) > THRESHOLD || Math.abs(y - downY) > THRESHOLD) moved = true; };
+  const onUp = () => { if (!moved) openRelationCircle(); };
+
+  let pressed = false;
+  card.addEventListener('mousedown', e => { pressed = true; onDown(e.clientX, e.clientY); });
+  card.addEventListener('mousemove', e => { if (pressed) onMove(e.clientX, e.clientY); });
+  card.addEventListener('mouseup', e => { pressed = false; onUp(); });
+  card.addEventListener('mouseleave', () => { pressed = false; });
+
+  card.addEventListener('touchstart', e => { const t = e.touches[0]; onDown(t.clientX, t.clientY); }, { passive: true });
+  card.addEventListener('touchmove', e => { const t = e.touches[0]; onMove(t.clientX, t.clientY); }, { passive: true });
+  card.addEventListener('touchend', onUp, { passive: true });
 }
 
 function renderDots() {
@@ -449,12 +474,28 @@ function jumpTo(i) {
   transitionTo(i);
 }
 
-/* ---------------- 滑动手势（触屏左右滑动切换，仅单卷详读模式） ---------------- */
+/* “重新分配样式”按钮：卡片已统一为单一风格，改为轻量刷新动效，保留按钮交互反馈 */
+function shuffleStyles() {
+  const btn = document.getElementById('btnShuffle');
+  btn.style.transform = 'rotate(180deg)';
+  setTimeout(() => { btn.style.transform = ''; }, 320);
+
+  const stage = document.getElementById('dsStage');
+  const card = stage.querySelector('.dossier-card');
+  if (card) {
+    card.style.animation = 'none';
+    void card.offsetWidth;
+    card.style.animation = '';
+    card.classList.remove('leaving');
+  }
+  renderStage();
+}
+
+/* ---------------- 滑动手势（触屏左右滑动切换） ---------------- */
 (function initSwipe(){
   let startX = 0, startY = 0, tracking = false;
   const stage = document.getElementById('dsStage');
   stage.addEventListener('touchstart', e => {
-    if (_viewMode !== 'stage') return;
     startX = e.touches[0].clientX; startY = e.touches[0].clientY; tracking = true;
   }, { passive:true });
   stage.addEventListener('touchend', e => {
@@ -472,7 +513,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { goBack(); return; }
   const rcOpen = document.getElementById('rcPage')?.classList.contains('show');
   if (rcOpen) return; // 关系圈打开时不响应档案切换快捷键
-  if (_viewMode !== 'stage') return;
   if (e.key === 'ArrowLeft') gotoPrev();
   if (e.key === 'ArrowRight') gotoNext();
 });
@@ -485,15 +525,14 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(updateTime, 30000);
   updateBattery();
   applyIsland();
-  setViewMode('shelf');
   loadAndRender();
 });
 /* ================================================================================================
    关系圈 · RELATION CIRCLE
    —— 所有关系人物（NPC）均为该角色专属私有档案，独立存储，绝不写入角色库(chars store)
    —— 由 AI 读取角色人设后推演生成，用户勾选后归档；归档后可再次调用 AI 补全完整人设
-   —— 独立整页视图：openRelationCircle 切入 #rcPage 整页（自带状态栏），
-      通过顶部返回按钮 / goBack() 逐层收起
+   —— 现为独立整页视图（非弹窗）：openRelationCircle 会切入 #rcPage 整页，
+      通过顶部返回按钮 / goBack() 逐层收起，不使用居中弹窗/遮罩交互
 ================================================================================================ */
 
 /* ---------------- 专属 IndexedDB：LunaCharDB / npc_relations ---------------- */
@@ -552,10 +591,15 @@ async function getNpcsForOwner(ownerId) {
 async function addNpc(record) {
   const db = await openRcDB();
   return new Promise((res, rej) => {
+    let settled = false;
     const tx = db.transaction('npc_relations', 'readwrite');
     const req = tx.objectStore('npc_relations').add(record);
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error);
+    // req.onsuccess fires before the tx actually commits; wait for the
+    // transaction itself so a late abort (quota, versionchange race, etc.)
+    // can never leave the save silently unresolved.
+    req.onsuccess = () => { if (!settled) { settled = true; res(req.result); } };
+    req.onerror = () => { if (!settled) { settled = true; rej(req.error || new Error('ADD_NPC_FAILED')); } };
+    tx.onabort = () => { if (!settled) { settled = true; rej(tx.error || new Error('TX_ABORTED')); } };
   });
 }
 async function putNpc(record) {
@@ -647,13 +691,15 @@ let _rcNpcs = [];          // 该角色已归档的 NPC 列表
 let _rcCandidates = [];    // AI 建议结果（尚未归档）
 let _rcSelected = new Set();
 let _rcActiveNpcId = null;
-let _rcPendingDeleteId = null;
 
 function currentDossierChar() {
   return _chars[_curIndex] || null;
 }
 
-/* ---------------- 打开 / 关闭 关系圈整页 ---------------- */
+/* ---------------- 打开 / 关闭 关系圈整页 ----------------
+   不再使用底部弹出的居中 modal + 遮罩：改为从右侧滑入的全屏页面，
+   与档案袋主页视觉体系一致（同一套浅白/薰衣紫渐变背景）。
+------------------------------------------------------------ */
 async function openRelationCircle() {
   const c = currentDossierChar();
   if (!c) return;
@@ -663,7 +709,6 @@ async function openRelationCircle() {
   page.classList.add('show');
   page.setAttribute('aria-hidden', 'false');
   page.scrollTop = 0;
-  updateTime(); updateBattery(); applyIsland();
   await refreshNpcList();
   switchRelationView('graph');
 }
@@ -706,8 +751,9 @@ function switchRelationView(view) {
 
 /* ================================================================================================
    关系星图渲染 —— 中心为角色本人，环绕节点为各 NPC，按亲密度决定连线粗细与距离
+   浅白 ins 高级感：珠光节点 + 曲线连接 + 关系标签 + 呼吸浮动
 ================================================================================================ */
-const RC_LAV_STOPS = ['#8a6ee0','#dd7fae','#4fae8a','#5b9bcb','#cf9d4e','#7d7fd6'];
+const RC_LAV_STOPS = ['#a5382b','#395a78','#3f6b4c','#8a5a2e','#6b4a7c'];
 
 function relationHash(str) {
   let h = 0;
@@ -737,9 +783,9 @@ function renderRelationGraph() {
   let defs = `
     <defs>
       <radialGradient id="rcCoreGrad" cx="35%" cy="30%" r="75%">
-        <stop offset="0%" stop-color="#ffffff"/>
-        <stop offset="55%" stop-color="#ded3f6"/>
-        <stop offset="100%" stop-color="#8a6ee0"/>
+        <stop offset="0%" stop-color="#fbf7ee"/>
+        <stop offset="55%" stop-color="#e8ddc0"/>
+        <stop offset="100%" stop-color="#a5382b"/>
       </radialGradient>
       <filter id="rcSoftGlow" x="-60%" y="-60%" width="220%" height="220%">
         <feGaussianBlur stdDeviation="4.2" result="blur"/>
@@ -768,23 +814,23 @@ function renderRelationGraph() {
       <g class="rc-node" onclick="openNpcDetail(${node.npc.id})" style="animation: rcNodeFloat ${5 + (i % 3)}s ease-in-out ${i * 0.3}s infinite;">
         <circle class="rc-node-halo" cx="${node.x}" cy="${node.y}" r="21" fill="${node.color}" opacity="0.22"/>
         <circle cx="${node.x}" cy="${node.y}" r="15.5" fill="${node.color}" filter="url(#rcSoftGlow)" opacity="0.94"/>
-        <circle cx="${node.x}" cy="${node.y}" r="15.5" fill="none" stroke="#ffffff" stroke-width="1.6" opacity="0.85"/>
-        <text x="${node.x}" y="${node.y + 5}" text-anchor="middle" font-family="Fraunces, serif" font-size="13" font-weight="600" fill="#ffffff">${letter}</text>
-        <text x="${node.x}" y="${node.y + 30}" text-anchor="middle" class="rc-link-label" font-size="10.5" font-weight="600" fill="#3a3640">${label}</text>
-        <text x="${node.x}" y="${node.y + 42}" text-anchor="middle" class="rc-link-label" font-size="8.5" fill="#8a6ee0">${relLabel}</text>
+        <circle cx="${node.x}" cy="${node.y}" r="15.5" fill="none" stroke="#fbf7ee" stroke-width="1.6" opacity="0.85"/>
+        <text x="${node.x}" y="${node.y + 5}" text-anchor="middle" font-family="Noto Serif SC, serif" font-size="13" font-weight="600" fill="#fbf7ee">${letter}</text>
+        <text x="${node.x}" y="${node.y + 30}" text-anchor="middle" class="rc-link-label" font-size="10.5" font-weight="600" fill="#2a2118">${label}</text>
+        <text x="${node.x}" y="${node.y + 42}" text-anchor="middle" class="rc-link-label" font-size="8.5" fill="#7c2820">${relLabel}</text>
       </g>`;
   });
 
   const centerAvatar = _rcOwner.avatar
     ? `<clipPath id="rcCenterClip"><circle cx="${CX}" cy="${CY}" r="30"/></clipPath><image href="${_rcOwner.avatar}" x="${CX-30}" y="${CY-30}" width="60" height="60" clip-path="url(#rcCenterClip)" preserveAspectRatio="xMidYMid slice"/>`
-    : `<text x="${CX}" y="${CY+8}" text-anchor="middle" font-family="Fraunces, serif" font-size="24" font-weight="600" fill="#ffffff">${escHtml((_rcOwner.name||'?').trim()[0]||'?')}</text>`;
+    : `<text x="${CX}" y="${CY+8}" text-anchor="middle" font-family="Noto Serif SC, serif" font-size="24" font-weight="600" fill="#fbf7ee">${escHtml((_rcOwner.name||'?').trim()[0]||'?')}</text>`;
 
   const centerHtml = `
     <g class="rc-node-core">
       <circle cx="${CX}" cy="${CY}" r="38" fill="url(#rcCoreGrad)"/>
-      <circle cx="${CX}" cy="${CY}" r="38" fill="none" stroke="#ffffff" stroke-width="2.4"/>
+      <circle cx="${CX}" cy="${CY}" r="38" fill="none" stroke="#fbf7ee" stroke-width="2.4"/>
       ${centerAvatar}
-      <text x="${CX}" y="${CY + 56}" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="11" font-weight="700" fill="#4d4460">${escHtml((_rcOwner.name||'未命名').slice(0,8))}</text>
+      <text x="${CX}" y="${CY + 56}" text-anchor="middle" font-family="Space Mono, monospace" font-size="11" font-weight="700" fill="#2a2118">${escHtml((_rcOwner.name||'未命名').slice(0,8))}</text>
     </g>`;
 
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
@@ -817,9 +863,10 @@ function renderNpcList() {
 }
 
 /* ================================================================================================
-   AI 生成关系建议
+   AI 生成关系建议 —— 读取角色完整人设，推演出合理的关系网络人物
+   —— 现为从右侧滑入的独立子页（叠加于关系圈整页之上），而非居中弹窗
 ================================================================================================ */
-async function requestRelationSuggestions() {
+async function requestRelationSuggestions(manualOnly) {
   const c = _rcOwner || currentDossierChar();
   if (!c) return;
   _rcOwner = c;
@@ -828,10 +875,20 @@ async function requestRelationSuggestions() {
   page.classList.add('show');
   page.setAttribute('aria-hidden', 'false');
   page.scrollTop = 0;
-  updateTime(); updateBattery(); applyIsland();
 
   const body = document.getElementById('rcSuggestBody');
   const footer = document.getElementById('rcSuggestFooter');
+
+  // 手动模式：跳过 AI 推演，直接打开一个空候选区 + 手动添加表单
+  if (manualOnly) {
+    _rcCandidates = [];
+    _rcSelected = new Set();
+    footer.style.display = 'flex';
+    renderSuggestCandidates();
+    openManualNpcForm();
+    return;
+  }
+
   footer.style.display = 'none';
   body.innerHTML = `
     <div class="rc-suggest-loading">
@@ -920,24 +977,97 @@ function renderSuggestCandidates() {
   footer.style.display = 'flex';
 
   body.innerHTML = `
-    <div style="padding:6px 2px 18px;">
-      <div style="font-family:var(--font-serif-cn);font-size:16px;font-weight:600;color:var(--ink);">为「${escHtml(_rcOwner.name||'角色')}」推演的关系网络</div>
-      <div style="font-size:11.5px;color:var(--ink-faint);line-height:1.7;margin-top:6px;">勾选想要归档的人物，将被永久保存在该角色的专属关系圈中，不会写入角色库，也不会被其他角色共享</div>
+    <div style="padding:6px 2px 18px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+      <div>
+        <div style="font-family:var(--font-serif-cn);font-size:16px;font-weight:600;color:var(--ink);">为「${escHtml(_rcOwner.name||'角色')}」推演的关系网络</div>
+        <div style="font-size:11.5px;color:var(--ink-faint);line-height:1.7;margin-top:6px;">不满意某一位？点它右上角的骰子图标单独重新推演，不用整批重来</div>
+      </div>
     </div>
-    ${_rcCandidates.map(cand => `
-      <div class="rc-suggest-item" id="cand-${cand._tmpId}" onclick="toggleCandidate('${cand._tmpId}')">
-        <div class="rc-suggest-check">
+    <div style="margin:0 2px 18px;">
+      <button class="rc-manual-add-btn" onclick="openManualNpcForm()">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>手动添加一位人物</span>
+      </button>
+    </div>
+    <div id="candList">${_rcCandidates.map(candCardHtml).join('')}</div>`;
+  updateSelCount();
+}
+
+function candCardHtml(cand) {
+  const busy = cand._regenerating;
+  return `
+      <div class="rc-suggest-item${_rcSelected.has(cand._tmpId) ? ' selected' : ''}${busy ? ' rc-cand-busy' : ''}" id="cand-${cand._tmpId}">
+        <div class="rc-suggest-check" onclick="toggleCandidate('${cand._tmpId}')">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="rc-suggest-item-body">
+        <div class="rc-suggest-item-body" onclick="toggleCandidate('${cand._tmpId}')">
           <div class="rc-suggest-item-name">${escHtml(cand.name)}</div>
           <div class="rc-suggest-item-rel">${escHtml(cand.relation)} · 亲密度 ${cand.closeness}/5</div>
-          <div class="rc-suggest-item-desc">${escHtml(cand.desc)}</div>
-          ${cand.tags.length ? `<div class="rc-suggest-item-tags">${cand.tags.map(t => `<span class="rc-suggest-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
+          <div class="rc-suggest-item-desc">${busy ? '正在重新推演这位人物…' : escHtml(cand.desc)}</div>
+          ${(!busy && cand.tags.length) ? `<div class="rc-suggest-item-tags">${cand.tags.map(t => `<span class="rc-suggest-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
         </div>
-      </div>
-    `).join('')}`;
-  updateSelCount();
+        <button class="rc-cand-reroll" title="重新推演这一位" onclick="event.stopPropagation(); regenerateCandidate('${cand._tmpId}')" ${busy ? 'disabled' : ''}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>`;
+}
+
+/* 单独重新推演某一位候选人物，不影响其余已选中的候选 */
+async function regenerateCandidate(tmpId) {
+  const idx = _rcCandidates.findIndex(c => c._tmpId === tmpId);
+  if (idx === -1 || !_rcOwner) return;
+  const cfg = getAiConfig();
+  if (!cfg) { alert('尚未配置 AI 接口，请先前往「设置 · API 接入」完成配置。'); return; }
+
+  _rcCandidates[idx]._regenerating = true;
+  const el = document.getElementById(`cand-${tmpId}`);
+  if (el) el.outerHTML = candCardHtml(_rcCandidates[idx]);
+
+  const old = _rcCandidates[idx];
+  const ctx = extractPersonaContext(_rcOwner);
+  const otherNames = _rcCandidates.filter(c => c._tmpId !== tmpId).map(c => c.name)
+    .concat(_rcNpcs.map(n => n.name)).filter(Boolean);
+
+  const systemPrompt = `你是一名资深的角色关系设定顾问。请只推演【一位】与主角关联的关系人物（NPC），替换掉一个用户不满意的旧候选。
+要求：
+1. 与旧候选的关系类型或人物基调应有明显差异（旧候选关系是"${old.relation}"，请勿再给出雷同或近义的关系类型）。
+2. 需符合主角的人设、世界观与性格逻辑。
+3. 不要与以下人物重名：${otherNames.length ? otherNames.join('、') : '（暂无）'}
+4. 只输出 JSON 对象，不要任何多余文字、不要 markdown 代码块标记。
+
+输出格式：
+{ "name": "人物姓名", "relation": "关系标签", "closeness": 4, "desc": "关系描述文本", "tags": ["标签1","标签2"] }`;
+
+  const userPrompt = `角色姓名：${ctx.name}
+性别：${ctx.gender || '未设置'}　年龄：${ctx.age || '未设置'}　定位：${ctx.role || '未设置'}
+性格：${ctx.personality || ctx.traits || '无'}
+背景/世界观：${ctx.background || ctx.persona || '无'}
+
+被替换的旧候选：${old.name}（${old.relation}）
+请给出一位新的候选人物。`;
+
+  try {
+    const r = await callAiJson(systemPrompt, userPrompt);
+    const wasSelected = _rcSelected.has(tmpId);
+    _rcSelected.delete(tmpId);
+    const fresh = {
+      _tmpId: 'c' + Date.now() + '_r',
+      name: String(r.name || '未命名人物').trim(),
+      relation: String(r.relation || '关系未定').trim(),
+      closeness: Math.min(5, Math.max(1, parseInt(r.closeness) || 3)),
+      desc: String(r.desc || '').trim(),
+      tags: Array.isArray(r.tags) ? r.tags.slice(0, 4).map(String) : []
+    };
+    _rcCandidates[idx] = fresh;
+    if (wasSelected) _rcSelected.add(fresh._tmpId);
+    renderSuggestCandidates();
+  } catch (e) {
+    console.error(e);
+    _rcCandidates[idx]._regenerating = false;
+    const el2 = document.getElementById(`cand-${tmpId}`);
+    if (el2) el2.outerHTML = candCardHtml(_rcCandidates[idx]);
+    alert('重新推演失败，可能是网络波动，请再试一次。');
+  }
 }
 
 function toggleCandidate(tmpId) {
@@ -945,6 +1075,76 @@ function toggleCandidate(tmpId) {
   if (_rcSelected.has(tmpId)) { _rcSelected.delete(tmpId); el.classList.remove('selected'); }
   else { _rcSelected.add(tmpId); el.classList.add('selected'); }
   updateSelCount();
+}
+
+/* ================================================================================================
+   手动添加人物 —— 不依赖 AI，随时可以自己填一位关系人物加入候选区，
+   与 AI 推演出的候选一起勾选、一起存档
+================================================================================================ */
+function openManualNpcForm() {
+  const body = document.getElementById('rcSuggestBody');
+  const existing = document.getElementById('rcManualForm');
+  if (existing) { existing.remove(); return; }
+
+  const wrap = document.createElement('div');
+  wrap.id = 'rcManualForm';
+  wrap.className = 'rc-manual-form';
+  wrap.innerHTML = `
+    <div class="rc-manual-form-title">手动添加人物</div>
+    <div class="rc-manual-form-field">
+      <div class="rc-manual-form-label">姓名</div>
+      <input class="rc-edit-input" id="mNpcName" placeholder="这位人物叫什么" maxlength="20"/>
+    </div>
+    <div class="rc-manual-form-field">
+      <div class="rc-manual-form-label">与主角的关系</div>
+      <input class="rc-edit-input" id="mNpcRel" placeholder="如：发小、竞争对手、恩师" maxlength="16"/>
+    </div>
+    <div class="rc-manual-form-field">
+      <div class="rc-manual-form-label">亲密度</div>
+      <div class="rc-closeness-picker" id="mNpcCloseness">
+        ${[1,2,3,4,5].map(n => `<div class="rc-closeness-dot${n===3?' on':''}" data-v="${n}" onclick="pickManualCloseness(${n})">${n}</div>`).join('')}
+      </div>
+    </div>
+    <div class="rc-manual-form-field">
+      <div class="rc-manual-form-label">关系背景（选填）</div>
+      <textarea class="rc-manual-form-textarea" id="mNpcDesc" placeholder="这段关系的来历与现状" maxlength="160" rows="3"></textarea>
+    </div>
+    <div class="rc-manual-form-field">
+      <div class="rc-manual-form-label">标签（选填）</div>
+      <input class="rc-edit-input" id="mNpcTags" placeholder="用逗号分隔，如：嘴硬心软, 学生会"/>
+    </div>
+    <div class="rc-manual-form-actions">
+      <button class="rc-manual-cancel" onclick="document.getElementById('rcManualForm').remove()">取消</button>
+      <button class="rc-manual-confirm" onclick="addManualCandidate()">加入候选</button>
+    </div>`;
+  document.getElementById('candList').before(wrap);
+  document.getElementById('mNpcName').focus();
+}
+
+function pickManualCloseness(n) {
+  document.querySelectorAll('#mNpcCloseness .rc-closeness-dot').forEach(d => d.classList.toggle('on', Number(d.dataset.v) === n));
+}
+
+function addManualCandidate() {
+  const name = document.getElementById('mNpcName').value.trim();
+  const relation = document.getElementById('mNpcRel').value.trim();
+  if (!name) { document.getElementById('mNpcName').focus(); return; }
+  const closeness = Number(document.querySelector('#mNpcCloseness .rc-closeness-dot.on')?.dataset.v || 3);
+  const desc = document.getElementById('mNpcDesc').value.trim();
+  const tags = document.getElementById('mNpcTags').value.split(/[,，]/).map(s => s.trim()).filter(Boolean).slice(0, 4);
+
+  const cand = {
+    _tmpId: 'm' + Date.now(),
+    name,
+    relation: relation || '关系未定',
+    closeness,
+    desc,
+    tags
+  };
+  _rcCandidates.unshift(cand);
+  _rcSelected.add(cand._tmpId);
+  document.getElementById('rcManualForm').remove();
+  renderSuggestCandidates();
 }
 function updateSelCount() {
   document.getElementById('rcSelCount').textContent = _rcSelected.size;
@@ -966,43 +1166,94 @@ async function confirmSelectedNpcs() {
   btn.textContent = '正在存档…';
 
   const toSave = _rcCandidates.filter(c => _rcSelected.has(c._tmpId));
+  const saved = [];
+  const failed = [];
+
   for (const cand of toSave) {
-    await addNpc({
-      ownerId: _rcOwner.id,
-      ownerName: _rcOwner.name || '',
-      name: cand.name,
-      relation: cand.relation,
-      closeness: cand.closeness,
-      desc: cand.desc,
-      tags: cand.tags,
-      avatar: null,
-      filled: false,
-      persona: null,
-      createdAt: Date.now()
-    });
+    try {
+      const id = await addNpc({
+        ownerId: _rcOwner.id,
+        ownerName: _rcOwner.name || '',
+        name: cand.name,
+        relation: cand.relation,
+        closeness: cand.closeness,
+        desc: cand.desc,
+        tags: cand.tags,
+        avatar: null,
+        filled: false,
+        persona: null,
+        createdAt: Date.now()
+      });
+      saved.push({ ...cand, id });
+      _rcSelected.delete(cand._tmpId);
+    } catch (e) {
+      console.error('addNpc failed for', cand.name, e);
+      failed.push(cand);
+    }
   }
 
-  closeSuggestPanel();
+  if (saved.length) await refreshNpcList();
+
+  if (failed.length) {
+    // Leave the panel open, keep the failed ones selected so nothing is lost,
+    // and tell the user plainly instead of hanging on "正在存档…" forever.
+    failed.forEach(c => _rcSelected.add(c._tmpId));
+    renderSuggestCandidates();
+    btn.disabled = false;
+    btn.textContent = '重试存档';
+    const body = document.getElementById('rcSuggestBody');
+    const notice = document.createElement('div');
+    notice.className = 'rc-save-error-banner';
+    notice.innerHTML = `${saved.length ? `已存档 ${saved.length} 位，` : ''}有 ${failed.length} 位保存失败（存储写入被中断），已为你保留选中状态，可直接点击下方按钮重试。`;
+    body.prepend(notice);
+    return;
+  }
+
+  // All saved — show a proper receipt instead of just silently closing.
+  showSaveReceipt(saved);
   _rcCandidates = [];
   _rcSelected = new Set();
-  await refreshNpcList();
+}
+
+function showSaveReceipt(savedList) {
+  const body = document.getElementById('rcSuggestBody');
+  const footer = document.getElementById('rcSuggestFooter');
+  footer.style.display = 'none';
+  body.innerHTML = `
+    <div class="rc-receipt">
+      <div class="rc-receipt-check">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="rc-receipt-title">${savedList.length} 位人物已归档</div>
+      <div class="rc-receipt-desc">已存入「${escHtml(_rcOwner?.name||'角色')}」的专属关系圈，可随时在人物档案中查看或完善</div>
+    </div>
+    <div class="rc-receipt-list">
+      ${savedList.map(c => `
+        <div class="rc-receipt-card" onclick="closeSuggestPanel(); openNpcDetail(${c.id});">
+          <div class="rc-receipt-card-avatar">${escHtml((c.name||'?').trim()[0]||'?')}</div>
+          <div class="rc-receipt-card-body">
+            <div class="rc-receipt-card-name">${escHtml(c.name)}</div>
+            <div class="rc-receipt-card-rel">${escHtml(c.relation)} · 亲密度 ${c.closeness}/5</div>
+          </div>
+          <div class="rc-receipt-card-arrow">${TAP_SVG}</div>
+        </div>`).join('')}
+    </div>
+    <button class="rc-empty-btn" style="margin:22px auto 6px;display:block;" onclick="closeSuggestPanel()">完成</button>`;
 }
 
 /* ================================================================================================
    NPC 专属档案详情 —— 展示已归档信息；未完善时提供"继续调用 AI 完整填充人设"入口
-   —— 新增：编辑关系标签/亲密度、以及不打断流程的原地删除确认（取代原生 confirm 弹窗）
+   —— 现为从右侧滑入的独立子页
 ================================================================================================ */
 async function openNpcDetail(npcId) {
   const npc = _rcNpcs.find(n => n.id === npcId);
   if (!npc) return;
   _rcActiveNpcId = npcId;
-  _rcPendingDeleteId = null;
   renderNpcDetailSheet(npc);
   const page = document.getElementById('rcNpcPage');
   page.classList.add('show');
   page.setAttribute('aria-hidden', 'false');
   page.scrollTop = 0;
-  updateTime(); updateBattery(); applyIsland();
 }
 function closeNpcDetail() {
   const page = document.getElementById('rcNpcPage');
@@ -1010,7 +1261,6 @@ function closeNpcDetail() {
   page.classList.remove('show');
   page.setAttribute('aria-hidden', 'true');
   _rcActiveNpcId = null;
-  _rcPendingDeleteId = null;
 }
 
 function renderNpcDetailSheet(npc) {
@@ -1093,15 +1343,13 @@ function renderNpcDetailSheet(npc) {
       </div>` : ''}`;
   }
 
-  const isPendingDelete = _rcPendingDeleteId === npc.id;
-
   sheet.innerHTML = `
     <div class="rc-npc-hero">
       <div class="rc-npc-hero-topbar">
         <button class="rc-icon-btn" onclick="closeNpcDetail()" aria-label="返回">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <button class="rc-icon-btn danger-icon" onclick="requestRemoveNpc(${npc.id})" aria-label="移除此人物" title="从关系圈移除">
+        <button class="rc-icon-btn danger-icon" onclick="removeNpc(${npc.id})" aria-label="移除此人物" title="从关系圈移除">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
@@ -1110,33 +1358,11 @@ function renderNpcDetailSheet(npc) {
       <div class="rc-npc-hero-rel">${escHtml(npc.relation||'关系未定')}</div>
       ${heroMeta ? `<div class="rc-npc-hero-meta">${escHtml(heroMeta)}</div>` : ''}
     </div>
-    <div class="rc-npc-body">
-      ${isPendingDelete ? `
-      <div class="rc-npc-section" style="background:var(--bg-2);border:1px dashed var(--bloom-deep);border-radius:var(--r-m);padding:16px;">
-        <div style="font-size:13px;color:var(--ink);font-weight:600;margin-bottom:6px;">确定要移除「${escHtml(npc.name)}」吗？</div>
-        <div style="font-size:11.5px;color:var(--ink-faint);margin-bottom:14px;">此操作不可撤销，该人物的所有档案信息将被永久删除。</div>
-        <div style="display:flex;gap:10px;">
-          <button class="rc-npc-fill-btn" style="background:var(--bg-3);color:var(--ink-soft);box-shadow:none;flex:1;justify-content:center;" onclick="cancelRemoveNpc()">取消</button>
-          <button class="rc-npc-fill-btn" style="background:linear-gradient(120deg,#e18cb8,#c95f92);flex:1;justify-content:center;" onclick="removeNpc(${npc.id})">确认移除</button>
-        </div>
-      </div>` : ''}
-      ${bodyHtml}
-    </div>`;
-}
-
-function requestRemoveNpc(npcId) {
-  _rcPendingDeleteId = npcId;
-  const npc = _rcNpcs.find(n => n.id === npcId);
-  if (npc) renderNpcDetailSheet(npc);
-  document.getElementById('rcNpcSheet').scrollIntoView({ block: 'start' });
-}
-function cancelRemoveNpc() {
-  _rcPendingDeleteId = null;
-  const npc = _rcNpcs.find(n => n.id === _rcActiveNpcId);
-  if (npc) renderNpcDetailSheet(npc);
+    <div class="rc-npc-body">${bodyHtml}</div>`;
 }
 
 async function removeNpc(npcId) {
+  if (!confirm('确定要将这位人物从关系圈中移除吗？此操作不可撤销。')) return;
   await deleteNpc(npcId);
   closeNpcDetail();
   await refreshNpcList();

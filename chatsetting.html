@@ -1545,6 +1545,174 @@
   </div><!-- /.wrap -->
 </div><!-- /.pg -->
 
+<!-- ══════════════════════════════════════════════════════════════
+     ✦ 聊天记录页（独立全屏子页 · 每个好友完全独立）
+══════════════════════════════════════════════════════════════ -->
+<div id="chatLogPage">
+
+  <!-- 状态栏：与 chatroom / chatsetting 完全一致 -->
+  <div class="status-bar cl-status">
+    <div class="status-time" id="clTime">9:41</div>
+    <div class="status-island" id="clIsland"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#1a1a1a" opacity="0.85">
+        <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+        <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+        <circle cx="8" cy="10.5" r="1.8"/>
+      </svg>
+      <div class="battery">
+        <span class="bat-pct" id="clBatPct">76</span>
+        <div class="bat-shell"><div class="bat-inner" id="clBatInner"></div><div class="bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导航 -->
+  <div class="cl-nav">
+    <div class="cl-nav-left">
+      <div class="cl-back" onclick="clClose()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="cl-nav-sep"></div>
+      <div>
+        <div class="cl-nav-title">聊天记录</div>
+        <div class="cl-nav-mono">CHAT · ARCHIVE</div>
+      </div>
+    </div>
+    <div class="cl-nav-right">
+      <button class="cl-nav-btn" onclick="clImportAll()">导入</button>
+      <button class="cl-nav-btn solid" onclick="clExportAll()">导出全部</button>
+    </div>
+  </div>
+
+  <div class="cl-scroll" id="clScroll">
+
+    <!-- HERO -->
+    <div class="cl-hero">
+      <svg class="cl-hero-art" width="180" height="150" viewBox="0 0 180 150">
+        <circle cx="156" cy="24" r="72"  stroke="rgba(0,0,0,0.04)"  stroke-width="0.5" fill="none"/>
+        <circle cx="156" cy="24" r="108" stroke="rgba(0,0,0,0.026)" stroke-width="0.5" fill="none"/>
+        <circle cx="156" cy="24" r="46"  stroke="rgba(0,0,0,0.055)" stroke-width="0.5" fill="none"/>
+        <line x1="88" y1="0" x2="180" y2="86" stroke="rgba(0,0,0,0.025)" stroke-width="0.5"/>
+      </svg>
+      <div class="cl-hero-eyebrow">ARCHIVE · 记录归档</div>
+      <div class="cl-hero-title">每一段<em>对话</em><br>都独立留存</div>
+      <div class="cl-hero-sub">按角色分别归档，可单独查看、导出、清空，互不影响</div>
+      <div class="cl-hero-stats">
+        <div class="cl-hstat"><div class="cl-hstat-v" id="clStatChars">0</div><div class="cl-hstat-l">位好友</div></div>
+        <div class="cl-hstat-div"></div>
+        <div class="cl-hstat"><div class="cl-hstat-v" id="clStatMsgs">0</div><div class="cl-hstat-l">条消息</div></div>
+        <div class="cl-hstat-div"></div>
+        <div class="cl-hstat"><div class="cl-hstat-v" id="clStatSize">0K</div><div class="cl-hstat-l">占用</div></div>
+      </div>
+    </div>
+
+    <!-- 搜索 + 排序 -->
+    <div class="cl-tools">
+      <div class="cl-search">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#bbb" stroke-width="1.8"/><path d="M21 21l-4.3-4.3" stroke="#bbb" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input type="text" id="clSearchInput" placeholder="搜索好友或聊天内容" oninput="clRenderList()" />
+      </div>
+      <div class="cl-sort">
+        <button class="cl-sort-btn on" data-sort="recent" onclick="clSetSort('recent')">最近</button>
+        <button class="cl-sort-btn" data-sort="count"  onclick="clSetSort('count')">最多</button>
+        <button class="cl-sort-btn" data-sort="name"   onclick="clSetSort('name')">名称</button>
+      </div>
+    </div>
+
+    <div class="cl-sec-label">全部会话 · CONVERSATIONS</div>
+    <div class="cl-list" id="clList"></div>
+    <div class="cl-empty" id="clEmpty" style="display:none;">
+      <div class="cl-empty-ring">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <span>还没有任何聊天记录<br>去聊天页说上两句，这里就会有内容了</span>
+    </div>
+
+    <div style="height:40px;"></div>
+  </div>
+
+  <!-- ── 单个好友的记录详情（二级页） ── -->
+  <div class="cl-detail" id="clDetail">
+    <div class="status-bar cl-status">
+      <div class="status-time" id="cldTime">9:41</div>
+      <div class="status-island" id="cldIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="#1a1a1a" opacity="0.85">
+          <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+          <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+          <circle cx="8" cy="10.5" r="1.8"/>
+        </svg>
+        <div class="battery">
+          <span class="bat-pct" id="cldBatPct">76</span>
+          <div class="bat-shell"><div class="bat-inner" id="cldBatInner"></div><div class="bat-nub"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cl-nav">
+      <div class="cl-nav-left">
+        <div class="cl-back" onclick="clCloseDetail()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="cl-nav-sep"></div>
+        <div>
+          <div class="cl-nav-title" id="cldName">—</div>
+          <div class="cl-nav-mono" id="cldMono">SINGLE ARCHIVE</div>
+        </div>
+      </div>
+      <div class="cl-nav-right">
+        <button class="cl-nav-btn" onclick="clExportOne()">导出</button>
+        <button class="cl-nav-btn danger" onclick="clClearOne()">清空</button>
+      </div>
+    </div>
+
+    <div class="cl-detail-scroll" id="cldScroll">
+      <div class="cl-dcard">
+        <div class="cl-dcard-row">
+          <div class="cl-davatar" id="cldAvatar">—</div>
+          <div style="flex:1;min-width:0;">
+            <div class="cl-dname" id="cldTitle">—</div>
+            <div class="cl-dmeta" id="cldMeta">—</div>
+          </div>
+          <div class="cl-dbadge" id="cldBadge">正常</div>
+        </div>
+        <div class="cl-dstats">
+          <div class="cl-dstat"><b id="cldTotal">0</b><span>总消息</span></div>
+          <div class="cl-dstat"><b id="cldMine">0</b><span>我发出</span></div>
+          <div class="cl-dstat"><b id="cldTheirs">0</b><span>Ta 发出</span></div>
+          <div class="cl-dstat"><b id="cldDays">0</b><span>跨越天数</span></div>
+        </div>
+      </div>
+
+      <div class="cl-filter-row" id="cldFilter">
+        <button class="cl-fbtn on" data-f="all"  onclick="clDetailFilter('all')">全部</button>
+        <button class="cl-fbtn" data-f="mine"    onclick="clDetailFilter('mine')">我发的</button>
+        <button class="cl-fbtn" data-f="theirs"  onclick="clDetailFilter('theirs')">Ta 发的</button>
+        <button class="cl-fbtn" data-f="media"   onclick="clDetailFilter('media')">图片语音</button>
+      </div>
+
+      <div class="cl-search" style="margin:0 0 12px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#bbb" stroke-width="1.8"/><path d="M21 21l-4.3-4.3" stroke="#bbb" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input type="text" id="cldSearch" placeholder="在这段对话里搜索" oninput="clRenderDetail()" />
+      </div>
+
+      <div class="cl-timeline" id="cldTimeline"></div>
+      <div class="cl-empty" id="cldEmpty" style="display:none;">
+        <div class="cl-empty-ring">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>
+        </div>
+        <span>没有匹配的消息</span>
+      </div>
+      <div style="height:40px;"></div>
+    </div>
+  </div>
+
+  <input type="file" id="clImportFile" accept="application/json,.json" style="display:none" />
+</div>
+
 <script src="worldbook-runtime.js"></script>
 <script src="chatsetting.js"></script>
 </body>

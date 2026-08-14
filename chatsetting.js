@@ -2463,3 +2463,893 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
 })();
+
+/* ================================================================
+   ✦ 聊天记录页 · CHAT ARCHIVE
+   -----------------------------------------------------------------
+   数据源：IndexedDB「LunaChatDB」
+     · messages  { chatKey: 角色名, msgs: [ {role,text,time,ts,...} ] }
+     · conv      { name: 角色名, preview, timeVal, createdAt, ... }
+   每个好友是完全独立的一条记录：单独查看、单独导出、单独清空，互不影响。
+================================================================ */
+(function () {
+
+  let _clAll = [];          // [{ name, avatar, msgs, conv }]
+  let _clSort = 'recent';
+  let _clCurrent = null;    // 当前打开详情的那一条
+  let _clDetailFilter = 'all';
+
+  /* ── DB ── */
+  function clOpenDB() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('LunaChatDB');
+      r.onsuccess = e => res(e.target.result);
+      r.onerror = () => rej(new Error('db'));
+    });
+  }
+  function clGetAll(db, store) {
+    return new Promise(res => {
+      if (!db.objectStoreNames.contains(store)) { res([]); return; }
+      const r = db.transaction(store).objectStore(store).getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror = () => res([]);
+    });
+  }
+  function clPut(db, store, obj) {
+    return new Promise(res => {
+      if (!db.objectStoreNames.contains(store)) { res(false); return; }
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).put(obj);
+      tx.oncomplete = () => res(true);
+      tx.onerror = () => res(false);
+    });
+  }
+  function clDel(db, store, key) {
+    return new Promise(res => {
+      if (!db.objectStoreNames.contains(store)) { res(false); return; }
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).delete(key);
+      tx.oncomplete = () => res(true);
+      tx.onerror = () => res(false);
+    });
+  }
+
+  /* ── 状态栏 ── */
+  function clTick() {
+    const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+    let now;
+    try { now = new Date(new Date().toLocaleString('en-US', { timeZone: tz })); }
+    catch (e) { now = new Date(); }
+    const str = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    ['clTime', 'cldTime'].forEach(id => { const e = document.getElementById(id); if (e) e.textContent = str; });
+    const pct = parseInt(localStorage.getItem('luna_battery') || '76');
+    ['clBatPct', 'cldBatPct'].forEach(id => { const e = document.getElementById(id); if (e) e.textContent = pct; });
+    ['clBatInner', 'cldBatInner'].forEach(id => {
+      const e = document.getElementById(id);
+      if (e) { e.style.width = Math.max(0, Math.min(100, pct)) + '%'; e.style.background = pct <= 20 ? '#d05a5a' : '#1a1a1a'; }
+    });
+  }
+  function clIsland() {
+    const enabled = localStorage.getItem('luna_island_enabled') === 'true';
+    const style = localStorage.getItem('luna_island_style') || 'minimal';
+    const map = {
+      minimal: '<div style="width:78px;height:22px;border-radius:20px;background:#1a1a1a;"></div>',
+      pill: '<div style="width:104px;height:24px;border-radius:20px;background:#1a1a1a;display:flex;align-items:center;justify-content:space-between;padding:0 8px;"><div style="width:8px;height:8px;border-radius:50%;background:#3a3a3a;"></div><div style="width:26px;height:3px;border-radius:2px;background:#3a3a3a;"></div><div style="width:8px;height:8px;border-radius:50%;background:#3a3a3a;"></div></div>',
+      dot: '<div style="width:26px;height:26px;border-radius:50%;background:#1a1a1a;"></div>',
+      wide: '<div style="width:132px;height:26px;border-radius:20px;background:#1a1a1a;"></div>'
+    };
+    ['clIsland', 'cldIsland'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!enabled) { el.style.display = 'none'; el.innerHTML = ''; return; }
+      el.style.display = 'flex';
+      el.innerHTML = map[style] || map.minimal;
+    });
+  }
+
+  /* ── 拉黑 / 删除状态 ── */
+  function clBlockState() {
+    try { return JSON.parse(localStorage.getItem('luna_block_state') || '{}') || {}; } catch (e) { return {}; }
+  }
+  function clDeleted() {
+    try { const l = JSON.parse(localStorage.getItem('luna_deleted_friends') || '[]'); return Array.isArray(l) ? l : []; }
+    catch (e) { return []; }
+  }
+
+  /* ── 加载数据 ── */
+  async function clLoad() {
+    let db;
+    try { db = await clOpenDB(); } catch (e) { _clAll = []; return; }
+    const msgRecs = await clGetAll(db, 'messages');
+    const convs = await clGetAll(db, 'conv');
+    const convMap = {};
+    convs.forEach(c => { convMap[c.name] = c; });
+
+    /* 头像来自 LunaCharDB */
+    let avatars = {};
+    try {
+      const cdb = await new Promise((res, rej) => {
+        const r = indexedDB.open('LunaCharDB');
+        r.onsuccess = e => res(e.target.result);
+        r.onerror = () => rej();
+      });
+      const chars = await clGetAll(cdb, 'chars');
+      chars.forEach(c => { if (c.name) avatars[c.name] = c.avatar || c.avatarImg || null; });
+    } catch (e) {}
+
+    _clAll = msgRecs
+      .filter(r => r && r.chatKey)
+      .map(r => ({
+        name: r.chatKey,
+        msgs: Array.isArray(r.msgs) ? r.msgs : [],
+        conv: convMap[r.chatKey] || null,
+        avatar: avatars[r.chatKey] || null
+      }));
+
+    /* conv 里有、messages 里没有的角色也列出来（空会话） */
+    convs.forEach(c => {
+      if (!_clAll.some(x => x.name === c.name)) {
+        _clAll.push({ name: c.name, msgs: [], conv: c, avatar: avatars[c.name] || null });
+      }
+    });
+  }
+
+  /* ── 工具 ── */
+  function clMsgText(m) {
+    if (!m) return '';
+    if (m.isMeme) return '[表情包]';
+    if (m.isVoice) return '[语音] ' + (m.voiceText || '');
+    if (m.isLocation) return '[位置] ' + (m.locName || '');
+    if (m.isAiImage || m.imageDesc) return '[图片] ' + (m.imageDesc || '');
+    if (m.imageUrl) return '[图片]';
+    return m.text || m.content || '';
+  }
+  function clMsgKind(m) {
+    if (!m) return '';
+    if (m.isMeme) return '表情';
+    if (m.isVoice) return '语音';
+    if (m.isLocation) return '位置';
+    if (m.isAiImage || m.imageUrl || m.imageDesc) return '图片';
+    if (m.role === 'system') return '系统';
+    if (m.quote) return '引用';
+    return '';
+  }
+  function clEsc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+  function clHl(text, kw) {
+    const safe = clEsc(text);
+    if (!kw) return safe;
+    try {
+      const re = new RegExp('(' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+      return safe.replace(re, '<span class="cl-hl">$1</span>');
+    } catch (e) { return safe; }
+  }
+  function clLastTs(item) {
+    if (item.conv && item.conv.timeVal) return item.conv.timeVal;
+    for (let i = item.msgs.length - 1; i >= 0; i--) {
+      if (item.msgs[i] && item.msgs[i].ts) return item.msgs[i].ts;
+    }
+    return 0;
+  }
+  function clFmtDay(ts) {
+    if (!ts) return '更早';
+    const d = new Date(ts), n = new Date();
+    if (d.toDateString() === n.toDateString()) return '今天';
+    const y = new Date(n.getTime() - 86400000);
+    if (d.toDateString() === y.toDateString()) return '昨天';
+    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+  function clFmtShort(ts) {
+    if (!ts) return '';
+    const d = new Date(ts), n = new Date();
+    if (d.toDateString() === n.toDateString())
+      return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    return (d.getMonth() + 1) + '/' + d.getDate();
+  }
+
+  /* ── 打开 / 关闭 ── */
+  async function clOpen() {
+    const p = document.getElementById('chatLogPage');
+    if (!p) return;
+    p.classList.remove('is-closing');
+    p.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    clTick(); clIsland();
+    await clLoad();
+    clRenderList();
+  }
+  function clClose() {
+    const p = document.getElementById('chatLogPage');
+    if (!p) return;
+    clCloseDetail();
+    p.classList.remove('is-open');
+    p.classList.add('is-closing');
+    document.body.style.overflow = '';
+    setTimeout(() => p.classList.remove('is-closing'), 280);
+  }
+
+  /* ── 列表渲染 ── */
+  function clRenderList() {
+    const box = document.getElementById('clList');
+    const empty = document.getElementById('clEmpty');
+    if (!box) return;
+
+    const kw = ((document.getElementById('clSearchInput') || {}).value || '').trim().toLowerCase();
+    const blocks = clBlockState();
+    const deleted = clDeleted();
+
+    let list = _clAll.slice();
+    if (kw) {
+      list = list.filter(it =>
+        it.name.toLowerCase().includes(kw) ||
+        it.msgs.some(m => clMsgText(m).toLowerCase().includes(kw))
+      );
+    }
+    if (_clSort === 'count') list.sort((a, b) => b.msgs.length - a.msgs.length);
+    else if (_clSort === 'name') list.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+    else list.sort((a, b) => clLastTs(b) - clLastTs(a));
+
+    /* 统计条 */
+    const totalMsgs = _clAll.reduce((s, i) => s + i.msgs.length, 0);
+    let bytes = 0;
+    try { bytes = _clAll.reduce((s, i) => s + JSON.stringify(i.msgs).length, 0); } catch (e) {}
+    const setT = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    setT('clStatChars', _clAll.length);
+    setT('clStatMsgs', totalMsgs);
+    setT('clStatSize', bytes > 1048576 ? (bytes / 1048576).toFixed(1) + 'M' : Math.round(bytes / 1024) + 'K');
+
+    if (!list.length) {
+      box.innerHTML = '';
+      if (empty) empty.style.display = 'flex';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    box.innerHTML = list.map((it, idx) => {
+      const last = it.msgs.length ? it.msgs[it.msgs.length - 1] : null;
+      const preview = last
+        ? (last.role === 'mine' ? '我：' : '') + clMsgText(last)
+        : (it.conv && it.conv.preview) || '暂无消息';
+      const st = blocks[it.name];
+      const isDel = deleted.indexOf(it.name) >= 0;
+      let tag = '';
+      if (isDel) tag = '<span class="cl-itag del">已删除</span>';
+      else if (st) tag = '<span class="cl-itag blk">' + (st.by === 'ai' ? 'Ta 拉黑了你' : '已拉黑') + '</span>';
+
+      const av = it.avatar
+        ? `<img src="${clEsc(it.avatar)}" alt="">`
+        : clEsc((it.name[0] || '?').toUpperCase());
+
+      return `
+        <div class="cl-item${st || isDel ? ' is-blocked' : ''}" data-name="${clEsc(it.name)}" style="animation-delay:${(idx * 0.035).toFixed(2)}s">
+          <div class="cl-iav">${av}</div>
+          <div class="cl-ibody">
+            <div class="cl-irow">
+              <span class="cl-iname">${clHl(it.name, kw)}</span>${tag}
+            </div>
+            <div class="cl-ipreview">${clHl(preview.slice(0, 60), kw)}</div>
+          </div>
+          <div class="cl-imeta">
+            <span class="cl-icount">${it.msgs.length}</span>
+            <span class="cl-itime">${clFmtShort(clLastTs(it))}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    box.querySelectorAll('.cl-item').forEach(el => {
+      el.addEventListener('click', () => clOpenDetail(el.dataset.name));
+    });
+  }
+
+  function clSetSort(s) {
+    _clSort = s;
+    document.querySelectorAll('.cl-sort-btn').forEach(b => b.classList.toggle('on', b.dataset.sort === s));
+    clRenderList();
+  }
+
+  /* ── 详情 ── */
+  function clOpenDetail(name) {
+    const it = _clAll.find(x => x.name === name);
+    if (!it) return;
+    _clCurrent = it;
+    _clDetailFilter = 'all';
+    document.querySelectorAll('#cldFilter .cl-fbtn').forEach(b => b.classList.toggle('on', b.dataset.f === 'all'));
+    const sEl = document.getElementById('cldSearch'); if (sEl) sEl.value = '';
+
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    set('cldName', it.name);
+    set('cldTitle', it.name);
+    set('cldMono', 'SINGLE ARCHIVE');
+
+    const avEl = document.getElementById('cldAvatar');
+    if (avEl) {
+      if (it.avatar) { avEl.innerHTML = `<img src="${clEsc(it.avatar)}" alt="">`; }
+      else { avEl.textContent = (it.name[0] || '?').toUpperCase(); }
+    }
+
+    const mine = it.msgs.filter(m => m.role === 'mine').length;
+    const theirs = it.msgs.filter(m => m.role === 'luna').length;
+    const tsList = it.msgs.map(m => m.ts).filter(Boolean);
+    const days = tsList.length >= 2
+      ? Math.max(1, Math.round((Math.max.apply(null, tsList) - Math.min.apply(null, tsList)) / 86400000))
+      : (it.conv && it.conv.createdAt ? Math.max(1, Math.floor((Date.now() - it.conv.createdAt) / 86400000)) : 0);
+
+    set('cldTotal', it.msgs.length);
+    set('cldMine', mine);
+    set('cldTheirs', theirs);
+    set('cldDays', days);
+    set('cldMeta', (it.conv && it.conv.createdAt
+      ? new Date(it.conv.createdAt).toLocaleDateString('zh-CN') + ' 起'
+      : '本地归档') + ' · ' + it.msgs.length + ' 条');
+
+    const st = clBlockState()[it.name];
+    const isDel = clDeleted().indexOf(it.name) >= 0;
+    const badge = document.getElementById('cldBadge');
+    if (badge) {
+      badge.classList.toggle('blk', !!st || isDel);
+      badge.textContent = isDel ? '已删除' : st ? (st.by === 'ai' ? 'Ta 拉黑了你' : '已拉黑') : '正常';
+    }
+
+    const d = document.getElementById('clDetail');
+    if (d) d.classList.add('is-open');
+    clRenderDetail();
+  }
+  function clCloseDetail() {
+    const d = document.getElementById('clDetail');
+    if (d) d.classList.remove('is-open');
+    _clCurrent = null;
+  }
+  function clDetailFilter(f) {
+    _clDetailFilter = f;
+    document.querySelectorAll('#cldFilter .cl-fbtn').forEach(b => b.classList.toggle('on', b.dataset.f === f));
+    clRenderDetail();
+  }
+  function clRenderDetail() {
+    const box = document.getElementById('cldTimeline');
+    const empty = document.getElementById('cldEmpty');
+    if (!box || !_clCurrent) return;
+    const kw = ((document.getElementById('cldSearch') || {}).value || '').trim().toLowerCase();
+
+    let msgs = _clCurrent.msgs.slice();
+    if (_clDetailFilter === 'mine') msgs = msgs.filter(m => m.role === 'mine');
+    else if (_clDetailFilter === 'theirs') msgs = msgs.filter(m => m.role === 'luna');
+    else if (_clDetailFilter === 'media') msgs = msgs.filter(m => m.isMeme || m.isVoice || m.imageUrl || m.isAiImage || m.isLocation);
+    if (kw) msgs = msgs.filter(m => clMsgText(m).toLowerCase().includes(kw));
+
+    if (!msgs.length) {
+      box.innerHTML = '';
+      if (empty) empty.style.display = 'flex';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    let html = '', lastDay = null;
+    const who = _clCurrent.name;
+    msgs.forEach((m, i) => {
+      const day = clFmtDay(m.ts);
+      if (day !== lastDay) { html += `<div class="cl-daylabel">${clEsc(day)}</div>`; lastDay = day; }
+      const kind = clMsgKind(m);
+      html += `
+        <div class="cl-msg${m.role === 'mine' ? ' mine' : ''}" style="animation-delay:${Math.min(i * 0.015, 0.4).toFixed(2)}s">
+          <div class="cl-msg-head">
+            <span class="cl-msg-who">${m.role === 'mine' ? '我' : clEsc(who)}</span>
+            <span class="cl-msg-time">${clEsc(m.time || clFmtShort(m.ts))}</span>
+          </div>
+          <div class="cl-msg-body">${kind ? `<span class="cl-msg-kind">${kind}</span>` : ''}${clHl(clMsgText(m), kw)}</div>
+        </div>`;
+    });
+    box.innerHTML = html;
+  }
+
+  /* ── 导出 ── */
+  function clDownload(obj, filename) {
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+  }
+  function clStamp() {
+    const d = new Date();
+    return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') +
+           '_' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0');
+  }
+  function clExportOne() {
+    if (!_clCurrent) return;
+    clDownload({
+      _format: 'luna-chat-archive',
+      _version: 1,
+      _scope: 'single',
+      exportedAt: new Date().toISOString(),
+      conversations: [{ name: _clCurrent.name, msgs: _clCurrent.msgs, conv: _clCurrent.conv }]
+    }, 'luna_' + _clCurrent.name + '_' + clStamp() + '.json');
+    showToast('已导出「' + _clCurrent.name + '」的 ' + _clCurrent.msgs.length + ' 条记录');
+  }
+  function clExportAll() {
+    if (!_clAll.length) { showToast('还没有任何聊天记录'); return; }
+    clDownload({
+      _format: 'luna-chat-archive',
+      _version: 1,
+      _scope: 'all',
+      exportedAt: new Date().toISOString(),
+      blockState: clBlockState(),
+      deletedFriends: clDeleted(),
+      conversations: _clAll.map(i => ({ name: i.name, msgs: i.msgs, conv: i.conv }))
+    }, 'luna_chat_all_' + clStamp() + '.json');
+    showToast('已导出 ' + _clAll.length + ' 个会话');
+  }
+
+  /* ── 导入（与导出格式对称，支持合并 / 覆盖） ── */
+  function clImportAll() {
+    const f = document.getElementById('clImportFile');
+    if (f) { f.value = ''; f.click(); }
+  }
+  async function clHandleImport(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async e => {
+      let data;
+      try { data = JSON.parse(e.target.result); }
+      catch (err) { showToast('导入失败：不是有效的 JSON 文件'); return; }
+
+      const convs = data && Array.isArray(data.conversations) ? data.conversations : null;
+      if (!convs || !convs.length) { showToast('文件里没有可导入的会话'); return; }
+
+      const merge = confirm(
+        '共发现 ' + convs.length + ' 个会话。\n\n' +
+        '【确定】= 合并导入：与现有记录按时间去重后合并，原有内容不会丢失（推荐）\n' +
+        '【取消】= 覆盖导入：同名角色的记录将被文件里的内容整个替换'
+      );
+
+      let db;
+      try { db = await clOpenDB(); } catch (err) { showToast('数据库打开失败'); return; }
+
+      let added = 0, touched = 0;
+      for (const c of convs) {
+        if (!c || !c.name || !Array.isArray(c.msgs)) continue;
+        const exist = _clAll.find(x => x.name === c.name);
+        let finalMsgs;
+        if (merge && exist) {
+          const seen = new Set(exist.msgs.map(m => (m.ts || '') + '|' + m.role + '|' + clMsgText(m)));
+          const extra = c.msgs.filter(m => !seen.has((m.ts || '') + '|' + m.role + '|' + clMsgText(m)));
+          finalMsgs = exist.msgs.concat(extra);
+          finalMsgs.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+          added += extra.length;
+        } else {
+          finalMsgs = c.msgs.slice();
+          added += c.msgs.length;
+        }
+        await clPut(db, 'messages', { chatKey: c.name, msgs: finalMsgs });
+        if (c.conv) {
+          const base = (exist && exist.conv) || {};
+          await clPut(db, 'conv', Object.assign({}, base, c.conv, { name: c.name }));
+        }
+        touched++;
+      }
+
+      /* 拉黑 / 删除状态一并恢复（仅覆盖导入时） */
+      if (!merge && data.blockState) localStorage.setItem('luna_block_state', JSON.stringify(data.blockState));
+      if (!merge && data.deletedFriends) localStorage.setItem('luna_deleted_friends', JSON.stringify(data.deletedFriends));
+      localStorage.setItem('luna_block_update', Date.now().toString());
+
+      await clLoad();
+      clRenderList();
+      if (_clCurrent) {
+        const again = _clAll.find(x => x.name === _clCurrent.name);
+        if (again) clOpenDetail(again.name);
+      }
+      showToast((merge ? '合并' : '覆盖') + '导入完成：' + touched + ' 个会话 / 新增 ' + added + ' 条');
+    };
+    reader.readAsText(file);
+  }
+
+  /* ── 清空单个角色 ── */
+  async function clClearOne() {
+    if (!_clCurrent) return;
+    const name = _clCurrent.name;
+    if (!confirm('确定要清空「' + name + '」的全部聊天记录吗？\n共 ' + _clCurrent.msgs.length + ' 条，删除后无法恢复。\n\n建议先点「导出」做一份备份。')) return;
+    let db;
+    try { db = await clOpenDB(); } catch (e) { showToast('数据库打开失败'); return; }
+    await clPut(db, 'messages', { chatKey: name, msgs: [] });
+    const conv = _clCurrent.conv;
+    if (conv) await clPut(db, 'conv', Object.assign({}, conv, { preview: '', time: '', timeVal: 0 }));
+    await clLoad();
+    clRenderList();
+    const again = _clAll.find(x => x.name === name);
+    if (again) clOpenDetail(name); else clCloseDetail();
+    showToast('已清空「' + name + '」的聊天记录');
+    try { window.dispatchEvent(new StorageEvent('storage', { key: 'luna_chat_cleared', newValue: name, storageArea: localStorage })); } catch (e) {}
+    localStorage.setItem('luna_chat_cleared', name + '|' + Date.now());
+  }
+
+  /* ── 对外暴露 ── */
+  window.clOpen = clOpen;
+  window.clClose = clClose;
+  window.clRenderList = clRenderList;
+  window.clSetSort = clSetSort;
+  window.clOpenDetail = clOpenDetail;
+  window.clCloseDetail = clCloseDetail;
+  window.clRenderDetail = clRenderDetail;
+  window.clDetailFilter = clDetailFilter;
+  window.clExportOne = clExportOne;
+  window.clExportAll = clExportAll;
+  window.clImportAll = clImportAll;
+  window.clClearOne = clClearOne;
+  window.clReload = async function () { await clLoad(); clRenderList(); };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    clTick(); clIsland();
+    setInterval(clTick, 1000);
+
+    const f = document.getElementById('clImportFile');
+    if (f) f.addEventListener('change', e => clHandleImport(e.target.files && e.target.files[0]));
+
+    /* 「聊天记录」卡片 → 打开归档页 */
+    const card = document.getElementById('recordChatCard');
+    if (card) {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', clOpen);
+    }
+
+    /* 「导出 / 导入数据」卡片 → 直接给操作菜单 */
+    const dataCard = document.getElementById('recordDataCard');
+    if (dataCard) {
+      dataCard.style.cursor = 'pointer';
+      dataCard.addEventListener('click', async () => {
+        await clLoad();
+        const pick = prompt(
+          '数据管理 —— 输入数字后确定：\n\n' +
+          '1 = 导出全部聊天记录（' + _clAll.length + ' 个会话）\n' +
+          '2 = 导入聊天记录（支持合并 / 覆盖）\n' +
+          '3 = 打开聊天记录归档页\n',
+          '1'
+        );
+        if (pick === '1') clExportAll();
+        else if (pick === '2') clImportAll();
+        else if (pick === '3') clOpen();
+      });
+    }
+  });
+
+  window.addEventListener('storage', function (e) {
+    if (e.key === 'luna_island_update' || e.key === 'luna_island_enabled' || e.key === 'luna_island_style') clIsland();
+    if (e.key === 'luna_tz_update' || e.key === 'luna_battery') clTick();
+  });
+})();
+
+
+/* ================================================================
+   ✦ 好友管理 · 真实逻辑重写
+   -----------------------------------------------------------------
+   覆盖前面那套只有动画、不动数据的占位实现：
+     · 清空聊天记录 —— 按范围真删 IndexedDB
+     · 删除好友     —— 写入删除名单，可选连带删除记录
+     · 拉黑好友     —— 写入 luna_block_state，聊天页立即同步锁定
+================================================================ */
+(function () {
+
+  const RANGE_LABELS = ['近7天', '近30天', '全部'];
+  let _range = 2;                 // 1=7天 2=30天 3=全部
+  let _blkLevel = 1;              // 1/2/3
+  let _holdTimer = null, _holdStart = 0;
+
+  function curName() { return localStorage.getItem('luna_current_chat') || ''; }
+
+  function openDB() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('LunaChatDB');
+      r.onsuccess = e => res(e.target.result);
+      r.onerror = () => rej(new Error('db'));
+    });
+  }
+  function dbGet(db, store, key) {
+    return new Promise(res => {
+      if (!db.objectStoreNames.contains(store)) { res(null); return; }
+      const r = db.transaction(store).objectStore(store).get(key);
+      r.onsuccess = () => res(r.result || null);
+      r.onerror = () => res(null);
+    });
+  }
+  function dbPut(db, store, obj) {
+    return new Promise(res => {
+      if (!db.objectStoreNames.contains(store)) { res(false); return; }
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).put(obj);
+      tx.oncomplete = () => res(true);
+      tx.onerror = () => res(false);
+    });
+  }
+  function dbDel(db, store, key) {
+    return new Promise(res => {
+      if (!db.objectStoreNames.contains(store)) { res(false); return; }
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).delete(key);
+      tx.oncomplete = () => res(true);
+      tx.onerror = () => res(false);
+    });
+  }
+
+  function broadcastBlock() {
+    localStorage.setItem('luna_block_update', Date.now().toString());
+    try {
+      const bc = new BroadcastChannel('luna_block_channel');
+      bc.postMessage({ type: 'block-update' });
+      bc.close();
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'luna_block_state',
+        newValue: localStorage.getItem('luna_block_state'),
+        storageArea: localStorage
+      }));
+    } catch (e) {}
+  }
+  function getBlocks() {
+    try { return JSON.parse(localStorage.getItem('luna_block_state') || '{}') || {}; } catch (e) { return {}; }
+  }
+  function setBlocks(o) {
+    localStorage.setItem('luna_block_state', JSON.stringify(o));
+    broadcastBlock();
+  }
+  function getDeleted() {
+    try { const l = JSON.parse(localStorage.getItem('luna_deleted_friends') || '[]'); return Array.isArray(l) ? l : []; }
+    catch (e) { return []; }
+  }
+  function setDeleted(l) {
+    localStorage.setItem('luna_deleted_friends', JSON.stringify(l));
+    broadcastBlock();
+  }
+
+  /* ── 清除范围 ── */
+  window.friendUpdateRange = function (v) {
+    _range = parseInt(v);
+    const el = document.getElementById('friendRangeVal');
+    if (el) el.textContent = RANGE_LABELS[_range - 1];
+    const pct = ((_range - 1) / 2) * 100;
+    const ctrl = document.getElementById('friendRangeCtrl');
+    if (ctrl) ctrl.style.background = `linear-gradient(90deg,#1a1a1a ${pct}%,#eee ${pct}%)`;
+  };
+
+  /* ── 长按清空 ── */
+  window.friendStartHold = function () {
+    const btn = document.getElementById('friendHoldBtn');
+    if (!btn) return;
+    _holdStart = Date.now();
+    btn.classList.add('holding');
+    clearTimeout(_holdTimer);
+    _holdTimer = setTimeout(doClear, 1800);
+  };
+  window.friendStopHold = function () {
+    clearTimeout(_holdTimer);
+    const btn = document.getElementById('friendHoldBtn');
+    if (btn) btn.classList.remove('holding');
+  };
+
+  async function doClear() {
+    const name = curName();
+    const btn = document.getElementById('friendHoldBtn');
+    if (btn) btn.classList.remove('holding');
+    if (!name) { showToast('还没有选择角色'); return; }
+
+    const label = RANGE_LABELS[_range - 1];
+    let db;
+    try { db = await openDB(); } catch (e) { showToast('数据库打开失败'); return; }
+    const rec = await dbGet(db, 'messages', name);
+    const msgs = (rec && Array.isArray(rec.msgs)) ? rec.msgs : [];
+    if (!msgs.length) { showToast('「' + name + '」还没有聊天记录'); return; }
+
+    /* 计算要保留哪些：有时间戳的按时间判定；没有时间戳的一律视为「更早」 */
+    let keep;
+    if (_range === 3) {
+      keep = [];
+    } else {
+      const cutoff = Date.now() - (_range === 1 ? 7 : 30) * 86400000;
+      keep = msgs.filter(m => !(m && m.ts && m.ts >= cutoff));
+    }
+    const removeCount = msgs.length - keep.length;
+
+    if (removeCount === 0) {
+      showToast('「' + label + '」范围内没有需要清除的记录');
+      return;
+    }
+    if (!confirm(
+      '将清除「' + name + '」在' + label + '内的 ' + removeCount + ' 条聊天记录' +
+      (keep.length ? '，保留更早的 ' + keep.length + ' 条' : '（全部清空）') +
+      '。\n\n此操作不可撤销，建议先到「聊天记录」页导出备份。确定继续吗？'
+    )) return;
+
+    await dbPut(db, 'messages', { chatKey: name, msgs: keep });
+    const conv = await dbGet(db, 'conv', name);
+    if (conv) {
+      const last = keep.length ? keep[keep.length - 1] : null;
+      await dbPut(db, 'conv', Object.assign({}, conv, {
+        preview: last ? (last.text || '') : '',
+        time: last ? (last.time || '') : '',
+        timeVal: last && last.ts ? last.ts : 0
+      }));
+    }
+
+    if (btn) {
+      btn.style.background = '#1a1a1a';
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      setTimeout(() => {
+        btn.style.background = '';
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg><span class="friend-hold-label">长按</span>';
+      }, 1800);
+    }
+    localStorage.setItem('luna_chat_cleared', name + '|' + Date.now());
+    showToast('已清除 ' + removeCount + ' 条记录');
+    if (window.friendLoadData) window.friendLoadData();
+    if (window.clReload) window.clReload();
+  }
+
+  /* ── 删除好友 ── */
+  window.friendTriggerDel = async function () {
+    const name = curName();
+    if (!name) { showToast('还没有选择角色'); return; }
+    const el = document.getElementById('friendDelPull');
+
+    let db, count = 0;
+    try {
+      db = await openDB();
+      const rec = await dbGet(db, 'messages', name);
+      count = (rec && rec.msgs) ? rec.msgs.length : 0;
+    } catch (e) {}
+
+    if (!confirm('确定要删除好友「' + name + '」吗？\n\n· 删除后聊天页会锁定，无法继续对话\n· 该角色会从「信息」列表中隐藏\n· 共 ' + count + ' 条聊天记录\n\n此操作可在下方重新添加回来。')) return;
+
+    const alsoWipe = confirm('是否同时删除这 ' + count + ' 条聊天记录？\n\n【确定】= 一并删除记录（不可恢复）\n【取消】= 仅删除好友，记录保留在归档里');
+
+    if (alsoWipe && db) {
+      await dbPut(db, 'messages', { chatKey: name, msgs: [] });
+      await dbDel(db, 'conv', name);
+    }
+
+    const list = getDeleted();
+    if (list.indexOf(name) < 0) list.push(name);
+    setDeleted(list);
+
+    /* 删除同时解除拉黑标记，避免状态互相打架 */
+    const b = getBlocks();
+    if (b[name]) { delete b[name]; setBlocks(b); }
+
+    if (el) {
+      el.classList.add('triggered');
+      setTimeout(() => el.classList.remove('triggered'), 2200);
+    }
+    showToast('已删除好友「' + name + '」' + (alsoWipe ? '及其聊天记录' : ''));
+    if (window.friendLoadData) window.friendLoadData();
+    if (window.clReload) window.clReload();
+    friendRefreshCards();
+  };
+
+  /* ── 拉黑方式 ── */
+  const BLK_NOTICES = [
+    '仅屏蔽消息：Ta 仍能看到你的主页与状态，但双方消息不再送达，聊天页输入框会被锁定',
+    '屏蔽 + 隐身：Ta 看不到你的在线状态，消息同样被屏蔽，聊天页输入框锁定',
+    '完全拉黑：双方互不可见，聊天记录保留在归档里，但无法再联系'
+  ];
+  window.friendSelectSeg = function (n) {
+    _blkLevel = n;
+    [1, 2, 3].forEach(i => {
+      const el = document.getElementById('friendSeg' + i);
+      if (el) el.classList.toggle('active', i === n);
+    });
+    const t = document.getElementById('friendBlkNotice');
+    if (t) t.textContent = BLK_NOTICES[n - 1];
+  };
+
+  /* ── 拉黑 / 解除拉黑 ── */
+  window.friendTriggerBlk = function () {
+    const name = curName();
+    if (!name) { showToast('还没有选择角色'); return; }
+    const blocks = getBlocks();
+    const btn = document.getElementById('friendBlkBtn');
+    const txt = document.getElementById('friendBlkBtnTxt');
+
+    if (blocks[name]) {
+      if (!confirm('「' + name + '」当前已被拉黑。\n是否解除拉黑，恢复正常聊天？')) return;
+      delete blocks[name];
+      setBlocks(blocks);
+      showToast('已解除对「' + name + '」的拉黑');
+    } else {
+      const lvTxt = ['仅屏蔽消息', '屏蔽 + 隐身', '完全拉黑'][_blkLevel - 1];
+      if (!confirm('确定要以「' + lvTxt + '」的方式拉黑「' + name + '」吗？\n\n拉黑后聊天页的输入框与 AI 回复按钮都会被锁定，直到你解除拉黑。')) return;
+      blocks[name] = { by: 'user', level: _blkLevel, ts: Date.now(), reason: lvTxt };
+      setBlocks(blocks);
+      showToast('已拉黑「' + name + '」· ' + lvTxt);
+    }
+
+    if (btn && txt) {
+      btn.style.background = '#444';
+      txt.textContent = '已更新';
+      setTimeout(() => { btn.style.background = ''; friendRefreshCards(); }, 1400);
+    }
+    friendRefreshCards();
+    if (window.clReload) window.clReload();
+  };
+
+  /* ── 卡片按钮文案随状态刷新 ── */
+  function friendRefreshCards() {
+    const name = curName();
+    const blocks = getBlocks();
+    const deleted = getDeleted();
+    const st = blocks[name];
+    const isDel = deleted.indexOf(name) >= 0;
+
+    const txt = document.getElementById('friendBlkBtnTxt');
+    if (txt) txt.textContent = st ? '解除拉黑' : '确认拉黑';
+
+    const blkSub = document.querySelector('#friendBlockCard .friend-card-sub');
+    if (blkSub) blkSub.textContent = st
+      ? '当前状态：' + (st.by === 'ai' ? 'Ta 把你拉黑了' : ['仅屏蔽消息', '屏蔽 + 隐身', '完全拉黑'][(st.level || 1) - 1])
+      : '选择拉黑方式，拉黑后对方将看不到你的在线状态';
+
+    const delSub = document.querySelector('#friendDeleteCard .friend-card-sub');
+    if (delSub) delSub.textContent = isDel
+      ? '该好友已被删除，点击下方可从删除名单中恢复'
+      : '从好友列表中移除，对方将无法与你发起新对话';
+
+    const pullTxt = document.querySelector('#friendDelPull .friend-pull-txt');
+    if (pullTxt) pullTxt.textContent = isDel ? '点击恢复该好友' : '下拉确认删除';
+
+    if (isDel) {
+      const pull = document.getElementById('friendDelPull');
+      if (pull && !pull._restoreBound) {
+        pull._restoreBound = true;
+        pull.addEventListener('click', function onRestore(e) {
+          if (getDeleted().indexOf(curName()) < 0) return;
+          e.stopImmediatePropagation();
+          const n = curName();
+          if (!confirm('确定要恢复好友「' + n + '」吗？\n恢复后聊天页会解除锁定，可以继续对话。')) return;
+          setDeleted(getDeleted().filter(x => x !== n));
+          showToast('已恢复好友「' + n + '」');
+          friendRefreshCards();
+          if (window.clReload) window.clReload();
+        }, true);
+      }
+    }
+  }
+  window.friendRefreshCards = friendRefreshCards;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    window.friendUpdateRange(2);
+    window.friendSelectSeg(1);
+    setTimeout(friendRefreshCards, 200);
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key === 'luna_block_state' || e.key === 'luna_deleted_friends' ||
+        e.key === 'luna_block_update' || e.key === 'luna_current_chat') {
+      friendRefreshCards();
+      if (window.friendLoadData) window.friendLoadData();
+    }
+  });
+  try {
+    const bc = new BroadcastChannel('luna_block_channel');
+    bc.onmessage = function () { friendRefreshCards(); };
+  } catch (e) {}
+})();
+
+
+/* ================================================================
+   ✦ 感知设置：默认全部关闭
+   原实现里三个开关的初始 HTML/变量都是「开」，导致用户从没设置过
+   也会被当成已开启。这里在首次进入时统一置为关闭并落库，
+   之后完全按用户自己的选择走。
+================================================================ */
+(function () {
+  document.addEventListener('DOMContentLoaded', function () {
+    if (localStorage.getItem('luna_perception')) return;   // 已经配置过就不动
+    localStorage.setItem('luna_perception', JSON.stringify({
+      mode: 'real', weather: false, loc: false, time: false, city: '', lat: null, lng: null
+    }));
+    localStorage.setItem('luna_perception_update', Date.now().toString());
+    setTimeout(function () {
+      if (typeof pcLoadState === 'function') { try { pcLoadState(); } catch (e) {} }
+    }, 60);
+  });
+})();

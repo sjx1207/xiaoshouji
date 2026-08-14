@@ -175,6 +175,13 @@ body::after {
 }
 .wb-add-btn:hover { transform: scale(1.08) rotate(90deg); }
 .wb-add-btn:active { transform: scale(0.95); }
+.wb-nav-actions { display: flex; align-items: center; gap: 8px; }
+.wb-help-btn {
+  width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line2); background: var(--white);
+  display: flex; align-items: center; justify-content: center; color: var(--ink2); cursor: pointer; transition: all 0.2s;
+}
+.wb-help-btn:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.wb-help-btn:active { transform: scale(0.95); }
 
 /* Hero */
 .wb-hero {
@@ -329,6 +336,124 @@ body::after {
   display: flex; align-items: center; justify-content: center; color: var(--ink2); cursor: pointer; transition: all 0.2s;
 }
 .wb-modal-close:hover { background: var(--ink); border-color: var(--ink); color: var(--white); }
+
+/* ================================
+   使用说明书
+   点标签只显示对应分节，其他隐藏——真正的切换，不是滚动定位。
+   第一个标签默认写死 .active，配合下面 .wb-help-sec.active 规则，
+   HTML 一加载完就是正确的初始状态，不依赖 JS 执行成功与否。
+================================ */
+.wb-help-sheet { max-height: 90vh; }
+
+.wb-help-tabs {
+  display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 16px 22px 12px;
+  position: sticky; top: 0; background: var(--paper); z-index: 2; border-bottom: 1px solid var(--line);
+}
+.wb-help-tabs::-webkit-scrollbar { display: none; }
+.wb-help-tab {
+  flex-shrink: 0; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line2); background: var(--white);
+  font-size: 12.5px; font-weight: 600; color: var(--ink2); cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  font-family: inherit;
+}
+.wb-help-tab:hover { border-color: var(--ink4); }
+.wb-help-tab.active { background: var(--ink); color: var(--white); border-color: var(--ink); box-shadow: var(--shadow-sm); }
+
+.wb-help-body { padding: 4px 22px 10px; }
+
+.wb-help-sec { padding: 22px 0 20px; scroll-margin-top: 12px; display: none; }
+.wb-help-sec.active { display: block; animation: wbHelpFadeIn 0.22s ease; }
+@keyframes wbHelpFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.wb-help-sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.wb-help-sec-icon {
+  width: 38px; height: 38px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; box-shadow: var(--shadow-sm);
+}
+.wb-help-sec-icon.cat-char     { color: var(--c-char);    background: rgba(107,91,149,0.09); }
+.wb-help-sec-icon.cat-place2   { color: var(--c-place);   background: rgba(63,107,107,0.09); }
+.wb-help-sec-icon.cat-item2    { color: var(--c-item);    background: rgba(90,107,82,0.09); }
+.wb-help-sec-icon.cat-rel2     { color: var(--c-rel);     background: rgba(122,90,107,0.09); }
+.wb-help-sec-icon.cat-faction2 { color: var(--c-faction); background: rgba(90,90,122,0.09); }
+.wb-help-sec-icon.cat-rule2    { color: var(--c-rule);    background: rgba(23,24,26,0.07); }
+.wb-help-sec-title { font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--ink); letter-spacing: 0.2px; }
+.wb-help-sec-sub { font-size: 11.5px; color: var(--ink3); margin-top: 2px; }
+
+.wb-help-p { font-size: 13.5px; line-height: 1.75; color: var(--ink2); margin: 0 0 12px; }
+.wb-help-p-sm { font-size: 12.5px; line-height: 1.65; color: var(--ink3); margin: 8px 0 0; }
+.wb-help-sec b { color: var(--ink); font-weight: 700; }
+
+/* 关键词/常驻 两种模式对比卡 */
+.wb-help-mode-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.wb-help-mode-card { background: var(--white); border: 1px solid var(--line2); border-radius: var(--r-md); padding: 14px 12px; }
+.wb-help-mode-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; margin-bottom: 9px; }
+.wb-help-mode-tag.kw    { color: var(--c-place); background: rgba(63,107,107,0.09); }
+.wb-help-mode-tag.const { color: var(--c-rule);  background: rgba(23,24,26,0.07); }
+.wb-help-mode-desc { font-size: 12px; line-height: 1.55; color: var(--ink2); margin-bottom: 8px; }
+.wb-help-mode-fit { font-size: 11px; color: var(--ink3); }
+
+/* 分类色条 */
+.wb-help-cat-strip { display: flex; flex-wrap: wrap; gap: 7px; }
+.wb-help-cat-chip { font-size: 11.5px; font-weight: 700; padding: 5px 11px; border-radius: 999px; }
+.wb-help-cat-chip.cat-char     { color: var(--c-char);    background: rgba(107,91,149,0.09); }
+.wb-help-cat-chip.cat-location { color: var(--c-place);   background: rgba(63,107,107,0.09); }
+.wb-help-cat-chip.cat-faction  { color: var(--c-faction); background: rgba(90,90,122,0.09); }
+.wb-help-cat-chip.cat-event    { color: var(--c-event);   background: rgba(138,90,82,0.09); }
+.wb-help-cat-chip.cat-rel      { color: var(--c-rel);     background: rgba(122,90,107,0.09); }
+.wb-help-cat-chip.cat-item     { color: var(--c-item);    background: rgba(90,107,82,0.09); }
+.wb-help-cat-chip.cat-rule     { color: var(--c-rule);    background: rgba(23,24,26,0.07); }
+.wb-help-cat-chip.cat-other    { color: var(--c-other);   background: rgba(122,122,120,0.09); }
+
+/* 统计说明网格 */
+.wb-help-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.wb-help-stat-item {
+  background: var(--white); border: 1px solid var(--line2); border-radius: var(--r-sm); padding: 11px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.wb-help-stat-item b { font-family: var(--serif); font-size: 14.5px; color: var(--ink); }
+.wb-help-stat-item span { font-size: 11.5px; color: var(--ink3); }
+
+/* 功能行（图标 + 文字） */
+.wb-help-feat-row { display: flex; align-items: flex-start; gap: 11px; padding: 10px 0; }
+.wb-help-feat-row + .wb-help-feat-row { border-top: 1px solid var(--line); }
+.wb-help-feat-icon {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--paper2); border: 1px solid var(--line2);
+  display: flex; align-items: center; justify-content: center; color: var(--ink2); flex-shrink: 0; margin-top: 1px;
+}
+.wb-help-feat-row div:last-child { font-size: 13px; line-height: 1.6; color: var(--ink2); }
+.wb-help-feat-row.danger .wb-help-feat-icon { color: #8a3b3b; background: rgba(138,59,59,0.07); border-color: rgba(138,59,59,0.15); }
+
+/* 新建条目：编号步骤卡 */
+.wb-help-step { display: flex; gap: 12px; padding: 13px 0; }
+.wb-help-step + .wb-help-step { border-top: 1px solid var(--line); }
+.wb-help-step-num {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--white);
+  font-family: var(--mono); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.wb-help-step-title { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.wb-help-step-desc { font-size: 12.5px; line-height: 1.65; color: var(--ink2); }
+
+/* 高级参数网格 */
+.wb-help-param-grid { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.wb-help-param {
+  display: flex; align-items: baseline; gap: 8px; font-size: 12px; padding: 7px 10px;
+  background: var(--paper2); border-radius: var(--r-sm); border: 1px solid var(--line);
+}
+.wb-help-param-k { font-weight: 700; color: var(--ink); flex-shrink: 0; }
+.wb-help-param-v { color: var(--ink2); }
+
+/* 导入导出卡片 */
+.wb-help-io-card { background: var(--white); border: 1px solid var(--line2); border-radius: var(--r-md); padding: 13px 14px; margin-bottom: 10px; }
+.wb-help-io-label { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink3); margin-bottom: 6px; }
+
+/* 常见问题 Q&A 卡 */
+.wb-help-qa { padding: 12px 0; }
+.wb-help-qa + .wb-help-qa { border-top: 1px solid var(--line); }
+.wb-help-q { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-bottom: 5px; display: flex; gap: 6px; }
+.wb-help-q::before { content: 'Q'; font-family: var(--mono); font-size: 11px; color: var(--white); background: var(--ink); width: 17px; height: 17px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.wb-help-a { font-size: 12.5px; line-height: 1.65; color: var(--ink2); padding-left: 23px; }
+
+.wb-help-code { font-family: var(--mono); font-size: 11.5px; background: var(--paper2); border: 1px solid var(--line); border-radius: 5px; padding: 2px 6px; color: var(--ink); }
 
 /* 预览卡 */
 .wb-preview-zone { padding: 16px 22px 0; }

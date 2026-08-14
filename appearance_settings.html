@@ -95,7 +95,7 @@
     <div class="sec-label">全局 · GLOBAL</div>
 
     <!-- 1. 自定义美化 -->
-    <div class="card">
+    <div class="card" id="cardCustom" onclick="openCustomStudio()" style="cursor:pointer;">
       <div class="card-deco-c1"></div><div class="card-deco-c2"></div><div class="card-deco-c3"></div>
       <div class="deco-dots" style="bottom:12px;right:60px;opacity:.5">
         <div class="deco-dots-row"><div class="deco-dot"></div><div class="deco-dot"></div><div class="deco-dot"></div></div>
@@ -228,7 +228,7 @@
     <div class="sec-label">面板 · PANEL</div>
 
     <!-- 5. 功能卡片美化 -->
-    <div class="card">
+    <div class="card" id="cardFunc" onclick="openCardStudio()" style="cursor:pointer;">
       <div class="card-deco-c1"></div><div class="card-deco-c2"></div><div class="card-deco-c3"></div>
       <div class="deco-dots" style="bottom:10px;right:56px;opacity:.4">
         <div class="deco-dots-row"><div class="deco-dot"></div><div class="deco-dot"></div><div class="deco-dot"></div><div class="deco-dot"></div></div>
@@ -259,7 +259,7 @@
     </div>
 
     <!-- 6. 聊天功能板美化 -->
-    <div class="card">
+    <div class="card" id="cardPanel" onclick="openPanelStudio()" style="cursor:pointer;">
       <div class="card-deco-c1"></div><div class="card-deco-c2"></div><div class="card-deco-c3"></div>
       <div class="deco-hline" style="bottom:34px;left:0;right:0;opacity:.5"></div>
       <div class="rc-inner">
@@ -1249,6 +1249,887 @@
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     ✦ Card Studio 子页面 — 功能卡片美化
+══════════════════════════════════════════════════════════════ -->
+<div id="cardStudioPage">
+
+  <div class="is-status-bar">
+    <div class="is-status-time" id="cdTime">9:41</div>
+    <div class="is-status-island" id="cdIsland"></div>
+    <div class="is-status-right">
+      <div class="is-signal"><i></i><i></i><i></i><i></i></div>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#1a1a1a" opacity="0.85">
+        <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+        <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+        <circle cx="8" cy="10.5" r="1.8"/>
+      </svg>
+      <div class="is-battery">
+        <span class="is-bat-pct" id="cdBatPct">76</span>
+        <div class="is-bat-shell"><div class="is-bat-inner" id="cdBatInner"></div><div class="is-bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="is-nav">
+    <div class="is-nav-left">
+      <div class="is-back-btn" onclick="closeCardStudio()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="is-nav-sep"></div>
+      <span class="is-nav-title">CARD STUDIO</span>
+      <div class="is-nav-sep"></div>
+      <span class="is-nav-sub">功能卡片美化</span>
+    </div>
+    <div class="is-nav-right">
+      <button class="is-btn-outline" onclick="cdExportCSS()">导出 CSS</button>
+      <button class="is-btn-solid" onclick="cdApplyAll()">同步到聊天</button>
+    </div>
+  </div>
+
+  <!-- 实时预览 -->
+  <div class="is-preview-wrap">
+    <div class="is-preview-label">
+      <span class="is-sec-tag-hd">PREVIEW · 实时渲染</span>
+      <div class="is-live-badge"><div class="is-live-dot"></div><span>LIVE</span></div>
+    </div>
+    <div class="xs-stage">
+      <div class="xs-stage-inner" id="cdStageInner">
+        <div class="xs-card-grid" id="cdCardGrid">
+          <div class="xs-fcard is-side" id="cdCardL">
+            <div class="xs-fcard-glow"></div>
+            <div class="xs-fcard-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div style="text-align:center;">
+              <div class="xs-fcard-en">NO.01</div>
+              <div class="xs-fcard-name">心声</div>
+            </div>
+          </div>
+          <div class="xs-fcard is-mid" id="cdCardM">
+            <div class="xs-fcard-glow"></div>
+            <div class="xs-fcard-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg>
+            </div>
+            <div style="text-align:center;">
+              <div class="xs-fcard-en">NO.02</div>
+              <div class="xs-fcard-name">礼物</div>
+            </div>
+          </div>
+          <div class="xs-fcard is-side" id="cdCardR">
+            <div class="xs-fcard-glow"></div>
+            <div class="xs-fcard-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <div style="text-align:center;">
+              <div class="xs-fcard-en">NO.03</div>
+              <div class="xs-fcard-name">回忆</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="is-page-deco"></div>
+
+  <div class="is-edit-area">
+
+    <!-- 应用范围 -->
+    <div class="is-scope-bar">
+      <div class="is-scope-row">
+        <span class="is-sec-tag-hd">应用范围</span>
+        <div class="is-scope-pills">
+          <button class="is-sp-btn on" id="cdSpGlobal" onclick="cdSetScope('global')">全局</button>
+          <button class="is-sp-btn" id="cdSpChar" onclick="cdSetScope('char')">当前角色</button>
+        </div>
+      </div>
+      <div class="is-scope-hint" id="cdScopeHint">将应用到所有角色的功能卡片样式</div>
+    </div>
+
+    <!-- 系统美化库 -->
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">系统美化库</span>
+        <span class="is-sec-tag-sm">PRESET · 一键套用</span>
+      </div>
+      <div class="xs-lib-scroll" id="cdLibScroll"></div>
+      <div class="is-scope-hint" id="cdLibHint" style="margin-top:2px;">点击任意预设即可实时预览，满意后按右上角「同步到聊天」生效</div>
+    </div>
+
+    <!-- 尺寸 -->
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">尺寸与形状</span>
+        <button class="is-eblock-reset" onclick="cdResetSize()">还原默认</button>
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">卡片宽度</span><span class="is-rval" id="cdVW">160px</span></div>
+        <input type="range" class="is-range" min="110" max="220" value="160" id="cdRW" oninput="cdSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">卡片高度</span><span class="is-rval" id="cdVH">220px</span></div>
+        <input type="range" class="is-range" min="150" max="300" value="220" id="cdRH" oninput="cdSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">卡片圆角</span><span class="is-rval" id="cdVRadius">16px</span></div>
+        <input type="range" class="is-range" min="0" max="40" value="16" id="cdRRadius" oninput="cdSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">图标区圆角</span><span class="is-rval" id="cdVIconR">11px</span></div>
+        <input type="range" class="is-range" min="0" max="30" value="11" id="cdRIconR" oninput="cdSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">标题字号</span><span class="is-rval" id="cdVTitle">13px</span></div>
+        <input type="range" class="is-range" min="9" max="22" value="13" id="cdRTitle" oninput="cdSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">卡片间距</span><span class="is-rval" id="cdVGap">10px</span></div>
+        <input type="range" class="is-range" min="0" max="40" value="10" id="cdRGap" oninput="cdSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">阴影强度</span><span class="is-rval" id="cdVShadow">18</span></div>
+        <input type="range" class="is-range" min="0" max="60" value="18" id="cdRShadow" oninput="cdSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">边框粗细</span><span class="is-rval" id="cdVBw">0.5px</span></div>
+        <input type="range" class="is-range" min="0" max="4" value="0.5" step="0.5" id="cdRBw" oninput="cdSyncSize()">
+      </div>
+    </div>
+
+    <!-- 颜色 -->
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">颜色配置</span>
+        <button class="is-eblock-reset" onclick="cdResetColors()">还原默认</button>
+      </div>
+      <div class="is-color-grid">
+        <div class="is-cf"><span class="is-flabel">卡片背景</span><div class="is-cf-wrap"><input type="color" id="cdCBg" value="#ffffff" oninput="cdSyncColors()"><span class="is-cf-hex" id="cdHBg">#ffffff</span></div></div>
+        <div class="is-cf"><span class="is-flabel">卡片边框</span><div class="is-cf-wrap"><input type="color" id="cdCBd" value="#e0e0e0" oninput="cdSyncColors()"><span class="is-cf-hex" id="cdHBd">#e0e0e0</span></div></div>
+        <div class="is-cf"><span class="is-flabel">图标底色</span><div class="is-cf-wrap"><input type="color" id="cdCArt" value="#f5f5f5" oninput="cdSyncColors()"><span class="is-cf-hex" id="cdHArt">#f5f5f5</span></div></div>
+        <div class="is-cf"><span class="is-flabel">图标线条</span><div class="is-cf-wrap"><input type="color" id="cdCIcon" value="#6a6a6a" oninput="cdSyncColors()"><span class="is-cf-hex" id="cdHIcon">#6a6a6a</span></div></div>
+        <div class="is-cf"><span class="is-flabel">标题文字</span><div class="is-cf-wrap"><input type="color" id="cdCTitle" value="#1a1a1a" oninput="cdSyncColors()"><span class="is-cf-hex" id="cdHTitle">#1a1a1a</span></div></div>
+        <div class="is-cf"><span class="is-flabel">副标题</span><div class="is-cf-wrap"><input type="color" id="cdCSub" value="#aaaaaa" oninput="cdSyncColors()"><span class="is-cf-hex" id="cdHSub">#aaaaaa</span></div></div>
+        <div class="is-cf"><span class="is-flabel">编号标签</span><div class="is-cf-wrap"><input type="color" id="cdCTag" value="#aaaaaa" oninput="cdSyncColors()"><span class="is-cf-hex" id="cdHTag">#aaaaaa</span></div></div>
+        <div class="is-cf"><span class="is-flabel">底部栏背景</span><div class="is-cf-wrap"><input type="color" id="cdCFoot" value="#ffffff" oninput="cdSyncColors()"><span class="is-cf-hex" id="cdHFoot">#ffffff</span></div></div>
+      </div>
+    </div>
+
+    <!-- 开关 -->
+    <div class="is-eblock">
+      <div class="is-eblock-head"><span class="is-eblock-title">显示开关</span><span class="is-sec-tag-sm">TOGGLE</span></div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">卡片编号</span><span class="is-toggle-desc">.fp-card-no 右上角序号</span></div>
+        <div class="is-toggle on" id="cdTogNo" onclick="cdToggle('no')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">副标题</span><span class="is-toggle-desc">.fp-card-sub 斜体说明</span></div>
+        <div class="is-toggle on" id="cdTogSub" onclick="cdToggle('sub')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">底部分隔线</span><span class="is-toggle-desc">.fp-card-footer 顶部描边</span></div>
+        <div class="is-toggle on" id="cdTogRule" onclick="cdToggle('rule')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">高光渐层</span><span class="is-toggle-desc">卡片顶部柔光</span></div>
+        <div class="is-toggle" id="cdTogGlow" onclick="cdToggle('glow')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">毛玻璃卡片</span><span class="is-toggle-desc">backdrop-filter blur</span></div>
+        <div class="is-toggle" id="cdTogBlur" onclick="cdToggle('blur')"><div class="is-toggle-knob"></div></div>
+      </div>
+    </div>
+
+    <!-- 自定义 CSS -->
+    <div class="is-css-editor">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">自定义 CSS</span>
+        <span class="is-sec-tag-sm">高级 · 实时预览</span>
+      </div>
+      <div class="is-class-ref">
+        <div class="is-cr-ref-title">功能卡片元素参考 — 点击插入到 CSS</div>
+        <div class="is-cr-ref-grid">
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cdInsertClass('.fp-card')">.fp-card</span><span class="is-cr-ref-desc">卡片本体</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cdInsertClass('.fp-card-art')">.fp-card-art</span><span class="is-cr-ref-desc">图形区</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cdInsertClass('.fp-card-footer')">.fp-card-footer</span><span class="is-cr-ref-desc">底部信息栏</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cdInsertClass('.fp-card-title')">.fp-card-title</span><span class="is-cr-ref-desc">卡片标题</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cdInsertClass('.fp-card-sub')">.fp-card-sub</span><span class="is-cr-ref-desc">卡片副标题</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cdInsertClass('.fp-card-tag')">.fp-card-tag</span><span class="is-cr-ref-desc">英文小标签</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cdInsertClass('.fp-card-no')">.fp-card-no</span><span class="is-cr-ref-desc">右上角编号</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cdInsertClass('.card-mono-art')">.card-mono-art</span><span class="is-cr-ref-desc">卡面插画 SVG</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cdInsertClass('.fan-stage')">.fan-stage</span><span class="is-cr-ref-desc">卡片舞台</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cdInsertClass('.fp-detail')">.fp-detail</span><span class="is-cr-ref-desc">底部详情条</span></div>
+        </div>
+      </div>
+      <div class="is-eblock-head" style="margin-bottom:9px;"><span class="is-eblock-title" style="font-size:9px;color:#bbb;">CSS 方案管理</span></div>
+      <div class="is-scheme-bar">
+        <div class="is-custom-select" id="cdCustomSelect">
+          <div class="is-cs-trigger" id="cdCsTrigger" onclick="cdToggleDropdown()">
+            <span class="is-cs-value placeholder" id="cdCsValue">— 选择已保存方案 —</span>
+            <svg class="is-cs-arrow" id="cdCsArrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="is-cs-dropdown" id="cdCsDropdown"></div>
+        </div>
+        <button class="is-scheme-btn" onclick="cdOpenSaveModal()">保存方案</button>
+        <button class="is-scheme-btn danger" onclick="cdDeleteScheme()">删除</button>
+      </div>
+      <div class="is-field" style="margin-bottom:10px;">
+        <span class="is-flabel">当前方案名</span>
+        <input type="text" id="cdSchemeName" placeholder="未命名" readonly style="color:#aaa;">
+      </div>
+      <textarea class="is-css-textarea" id="cdCssCode" placeholder="/* 直接写 CSS，例如：*/&#10;.fp-card { background: #101014; }&#10;.fp-card-title { color: #f2f2f2; }"></textarea>
+      <div class="is-css-action-row">
+        <button class="is-css-apply" onclick="cdApplyCss()">应用到预览</button>
+        <button class="is-css-apply" onclick="cdClearCss()" style="color:#aaa;">清除效果</button>
+        <span class="is-css-status" id="cdCssStatus"></span>
+      </div>
+
+      <!-- 同步键名说明 -->
+      <div class="xs-keybar">
+        <div class="xs-key-line">全局存储键 <span class="xs-key-code" onclick="xsCopyKey(this)">luna_card_style</span></div>
+        <div class="xs-key-line">角色专属键 <span class="xs-key-code" onclick="xsCopyKey(this)">luna_card_style_char_角色名</span></div>
+        <div class="xs-key-line">广播频道 <span class="xs-key-code" onclick="xsCopyKey(this)">luna_card_style_channel</span></div>
+        <div class="xs-key-line">聊天页应用函数 <span class="xs-key-code" onclick="xsCopyKey(this)">window.crApplyCardStyle()</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="is-save-modal-bg" id="cdSaveModal">
+  <div class="is-save-modal">
+    <div class="is-sm-title">保存 CSS 方案</div>
+    <span class="is-sm-label">方案名称</span>
+    <input class="is-sm-input" id="cdSmNameInput" placeholder="如：暗夜卡面 / 素纸卡片">
+    <div class="is-sm-btns">
+      <button class="is-sm-cancel" onclick="cdCloseSaveModal()">取消</button>
+      <button class="is-sm-confirm" onclick="cdConfirmSave()">保存</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     ✦ Panel Studio 子页面 — 聊天功能板美化
+══════════════════════════════════════════════════════════════ -->
+<div id="panelStudioPage">
+
+  <div class="is-status-bar">
+    <div class="is-status-time" id="pnTime">9:41</div>
+    <div class="is-status-island" id="pnIsland"></div>
+    <div class="is-status-right">
+      <div class="is-signal"><i></i><i></i><i></i><i></i></div>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#1a1a1a" opacity="0.85">
+        <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+        <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+        <circle cx="8" cy="10.5" r="1.8"/>
+      </svg>
+      <div class="is-battery">
+        <span class="is-bat-pct" id="pnBatPct">76</span>
+        <div class="is-bat-shell"><div class="is-bat-inner" id="pnBatInner"></div><div class="is-bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="is-nav">
+    <div class="is-nav-left">
+      <div class="is-back-btn" onclick="closePanelStudio()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="is-nav-sep"></div>
+      <span class="is-nav-title">PANEL STUDIO</span>
+      <div class="is-nav-sep"></div>
+      <span class="is-nav-sub">聊天功能板美化</span>
+    </div>
+    <div class="is-nav-right">
+      <button class="is-btn-outline" onclick="pnExportCSS()">导出 CSS</button>
+      <button class="is-btn-solid" onclick="pnApplyAll()">同步到聊天</button>
+    </div>
+  </div>
+
+  <div class="is-preview-wrap">
+    <div class="is-preview-label">
+      <span class="is-sec-tag-hd">PREVIEW · 实时渲染</span>
+      <div class="is-live-badge"><div class="is-live-dot"></div><span>LIVE</span></div>
+    </div>
+    <div class="xs-stage">
+      <div class="xs-panel-shell" id="pnShell">
+        <div class="xs-panel-sheet" id="pnSheet">
+          <div class="xs-panel-handle" id="pnHandle"></div>
+          <div class="xs-panel-hd">
+            <span class="xs-panel-title" id="pnTitleEl">Luna · Features</span>
+            <span class="xs-panel-x" id="pnCloseEl">✕</span>
+          </div>
+          <div class="xs-panel-row">
+            <div class="xs-fcard is-side" style="width:70px;height:88px;">
+              <div class="xs-fcard-icon" style="width:28px;height:28px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="xs-fcard-name" style="font-size:9.5px;">心声</div>
+            </div>
+            <div class="xs-fcard is-mid" style="width:70px;height:88px;">
+              <div class="xs-fcard-icon" style="width:28px;height:28px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/></svg>
+              </div>
+              <div class="xs-fcard-name" style="font-size:9.5px;">礼物</div>
+            </div>
+            <div class="xs-fcard is-side" style="width:70px;height:88px;">
+              <div class="xs-fcard-icon" style="width:28px;height:28px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              </div>
+              <div class="xs-fcard-name" style="font-size:9.5px;">回忆</div>
+            </div>
+          </div>
+          <div class="xs-panel-dots" id="pnDots">
+            <span class="xs-panel-dot"></span><span class="xs-panel-dot on"></span><span class="xs-panel-dot"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="is-page-deco"></div>
+
+  <div class="is-edit-area">
+
+    <div class="is-scope-bar">
+      <div class="is-scope-row">
+        <span class="is-sec-tag-hd">应用范围</span>
+        <div class="is-scope-pills">
+          <button class="is-sp-btn on" id="pnSpGlobal" onclick="pnSetScope('global')">全局</button>
+          <button class="is-sp-btn" id="pnSpChar" onclick="pnSetScope('char')">当前角色</button>
+        </div>
+      </div>
+      <div class="is-scope-hint" id="pnScopeHint">将应用到所有角色的功能板样式</div>
+    </div>
+
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">系统美化库</span>
+        <span class="is-sec-tag-sm">PRESET · 一键套用</span>
+      </div>
+      <div class="xs-lib-scroll" id="pnLibScroll"></div>
+      <div class="is-scope-hint" style="margin-top:2px;">预设会同时覆盖颜色、圆角、遮罩与动效曲线</div>
+    </div>
+
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">尺寸与形状</span>
+        <button class="is-eblock-reset" onclick="pnResetSize()">还原默认</button>
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">面板顶部圆角</span><span class="is-rval" id="pnVRadius">24px</span></div>
+        <input type="range" class="is-range" min="0" max="46" value="24" id="pnRRadius" oninput="pnSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">面板内边距</span><span class="is-rval" id="pnVPad">16px</span></div>
+        <input type="range" class="is-range" min="4" max="40" value="16" id="pnRPad" oninput="pnSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">拖拽条宽度</span><span class="is-rval" id="pnVGrip">38px</span></div>
+        <input type="range" class="is-range" min="0" max="90" value="38" id="pnRGrip" oninput="pnSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">遮罩暗度</span><span class="is-rval" id="pnVScrim">45%</span></div>
+        <input type="range" class="is-range" min="0" max="90" value="45" id="pnRScrim" oninput="pnSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">遮罩模糊</span><span class="is-rval" id="pnVBlur">0px</span></div>
+        <input type="range" class="is-range" min="0" max="20" value="0" id="pnRBlur" oninput="pnSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">弹出时长</span><span class="is-rval" id="pnVDur">420ms</span></div>
+        <input type="range" class="is-range" min="120" max="900" value="420" step="10" id="pnRDur" oninput="pnSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">标题字距</span><span class="is-rval" id="pnVLs">1.6px</span></div>
+        <input type="range" class="is-range" min="0" max="8" value="1.6" step="0.2" id="pnRLs" oninput="pnSyncSize()">
+      </div>
+    </div>
+
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">动效曲线</span>
+        <span class="is-sec-tag-sm">EASING</span>
+      </div>
+      <div class="is-shape-toggle" id="pnEaseRow">
+        <div class="is-st-item active" data-ease="spring" onclick="pnSetEase('spring')">
+          <div class="is-st-preview"><div style="width:44px;height:10px;border-radius:6px;background:rgba(255,255,255,.2)"></div></div>
+          <span class="is-st-label">弹性 SPRING</span>
+        </div>
+        <div class="is-st-item" data-ease="smooth" onclick="pnSetEase('smooth')">
+          <div class="is-st-preview"><div style="width:44px;height:10px;border-radius:6px;background:rgba(0,0,0,.08)"></div></div>
+          <span class="is-st-label">顺滑 SMOOTH</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">颜色配置</span>
+        <button class="is-eblock-reset" onclick="pnResetColors()">还原默认</button>
+      </div>
+      <div class="is-color-grid">
+        <div class="is-cf"><span class="is-flabel">面板背景</span><div class="is-cf-wrap"><input type="color" id="pnCBg" value="#ffffff" oninput="pnSyncColors()"><span class="is-cf-hex" id="pnHBg">#ffffff</span></div></div>
+        <div class="is-cf"><span class="is-flabel">遮罩颜色</span><div class="is-cf-wrap"><input type="color" id="pnCScrim" value="#000000" oninput="pnSyncColors()"><span class="is-cf-hex" id="pnHScrim">#000000</span></div></div>
+        <div class="is-cf"><span class="is-flabel">拖拽条</span><div class="is-cf-wrap"><input type="color" id="pnCGrip" value="#dcdcdc" oninput="pnSyncColors()"><span class="is-cf-hex" id="pnHGrip">#dcdcdc</span></div></div>
+        <div class="is-cf"><span class="is-flabel">标题文字</span><div class="is-cf-wrap"><input type="color" id="pnCTitle" value="#a8a8a8" oninput="pnSyncColors()"><span class="is-cf-hex" id="pnHTitle">#a8a8a8</span></div></div>
+        <div class="is-cf"><span class="is-flabel">关闭按钮底</span><div class="is-cf-wrap"><input type="color" id="pnCClose" value="#f2f2f2" oninput="pnSyncColors()"><span class="is-cf-hex" id="pnHClose">#f2f2f2</span></div></div>
+        <div class="is-cf"><span class="is-flabel">翻页圆点</span><div class="is-cf-wrap"><input type="color" id="pnCDot" value="#d6d6d6" oninput="pnSyncColors()"><span class="is-cf-hex" id="pnHDot">#d6d6d6</span></div></div>
+        <div class="is-cf"><span class="is-flabel">当前页圆点</span><div class="is-cf-wrap"><input type="color" id="pnCDotOn" value="#1a1a1a" oninput="pnSyncColors()"><span class="is-cf-hex" id="pnHDotOn">#1a1a1a</span></div></div>
+        <div class="is-cf"><span class="is-flabel">翻页按钮</span><div class="is-cf-wrap"><input type="color" id="pnCArrow" value="#f7f7f7" oninput="pnSyncColors()"><span class="is-cf-hex" id="pnHArrow">#f7f7f7</span></div></div>
+      </div>
+    </div>
+
+    <div class="is-eblock">
+      <div class="is-eblock-head"><span class="is-eblock-title">显示开关</span><span class="is-sec-tag-sm">TOGGLE</span></div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">拖拽条</span><span class="is-toggle-desc">.panel-handle</span></div>
+        <div class="is-toggle on" id="pnTogHandle" onclick="pnToggle('handle')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">顶部标题栏</span><span class="is-toggle-desc">.panel-hd</span></div>
+        <div class="is-toggle on" id="pnTogHead" onclick="pnToggle('head')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">滑动提示文字</span><span class="is-toggle-desc">.fp-swipe-hint</span></div>
+        <div class="is-toggle on" id="pnTogHint" onclick="pnToggle('hint')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">底部详情条</span><span class="is-toggle-desc">.fp-detail</span></div>
+        <div class="is-toggle on" id="pnTogDetail" onclick="pnToggle('detail')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">面板毛玻璃</span><span class="is-toggle-desc">backdrop-filter blur</span></div>
+        <div class="is-toggle" id="pnTogBlur" onclick="pnToggle('blur')"><div class="is-toggle-knob"></div></div>
+      </div>
+    </div>
+
+    <div class="is-eblock">
+      <div class="is-eblock-head"><span class="is-eblock-title">面板标题文案</span><span class="is-sec-tag-sm">TEXT</span></div>
+      <div class="is-field">
+        <span class="is-flabel">标题（.panel-hd-label）</span>
+        <input type="text" id="pnTitleInput" placeholder="Luna · Features" oninput="pnSyncText()">
+      </div>
+      <div class="is-field" style="margin-top:8px;">
+        <span class="is-flabel">滑动提示（.fp-swipe-hint）</span>
+        <input type="text" id="pnHintInput" placeholder="Swipe to explore" oninput="pnSyncText()">
+      </div>
+    </div>
+
+    <div class="is-css-editor">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">自定义 CSS</span>
+        <span class="is-sec-tag-sm">高级 · 实时预览</span>
+      </div>
+      <div class="is-class-ref">
+        <div class="is-cr-ref-title">功能板元素参考 — 点击插入到 CSS</div>
+        <div class="is-cr-ref-grid">
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('#featureOverlay')">#featureOverlay</span><span class="is-cr-ref-desc">面板容器</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.overlay-backdrop')">.overlay-backdrop</span><span class="is-cr-ref-desc">背景遮罩</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.feature-panel')">.feature-panel</span><span class="is-cr-ref-desc">面板本体</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.panel-handle')">.panel-handle</span><span class="is-cr-ref-desc">拖拽条</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.panel-hd')">.panel-hd</span><span class="is-cr-ref-desc">顶部标题栏</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.panel-hd-label')">.panel-hd-label</span><span class="is-cr-ref-desc">标题文字</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.panel-close-btn')">.panel-close-btn</span><span class="is-cr-ref-desc">关闭按钮</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.fan-scene')">.fan-scene</span><span class="is-cr-ref-desc">卡片场景</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.fan-controls')">.fan-controls</span><span class="is-cr-ref-desc">翻页控制条</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.fan-btn')">.fan-btn</span><span class="is-cr-ref-desc">左右翻页键</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.fan-dot')">.fan-dot</span><span class="is-cr-ref-desc">页码圆点</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="pnInsertClass('.fp-swipe-hint')">.fp-swipe-hint</span><span class="is-cr-ref-desc">滑动提示</span></div>
+        </div>
+      </div>
+      <div class="is-eblock-head" style="margin-bottom:9px;"><span class="is-eblock-title" style="font-size:9px;color:#bbb;">CSS 方案管理</span></div>
+      <div class="is-scheme-bar">
+        <div class="is-custom-select" id="pnCustomSelect">
+          <div class="is-cs-trigger" id="pnCsTrigger" onclick="pnToggleDropdown()">
+            <span class="is-cs-value placeholder" id="pnCsValue">— 选择已保存方案 —</span>
+            <svg class="is-cs-arrow" id="pnCsArrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="is-cs-dropdown" id="pnCsDropdown"></div>
+        </div>
+        <button class="is-scheme-btn" onclick="pnOpenSaveModal()">保存方案</button>
+        <button class="is-scheme-btn danger" onclick="pnDeleteScheme()">删除</button>
+      </div>
+      <div class="is-field" style="margin-bottom:10px;">
+        <span class="is-flabel">当前方案名</span>
+        <input type="text" id="pnSchemeName" placeholder="未命名" readonly style="color:#aaa;">
+      </div>
+      <textarea class="is-css-textarea" id="pnCssCode" placeholder="/* 直接写 CSS，例如：*/&#10;.feature-panel { background:#101014; }&#10;.panel-hd-label { color:#8f8f96; }"></textarea>
+      <div class="is-css-action-row">
+        <button class="is-css-apply" onclick="pnApplyCss()">应用到预览</button>
+        <button class="is-css-apply" onclick="pnClearCss()" style="color:#aaa;">清除效果</button>
+        <span class="is-css-status" id="pnCssStatus"></span>
+      </div>
+
+      <div class="xs-keybar">
+        <div class="xs-key-line">全局存储键 <span class="xs-key-code" onclick="xsCopyKey(this)">luna_panel_style</span></div>
+        <div class="xs-key-line">角色专属键 <span class="xs-key-code" onclick="xsCopyKey(this)">luna_panel_style_char_角色名</span></div>
+        <div class="xs-key-line">广播频道 <span class="xs-key-code" onclick="xsCopyKey(this)">luna_panel_style_channel</span></div>
+        <div class="xs-key-line">聊天页应用函数 <span class="xs-key-code" onclick="xsCopyKey(this)">window.crApplyPanelStyle()</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="is-save-modal-bg" id="pnSaveModal">
+  <div class="is-save-modal">
+    <div class="is-sm-title">保存 CSS 方案</div>
+    <span class="is-sm-label">方案名称</span>
+    <input class="is-sm-input" id="pnSmNameInput" placeholder="如：磨砂功能板 / 极简白">
+    <div class="is-sm-btns">
+      <button class="is-sm-cancel" onclick="pnCloseSaveModal()">取消</button>
+      <button class="is-sm-confirm" onclick="pnConfirmSave()">保存</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     ✦ Custom Studio 子页面 — 自定义美化（整页聚合 · 1:1 预览）
+══════════════════════════════════════════════════════════════ -->
+<div id="customStudioPage">
+
+  <div class="is-status-bar">
+    <div class="is-status-time" id="cuTime">9:41</div>
+    <div class="is-status-island" id="cuIsland"></div>
+    <div class="is-status-right">
+      <div class="is-signal"><i></i><i></i><i></i><i></i></div>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#1a1a1a" opacity="0.85">
+        <path d="M8 2.5C10.3 2.5 12.4 3.5 13.9 5.1L15.2 3.8C13.3 1.9 10.8.8 8 .8S2.7 1.9.8 3.8L2.1 5.1C3.6 3.5 5.7 2.5 8 2.5Z"/>
+        <path d="M8 5.8C9.7 5.8 11.2 6.5 12.3 7.7L13.6 6.4C12.1 4.9 10.2 4 8 4S3.9 4.9 2.4 6.4L3.7 7.7C4.8 6.5 6.3 5.8 8 5.8Z"/>
+        <circle cx="8" cy="10.5" r="1.8"/>
+      </svg>
+      <div class="is-battery">
+        <span class="is-bat-pct" id="cuBatPct">76</span>
+        <div class="is-bat-shell"><div class="is-bat-inner" id="cuBatInner"></div><div class="is-bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="is-nav">
+    <div class="is-nav-left">
+      <div class="is-back-btn" onclick="closeCustomStudio()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="is-nav-sep"></div>
+      <span class="is-nav-title">CUSTOM STUDIO</span>
+      <div class="is-nav-sep"></div>
+      <span class="is-nav-sub">自定义美化</span>
+    </div>
+    <div class="is-nav-right">
+      <button class="is-btn-outline" onclick="cuExportCSS()">导出 CSS</button>
+      <button class="is-btn-solid" onclick="cuApplyAll()">同步到聊天</button>
+    </div>
+  </div>
+
+  <!-- 整机 1:1 预览 -->
+  <div class="is-preview-wrap">
+    <div class="is-preview-label">
+      <span class="is-sec-tag-hd">FULL PREVIEW · 整页 1:1</span>
+      <div class="is-live-badge"><div class="is-live-dot"></div><span>LIVE</span></div>
+    </div>
+    <div class="xs-phone-wrap">
+      <div class="xs-phone" id="cuPhone">
+
+        <div class="xs-ph-status" id="cuPhStatus">
+          <span id="cuPhTime">9:41</span>
+          <span style="display:flex;align-items:center;gap:5px;">
+            <span class="xs-ph-sig"><i></i><i></i><i></i><i></i></span>
+            <span class="xs-ph-bat"><i id="cuPhBat"></i></span>
+          </span>
+        </div>
+
+        <div class="xs-ph-header" id="cuPhHeader">
+          <div class="xs-ph-av" id="cuPhAv">L</div>
+          <div>
+            <div class="xs-ph-nm" id="cuPhName">Luna</div>
+            <div class="xs-ph-sub" id="cuPhSub">Your companion in the dark</div>
+          </div>
+          <div class="xs-ph-pill" id="cuPhPill"><i></i>在线中</div>
+        </div>
+
+        <div class="xs-ph-body" id="cuPhBody">
+          <div class="xs-ph-row">
+            <div class="xs-ph-mav" id="cuPhMav1"></div>
+            <div class="xs-ph-bub" id="cuPhBubL1">在忙吗？刚看到窗外下雨了</div>
+            <span class="xs-ph-time">21:04</span>
+          </div>
+          <div class="xs-ph-row mine">
+            <div class="xs-ph-bub" id="cuPhBubM1">刚下班，路上有点堵</div>
+            <span class="xs-ph-time">21:06</span>
+          </div>
+          <div class="xs-ph-row">
+            <div class="xs-ph-mav" id="cuPhMav2"></div>
+            <div class="xs-ph-bub" id="cuPhBubL2">那你路上小心点呀</div>
+            <span class="xs-ph-time">21:06</span>
+          </div>
+          <div class="xs-ph-row mine">
+            <div class="xs-ph-bub" id="cuPhBubM2">到家给你发消息</div>
+            <span class="xs-ph-time">21:07</span>
+          </div>
+        </div>
+
+        <div class="xs-ph-input" id="cuPhInput">
+          <div class="xs-ph-btn" id="cuPhAdd">+</div>
+          <div class="xs-ph-field" id="cuPhField">向 Luna 发送消息</div>
+          <div class="xs-ph-btn" id="cuPhAi">✦</div>
+          <div class="xs-ph-btn send" id="cuPhSend">➤</div>
+        </div>
+
+      </div>
+    </div>
+    <div style="padding:0 18px 14px;">
+      <div class="xs-zoom-row">
+        <span class="xs-zoom-lbl">ZOOM</span>
+        <input type="range" class="is-range" min="70" max="130" value="100" id="cuRZoom" oninput="cuSyncZoom()" style="flex:1;">
+        <span class="is-rval" id="cuVZoom">100%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="is-page-deco"></div>
+
+  <div class="is-edit-area">
+
+    <div class="is-scope-bar">
+      <div class="is-scope-row">
+        <span class="is-sec-tag-hd">应用范围</span>
+        <div class="is-scope-pills">
+          <button class="is-sp-btn on" id="cuSpGlobal" onclick="cuSetScope('global')">全局</button>
+          <button class="is-sp-btn" id="cuSpChar" onclick="cuSetScope('char')">当前角色</button>
+        </div>
+      </div>
+      <div class="is-scope-hint" id="cuScopeHint">将应用到所有角色的整页样式</div>
+    </div>
+
+    <!-- 系统美化库：整套主题 -->
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">系统美化库 · 整套主题</span>
+        <span class="is-sec-tag-sm">FULL THEME</span>
+      </div>
+      <div class="xs-lib-scroll" id="cuLibScroll"></div>
+      <div class="is-scope-hint" style="margin-top:2px;">整套主题会一次性覆盖头部 / 气泡 / 输入 / 卡片 / 功能板五个模块</div>
+    </div>
+
+    <!-- 下发模块选择 -->
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">下发模块</span>
+        <span class="is-sec-tag-sm">MODULES</span>
+      </div>
+      <div class="xs-mod-grid" id="cuModGrid">
+        <div class="xs-mod on" data-mod="header" onclick="cuToggleMod('header')"><div class="xs-mod-tick"></div><div class="xs-mod-nm">头部</div><div class="xs-mod-en">HEADER</div></div>
+        <div class="xs-mod on" data-mod="bubble" onclick="cuToggleMod('bubble')"><div class="xs-mod-tick"></div><div class="xs-mod-nm">气泡</div><div class="xs-mod-en">BUBBLE</div></div>
+        <div class="xs-mod on" data-mod="input"  onclick="cuToggleMod('input')"><div class="xs-mod-tick"></div><div class="xs-mod-nm">输入区</div><div class="xs-mod-en">INPUT</div></div>
+        <div class="xs-mod on" data-mod="card"   onclick="cuToggleMod('card')"><div class="xs-mod-tick"></div><div class="xs-mod-nm">功能卡片</div><div class="xs-mod-en">CARD</div></div>
+        <div class="xs-mod on" data-mod="panel"  onclick="cuToggleMod('panel')"><div class="xs-mod-tick"></div><div class="xs-mod-nm">功能板</div><div class="xs-mod-en">PANEL</div></div>
+        <div class="xs-mod on" data-mod="page"   onclick="cuToggleMod('page')"><div class="xs-mod-tick"></div><div class="xs-mod-nm">页面底纹</div><div class="xs-mod-en">CANVAS</div></div>
+      </div>
+      <div class="is-scope-hint" style="margin-top:9px;">关闭的模块不会被本页覆盖，会保留你在对应独立美化页里的设置</div>
+    </div>
+
+    <!-- 主色系 -->
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">主色系</span>
+        <button class="is-eblock-reset" onclick="cuResetColors()">还原默认</button>
+      </div>
+      <div class="is-color-grid">
+        <div class="is-cf"><span class="is-flabel">页面底色</span><div class="is-cf-wrap"><input type="color" id="cuCCanvas" value="#f7f7f8" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHCanvas">#f7f7f8</span></div></div>
+        <div class="is-cf"><span class="is-flabel">头部背景</span><div class="is-cf-wrap"><input type="color" id="cuCHeader" value="#fbfbfb" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHHeader">#fbfbfb</span></div></div>
+        <div class="is-cf"><span class="is-flabel">对方气泡</span><div class="is-cf-wrap"><input type="color" id="cuCLuna" value="#ffffff" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHLuna">#ffffff</span></div></div>
+        <div class="is-cf"><span class="is-flabel">对方文字</span><div class="is-cf-wrap"><input type="color" id="cuCLunaTx" value="#2a2a2a" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHLunaTx">#2a2a2a</span></div></div>
+        <div class="is-cf"><span class="is-flabel">我方气泡</span><div class="is-cf-wrap"><input type="color" id="cuCMine" value="#1a1a1a" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHMine">#1a1a1a</span></div></div>
+        <div class="is-cf"><span class="is-flabel">我方文字</span><div class="is-cf-wrap"><input type="color" id="cuCMineTx" value="#f4f4f4" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHMineTx">#f4f4f4</span></div></div>
+        <div class="is-cf"><span class="is-flabel">输入区底</span><div class="is-cf-wrap"><input type="color" id="cuCInputArea" value="#f2f2f3" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHInputArea">#f2f2f3</span></div></div>
+        <div class="is-cf"><span class="is-flabel">输入框</span><div class="is-cf-wrap"><input type="color" id="cuCInputBox" value="#ffffff" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHInputBox">#ffffff</span></div></div>
+        <div class="is-cf"><span class="is-flabel">发送按钮</span><div class="is-cf-wrap"><input type="color" id="cuCSend" value="#1a1a1a" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHSend">#1a1a1a</span></div></div>
+        <div class="is-cf"><span class="is-flabel">名字颜色</span><div class="is-cf-wrap"><input type="color" id="cuCName" value="#1a1a1a" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHName">#1a1a1a</span></div></div>
+        <div class="is-cf"><span class="is-flabel">副标题</span><div class="is-cf-wrap"><input type="color" id="cuCSub" value="#a5a5a5" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHSub">#a5a5a5</span></div></div>
+        <div class="is-cf"><span class="is-flabel">功能板底</span><div class="is-cf-wrap"><input type="color" id="cuCPanel" value="#ffffff" oninput="cuSyncColors()"><span class="is-cf-hex" id="cuHPanel">#ffffff</span></div></div>
+      </div>
+    </div>
+
+    <!-- 形态 -->
+    <div class="is-eblock">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">全局形态</span>
+        <button class="is-eblock-reset" onclick="cuResetSize()">还原默认</button>
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">气泡圆角</span><span class="is-rval" id="cuVBubR">18px</span></div>
+        <input type="range" class="is-range" min="0" max="30" value="18" id="cuRBubR" oninput="cuSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">气泡尖角</span><span class="is-rval" id="cuVTail">5px</span></div>
+        <input type="range" class="is-range" min="0" max="30" value="5" id="cuRTail" oninput="cuSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">正文字号</span><span class="is-rval" id="cuVFs">14px</span></div>
+        <input type="range" class="is-range" min="10" max="22" value="14" id="cuRFs" oninput="cuSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">气泡内边距</span><span class="is-rval" id="cuVPad">10px</span></div>
+        <input type="range" class="is-range" min="4" max="24" value="10" id="cuRPad" oninput="cuSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">消息间距</span><span class="is-rval" id="cuVGap">12px</span></div>
+        <input type="range" class="is-range" min="2" max="34" value="12" id="cuRGap" oninput="cuSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">按钮圆角</span><span class="is-rval" id="cuVBtnR">50px</span></div>
+        <input type="range" class="is-range" min="0" max="50" value="50" id="cuRBtnR" oninput="cuSyncSize()">
+      </div>
+      <div class="is-rfield">
+        <div class="is-rlabel-row"><span class="is-flabel">头像圆角</span><span class="is-rval" id="cuVAvR">50%</span></div>
+        <input type="range" class="is-range" min="0" max="50" value="50" id="cuRAvR" oninput="cuSyncSize()">
+      </div>
+    </div>
+
+    <!-- 页面底纹 -->
+    <div class="is-eblock">
+      <div class="is-eblock-head"><span class="is-eblock-title">页面底纹</span><span class="is-sec-tag-sm">CANVAS TEXTURE</span></div>
+      <div class="is-shape-toggle" id="cuTexRow">
+        <div class="is-st-item active" data-tex="none" onclick="cuSetTex('none')">
+          <div class="is-st-preview"><div style="width:52px;height:22px;border-radius:5px;background:rgba(255,255,255,.16)"></div></div>
+          <span class="is-st-label">纯色 PLAIN</span>
+        </div>
+        <div class="is-st-item" data-tex="grid" onclick="cuSetTex('grid')">
+          <div class="is-st-preview"><div style="width:52px;height:22px;border-radius:5px;background:repeating-linear-gradient(0deg,rgba(0,0,0,.09) 0 1px,transparent 1px 7px),repeating-linear-gradient(90deg,rgba(0,0,0,.09) 0 1px,transparent 1px 7px)"></div></div>
+          <span class="is-st-label">网格 GRID</span>
+        </div>
+        <div class="is-st-item" data-tex="dot" onclick="cuSetTex('dot')">
+          <div class="is-st-preview"><div style="width:52px;height:22px;border-radius:5px;background:radial-gradient(rgba(0,0,0,.18) .8px,transparent .9px) 0 0/7px 7px"></div></div>
+          <span class="is-st-label">点阵 DOTS</span>
+        </div>
+        <div class="is-st-item" data-tex="glow" onclick="cuSetTex('glow')">
+          <div class="is-st-preview"><div style="width:52px;height:22px;border-radius:5px;background:radial-gradient(70% 90% at 50% 0%,rgba(0,0,0,.16),transparent 70%)"></div></div>
+          <span class="is-st-label">柔光 GLOW</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 开关 -->
+    <div class="is-eblock">
+      <div class="is-eblock-head"><span class="is-eblock-title">全局开关</span><span class="is-sec-tag-sm">TOGGLE</span></div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">对方头像</span><span class="is-toggle-desc">.cr-mini-av</span></div>
+        <div class="is-toggle on" id="cuTogLunaAv" onclick="cuToggle('lunaAv')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">我方头像</span><span class="is-toggle-desc">.cr-mine-av</span></div>
+        <div class="is-toggle" id="cuTogMineAv" onclick="cuToggle('mineAv')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">时间戳</span><span class="is-toggle-desc">.cr-msg-time</span></div>
+        <div class="is-toggle on" id="cuTogTime" onclick="cuToggle('time')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">头部统计行</span><span class="is-toggle-desc">.cr-stats</span></div>
+        <div class="is-toggle on" id="cuTogStats" onclick="cuToggle('stats')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">输入区装饰线</span><span class="is-toggle-desc">.cr-const-div</span></div>
+        <div class="is-toggle on" id="cuTogDivider" onclick="cuToggle('divider')"><div class="is-toggle-knob"></div></div>
+      </div>
+      <div class="is-toggle-row">
+        <div class="is-toggle-info"><span class="is-toggle-name">全局毛玻璃</span><span class="is-toggle-desc">头部 / 输入区 / 功能板</span></div>
+        <div class="is-toggle" id="cuTogBlur" onclick="cuToggle('blur')"><div class="is-toggle-knob"></div></div>
+      </div>
+    </div>
+
+    <!-- 自定义 CSS（全局注入） -->
+    <div class="is-css-editor">
+      <div class="is-eblock-head">
+        <span class="is-eblock-title">全局自定义 CSS</span>
+        <span class="is-sec-tag-sm">GLOBAL INJECT</span>
+      </div>
+      <div class="is-class-ref">
+        <div class="is-cr-ref-title">整页元素参考 — 点击插入到 CSS</div>
+        <div class="is-cr-ref-grid">
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.cr-frame')">.cr-frame</span><span class="is-cr-ref-desc">整页容器</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.cr-header')">.cr-header</span><span class="is-cr-ref-desc">头部</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.cr-name')">.cr-name</span><span class="is-cr-ref-desc">角色名</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.cr-sub')">.cr-sub</span><span class="is-cr-ref-desc">副标题</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.cr-stats')">.cr-stats</span><span class="is-cr-ref-desc">统计行</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.cr-messages-outer')">.cr-messages-outer</span><span class="is-cr-ref-desc">消息滚动区</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.cr-luna-bubble')">.cr-luna-bubble</span><span class="is-cr-ref-desc">对方气泡</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.cr-mine-bubble')">.cr-mine-bubble</span><span class="is-cr-ref-desc">我方气泡</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.cr-input-area')">.cr-input-area</span><span class="is-cr-ref-desc">输入区</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.cr-send-btn')">.cr-send-btn</span><span class="is-cr-ref-desc">发送按钮</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.fp-card')">.fp-card</span><span class="is-cr-ref-desc">功能卡片</span></div>
+          <div class="is-cr-ref-item"><span class="is-cr-ref-cls" onclick="cuInsertClass('.feature-panel')">.feature-panel</span><span class="is-cr-ref-desc">功能板</span></div>
+        </div>
+      </div>
+      <div class="is-eblock-head" style="margin-bottom:9px;"><span class="is-eblock-title" style="font-size:9px;color:#bbb;">CSS 方案管理</span></div>
+      <div class="is-scheme-bar">
+        <div class="is-custom-select" id="cuCustomSelect">
+          <div class="is-cs-trigger" id="cuCsTrigger" onclick="cuToggleDropdown()">
+            <span class="is-cs-value placeholder" id="cuCsValue">— 选择已保存方案 —</span>
+            <svg class="is-cs-arrow" id="cuCsArrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="is-cs-dropdown" id="cuCsDropdown"></div>
+        </div>
+        <button class="is-scheme-btn" onclick="cuOpenSaveModal()">保存方案</button>
+        <button class="is-scheme-btn danger" onclick="cuDeleteScheme()">删除</button>
+      </div>
+      <div class="is-field" style="margin-bottom:10px;">
+        <span class="is-flabel">当前方案名</span>
+        <input type="text" id="cuSchemeName" placeholder="未命名" readonly style="color:#aaa;">
+      </div>
+      <textarea class="is-css-textarea" id="cuCssCode" placeholder="/* 全站生效的 CSS，会注入到聊天页 <head> */&#10;.cr-frame { --accent:#8f8fa6; }&#10;.cr-luna-bubble { box-shadow:0 2px 10px rgba(0,0,0,.06); }"></textarea>
+      <div class="is-css-action-row">
+        <button class="is-css-apply" onclick="cuApplyCss()">应用到预览</button>
+        <button class="is-css-apply" onclick="cuClearCss()" style="color:#aaa;">清除效果</button>
+        <span class="is-css-status" id="cuCssStatus"></span>
+      </div>
+
+      <div class="xs-keybar">
+        <div class="xs-key-line">全局存储键 <span class="xs-key-code" onclick="xsCopyKey(this)">luna_custom_style</span></div>
+        <div class="xs-key-line">角色专属键 <span class="xs-key-code" onclick="xsCopyKey(this)">luna_custom_style_char_角色名</span></div>
+        <div class="xs-key-line">纯 CSS 注入键 <span class="xs-key-code" onclick="xsCopyKey(this)">luna_custom_css</span></div>
+        <div class="xs-key-line">广播频道 <span class="xs-key-code" onclick="xsCopyKey(this)">luna_custom_style_channel</span></div>
+        <div class="xs-key-line">聊天页应用函数 <span class="xs-key-code" onclick="xsCopyKey(this)">window.crApplyCustomStyle()</span></div>
+      </div>
+    </div>
+
+    <div class="is-eblock">
+      <div class="is-eblock-head"><span class="is-eblock-title">危险操作</span><span class="is-sec-tag-sm">RESET</span></div>
+      <div class="is-readonly-bar">
+        <svg style="flex-shrink:0;margin-top:1px;opacity:.5;" width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="#888" stroke-width="1.2"/>
+          <line x1="8" y1="5.5" x2="8" y2="9" stroke="#888" stroke-width="1.2" stroke-linecap="round"/>
+          <circle cx="8" cy="11" r=".7" fill="#888"/>
+        </svg>
+        <div class="is-ro-text">
+          「清空全部美化」会移除头部 / 气泡 / 输入 / 卡片 / 功能板 / 自定义 六个模块的全部本地样式数据，聊天页会立刻恢复出厂外观。此操作不可撤销。
+        </div>
+      </div>
+      <div class="is-css-action-row" style="margin-top:10px;">
+        <button class="is-css-apply" onclick="cuResetAllBeauty()" style="color:#a33;">清空全部美化</button>
+        <span class="is-css-status" id="cuResetStatus"></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="is-save-modal-bg" id="cuSaveModal">
+  <div class="is-save-modal">
+    <div class="is-sm-title">保存整套主题方案</div>
+    <span class="is-sm-label">方案名称</span>
+    <input class="is-sm-input" id="cuSmNameInput" placeholder="如：夜航 / 素白纸感">
+    <div class="is-sm-btns">
+      <button class="is-sm-cancel" onclick="cuCloseSaveModal()">取消</button>
+      <button class="is-sm-confirm" onclick="cuConfirmSave()">保存</button>
+    </div>
+  </div>
+</div>
+
 
 <script src="appearance_settings.js"></script>
 

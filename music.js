@@ -25,7 +25,7 @@ function updateStatusBar() {
     if (bat <= 20) {
       batInner.style.background = 'linear-gradient(90deg, #f87171, #ef4444)';
     } else {
-      batInner.style.background = 'linear-gradient(90deg, #22d3ee, #14b8a6)';
+      batInner.style.background = '#1c1c19';
     }
   }
 }
@@ -127,6 +127,7 @@ function switchPage(page) {
       newPage.scrollTop = 0;
     }
     if (page === 'player') setTimeout(drawWaveform, 80);
+    if (page === 'community') initCommunityPage();
   });
 }
 
@@ -411,9 +412,9 @@ function initSearch() {
         <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.8"/>
         <path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       </svg>
-      <input class="search-input" type="text" placeholder="Search songs, artists, playlists..." autofocus />
+      <input class="search-input" type="text" placeholder="搜索歌曲、歌手、歌单..." autofocus />
     </div>
-    <div class="search-cancel" id="searchCancel">Cancel</div>
+    <div class="search-cancel" id="searchCancel">取消</div>
   `;
 
   document.querySelector('.luna-frame').appendChild(overlay);
@@ -526,6 +527,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 // 窗口 resize 重绘波形
 window.addEventListener('resize', () => {
   if (currentPage === 'player') drawWaveform();
+});
+
+// 跨页同步：字体/灵动岛样式在其他页面(如角色档案页)更改后，
+// 通过 localStorage 的 storage 事件同步过来
+window.addEventListener('storage', (e) => {
   if (e.key === 'luna_font_update')   applyGlobalFont();
   if (e.key === 'luna_island_update') applyIsland();
 });
@@ -696,7 +702,7 @@ document.getElementById('saveSongBtn')?.addEventListener('click', async () => {
   const artist = document.getElementById('songArtistInput').value.trim();
   const url    = document.getElementById('songUrlInput')?.value.trim();
 
-  if (!name) { alert('Please enter a track name'); return; }
+  if (!name) { alert('请输入歌曲名称'); return; }
 
   // 解析网易云链接
   let audioSrc = _songFileData || url || '';
@@ -747,7 +753,7 @@ document.getElementById('plCoverInput')?.addEventListener('change', function() {
 document.getElementById('savePlaylistBtn')?.addEventListener('click', () => {
   const name = document.getElementById('plNameInput').value.trim();
   const desc = document.getElementById('plDescInput').value.trim();
-  if (!name) { alert('Please enter a playlist name'); return; }
+  if (!name) { alert('请输入歌单名称'); return; }
 
   _playlists.push({ id: Date.now(), name, desc, cover: _plCoverData || null, trackIds: [] });
   savePlaylists();
@@ -877,7 +883,7 @@ document.getElementById('confirmAddToPlaylist')?.addEventListener('click', () =>
 ================================ */
 function playTrack(idx) {
   const t = _tracks[idx];
-  if (!t || !t.src) { alert('No audio source for this track'); return; }
+  if (!t || !t.src) { alert('这首歌没有可播放的音频'); return; }
   const audio = document.getElementById('audioPlayer');
   if (!audio) return;
   _currentTrackIdx = idx;
@@ -996,11 +1002,11 @@ document.getElementById('lyricFileInput')?.addEventListener('change', function()
 
 // 保存歌词
 document.getElementById('saveLyricBtn')?.addEventListener('click', () => {
-  if (_currentTrackIdx < 0) { alert('Please play a track first'); return; }
+  if (_currentTrackIdx < 0) { alert('请先播放一首歌曲'); return; }
   const track = _tracks[_currentTrackIdx];
   const manualText = document.getElementById('lyricManualInput')?.value.trim();
   const content = manualText || _lyricFileContent;
-  if (!content) { alert('Please upload a file or enter lyrics manually'); return; }
+  if (!content) { alert('请上传歌词文件或手动输入歌词'); return; }
   saveLyrics(track.id, content);
   renderLyricArea(track.id);
   closeLyricPanel();
@@ -1042,17 +1048,34 @@ document.getElementById('ltModalClose')?.addEventListener('click', closeLtModal)
 document.getElementById('ltOverlay')?.addEventListener('click', closeLtModal);
 
 // 从 LunaCharDB 读取角色
+// 注意：不能写死版本号！角色档案页(characters.js)会随着功能增加自行升级
+// LunaCharDB 的版本号，这里如果写死一个旧版本号（比如2），一旦角色页把
+// 数据库升到了更高版本，这里用低版本号重新 open 会直接报 VersionError，
+// 导致角色列表静默返回空数组——也就是"个人中心/一起听读不到角色"的原因。
+// 改成先不带版本号探测当前真实版本，再按该版本打开，与 characters.js
+// 的 openCharDB() 逻辑保持一致。
 function loadCharsFromDB() {
   return new Promise(res => {
-    const req = indexedDB.open('LunaCharDB', 2);
-    req.onsuccess = e => {
+    const probe = indexedDB.open('LunaCharDB');
+    probe.onsuccess = e => {
       const db  = e.target.result;
-      if (!db.objectStoreNames.contains('chars')) return res([]);
-      const r   = db.transaction('chars').objectStore('chars').getAll();
-      r.onsuccess = () => res(r.result || []);
-      r.onerror   = () => res([]);
+      const ver = db.version;
+      const hasChars = db.objectStoreNames.contains('chars');
+      db.close();
+
+      if (!hasChars) { res([]); return; }
+
+      const req = indexedDB.open('LunaCharDB', ver);
+      req.onsuccess = e2 => {
+        const db2 = e2.target.result;
+        if (!db2.objectStoreNames.contains('chars')) return res([]);
+        const r = db2.transaction('chars').objectStore('chars').getAll();
+        r.onsuccess = () => res(r.result || []);
+        r.onerror   = () => res([]);
+      };
+      req.onerror = () => res([]);
     };
-    req.onerror = () => res([]);
+    probe.onerror = () => res([]);
   });
 }
 
@@ -1212,7 +1235,7 @@ function updateLtChatStatusBar() {
     batInner.style.width = bat + '%';
     batInner.style.background = bat <= 20
       ? 'linear-gradient(90deg,#f87171,#ef4444)'
-      : 'linear-gradient(90deg,#22d3ee,#14b8a6)';
+      : '#1c1c19';
   }
 
   // 灵动岛
@@ -1752,16 +1775,105 @@ async function generateFeedPosts() {
   }
 }
 
+// ================================
+//   个人中心 — 个人资料（昵称/头像持久化）
+// ================================
+function loadPcProfile() {
+  try { return JSON.parse(localStorage.getItem('wavr_pc_profile') || '{}'); }
+  catch { return {}; }
+}
+function savePcProfile(profile) {
+  localStorage.setItem('wavr_pc_profile', JSON.stringify(profile));
+}
+
+function initPcProfile() {
+  const profile = loadPcProfile();
+  const nickEl  = document.getElementById('pcNickname');
+  const avEl    = document.getElementById('pcAvatar');
+
+  if (nickEl && profile.nickname) nickEl.textContent = profile.nickname;
+  if (avEl && profile.avatar) {
+    avEl.innerHTML = `<img src="${profile.avatar}" alt=""/>`;
+  }
+
+  // 昵称：失焦时保存
+  nickEl?.addEventListener('blur', () => {
+    const val = nickEl.textContent.trim() || '听歌的人';
+    nickEl.textContent = val;
+    const p = loadPcProfile();
+    p.nickname = val;
+    savePcProfile(p);
+  });
+  nickEl?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); nickEl.blur(); }
+  });
+
+  // 头像：选择文件后保存
+  document.getElementById('pcAvatarInput')?.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      avEl.innerHTML = `<img src="${dataUrl}" alt=""/>`;
+      const p = loadPcProfile();
+      p.avatar = dataUrl;
+      savePcProfile(p);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // 编辑按钮：聚焦昵称输入
+  document.getElementById('pcEditBtn')?.addEventListener('click', () => {
+    nickEl?.focus();
+    // 光标移到文本末尾
+    const range = document.createRange();
+    range.selectNodeContents(nickEl);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+
+  // 菜单跳转
+  document.getElementById('pcMenuPlaylists')?.addEventListener('click', () => {
+    switchPage('home');
+    setTimeout(() => document.getElementById('playlistList')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 350);
+  });
+  document.getElementById('pcMenuListenTogether')?.addEventListener('click', () => {
+    openLtModal();
+  });
+}
+
+// 数据统计：歌曲数 / 歌单数 / 角色数
+async function renderPcStats() {
+  const tracksEl    = document.getElementById('pcStatTracks');
+  const playlistsEl = document.getElementById('pcStatPlaylists');
+  const charsEl     = document.getElementById('pcStatChars');
+  const plSubEl     = document.getElementById('pcMenuPlaylistsSub');
+
+  if (tracksEl)    tracksEl.textContent    = _tracks.length;
+  if (playlistsEl) playlistsEl.textContent = _playlists.length;
+  if (plSubEl) {
+    plSubEl.textContent = _playlists.length ? `共 ${_playlists.length} 个歌单` : '还没有创建歌单';
+  }
+  if (charsEl) {
+    const chars = await loadCharsFromDB();
+    charsEl.textContent = chars.length;
+  }
+}
+
 // 页面初始化：读取 DB 渲染，没有就显示空状态
+let _pcProfileInited = false;
 async function initCommunityPage() {
+  if (!_pcProfileInited) { initPcProfile(); _pcProfileInited = true; }
+  await renderPcStats();
   await renderCommFriends();
   const posts = await feedDbGetAll();
   renderFeedPosts(posts);
 }
 
-// 监听切换到 community 页时初始化
-const _origSwitchPage = switchPage;
-// 在 DOMContentLoaded 后挂载
+// 在 DOMContentLoaded 后挂载（首次预热一次，之后每次切到该 tab 由 switchPage 触发刷新）
 document.addEventListener('DOMContentLoaded', () => {
   initCommunityPage();
 });

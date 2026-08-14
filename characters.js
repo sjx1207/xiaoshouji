@@ -471,7 +471,7 @@ function openNewCard() {
 
   document.getElementById('previewName').textContent = '角色名称';
   document.getElementById('previewMeta').textContent = '定位 · 性别 · 年龄';
-  document.getElementById('previewAvatar').innerHTML = `<svg viewBox="0 0 24 24" width="28" height="28" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+  setAvatarPreview(null);
   document.getElementById('previewBg').style.backgroundImage = '';
   document.getElementById('descCount').textContent = '0';
   document.querySelectorAll('.ch-gender-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
@@ -544,12 +544,7 @@ async function editCard(id) {
 
   // 头像预览回填
   _formAvatarData = c.avatar || null;
-  const av = document.getElementById('previewAvatar');
-  if (c.avatar) {
-    av.innerHTML = `<img src="${c.avatar}" alt="avatar"/>`;
-  } else {
-    av.innerHTML = `<svg viewBox="0 0 24 24" width="28" height="28" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
-  }
+  setAvatarPreview(_formAvatarData);
 
   // 背景图预览回填
   _formBgData = c.cardBg || null;
@@ -1013,10 +1008,35 @@ function handleAvatarUpload(input) {
   const reader = new FileReader();
   reader.onload = e => {
     _formAvatarData = e.target.result;
-    const av = document.getElementById('previewAvatar');
-    av.innerHTML = `<img src="${e.target.result}" alt="avatar"/>`;
+    setAvatarPreview(_formAvatarData);
   };
   reader.readAsDataURL(file);
+  // 允许连续选择同一张图片也能触发 change
+  input.value = '';
+}
+
+function setAvatarPreview(dataUrl) {
+  const av    = document.getElementById('previewAvatar');
+  const hint  = document.getElementById('previewAvatarHint');
+  const remBt = document.getElementById('previewAvatarRemove');
+  if (dataUrl) {
+    av.innerHTML = `<img src="${dataUrl}" alt="avatar"/>`;
+    if (hint)  hint.textContent = '更换头像';
+    if (remBt) remBt.style.display = 'flex';
+  } else {
+    av.innerHTML = `<svg viewBox="0 0 24 24" width="28" height="28" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+    if (hint)  hint.textContent = '上传头像';
+    if (remBt) remBt.style.display = 'none';
+  }
+}
+
+function removeAvatar(evt) {
+  if (evt) evt.stopPropagation();
+  _formAvatarData = null;
+  const input = document.getElementById('avatarInput');
+  if (input) input.value = '';
+  setAvatarPreview(null);
+  updateCompleteness();
 }
 
 function handleBgUpload(input) {
@@ -1090,11 +1110,14 @@ async function openView(id) {
   // 背景图
   const bg = document.getElementById('cvHeroBg');
   if (c.cardBg) {
+    bg.style.background = 'none';
     bg.style.backgroundImage = `url(${c.cardBg})`;
+    bg.style.backgroundSize = 'cover';
+    bg.style.backgroundPosition = 'center';
   } else {
     const col = COLOR_MAP[c.color] || COLOR_MAP.ink;
     bg.style.backgroundImage = 'none';
-    bg.style.background = `linear-gradient(135deg, ${col.topC1}, ${col.topC2})`;
+    bg.style.background = col.strip || `linear-gradient(180deg, #3a3a40, #1c1c1f)`;
   }
 
   // 头像

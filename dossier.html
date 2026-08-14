@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>档案袋 · Dossier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,450;0,9..144,600;1,9..144,450&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Mono:wght@400;700&family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="dossier.css"/>
+</head>
+<body>
+
+<div class="ds-room">
+  <div class="ds-room-glow"></div>
+
+  <div class="ds-wrap">
+
+    <!-- ============ 状态栏 ============ -->
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">9:41</div>
+      <div class="status-island" id="statusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="batPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="batInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 顶部导航 ============ -->
+    <div class="ds-nav">
+      <button class="ds-nav-btn" id="btnBack" onclick="goBack()" aria-label="返回">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="ds-nav-center">
+        <div class="ds-nav-title">档案袋</div>
+        <div class="ds-nav-sub">CLASSIFIED&nbsp;PROFILES</div>
+      </div>
+      <div class="ds-view-toggle" role="tablist" aria-label="切换展示方式">
+        <button id="btnViewShelf" onclick="setViewMode('shelf')" aria-label="架上总览">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button id="btnViewStage" onclick="setViewMode('stage')" aria-label="单卷详读">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><rect x="6" y="3" width="12" height="18" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M9 8h6M9 12h6M9 16h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ============ 保密声明条 ============ -->
+    <div class="ds-classified-strip">
+      <span class="ds-cs-dot"></span>
+      <span>本页仅展示基础档案信息 · 完整人设受机密协议保护封存</span>
+    </div>
+
+    <!-- ============ 搜索 / 筛选（仅架上总览模式显示）============ -->
+    <div class="ds-search-row" id="dsSearchRow" style="display:none;">
+      <div class="ds-search-box">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <input type="text" id="dsSearchInput" placeholder="搜索姓名 / 定位 / 特质…" oninput="onSearchInput()"/>
+      </div>
+      <button class="ds-filter-btn" id="btnActiveFilter" onclick="toggleActiveFilter()" title="仅看当前激活角色" aria-label="仅看当前激活角色">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M12 21s-7-4.6-9.5-9C1 8.3 3 5 6.5 5c1.8 0 3.2 1 4 2.3.8-1.3 2.2-2.3 4-2.3C18 5 20 8.3 18.5 12 16 16.4 12 21 12 21z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="ds-tag-scroll" id="dsTagScroll" style="display:none;"></div>
+
+    <!-- ============ 架上总览视图（网格）============ -->
+    <div class="ds-shelf" id="dsShelf" style="display:none;"></div>
+
+    <!-- ============ 单卷详读舞台 ============ -->
+    <div class="ds-stage" id="dsStage" style="display:none;">
+      <div class="ds-stage-shadow" id="dsStageShadow"></div>
+    </div>
+
+    <!-- ============ 底部切换控制（仅单卷详读模式）============ -->
+    <div class="ds-control" id="dsControl" style="display:none;">
+      <button class="ds-ctrl-pull ds-ctrl-pull-l" id="btnPrev" onclick="gotoPrev()" aria-label="上一份">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="ds-ctrl-mid">
+        <div class="ds-ctrl-ledger">
+          <span class="ds-ctrl-index" id="ctrlIndex">— / —</span>
+          <span class="ds-ctrl-ledger-label">FOLIO</span>
+        </div>
+        <div class="ds-ctrl-dots" id="ctrlDots"></div>
+      </div>
+      <button class="ds-ctrl-pull ds-ctrl-pull-r" id="btnNext" onclick="gotoNext()" aria-label="下一份">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ============ 索引缩略条（仅单卷详读模式）============ -->
+    <div class="ds-filmstrip" id="dsFilmstrip" style="display:none;"></div>
+
+    <!-- ============ 空状态 ============ -->
+    <div class="ds-empty" id="dsEmpty" style="display:none">
+      <div class="ds-empty-box">
+        <div class="ds-empty-box-lid"></div>
+        <div class="ds-empty-box-body">
+          <svg viewBox="0 0 48 48" width="34" height="34" fill="none">
+            <path d="M6 14a3 3 0 0 1 3-3h9l4 5h17a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V14z" stroke="currentColor" stroke-width="1.3"/>
+          </svg>
+        </div>
+      </div>
+      <div class="ds-empty-title">暂无档案</div>
+      <div class="ds-empty-desc">前往「角色库」创建角色后，档案袋会在此归档展示</div>
+    </div>
+
+  </div>
+
+  <!-- ================================================================
+       关系圈 · Relation Circle —— 独立整页，自带状态栏与顶部导航
+  ================================================================ -->
+  <div class="rc-page" id="rcPage" aria-hidden="true">
+    <div class="rc-page-inner">
+
+      <div class="status-bar">
+        <div class="status-time">9:41</div>
+        <div class="status-island"></div>
+        <div class="status-right">
+          <div class="signal"><i></i><i></i><i></i><i></i></div>
+          <div class="battery">
+            <span class="bat-pct">76</span>
+            <div class="bat-shell"><div class="bat-inner"></div><div class="bat-nub"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rc-topbar">
+        <button class="rc-icon-btn" id="rcCloseBtn" onclick="closeRelationCircle()" aria-label="返回档案袋">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="rc-topbar-center">
+          <div class="rc-topbar-title" id="rcOwnerName">关系圈</div>
+          <div class="rc-topbar-sub">RELATION CIRCLE · PRIVATE ARCHIVE</div>
+        </div>
+        <button class="rc-icon-btn" id="rcAddBtn" onclick="requestRelationSuggestions(true)" aria-label="手动添加人物" title="手动添加人物">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button class="rc-icon-btn rc-icon-accent" id="rcGenBtn" onclick="requestRelationSuggestions()" aria-label="AI 拓展关系" title="AI 推演关系网络">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M12 3v3.2M12 17.8V21M3 12h3.2M17.8 12H21M5.6 5.6l2.3 2.3M16.1 16.1l2.3 2.3M18.4 5.6l-2.3 2.3M7.9 16.1l-2.3 2.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+      </div>
+
+      <!-- 视图切换：关系星图 / 档案列表 -->
+      <div class="rc-tabs">
+        <button class="rc-tab active" data-view="graph" onclick="switchRelationView('graph')">
+          <span>关系星图</span>
+        </button>
+        <button class="rc-tab" data-view="list" onclick="switchRelationView('list')">
+          <span>人物档案</span>
+        </button>
+      </div>
+
+      <!-- 关系星图视图 -->
+      <div class="rc-view rc-view-graph" id="rcViewGraph">
+        <div class="rc-graph-frame">
+          <div class="rc-graph-glow"></div>
+          <svg id="rcGraphSvg" viewBox="0 0 360 420" class="rc-graph-svg"></svg>
+        </div>
+        <div class="rc-graph-hint" id="rcGraphHint">轻触节点查看这段关系</div>
+      </div>
+
+      <!-- 档案列表视图 -->
+      <div class="rc-view rc-view-list" id="rcViewList" style="display:none;">
+        <div class="rc-list" id="rcList"></div>
+      </div>
+
+      <!-- 空状态 -->
+      <div class="rc-empty" id="rcEmpty" style="display:none;">
+        <div class="rc-empty-orbit">
+          <span class="rc-empty-dot d1"></span>
+          <span class="rc-empty-dot d2"></span>
+          <span class="rc-empty-dot d3"></span>
+          <span class="rc-empty-core"></span>
+        </div>
+        <div class="rc-empty-title">这里还没有关系羁绊</div>
+        <div class="rc-empty-desc">点击右上角 · 让 AI 读取人设<br/>为角色编织专属的关系网络</div>
+        <button class="rc-empty-btn" onclick="requestRelationSuggestions()">AI 拓展关系圈</button>
+        <button class="rc-empty-btn-ghost" onclick="requestRelationSuggestions(true)">手动添加人物</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================================================================
+       AI 建议关系 · 选择页面
+  ================================================================ -->
+  <div class="rc-suggest-page" id="rcSuggestPage" aria-hidden="true">
+    <div class="rc-suggest-page-inner">
+
+      <div class="status-bar">
+        <div class="status-time">9:41</div>
+        <div class="status-island"></div>
+        <div class="status-right">
+          <div class="signal"><i></i><i></i><i></i><i></i></div>
+          <div class="battery">
+            <span class="bat-pct">76</span>
+            <div class="bat-shell"><div class="bat-inner"></div><div class="bat-nub"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rc-topbar">
+        <button class="rc-icon-btn" onclick="closeSuggestPanel()" aria-label="返回">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="rc-topbar-center">
+          <div class="rc-topbar-title">AI 关系推演</div>
+          <div class="rc-topbar-sub">SELECT TO ARCHIVE</div>
+        </div>
+        <div style="width:40px;"></div>
+      </div>
+      <div class="rc-suggest-body" id="rcSuggestBody"></div>
+      <div class="rc-suggest-footer" id="rcSuggestFooter" style="display:none;">
+        <div class="rc-suggest-count"><span id="rcSelCount">0</span> 个人物已选中</div>
+        <button class="rc-suggest-confirm" id="rcConfirmBtn" onclick="confirmSelectedNpcs()">存入关系圈档案</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       NPC 专属档案 详情页面
+  ================================================================ -->
+  <div class="rc-npc-page" id="rcNpcPage" aria-hidden="true">
+    <div class="rc-npc-page-inner">
+      <div class="status-bar">
+        <div class="status-time">9:41</div>
+        <div class="status-island"></div>
+        <div class="status-right">
+          <div class="signal"><i></i><i></i><i></i><i></i></div>
+          <div class="battery">
+            <span class="bat-pct">76</span>
+            <div class="bat-shell"><div class="bat-inner"></div><div class="bat-nub"></div></div>
+          </div>
+        </div>
+      </div>
+      <div id="rcNpcSheet"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="dossier.js"></script>
+</body>
+</html>

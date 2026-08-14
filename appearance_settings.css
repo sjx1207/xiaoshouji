@@ -1414,3 +1414,275 @@ body {
 .bs-sm-btns { display: flex; gap: 8px; justify-content: flex-end; }
 .bs-sm-cancel { height: 30px; padding: 0 14px; border-radius: 5px; border: 0.5px solid rgba(0,0,0,.14); background: #fff; font-size: 11px; color: #888; cursor: pointer; font-family: 'Inter', sans-serif; }
 .bs-sm-confirm { height: 30px; padding: 0 14px; border-radius: 5px; border: none; background: #1a1a1a; font-size: 11px; color: #fff; cursor: pointer; font-family: 'Inter', sans-serif; }
+/* ================================================================
+   ✦ 新增：Card Studio / Panel Studio / Custom Studio 三个子页面
+   —— 完全复用 Input Studio 的 .is-* 视觉语言，保证风格一致
+================================================================ */
+#cardStudioPage,
+#panelStudioPage,
+#customStudioPage {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #ffffff;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  display: none;
+  max-width: 640px;
+  margin: 0 auto;
+  left: 0; right: 0;
+}
+#cardStudioPage.is-open,
+#panelStudioPage.is-open,
+#customStudioPage.is-open {
+  display: block;
+  animation: slideInRight .32s cubic-bezier(.32,1,.48,1) both;
+}
+#cardStudioPage.is-closing,
+#panelStudioPage.is-closing,
+#customStudioPage.is-closing {
+  display: block;
+  animation: slideOutRight .26s cubic-bezier(.48,0,.64,1) both;
+}
+
+/* ── 系统美化库 · 预设选择器（三页共用） ── */
+.xs-lib-scroll {
+  display: flex; gap: 9px; overflow-x: auto; padding: 2px 0 8px;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.xs-lib-scroll::-webkit-scrollbar { display: none; }
+.xs-lib-card {
+  flex: 0 0 auto; width: 104px; border-radius: 11px;
+  border: 0.5px solid rgba(0,0,0,.10); background: #fff;
+  padding: 8px 8px 9px; cursor: pointer; position: relative;
+  transition: border-color .18s, box-shadow .18s, transform .18s;
+}
+.xs-lib-card:hover { border-color: rgba(0,0,0,.28); transform: translateY(-2px); }
+.xs-lib-card.on {
+  border-color: #1a1a1a;
+  box-shadow: 0 4px 16px rgba(0,0,0,.10), inset 0 0 0 0.5px rgba(0,0,0,.25);
+}
+.xs-lib-card.on::after {
+  content: ''; position: absolute; top: 7px; right: 7px;
+  width: 6px; height: 6px; border-radius: 50%; background: #1a1a1a;
+}
+.xs-lib-thumb {
+  height: 54px; border-radius: 8px; overflow: hidden; position: relative;
+  display: flex; flex-direction: column; justify-content: center; gap: 4px;
+  padding: 7px; margin-bottom: 7px;
+}
+.xs-lib-bar { height: 6px; border-radius: 4px; }
+.xs-lib-dotrow { display: flex; gap: 3px; }
+.xs-lib-dot { width: 9px; height: 9px; border-radius: 3px; }
+.xs-lib-name {
+  font-size: 10px; font-weight: 600; color: #2a2a2a; letter-spacing: .01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.xs-lib-en {
+  font-size: 8px; color: #bbb; font-family: 'Space Mono', monospace;
+  letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── 卡片预览舞台 ── */
+.xs-stage {
+  padding: 14px 16px 18px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #ffffff 0%, #f6f6f7 62%, #eeeef0 100%);
+}
+.xs-stage-inner {
+  border-radius: 16px; padding: 14px;
+  border: 0.5px solid rgba(0,0,0,.07);
+  background: #fff;
+  box-shadow: 0 10px 34px -18px rgba(0,0,0,.35);
+}
+
+/* 功能卡片预览 —— 复刻 chatroom 的 .fan-card */
+.xs-card-grid { display: flex; gap: 10px; justify-content: center; align-items: flex-end; }
+.xs-fcard {
+  width: 92px; height: 118px; border-radius: 14px;
+  border: 0.5px solid rgba(0,0,0,.10);
+  background: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 9px; position: relative; overflow: hidden;
+  transition: all .25s cubic-bezier(.32,1,.48,1);
+}
+.xs-fcard.is-mid { transform: scale(1.06); z-index: 2; }
+.xs-fcard.is-side { opacity: .8; }
+.xs-fcard-icon {
+  width: 36px; height: 36px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f4f4f5; color: #6a6a6a;
+}
+.xs-fcard-name { font-size: 11px; font-weight: 600; color: #2a2a2a; letter-spacing: .02em; }
+.xs-fcard-en {
+  font-size: 7.5px; color: #b8b8b8; font-family: 'Space Mono', monospace; letter-spacing: .1em;
+}
+.xs-fcard-glow {
+  position: absolute; inset: -30% -30% auto -30%; height: 70%;
+  background: radial-gradient(60% 60% at 50% 0%, rgba(255,255,255,.9), transparent 70%);
+  pointer-events: none; opacity: 0;
+}
+
+/* 功能板预览 —— 复刻 chatroom 的 .feature-panel */
+.xs-panel-shell {
+  border-radius: 14px; overflow: hidden;
+  background: linear-gradient(180deg, #e9e9ec 0%, #dededf 100%);
+  padding: 26px 12px 0; position: relative;
+}
+.xs-panel-sheet {
+  border-radius: 20px 20px 0 0; background: #fff;
+  border: 0.5px solid rgba(0,0,0,.08); border-bottom: none;
+  padding: 9px 13px 16px; position: relative; overflow: hidden;
+}
+.xs-panel-handle {
+  width: 34px; height: 4px; border-radius: 3px; background: #dcdcdc;
+  margin: 0 auto 10px;
+}
+.xs-panel-hd {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px;
+}
+.xs-panel-title {
+  font-size: 9.5px; letter-spacing: .16em; color: #a8a8a8;
+  font-family: 'Space Mono', monospace; text-transform: uppercase;
+}
+.xs-panel-x {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #f2f2f2; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #888;
+}
+.xs-panel-row { display: flex; gap: 8px; justify-content: center; }
+.xs-panel-dots { display: flex; gap: 5px; justify-content: center; margin-top: 12px; }
+.xs-panel-dot { width: 5px; height: 5px; border-radius: 50%; background: #d6d6d6; }
+.xs-panel-dot.on { width: 14px; border-radius: 3px; background: #1a1a1a; }
+
+/* 自定义美化 —— 整机 1:1 预览 */
+.xs-phone-wrap {
+  padding: 14px 16px 20px;
+  background: radial-gradient(120% 90% at 50% 0%, #fbfbfc 0%, #f0f0f2 100%);
+  display: flex; justify-content: center;
+}
+.xs-phone {
+  width: 268px; height: 500px; border-radius: 30px; overflow: hidden;
+  position: relative; background: #fff;
+  border: 0.5px solid rgba(0,0,0,.12);
+  box-shadow: 0 22px 60px -24px rgba(0,0,0,.5), 0 2px 0 rgba(255,255,255,.7) inset;
+  display: flex; flex-direction: column;
+  transform-origin: top center;
+}
+.xs-ph-status {
+  height: 26px; flex-shrink: 0; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 14px;
+  font-size: 8.5px; font-weight: 600; color: #1a1a1a; letter-spacing: .02em;
+  position: relative; z-index: 3;
+}
+.xs-ph-sig { display: flex; align-items: flex-end; gap: 1.5px; height: 8px; }
+.xs-ph-sig i { display: block; width: 1.6px; background: #1a1a1a; opacity: .85; border-radius: 1px; }
+.xs-ph-sig i:nth-child(1){height:2.5px} .xs-ph-sig i:nth-child(2){height:4px}
+.xs-ph-sig i:nth-child(3){height:6px}   .xs-ph-sig i:nth-child(4){height:8px}
+.xs-ph-bat {
+  width: 16px; height: 8px; border: 1px solid rgba(26,26,26,.5); border-radius: 2px;
+  padding: 1px; position: relative;
+}
+.xs-ph-bat i { display: block; height: 100%; width: 76%; background: #1a1a1a; border-radius: 1px; }
+
+.xs-ph-header {
+  flex-shrink: 0; padding: 8px 12px 9px; position: relative;
+  border-bottom: 0.5px solid rgba(0,0,0,.05);
+  display: flex; align-items: center; gap: 9px;
+  background: linear-gradient(180deg,#fdfdfd 0%,#f6f6f6 100%);
+}
+.xs-ph-av {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(145deg,#e6e6e8,#cfcfd2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+}
+.xs-ph-nm { font-size: 12px; font-weight: 700; color: #1a1a1a; letter-spacing: .01em; }
+.xs-ph-sub { font-size: 8px; color: #a5a5a5; margin-top: 1px; }
+.xs-ph-pill {
+  margin-left: auto; font-size: 7.5px; color: #8a8a8a;
+  border: 0.5px solid rgba(0,0,0,.1); border-radius: 20px; padding: 2px 7px;
+  display: flex; align-items: center; gap: 4px;
+}
+.xs-ph-pill i { width: 4px; height: 4px; border-radius: 50%; background: #7ea87e; display: block; }
+
+.xs-ph-body {
+  flex: 1; overflow: hidden; padding: 11px 10px;
+  display: flex; flex-direction: column; gap: 8px;
+  background: #f7f7f8; position: relative;
+}
+.xs-ph-row { display: flex; gap: 6px; align-items: flex-end; max-width: 78%; }
+.xs-ph-row.mine { margin-left: auto; flex-direction: row-reverse; }
+.xs-ph-mav {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(145deg,#e2e2e4,#c9c9cd);
+}
+.xs-ph-bub {
+  padding: 7px 10px; border-radius: 13px 13px 13px 4px;
+  background: #fff; border: 0.5px solid rgba(0,0,0,.06);
+  font-size: 10.5px; line-height: 1.5; color: #2a2a2a;
+  box-shadow: 0 1px 4px rgba(0,0,0,.03);
+}
+.xs-ph-row.mine .xs-ph-bub {
+  border-radius: 13px 13px 4px 13px;
+  background: #1a1a1a; color: #f4f4f4; border-color: transparent;
+}
+.xs-ph-time { font-size: 7px; color: #b6b6b6; align-self: flex-end; }
+
+.xs-ph-input {
+  flex-shrink: 0; padding: 8px 10px 11px;
+  background: #f2f2f3; border-top: 0.5px solid rgba(0,0,0,.05);
+  display: flex; align-items: center; gap: 6px;
+}
+.xs-ph-btn {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: #fff; border: 0.5px solid rgba(0,0,0,.07);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: #6a6a6a;
+}
+.xs-ph-btn.send { background: #1a1a1a; color: #fff; border-color: transparent; }
+.xs-ph-field {
+  flex: 1; height: 26px; border-radius: 14px; background: #fff;
+  border: 0.5px solid rgba(0,0,0,.07);
+  display: flex; align-items: center; padding: 0 10px;
+  font-size: 9.5px; color: #c3c3c3;
+}
+
+/* 缩放条 */
+.xs-zoom-row { display: flex; align-items: center; gap: 9px; margin-top: 10px; }
+.xs-zoom-lbl {
+  font-size: 9px; color: #b3b3b3; font-family: 'Space Mono', monospace; letter-spacing: .08em;
+}
+
+/* 模块开关网格（自定义美化用） */
+.xs-mod-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.xs-mod {
+  border: 0.5px solid rgba(0,0,0,.1); border-radius: 10px; padding: 9px 10px;
+  background: #fff; cursor: pointer; transition: all .18s; position: relative;
+}
+.xs-mod.on { border-color: #1a1a1a; background: #fafafa; }
+.xs-mod-nm { font-size: 10.5px; font-weight: 600; color: #2a2a2a; }
+.xs-mod-en {
+  font-size: 8px; color: #bcbcbc; font-family: 'Space Mono', monospace;
+  letter-spacing: .08em; margin-top: 2px;
+}
+.xs-mod-tick {
+  position: absolute; top: 8px; right: 9px; width: 12px; height: 12px;
+  border-radius: 50%; border: 1px solid rgba(0,0,0,.15);
+}
+.xs-mod.on .xs-mod-tick { background: #1a1a1a; border-color: #1a1a1a; }
+
+/* 键名提示条：告诉用户 localStorage key，方便手写 CSS 同步 */
+.xs-keybar {
+  margin-top: 10px; border-radius: 9px; padding: 9px 11px;
+  background: #fafafa; border: 0.5px solid rgba(0,0,0,.07);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.xs-key-line { display: flex; align-items: center; gap: 7px; font-size: 9.5px; color: #8a8a8a; }
+.xs-key-code {
+  font-family: 'Space Mono', monospace; font-size: 9px; color: #2a2a2a;
+  background: #efefef; border-radius: 4px; padding: 2px 6px; letter-spacing: .02em;
+  cursor: pointer; white-space: nowrap;
+}
+.xs-key-code:hover { background: #e4e4e4; }

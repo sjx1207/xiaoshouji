@@ -1695,10 +1695,16 @@ function openApp(name) {
     'game':'game.html',
     'shop':'shopping.html',
     'xinshiju':'xinshiju.html',
+    'anniversary':'memoria.html',
     'photos':'gallery.html',
     'diary':'diary.html',
     'trip':'travel.html',
     'novel':'novel.html',
+    'live':'live-app.html',
+    'email':'mail.html',
+    'yehuaguan':'yehuaguan.html',
+    'companion':'companion.html',
+    'relationlib':'dossier.html',
   }
 
   const url = routes[name];

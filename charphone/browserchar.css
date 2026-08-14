@@ -1,0 +1,1252 @@
+/* ==========================================================
+   Halo Browser · 浏览器 UI
+   风格：浅色高级 / 韩系 ins 极简 / iOS 质感
+   与 phonechar 主屏共享同一套 ink/gray 色板与状态栏规范
+   ========================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500&display=swap');
+
+:root{
+  --ink-900: #262626;
+  --ink-700: #4d4d4d;
+  --ink-500: #8f8f8f;
+  --ink-300: #d9d9d9;
+  --white:    #ffffff;
+  --gray-50:  #f7f7f7;
+  --gray-100: #eeeeee;
+  --line: rgba(38,38,38,0.08);
+
+  /* Halo 专属强调色：雾蓝 + 淡紫，克制使用，替代米色系 */
+  --accent-blue: #7c93b3;
+  --accent-blue-soft: rgba(124,147,179,0.14);
+  --accent-lilac: #9a8fc2;
+  --accent-lilac-soft: rgba(154,143,194,0.14);
+
+  --status-h: 54px;
+  --topbar-h: 66px;
+  --search-h: 50px;
+  --tabbar-h: 78px;
+  --tabbar-bottom: 14px;
+
+  /* 液态玻璃（iOS 26 Liquid Glass 质感）· V4 方案：
+     核心原则是"做减法"——不靠模糊背景、不靠大面积阴影堆叠出立体感，
+     而是：① 背景几乎原样透出（低模糊、低白色叠色，只提亮不遮挡）
+          ② 一条走边缘的锥形渐变高光弧（conic-gradient），只在朝光源一侧
+             （左上→右上）变亮，模拟真实玻璃球面反光，而不是整圈同等亮度
+          ③ 极轻的边缘收暗，只给一点点"这是有厚度的物体"的暗示，不能压暗背景
+     这三者的分寸感（尤其"轻"这个字）比technique本身更重要——加多了就会
+     变成之前试过的"哈哈镜"或"脏乎乎的深色磨砂"，两个方向都不对。 */
+  --glass-bg: rgba(255,255,255,0.22);
+  --glass-border: rgba(255,255,255,0.85);
+  --glass-blur: blur(6px) saturate(150%) brightness(1.05);
+  --glass-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.55),
+    inset 0 0 0 6px rgba(38,38,38,0.025),
+    0 14px 34px rgba(38,38,38,0.09),
+    0 3px 8px rgba(38,38,38,0.05);
+  /* 高光弧：conic-gradient 只在左上到右上约 60°-100° 范围内出现亮峰，
+     其余角度趋近透明，配合 -webkit-mask 做成"描边"而不是整片填色 */
+  --glass-arc: conic-gradient(from 195deg at 50% 50%,
+      transparent 0deg,
+      rgba(255,255,255,0.1) 25deg,
+      rgba(255,255,255,0.65) 48deg,
+      rgba(255,255,255,0.95) 62deg,
+      rgba(255,255,255,0.65) 76deg,
+      rgba(255,255,255,0.12) 100deg,
+      transparent 145deg,
+      transparent 330deg,
+      rgba(255,255,255,0.15) 350deg,
+      transparent 360deg);
+
+  /* 文字阴影：确保浅色/深色任意背景下都能保持清晰可辨识，
+     两层阴影分别负责"融入背景"与"轮廓不糊" */
+  --text-shadow-soft: 0 1px 2px rgba(0,0,0,0.16), 0 1px 10px rgba(255,255,255,0.55);
+  --text-shadow-strong: 0 1px 3px rgba(0,0,0,0.55), 0 1px 14px rgba(0,0,0,0.3);
+}
+
+*, *::before, *::after{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html{ background: var(--gray-50); }
+
+/* 液态玻璃 V4 共享底座：任何要用这个质感的卡片都加 .liquid-glass 类。
+   position:relative 是必须的，高光弧靠 ::before 绝对定位实现。
+   border 不再用实线，改用 box-shadow 里的 inset 描边，这样高光弧的
+   conic-gradient 才能贴着最外沿，不会被一圈实色 border 挡住渐变尖端。 */
+.liquid-glass{
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+.liquid-glass::before{
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: var(--glass-arc);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+html, body{
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  font-family: 'Poppins', 'Noto Sans SC', sans-serif;
+  color: var(--ink-900);
+}
+body{ background: transparent; }
+
+/* 文字阴影：统一给所有可读性文字加一层柔和投影，
+   保证无论浅色磨砂卡片还是用户上传的深色/浅色照片背景，文字都清晰可辨 */
+.status-time, .status-right,
+.brand-name, .brand-sub,
+.mode-btn,
+.search-placeholder,
+.panel-title, .panel-clear, .group-label,
+.row-title, .row-url, .row-time, .row-mood,
+.private-banner-text, .private-empty-hint,
+.webview-address-text,
+.article-source-name, .article-source-meta, .article-title, .article-p,
+.article-endcap,
+.owner-os-label, .owner-os-text,
+.inline-annotate-tag, .inline-annotate-text,
+.webview-private-badge span,
+.bg-toast{
+  text-shadow: var(--text-shadow-soft);
+}
+
+.bg-glow{
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 12% 8%, rgba(255,255,255,0.95) 0%, transparent 42%),
+    radial-gradient(ellipse at 90% 6%, var(--accent-lilac-soft) 0%, transparent 46%),
+    radial-gradient(ellipse at 10% 96%, var(--accent-blue-soft) 0%, transparent 48%),
+    radial-gradient(ellipse at 92% 92%, rgba(210,210,210,0.4) 0%, transparent 42%),
+    linear-gradient(160deg, var(--white) 0%, var(--gray-50) 55%, var(--gray-100) 100%);
+  transition: opacity 0.4s ease;
+}
+
+/* 用户上传背景后：铺满全屏、保持清晰锐利，绝不做任何模糊处理 */
+.bg-photo{
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  image-rendering: -webkit-optimize-contrast;
+}
+.bg-photo.is-active{ opacity: 1; }
+body.has-bg-photo .bg-glow{ opacity: 0; }
+/* 有自定义背景时，仅列表页的玻璃卡片提高一点不透明度以保证文字清晰可读；
+   网页详情页（.webview）刻意不复用这张照片 —— 它是独立的一层"打开的内容"，
+   固定使用统一的浅色/深色底，避免用户以为"背景穿透"到了详情页里 */
+body.has-bg-photo .topbar-card,
+body.has-bg-photo .search-shell,
+body.has-bg-photo .history-group,
+body.has-bg-photo .browser-tabbar{
+  background-color: rgba(255,255,255,0.75);
+}
+
+/* 背景更新提示：轻量 toast，短暂出现后自动隐去 */
+.bg-toast{
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + var(--tabbar-bottom) + 18px);
+  transform: translate(-50%, 8px);
+  z-index: 60;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(38,38,38,0.85);
+  color: var(--white);
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 10px 26px rgba(38,38,38,0.25);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+.bg-toast.is-shown{
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------------- 状态栏（与主屏完全同步） ---------------- */
+
+.status-bar{
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--status-h);
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 40;
+  background: transparent;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.status-time{
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+}
+.status-right{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-900);
+}
+.status-right .icon{ display: block; }
+.icon.signal{ width: 18px; height: 12px; }
+.icon.battery{ width: 24px; height: 12px; }
+
+/* 网页视图打开时，状态栏需要跟随视图深浅同步切换，
+   否则顶部状态栏会和下方页面的明暗色调脱节 */
+body.webview-open .status-bar{
+  background: rgba(255,255,255,0.86);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+body.webview-open-private .status-bar{
+  background: #171717;
+  color: rgba(255,255,255,0.92);
+}
+body.webview-open-private .status-time,
+body.webview-open-private .status-right{
+  color: rgba(255,255,255,0.92);
+}
+
+.browser-topbar{
+  position: fixed;
+  top: var(--status-h);
+  left: 0;
+  right: 0;
+  height: var(--topbar-h);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  z-index: 15;
+}
+
+.topbar-card{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 8px 0 6px;
+  border-radius: 20px;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.brand-mark{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* 品牌区改为角色专属头像：与该角色手机主屏头像同源同色 */
+.brand-avatar{
+  position: relative;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+.brand-avatar-ring{
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink-900);
+  box-shadow: 0 3px 10px rgba(38,38,38,0.2);
+  border: 2px solid rgba(255,255,255,0.85);
+}
+.brand-avatar-letter{
+  font-family: 'Poppins', serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-300);
+  line-height: 1;
+  z-index: 1;
+}
+.brand-avatar-img{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  z-index: 1;
+}
+.brand-avatar.has-img .brand-avatar-letter{ display: none; }
+.brand-avatar.has-img .brand-avatar-img{ display: block; }
+.brand-avatar-dot{
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #8faf8c;
+  border: 2px solid var(--white);
+  z-index: 3;
+}
+
+.brand-text{
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.brand-name{
+  font-family: 'Poppins', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-900);
+  max-width: 132px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.brand-sub{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.01em;
+  color: var(--ink-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.topbar-actions{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.topbar-more{
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.55);
+  color: var(--ink-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.topbar-more svg{ width: 16px; height: 16px; }
+.topbar-more:active{ transform: scale(0.88); background: rgba(255,255,255,0.8); }
+
+.mode-switch{
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(38,38,38,0.05);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+.mode-btn{
+  border: none;
+  background: transparent;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-500);
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+}
+.mode-btn.is-active{
+  background: var(--ink-900);
+  color: var(--white);
+  box-shadow: 0 4px 10px rgba(38,38,38,0.2);
+}
+.mode-btn[data-mode="private"].is-active{
+  background: linear-gradient(135deg, var(--accent-lilac) 0%, var(--accent-blue) 100%);
+  box-shadow: 0 4px 14px rgba(124,127,194,0.35);
+}
+
+/* ---------------- 搜索框 ---------------- */
+
+.search-shell{
+  position: fixed;
+  top: calc(var(--status-h) + var(--topbar-h) + 4px);
+  left: 0;
+  right: 0;
+  z-index: 15;
+  margin: 0 20px;
+  height: var(--search-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-radius: 17px;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+.search-icon{
+  width: 17px; height: 17px;
+  color: var(--ink-500);
+  flex-shrink: 0;
+}
+.search-placeholder{
+  flex: 1;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13.5px;
+  color: var(--ink-500);
+  letter-spacing: 0.01em;
+}
+.search-lock{
+  width: 15px; height: 15px;
+  color: var(--ink-500);
+  display: none;
+  flex-shrink: 0;
+}
+.search-lock svg{ width: 100%; height: 100%; }
+
+body.mode-private .search-shell{
+  background: rgba(38,38,38,0.88);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+}
+body.mode-private .search-placeholder{ color: rgba(255,255,255,0.55); }
+body.mode-private .search-icon{ color: rgba(255,255,255,0.6); }
+body.mode-private .search-lock{ display: block; color: var(--accent-lilac); }
+
+body.mode-private .topbar-card{
+  background: rgba(38,38,38,0.78);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 8px 22px rgba(38,38,38,0.2);
+}
+body.mode-private .brand-name{ color: var(--white); }
+body.mode-private .brand-sub{ color: rgba(255,255,255,0.5); }
+body.mode-private .brand-avatar-dot{ background: var(--accent-lilac); }
+body.mode-private .mode-switch{ background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); }
+body.mode-private .mode-btn{ color: rgba(255,255,255,0.55); }
+body.mode-private .topbar-more{
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.75);
+}
+
+/* ---------------- 主体面板 ---------------- */
+
+.browser-body{
+  position: fixed;
+  top: calc(var(--status-h) + var(--topbar-h) + var(--search-h) + 18px);
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h) + var(--tabbar-bottom));
+  z-index: 1;
+  overflow: hidden;
+}
+
+.panel{
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0 18px 24px;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity 0.26s ease, transform 0.26s ease;
+}
+.panel::-webkit-scrollbar{ display: none; }
+.panel.is-active{
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.panel-heading{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 12px;
+}
+.panel-title{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink-700);
+}
+.panel-clear{
+  border: none;
+  background: transparent;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 11.5px;
+  color: var(--ink-500);
+  cursor: pointer;
+  padding: 4px 2px;
+}
+.panel-clear:active{ opacity: 0.5; }
+
+.group-label{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(38,38,38,0.4);
+  padding: 12px 6px 8px;
+}
+
+.history-group{
+  border-radius: 20px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  padding: 2px 4px;
+}
+.history-group .group-label{
+  padding-left: 12px;
+}
+
+.history-row{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 8px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 14px;
+  position: relative;
+  transition: background 0.15s ease;
+}
+.history-row:active{ background: rgba(38,38,38,0.05); }
+.history-row + .history-row::before{
+  content: '';
+  position: absolute;
+  top: 0; left: 46px; right: 8px;
+  height: 1px;
+  background: var(--line);
+}
+
+.row-favicon{
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.row-favicon svg{ width: 16px; height: 16px; }
+.fv-cyan{ background: rgba(124,147,179,0.16); color: var(--accent-blue); }
+.fv-peach{ background: rgba(199,146,120,0.16); color: #c79278; }
+.fv-lilac{ background: var(--accent-lilac-soft); color: var(--accent-lilac); }
+.fv-sage{ background: rgba(135,158,135,0.16); color: #7f9782; }
+.fv-ink{ background: rgba(38,38,38,0.08); color: var(--ink-700); }
+
+.row-body{
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.row-title{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row-url{
+  font-family: 'Poppins', 'Noto Sans SC', sans-serif;
+  font-size: 10.5px;
+  color: var(--ink-500);
+  letter-spacing: 0.01em;
+}
+
+/* 角色查看时的状态标签：小圆点 + 简短文字，克制地暗示"当时是什么状态" */
+.row-mood{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--ink-500);
+  width: fit-content;
+}
+.row-mood-dot{
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--ink-300);
+}
+.row-mood[data-tone="casual"]{ color: var(--ink-500); }
+.row-mood[data-tone="casual"] .row-mood-dot{ background: var(--ink-300); }
+.row-mood[data-tone="focus"]{ color: var(--accent-blue); }
+.row-mood[data-tone="focus"] .row-mood-dot{ background: var(--accent-blue); }
+.row-mood[data-tone="soft"]{ color: var(--accent-lilac); }
+.row-mood[data-tone="soft"] .row-mood-dot{ background: var(--accent-lilac); }
+.row-mood[data-tone="deep"]{ color: #a08a95; }
+.row-mood[data-tone="deep"] .row-mood-dot{
+  background: #a08a95;
+  box-shadow: 0 0 0 3px rgba(160,138,149,0.14);
+}
+.history-row.is-private .row-mood[data-tone="deep"]{ color: rgba(255,255,255,0.5); }
+.history-row.is-private .row-mood[data-tone="deep"] .row-mood-dot{
+  background: var(--accent-lilac);
+  box-shadow: 0 0 0 3px rgba(154,143,194,0.18);
+}
+
+.row-time{
+  flex-shrink: 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 10.5px;
+  color: var(--ink-300);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 私密面板专属：banner / 模糊标题 / 深色卡片质感 */
+
+.private-banner{
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(154,143,194,0.16) 0%, rgba(124,147,179,0.14) 100%);
+  border: 1px solid rgba(154,143,194,0.22);
+  margin-bottom: 16px;
+}
+.private-banner-icon{
+  width: 26px; height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-lilac);
+}
+.private-banner-icon svg{ width: 13px; height: 13px; }
+.private-banner-text{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink-700);
+}
+
+.history-row.is-private .row-favicon{ background: rgba(38,38,38,0.85); color: rgba(255,255,255,0.8); }
+
+.text-blur{
+  filter: blur(5px);
+  user-select: none;
+  transition: filter 0.22s ease;
+  cursor: pointer;
+}
+.text-blur.is-revealed{ filter: blur(0); }
+
+.private-empty-hint{
+  text-align: center;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 10.5px;
+  color: var(--ink-300);
+  padding: 18px 0 6px;
+  letter-spacing: 0.02em;
+}
+
+/* ---------------- 底部工具栏 ---------------- */
+
+.browser-tabbar{
+  position: fixed;
+  bottom: var(--tabbar-bottom);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, calc(100vw - 24px));
+  height: var(--tabbar-h);
+  padding: 0 10px;
+  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 10;
+}
+.browser-tabbar.liquid-glass{
+  box-shadow:
+    var(--glass-shadow),
+    0 2px 8px rgba(38,38,38,0.05);
+}
+
+.tab-btn{
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: none;
+  background: transparent;
+  color: var(--ink-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+.tab-btn svg{ width: 21px; height: 21px; }
+.tab-btn:active{ transform: scale(0.88); background: rgba(38,38,38,0.06); }
+
+.tab-btn-mid{
+  background: linear-gradient(160deg, var(--white) 0%, var(--gray-50) 100%);
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 6px rgba(38,38,38,0.05);
+}
+.tab-btn-mid svg{ width: 19px; height: 19px; transition: transform 0.5s cubic-bezier(.4,0,.2,1); }
+.tab-btn-mid.is-refreshing svg{ transform: rotate(360deg); }
+
+.tabs-count-badge{
+  position: absolute;
+  top: 2px; right: 3px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--ink-900);
+  color: var(--white);
+  font-family: 'Poppins', sans-serif;
+  font-size: 8.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+/* ---------------- 私密模式：整体降调，深色高级感 ---------------- */
+
+body.mode-private .brand-avatar-ring{ box-shadow: 0 3px 12px rgba(154,143,194,0.45); }
+
+/* 私密/深色场景下文字阴影加深，避免在暗色照片背景上糊成一片 */
+body.mode-private .brand-name,
+body.mode-private .brand-sub,
+body.mode-private .mode-btn,
+body.mode-private .search-placeholder,
+.webview.is-private-view .webview-address-text,
+.webview.is-private-view .article-source-name,
+.webview.is-private-view .article-source-meta,
+.webview.is-private-view .article-title,
+.webview.is-private-view .article-p,
+.webview.is-private-view .article-endcap,
+.webview.is-private-view .owner-os-text,
+.webview.is-private-view .inline-annotate-text,
+body.webview-open-private .status-time,
+body.webview-open-private .status-right{
+  text-shadow: var(--text-shadow-strong);
+}
+
+body.mode-private .browser-body{
+  --row-tint: rgba(255,255,255,0.04);
+}
+
+@media (min-width: 480px){
+  .search-shell, .panel, .browser-topbar{
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+    left: 0; right: 0;
+  }
+}
+
+/* ==========================================================
+   网页视图：点按历史记录后，模拟"浏览器打开了那个网页"
+   状态栏保持可见并实时同步；地址栏与结果卡片沿用主界面
+   同一套磨砂玻璃 + ink 灰黑 + 雾蓝/淡紫点缀的视觉语言
+   ========================================================== */
+
+.webview{
+  position: fixed;
+  top: var(--status-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  isolation: isolate;
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.34s cubic-bezier(.32,.72,0,1), opacity 0.28s ease, background 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* 不透明底色：完全独立于列表页与自定义背景图的一层实色 + 柔光渐变，
+   刻意做成明显更"厚"的纯色底，避免用户上传的背景图透出来造成
+   "详情页能看见列表页背景"的错觉 —— 这里永远只用固定配色，不叠加 --bg-photo-url */
+.webview::before{
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 88% 0%, var(--accent-lilac-soft) 0%, transparent 46%),
+    radial-gradient(ellipse at 8% 100%, var(--accent-blue-soft) 0%, transparent 48%),
+    linear-gradient(180deg, var(--white) 0%, var(--gray-50) 55%, var(--gray-100) 100%);
+  transition: background 0.35s ease, opacity 0.35s ease;
+}
+.webview-topbar, .webview-page{
+  position: relative;
+  z-index: 1;
+}
+.webview.is-open{
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.webview-topbar{
+  flex-shrink: 0;
+  padding: 10px 16px 4px;
+}
+
+.webview-address-card{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 8px 0 6px;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.webview-back, .webview-delete{
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(38,38,38,0.05);
+  color: var(--ink-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.14s ease, background 0.14s ease;
+}
+.webview-back svg{ width: 16px; height: 16px; }
+.webview-delete svg{ width: 15px; height: 15px; }
+.webview-back:active, .webview-delete:active{ transform: scale(0.88); background: rgba(38,38,38,0.09); }
+
+.webview-address-lock{
+  width: 13px; height: 13px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-500);
+  display: none;
+}
+.webview-address-lock svg{ width: 100%; height: 100%; }
+
+.webview-address-text{
+  flex: 1;
+  min-width: 0;
+  font-family: 'Poppins', 'Noto Sans SC', sans-serif;
+  font-size: 12.5px;
+  color: var(--ink-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
+}
+
+/* 网页正文滚动区 */
+.webview-page{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 16px 20px calc(var(--tabbar-h) + var(--tabbar-bottom) + 24px);
+  animation: bcFadeIn 0.32s ease both;
+}
+.webview-page::-webkit-scrollbar{ display: none; }
+
+/* 内容来源卡：模拟这条帖子/文章本身的作者信息条，
+   与地址栏的"浏览器外壳"区分开——更轻，几乎不带玻璃感，像是内容自带的一部分 */
+.article-source{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.article-source-avatar{
+  width: 34px; height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ink-900);
+  color: var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+}
+.article-source-info{
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.article-source-name{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.article-source-meta{
+  font-family: 'Poppins', 'Noto Sans SC', sans-serif;
+  font-size: 10.5px;
+  color: var(--ink-500);
+  letter-spacing: 0.01em;
+}
+
+.article-title{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+  color: var(--ink-900);
+  margin-bottom: 16px;
+}
+
+/* 浏览器视角：手机主人查阅这条内容时的内心 OS，
+   液态玻璃卡片 + 呼吸感图标，用引号语气做旁观叙述的观感；
+   点击整张卡片可折叠，收起时只留一行摘要，方便专心读正文 */
+.owner-os{
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 15px;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  background:
+    linear-gradient(150deg, rgba(124,147,179,0.16) 0%, rgba(154,143,194,0.1) 100%),
+    rgba(255,255,255,0.5);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(124,147,179,0.24);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.8),
+    0 10px 24px rgba(38,38,38,0.06);
+  position: relative;
+  cursor: pointer;
+  text-align: left;
+  animation: bcFadeIn 0.4s ease both;
+  transition: padding 0.28s cubic-bezier(.32,.72,0,1);
+}
+.owner-os-icon{
+  width: 24px; height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-blue);
+  margin-top: 1px;
+  animation: bcBreathe 3.2s ease-in-out infinite;
+}
+.owner-os-icon svg{ width: 13px; height: 13px; }
+.owner-os-body{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.owner-os-label{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  opacity: 0.9;
+}
+.owner-os-text{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink-700);
+  font-style: italic;
+  transition: max-height 0.3s ease, opacity 0.24s ease;
+}
+.owner-os-chevron{
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  color: var(--accent-blue);
+  opacity: 0.6;
+  margin-top: 3px;
+  transition: transform 0.3s cubic-bezier(.32,.72,0,1);
+}
+.owner-os-chevron svg{ width: 100%; height: 100%; }
+.owner-os.is-collapsed .owner-os-chevron{ transform: rotate(-90deg); }
+.owner-os.is-collapsed .owner-os-text{
+  max-height: 15px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.7;
+}
+
+@keyframes bcBreathe{
+  0%, 100%{ transform: scale(1); opacity: 1; }
+  50%{ transform: scale(1.08); opacity: 0.82; }
+}
+
+/* 正文：真实的文章段落渲染，逐段 <p> 展示，字号字距按长文阅读优化，
+   而不是搜索结果摘要卡片 */
+.article-body{
+  display: flex;
+  flex-direction: column;
+}
+.article-para{
+  position: relative;
+}
+.article-p{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 14.5px;
+  line-height: 1.95;
+  letter-spacing: 0.01em;
+  color: var(--ink-900);
+  margin-bottom: 14px;
+}
+
+/* 段落批注：图钉直接挂在该段正文文字末尾，默认收起，
+   点击后就地在这一段正文下方展开批注气泡，与内容形成直接的"旁批"关系，
+   而不是汇总到别处的列表 */
+.pin-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px; height: 19px;
+  margin-left: 5px;
+  vertical-align: -4px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(154,143,194,0.16);
+  color: var(--accent-lilac);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+.pin-btn svg{ width: 10px; height: 10px; }
+.pin-btn:active{ transform: scale(0.82); }
+.pin-btn.is-active{
+  background: var(--accent-lilac);
+  color: #fff;
+  transform: rotate(-12deg);
+  box-shadow: 0 3px 10px rgba(154,143,194,0.4);
+}
+
+.inline-annotate{
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+  transform-origin: top left;
+  transition: max-height 0.4s cubic-bezier(.32,.72,0,1), opacity 0.28s ease, transform 0.34s cubic-bezier(.32,.72,0,1), margin-bottom 0.32s ease;
+  margin-bottom: 0;
+}
+.inline-annotate.is-open{
+  max-height: 260px;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  margin-bottom: 14px;
+}
+.inline-annotate-inner{
+  position: relative;
+  padding: 12px 14px 12px 16px;
+  border-radius: 14px;
+  /* 液态玻璃质感：多层高光 + 内阴影折射 + 顶部锐利高光线，而不是单一磨砂色块 */
+  background:
+    linear-gradient(155deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.22) 55%, rgba(255,255,255,0.4) 100%),
+    rgba(255,255,255,0.4);
+  backdrop-filter: blur(22px) saturate(190%);
+  -webkit-backdrop-filter: blur(22px) saturate(190%);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.9),
+    inset 0 -8px 16px rgba(255,255,255,0.18),
+    0 10px 22px rgba(38,38,38,0.08);
+  overflow: hidden;
+}
+.inline-annotate-inner::before{
+  content: '';
+  position: absolute;
+  top: 10px; bottom: 10px; left: 0;
+  width: 2.5px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent-blue) 0%, var(--accent-lilac) 100%);
+}
+.inline-annotate-tag{
+  display: block;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-lilac);
+  margin-bottom: 5px;
+}
+.inline-annotate-text{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--ink-900);
+}
+
+.article-endcap{
+  text-align: center;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 11px;
+  color: var(--ink-300);
+  padding: 22px 0 8px;
+  letter-spacing: 0.04em;
+}
+
+@keyframes bcFadeIn{
+  from{ opacity: 0; transform: translateY(-4px); }
+  to{ opacity: 1; transform: translateY(0); }
+}
+
+/* 私密网页：整体切换为深色质感，用雾蓝/淡紫的微光呼应"私密"这件事的分量，
+   而不只是简单调深颜色 —— 专属徽标 + 边缘光晕 + 更克制安静的卡片质感 */
+.webview.is-private-view::before{
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(154,143,194,0.16) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(124,147,179,0.1) 0%, transparent 55%),
+    linear-gradient(180deg, #202020 0%, #171717 55%, #121212 100%);
+}
+
+.webview.is-private-view .webview-address-card{
+  background: #232323;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 8px 22px rgba(0,0,0,0.3);
+}
+.webview.is-private-view .webview-back,
+.webview.is-private-view .webview-delete{
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.8);
+}
+.webview.is-private-view .webview-address-text{ color: rgba(255,255,255,0.85); }
+.webview.is-private-view .webview-address-lock{ color: var(--accent-lilac); }
+
+/* 私密专属徽标：在结果页顶部标出"这是一个不会被记住的空间" */
+.webview-private-badge{
+  display: none;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 6px 12px 6px 10px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  background: rgba(154,143,194,0.14);
+  border: 1px solid rgba(154,143,194,0.28);
+}
+.webview.is-private-view .webview-private-badge{ display: flex; }
+.webview-private-badge svg{ width: 12px; height: 12px; color: var(--accent-lilac); flex-shrink: 0; }
+.webview-private-badge span{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--accent-lilac);
+}
+
+/* 私密网页视图：来源条 / 标题 / 正文段落跟随深色质感一并切换 */
+.webview.is-private-view .article-source-avatar{
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+}
+.webview.is-private-view .article-source-name{ color: rgba(255,255,255,0.92); }
+.webview.is-private-view .article-source-meta{ color: rgba(255,255,255,0.42); }
+.webview.is-private-view .article-title{ color: rgba(255,255,255,0.96); }
+.webview.is-private-view .article-p{ color: rgba(255,255,255,0.82); }
+
+.webview.is-private-view .owner-os{
+  background:
+    linear-gradient(150deg, rgba(154,143,194,0.16) 0%, rgba(124,147,179,0.08) 100%),
+    rgba(255,255,255,0.04);
+  border-color: rgba(154,143,194,0.28);
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.08), 0 10px 24px rgba(0,0,0,0.32);
+}
+.webview.is-private-view .owner-os-icon{
+  background: rgba(255,255,255,0.1);
+  color: var(--accent-lilac);
+}
+.webview.is-private-view .owner-os-label{ color: var(--accent-lilac); }
+.webview.is-private-view .owner-os-text{ color: rgba(255,255,255,0.78); }
+.webview.is-private-view .owner-os-chevron{ color: var(--accent-lilac); }
+
+.webview.is-private-view .pin-btn{
+  background: rgba(255,255,255,0.12);
+  color: var(--accent-lilac);
+}
+.webview.is-private-view .pin-btn.is-active{
+  background: var(--accent-lilac);
+  color: #fff;
+}
+.webview.is-private-view .inline-annotate-inner{
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%),
+    rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.1),
+    0 10px 22px rgba(0,0,0,0.35);
+}
+.webview.is-private-view .inline-annotate-tag{ color: var(--accent-lilac); }
+.webview.is-private-view .inline-annotate-text{ color: rgba(255,255,255,0.86); }
+.webview.is-private-view .article-endcap{ color: rgba(255,255,255,0.28); }
+
+@media (min-width: 480px){
+  .webview-topbar, .webview-page{ max-width: 400px; margin-left: auto; margin-right: auto; }
+}

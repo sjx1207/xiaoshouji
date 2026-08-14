@@ -311,6 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     label.style.display = 'block';
     const activeCharId = parseInt(localStorage.getItem('luna_active_char')) || null;
+    const _blkState = (() => { try { return JSON.parse(localStorage.getItem('luna_block_state') || '{}') || {}; } catch (e) { return {}; } })();
+    const _delList  = (() => { try { const l = JSON.parse(localStorage.getItem('luna_deleted_friends') || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; } })();
 
     container.innerHTML = chars.map((c, idx) => {
       const tone = TONE_CLASSES[idx % TONE_CLASSES.length];
@@ -326,15 +328,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const time    = last ? _sysFormatTime(last.time) : '';
       const unread  = false; // 用户自己发出/查看的对话，进入过详情页即视为已读
 
+      const _st  = _blkState[c.name];
+      const _del = _delList.indexOf(c.name) >= 0;
+      const stateTag = _del
+        ? '<span class="thread-state-tag del">已删除</span>'
+        : _st
+          ? '<span class="thread-state-tag blk">' + (_st.by === 'ai' ? '仅短信' : '已拉黑') + '</span>'
+          : '';
+
       return `
-        <div class="thread-item${unread ? ' unread' : ''}" data-cat="friends" data-unread="${unread}" data-char-id="${c.id}" style="animation-delay:${(idx * 0.05).toFixed(2)}s">
+        <div class="thread-item${unread ? ' unread' : ''}${_st || _del ? ' is-restricted' : ''}" data-cat="friends" data-unread="${unread}" data-char-id="${c.id}" style="animation-delay:${(idx * 0.05).toFixed(2)}s">
           <div class="thread-avatar ${c.avatar ? 'has-img' : tone}">
             ${avatarInner}
             ${isOnline ? '<span class="presence-dot"></span>' : ''}
           </div>
           <div class="thread-body">
             <div class="thread-row-top">
-              <span class="thread-name">${escHtml(c.name || '未命名')}</span>
+              <span class="thread-name">${escHtml(c.name || '未命名')}</span>${stateTag}
               <span class="thread-time">${time}</span>
             </div>
             <div class="thread-row-bottom">
@@ -585,9 +595,49 @@ document.addEventListener('DOMContentLoaded', () => {
       : `<span>${(c.name || '?')[0].toUpperCase()}</span>`;
 
     renderThreadMessages(charId);
+    window._lunaThreadChar = c;          // 供短信 AI 模块读取当前会话对象
+    renderThreadBlockBanner(c);
     viewThread.classList.add('is-open');
     scrollThreadToBottom(false);
   }
+
+  /* ---------- 拉黑状态：短信页顶部提示条 ---------- */
+  function lunaBlockState() {
+    try { return JSON.parse(localStorage.getItem('luna_block_state') || '{}') || {}; }
+    catch (e) { return {}; }
+  }
+  function lunaDeletedList() {
+    try { const l = JSON.parse(localStorage.getItem('luna_deleted_friends') || '[]'); return Array.isArray(l) ? l : []; }
+    catch (e) { return []; }
+  }
+  function renderThreadBlockBanner(c) {
+    let bar = document.getElementById('tdBlockBar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'tdBlockBar';
+      bar.className = 'td-block-bar';
+      const scroll = document.getElementById('threadMsgScroll');
+      if (scroll && scroll.parentNode) scroll.parentNode.insertBefore(bar, scroll);
+    }
+    const st = lunaBlockState()[c && c.name];
+    if (!st) { bar.style.display = 'none'; return; }
+    bar.style.display = 'flex';
+    if (st.by === 'ai') {
+      bar.className = 'td-block-bar is-ai';
+      bar.innerHTML =
+        '<span class="td-bb-dot"></span>' +
+        '<span class="td-bb-txt"><b>' + escHtml(c.name) + ' 已在聊天里把你拉黑</b>' +
+        '<i>' + (st.reason ? '“' + escHtml(st.reason) + '” · ' : '') +
+        '现在只剩短信这一条路，点右下角 ✦ 让 Ta 给你回一条</i></span>';
+    } else {
+      bar.className = 'td-block-bar';
+      bar.innerHTML =
+        '<span class="td-bb-dot"></span>' +
+        '<span class="td-bb-txt"><b>你已拉黑 ' + escHtml(c.name) + '</b>' +
+        '<i>短信仍可收发，解除拉黑请前往「聊天设置 → 好友管理」</i></span>';
+    }
+  }
+  window._lunaRenderThreadBlockBanner = renderThreadBlockBanner;
 
   function closeThread() {
     viewThread.classList.remove('is-open');
@@ -642,11 +692,176 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  /* ---------- AI 回复按钮：占位交互，暂未接入实际能力 ---------- */
+  /* ================================================
+     AI 短信生成 —— 必须由用户手动点击才会调用，绝不自动触发
+     被角色拉黑后，短信是唯一还能收到 Ta 消息的通道
+  ================================================ */
+  let _smsLoading = false;
+
+  function smsToast(msg) {
+    let t = document.getElementById('msgToast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'msgToast';
+      t.className = 'msg-toast';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._tm);
+    t._tm = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  /* 读取该角色在聊天页的最近对话，作为短信的上下文来源 */
+  function smsLoadChatHistory(name) {
+    return new Promise(res => {
+      try {
+        const r = indexedDB.open('LunaChatDB');
+        r.onsuccess = e => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('messages')) { res([]); return; }
+          const g = db.transaction('messages').objectStore('messages').get(name);
+          g.onsuccess = () => {
+            const rec = g.result;
+            const msgs = (rec && Array.isArray(rec.msgs)) ? rec.msgs : [];
+            res(msgs.slice(-24));
+          };
+          g.onerror = () => res([]);
+        };
+        r.onerror = () => res([]);
+      } catch (err) { res([]); }
+    });
+  }
+
+  function smsBuildPrompt(c, blockState, chatHistory, smsLog) {
+    const persona = c.persona || c.description || c.desc || '';
+    const traits  = c.traits || c.personality || '';
+    const role    = c.role || '';
+    const bg      = c.background || c.story || '';
+
+    const histTxt = chatHistory.length
+      ? chatHistory.map(m => (m.role === 'mine' ? '用户：' : c.name + '：') +
+          (m.text || m.content || '')).join('\n')
+      : '（暂无聊天记录）';
+
+    const smsTxt = smsLog.length
+      ? smsLog.slice(-10).map(m => (m.dir === 'out' ? '用户短信：' : c.name + '短信：') + m.text).join('\n')
+      : '（这是第一条短信）';
+
+    const blockBlock = (blockState && blockState.by === 'ai')
+      ? `\n【当前关系状态 — 极其重要】\n你已经在聊天软件里把用户拉黑了，理由是：「${blockState.reason || '积累已久的失望'}」。\n` +
+        `拉黑发生在 ${new Date(blockState.ts || Date.now()).toLocaleString('zh-CN')}。\n` +
+        `现在你和对方唯一还连着的只有短信。写短信时必须体现出这个关系状态：\n` +
+        `· 语气要比以前疏远、克制、简短，不要像没事人一样热络寒暄；\n` +
+        `· 但你仍然是个有血有肉的人，情绪可以复杂 —— 可能还在生气、可能有点后悔、可能只是想说清楚一件事，具体取决于你的人设和上面的对话记录；\n` +
+        `· 不要立刻原谅、不要突然示好，也不要无理由地二次辱骂，一切都要符合你的性格和已经发生过的事；\n` +
+        `· 绝对不要提"拉黑"这个操作本身像在念系统提示，要像真人发短信那样自然。`
+      : `\n【当前关系状态】\n你们关系正常，这只是一条普通短信。语气按你的人设来，自然、简短、有生活感。`;
+
+    return `你现在扮演「${c.name}」，一个真实存在的人，正在给对方发一条【短信】。你绝对不是 AI。\n\n` +
+      `【你是谁】\n名字：${c.name}\n` +
+      (role ? `定位：${role}\n` : '') +
+      (persona ? `人物简介：${persona}\n` : '') +
+      (traits ? `性格特点：${traits}\n` : '') +
+      (bg ? `背景：${bg}\n` : '') +
+      blockBlock +
+      `\n\n【你们在聊天软件里最近说过的话】\n${histTxt}\n` +
+      `\n【你们已有的短信往来】\n${smsTxt}\n` +
+      `\n【短信写作规则 — 必须严格遵守】\n` +
+      `1. 只输出一条短信正文，直接就是你要发的字，不要任何前缀、引号、署名、解释。\n` +
+      `2. 短信不是聊天：一条把话说完，不要拆成多行连发，长度控制在 15~60 字。\n` +
+      `3. 严禁动作神情描写，不能出现（笑）（叹气）*皱眉* 这类内容。\n` +
+      `4. 严禁 Markdown、编号、列表、表情符号图标。\n` +
+      `5. 内容必须承接上面的真实上下文，不能凭空开启一个无关话题。\n` +
+      `6. 不要复述规则，不要解释你在做什么，直接给出短信内容。`;
+  }
+
+  async function smsCallApi(systemPrompt, userLine) {
+    const cur = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
+    const model = localStorage.getItem('luna_api_model') || '';
+    if (!cur.baseUrl || !cur.apiKey || !model) throw new Error('NO_API_CONFIG');
+    const resp = await fetch(cur.baseUrl + '/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cur.apiKey },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userLine }
+        ]
+      })
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error((err && err.error && err.error.message) || ('HTTP ' + resp.status));
+    }
+    const data = await resp.json();
+    const text = data && data.choices && data.choices[0] &&
+                 data.choices[0].message && data.choices[0].message.content;
+    if (!text || !text.trim()) throw new Error('回复为空');
+    return text.trim().replace(/^["'「『]|["'」』]$/g, '').split('\n')[0].trim();
+  }
+
+  async function generateSms() {
+    if (_smsLoading) return;
+    const c = _tdCurrentChar;
+    if (!c) { smsToast('请先打开一个联系人'); return; }
+
+    const cur = JSON.parse(localStorage.getItem('luna_api_current') || '{}');
+    const model = localStorage.getItem('luna_api_model') || '';
+    if (!cur.baseUrl || !cur.apiKey || !model) { smsToast('请先在设置页配置 API'); return; }
+
+    _smsLoading = true;
+    btnThreadAI.classList.add('is-loading');
+    btnThreadAI.setAttribute('data-tip', '生成中…');
+
+    try {
+      const blockState = lunaBlockState()[c.name] || null;
+      const chatHistory = await smsLoadChatHistory(c.name);
+      const smsLog = _tdReadLog(c.id);
+      const sys = smsBuildPrompt(c, blockState, chatHistory, smsLog);
+      const lastOut = [...smsLog].reverse().find(m => m.dir === 'out');
+      const userLine = lastOut
+        ? '对方刚给你发了一条短信：「' + lastOut.text + '」。请写出你要回的那一条短信。'
+        : '现在请你主动给对方发一条短信。';
+
+      const text = await smsCallApi(sys, userLine);
+      _tdAppendMsg(c.id, 'in', text);
+      renderThreadMessages(c.id);
+      scrollThreadToBottom(true);
+      smsToast(c.name + ' 给你发来一条短信');
+    } catch (err) {
+      console.error('[generateSms]', err);
+      smsToast(String(err && err.message) === 'NO_API_CONFIG'
+        ? '请先在设置页配置 API'
+        : '短信没能发出来，稍后再试');
+    } finally {
+      _smsLoading = false;
+      btnThreadAI.classList.remove('is-loading');
+      btnThreadAI.setAttribute('data-tip', 'AI 回复');
+    }
+  }
+
   btnThreadAI.addEventListener('click', () => {
     btnThreadAI.style.transform = 'scale(0.88)';
     setTimeout(() => { btnThreadAI.style.transform = ''; }, 140);
+    generateSms();
   });
+
+  /* 拉黑状态变化时同步刷新列表与提示条 */
+  window.addEventListener('storage', e => {
+    if (e.key === 'luna_block_state' || e.key === 'luna_block_update' || e.key === 'luna_deleted_friends') {
+      renderFriendThreads();
+      if (_tdCurrentChar) renderThreadBlockBanner(_tdCurrentChar);
+    }
+  });
+  try {
+    const _bbc = new BroadcastChannel('luna_block_channel');
+    _bbc.onmessage = () => {
+      renderFriendThreads();
+      if (_tdCurrentChar) renderThreadBlockBanner(_tdCurrentChar);
+    };
+  } catch (e) {}
 
   /* ================================================
      初始化

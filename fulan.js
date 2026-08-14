@@ -49,9 +49,11 @@ const Modal={
   open({title,body,actions,wide}){ const m=$('#flModal'); $('#flModalT').textContent=title||'';
     const b=$('#flModalB'); b.innerHTML=''; if(typeof body==='string') b.innerHTML=body; else if(body) b.appendChild(body);
     const f=$('#flModalF'); f.innerHTML='';
+    /* fn 返回 false ⇒ 保留弹窗（校验没过时不该把用户填的东西一起关掉） */
     (actions||[{t:'知道了',p:1}]).forEach(a=>{ const btn=document.createElement('button');
       btn.className=a.p?'fl-solid':'fl-ghost'; btn.textContent=a.t;
-      btn.onclick=()=>{ if(!a.keep) Modal.close(); a.fn&&a.fn(); }; f.appendChild(btn); });
+      btn.onclick=()=>{ let r=true; try{ r=a.fn?a.fn():true; }catch(err){ console.error(err); }
+        if(r!==false&&!a.keep) Modal.close(); }; f.appendChild(btn); });
     m.hidden=false; m.querySelector('.fl-modal__veil').onclick=()=>Modal.close(); return b; },
   close(){ $('#flModal').hidden=true; }
 };
@@ -90,188 +92,184 @@ function Chips(host,items,sel,onChange,single){ host.innerHTML='';
 function Switch(title,desc,on,fn){ const d=document.createElement('div'); d.className='fl-sw'+(on?' is-on':'');
   d.innerHTML=`<div class="fl-sw__t"><b>${esc(title)}</b><span>${esc(desc)}</span></div><i class="fl-sw__k"></i>`;
   d.onclick=()=>{ on=!on; d.classList.toggle('is-on',on); fn(on); }; return d; }
-const Loading={ show(t){ $('#flLoadingT').textContent=t||'起雾中…'; $('#flLoading').hidden=false; }, hide(){ $('#flLoading').hidden=true; } };
+/* 载入遮罩：引用计数 + 60 秒保险丝。
+   任何一条路径忘了 hide()，或生成中途抛异常，雾都会自己散，
+   绝不会再出现「起雾中…」转到天亮的情况。 */
+const Loading={
+  n:0, timer:null,
+  show(t,sub){
+    Loading.n++;
+    $('#flLoadingT').textContent=t||'起雾中…';
+    $('#flLoadingS').textContent=sub||'';
+    $('#flLoading').hidden=false;
+    clearTimeout(Loading.timer);
+    Loading.timer=setTimeout(()=>{ Loading.force(); Toast.warn('等太久了，先把雾散开。再试一次吧'); },60000);
+  },
+  sub(t){ const el=$('#flLoadingS'); if(el) el.textContent=t||''; },
+  hide(){ Loading.n=Math.max(0,Loading.n-1); if(Loading.n===0) Loading.force(); },
+  force(){ Loading.n=0; clearTimeout(Loading.timer); const el=$('#flLoading'); if(el) el.hidden=true; }
+};
 function popNote(t,b){ const p=$('#flPop'); $('#flPopT').textContent=t; $('#flPopB').textContent=b; p.hidden=false; p.onclick=()=>p.hidden=true; }
 
 /* ───────── 2. 外部数据适配（characters / user / wallet / settings） ─────────
-   浮岚不再 <script> 直接引入 characters.js / user.js / wallet.js / settings.js
-   ——那四个文件是各自独立页面的完整脚本，彼此顶层变量同名（updateTime /
-   goBack 等），一旦同页加载就会互相冲突报错，导致整页脚本中断、卡在
-   「起雾中」。浮岚改为只读它们各自持久化到 IndexedDB / localStorage 的
-   真实数据（LunaCharDB / LunaIdentityDB / LunaWalletAccountDB /
-   LunaWalletHomeDB / LunaWalletSecurityDB / localStorage.luna_api_current），
-   不加载它们的脚本本身，从根源上避免冲突。
-   IndexedDB 读取是异步的，但页面里大量代码是同步取用 Adapter.chars() 等——
-   所以这里维持一份内存缓存，在 boot 时异步预热一次，并在收到这些页面
-   自己发出的更新信号（luna_char_db_update 等 localStorage 广播 + storage
-   事件）时自动重新拉取；取用接口本身保持同步，不改动上层任何调用点。 */
-function idbGetAll(dbName, storeName, version){
-  return new Promise(res=>{
+   真同步的前提是读同一份真实数据源，不是猜字段名。这套体系里角色卡、身份（user）、
+   钱包账户/余额/支付密码，全部存在各自的 IndexedDB 里（characters.js / user.js /
+   wallet.js 各自独立打开同一批库，互不导出全局函数），所以浮岚也照这个规矩，
+   直接打开同名的库、同名的 store、同样的字段，而不是去猜 window.characters 之类
+   压根不存在的全局变量——那样只会永远读到本地示例数据，表面上"在同步"，实际什么都没接上。 */
+function openLunaDB(name, store, version){
+  return new Promise((resolve)=>{
     try{
-      const req = version? indexedDB.open(dbName, version) : indexedDB.open(dbName);
-      req.onupgradeneeded = e=>{ try{ if(!e.target.result.objectStoreNames.contains(storeName)) e.target.result.createObjectStore(storeName,{keyPath:'id'}); }catch(_){} };
-      req.onsuccess = e=>{
+      const probe=indexedDB.open(name);
+      probe.onsuccess=e=>{
         const db=e.target.result;
-        if(!db.objectStoreNames.contains(storeName)){ res([]); return; }
-        try{
-          const tx=db.transaction(storeName,'readonly'), r=tx.objectStore(storeName).getAll();
-          r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]);
-        }catch(_){ res([]); }
+        if(db.objectStoreNames.contains(store)){ resolve(db); return; }
+        const ver=db.version+1; db.close();
+        const req2=indexedDB.open(name,ver);
+        req2.onupgradeneeded=ev=>{ if(!ev.target.result.objectStoreNames.contains(store)) ev.target.result.createObjectStore(store,{keyPath:'id',autoIncrement:true}); };
+        req2.onsuccess=ev=>resolve(ev.target.result);
+        req2.onerror=()=>resolve(null);
       };
-      req.onerror=()=>res([]);
-    }catch(_){ res([]); }
+      probe.onupgradeneeded=e=>{ if(!e.target.result.objectStoreNames.contains(store)) e.target.result.createObjectStore(store,{keyPath:'id',autoIncrement:true}); };
+      probe.onerror=()=>resolve(null);
+    }catch(e){ resolve(null); }
   });
 }
-function idbGet(dbName, storeName, key, version){
-  return new Promise(res=>{
-    try{
-      const req = version? indexedDB.open(dbName, version) : indexedDB.open(dbName);
-      req.onupgradeneeded = e=>{ try{ if(!e.target.result.objectStoreNames.contains(storeName)) e.target.result.createObjectStore(storeName,{keyPath:'id'}); }catch(_){} };
-      req.onsuccess = e=>{
-        const db=e.target.result;
-        if(!db.objectStoreNames.contains(storeName)){ res(null); return; }
-        try{
-          const tx=db.transaction(storeName,'readonly'), r=tx.objectStore(storeName).get(key);
-          r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null);
-        }catch(_){ res(null); }
-      };
-      req.onerror=()=>res(null);
-    }catch(_){ res(null); }
-  });
-}
-function idbPut(dbName, storeName, value, version){
-  return new Promise(res=>{
-    try{
-      const req = version? indexedDB.open(dbName, version) : indexedDB.open(dbName);
-      req.onupgradeneeded = e=>{ try{ if(!e.target.result.objectStoreNames.contains(storeName)) e.target.result.createObjectStore(storeName,{keyPath:'id'}); }catch(_){} };
-      req.onsuccess = e=>{
-        const db=e.target.result;
-        if(!db.objectStoreNames.contains(storeName)){ res(false); return; }
-        try{
-          const tx=db.transaction(storeName,'readwrite'); tx.objectStore(storeName).put(value);
-          tx.oncomplete=()=>res(true); tx.onerror=()=>res(false);
-        }catch(_){ res(false); }
-      };
-      req.onerror=()=>res(false);
-    }catch(_){ res(false); }
-  });
-}
-function normChar(o){
-  if(!o||typeof o!=='object') return null;
-  return {
-    id:o.id, name:o.name||o.role||'未命名',
-    avatar:o.avatar||'', cardBg:o.cardBg||'',
-    persona:o.desc||o.backstory||o.personality||'',
-    speech:o.speechStyle||o.lang||'', scenario:o.scenario||'',
-    example:(Array.isArray(o.dialogExamples)?o.dialogExamples.join('\n'):o.dialogExamples)||'',
-    tags:o.traits||[], bindUser:null, /* 反向从 identities.boundCharIds 回填 */
-    gender:o.gender||'', age:o.age||'', species:o.species||'', appearance:o.appearance||'',
-    outfit:o.outfit||'', likes:o.likes||[], dislikes:o.dislikes||[], fears:o.fears||'',
-    catchphrases:o.catchphrases||[], relation:o.relation||'', callUser:o.callUser||'',
-    relationDetail:o.relationDetail||'', firstMes:o.firstMes||'', neverList:o.neverList||[],
-    boundaries:o.boundaries||'', pov:o.pov||'', prompt:o.prompt||'', raw:o
-  };
-}
-function normUser(o){
-  if(!o||typeof o!=='object') return null;
-  return {
-    id:o.id, name:o.name||'我', avatar:o.avatarImg||'',
-    persona:o.desc||'', tags:o.tags||[],
-    occupation:o.occupation||'', personality:o.personality||'', motto:o.motto||'',
-    isPrimary:!!o.isPrimary, boundCharIds:o.boundCharIds||[], raw:o
-  };
-}
-const Cache={ chars:[], users:[], wallet:null, settings:null, ready:false };
-async function refreshChars(){
-  const raw = await idbGetAll('LunaCharDB','chars');
-  Cache.chars = raw.map(normChar).filter(Boolean);
-  return Cache.chars;
-}
-async function refreshUsers(){
-  const raw = await idbGetAll('LunaIdentityDB','identities');
-  const us = raw.map(normUser).filter(Boolean);
-  /* 用身份卡里的 boundCharIds 反向回填角色卡的 bindUser，保证织叙第一步的
-     绑定提示（“已绑定 USER”）双向一致，不必等用户重新在角色页勾一遍 */
-  const byChar={};
-  us.forEach(u=>(u.boundCharIds||[]).forEach(cid=>{ byChar[cid]=u.id; }));
-  Cache.chars.forEach(c=>{ if(byChar[c.id]) c.bindUser=byChar[c.id]; });
-  Cache.users = us;
-  return Cache.users;
-}
-async function refreshWallet(){
-  /* 真实 Luna 钱包（LunaWalletAccountDB / LunaWalletHomeDB /
-     LunaWalletSecurityDB）只读接入，用于「是否已绑定」「支付密码是否已设」
-     「钱包真实余额」这几件事的校验与展示——浮岚绝不直接改写这几个库。
-     浮岚自己的「岚露」是站内虚拟货币，独立存在本地 DB.wallet 里，充值时
-     从真实钱包余额里按汇率换算扣一笔并记一条真实钱包流水，两边余额永远
-     分得清楚，不会互相污染。 */
-  const [account, home] = await Promise.all([
-    idbGet('LunaWalletAccountDB','accounts','main',1),
-    idbGet('LunaWalletHomeDB','home','main',1)
-  ]);
-  let secPin=null, secEnabled=false;
-  if(account){
-    const sec = await idbGet('LunaWalletSecurityDB','security','identity_'+(account.boundIdentityId||'default'),1);
-    if(sec){ secEnabled=!!sec.enabled; secPin=sec.pin||null; }
-  }
-  Cache.wallet = {
-    lunaBound: !!account, lunaAccount: account? (account.name||account.email||'') : '',
-    boundIdentityId: account? account.boundIdentityId||null : null,
-    lunaBalance: home? Number(home.balance||0) : 0,
-    lunaPayPwdSet: secEnabled && !!secPin,
-    _homeSnapshot: home||null
-  };
-  return Cache.wallet;
-}
-/* 真实钱包扣款（充值岚露时使用）：需要正确的真实支付密码，扣款成功后
-   在真实钱包流水里留痕，写「充值岚露 ×N」，让用户在钱包 App 里也能对上账 */
-async function lunaDebit(amount, note){
-  const home = await idbGet('LunaWalletHomeDB','home','main',1);
-  if(!home || Number(home.balance||0) < amount) return {ok:false, reason:'钱包余额不足'};
-  const txList = Array.isArray(home.transactions)? home.transactions.slice() : [];
-  const now=new Date();
-  txList.unshift({dir:'out', name:note||'浮岚 · 充值岚露', date:`${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} · ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`, ts:now.getTime(), amount:-Math.abs(amount)});
-  const ok = await idbPut('LunaWalletHomeDB','home',{...home, id:'main', balance:Number(home.balance)-amount, transactions:txList},1);
-  if(ok) await refreshWallet();
-  return {ok};
-}
-function refreshSettings(){
-  let ls={}; try{ ls=JSON.parse(localStorage.getItem('luna_api_current')||'{}'); }catch(e){}
-  Cache.settings = { apiBase: ls.baseUrl||'', apiKey: ls.apiKey||'', model: ls.model||'', tts:false };
-  return Cache.settings;
-}
-async function refreshAll(){
-  await refreshChars(); await refreshUsers(); await refreshWallet(); refreshSettings();
-  Cache.ready = true;
-}
-/* 其它 Luna 页面在同源标签页里写入数据后会 touch 这些 localStorage 键做广播；
-   浮岚监听 storage 事件（跨标签）与本标签内的轮询兜底，收到后静默刷新缓存
-   并重绘当前正在看的面板，不打断用户。 */
-const WATCH_KEYS=['luna_char_db_update','luna_characters_updated','luna_worldbook_db_update'];
-window.addEventListener('storage', e=>{
-  if(!e.key) return;
-  if(WATCH_KEYS.includes(e.key)){ refreshChars().then(refreshUsers).then(()=>Router.repaint&&Router.repaint()); }
-  if(e.key==='luna_api_current'){ refreshSettings(); }
-});
+function idbGetAll(dbp,store){ return dbp.then(db=>{ if(!db) return [];
+  return new Promise(res=>{ try{ const r=db.transaction(store).objectStore(store).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); }catch(e){ res([]); } }); }); }
+function idbGet(dbp,store,key){ return dbp.then(db=>{ if(!db) return null;
+  return new Promise(res=>{ try{ const r=db.transaction(store).objectStore(store).get(key); r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null); }catch(e){ res(null); } }); }); }
+
 const Adapter={
-  chars(){ return Cache.chars.length? Cache.chars : DEMO_CHARS; },
-  users(){ return Cache.users.length? Cache.users : DEMO_USERS; },
-  /* 岚露：浮岚站内虚拟货币，完全独立本地存储，Pay 模块直接读写它 */
-  wallet(){ return DB.get('wallet',{balance:380,bound:false,account:'',payPwd:'',currency:'岚露'}); },
-  saveWallet(w){ DB.set('wallet',w); },
-  /* 真实 Luna 钱包：只读校验 + 受控扣款（仅充值岚露时用），与上面岚露账本完全分离 */
-  lunaWallet(){ return Cache.wallet || {lunaBound:false,lunaAccount:'',lunaBalance:0,lunaPayPwdSet:false}; },
-  lunaDebit,
-  settings(){ return Cache.settings || refreshSettings(); },
-  async refresh(){ return refreshAll(); }
+  _charsCache:null, _usersCache:null,
+  /* 同步读缓存：给 UI 里那些必须同步取值的地方用（选中态高亮、povDemo 这类即时预览）。
+     首次一定是空数组，真正的数据由下面的异步方法在页面打开时提前拉好并写进缓存，
+     之后所有同步读取都是缓存命中，不会出现"读了个空的却以为读到了真实数据"的情况。 */
+  charsSync(){ return Adapter._charsCache || []; },
+  usersSync(){ return Adapter._usersCache || []; },
+  async preload(){ Adapter._charsCache=await Adapter.chars(); Adapter._usersCache=await Adapter.users(); return {chars:Adapter._charsCache,users:Adapter._usersCache}; },
+  /* 角色卡：LunaCharDB / chars ，字段与 characters.js 的表单字段一一对应 */
+  async chars(){
+    try{
+      const list=await idbGetAll(openLunaDB('LunaCharDB','chars'),'chars');
+      if(list&&list.length){
+        return list.map(o=>({
+          id:o.id, name:o.name||'未命名',
+          avatar:o.avatar||'', cardBg:o.cardBg||'',
+          persona:[o.desc,o.appearance,o.species,o.outfit].filter(Boolean).join('\n')||o.desc||'',
+          speech:o.speechStyle||'', scenario:o.scenario||o.backstory||'',
+          traits:o.traits||[], catchphrases:o.catchphrases||[],
+          fears:o.fears||'', likes:o.likes||[], dislikes:o.dislikes||[],
+          relation:o.relation||'', callUser:o.callUser||'', relationDetail:o.relationDetail||'',
+          firstMes:o.firstMes||'', boundaries:o.boundaries||'', gender:o.gender||'',
+          example:'', tags:o.traits||[], bindUser:null, raw:o
+        }));
+      }
+    }catch(e){ console.warn('[浮岚] 读取 LunaCharDB 失败，转本地示例',e); }
+    return DB.get('demoChars', DEMO_CHARS);
+  },
+  /* 身份（user 视角）：LunaIdentityDB / identities，字段对应 user.js 的 profileInput* */
+  async users(){
+    try{
+      const list=await idbGetAll(openLunaDB('LunaIdentityDB','identities'),'identities');
+      if(list&&list.length){
+        return list.map(o=>({
+          id:o.id, name:o.name||'我', avatar:o.avatar||'',
+          persona:[o.desc,o.personality].filter(Boolean).join('\n'),
+          tags:(o.personality?String(o.personality).split(/[,，、\s]+/).filter(Boolean):[]),
+          boundCharIds:o.boundCharIds||[], raw:o
+        }));
+      }
+    }catch(e){ console.warn('[浮岚] 读取 LunaIdentityDB 失败，转本地示例',e); }
+    return DB.get('demoUsers', DEMO_USERS);
+  },
+  /* 绑定关系存在 identity 一侧的 boundCharIds 数组里，char 记录本身并不知道自己被谁绑定了，
+     所以要从 char 反查 user，就得在 users 列表里找 boundCharIds 包含该 char.id 的那个身份——
+     用同步缓存版本，因为 paintCast 这类点击态渲染要求立即出结果，不能每次点选都转圈等 IndexedDB */
+  boundUserIdOf(charId){
+    const u=Adapter.usersSync().find(u=>Array.isArray(u.boundCharIds)&&u.boundCharIds.includes(charId));
+    return u?u.id:null;
+  },
+  async boundUserFor(charId){
+    const users=await Adapter.users();
+    return users.find(u=>Array.isArray(u.boundCharIds)&&u.boundCharIds.includes(charId))||null;
+  },
+  /* 钱包：余额在 LunaWalletHomeDB / home（keyPath 固定 'id':'home'）；
+     账户绑定在 LunaWalletAccountDB / accounts（固定 id:'main'）；
+     支付密码在 LunaWalletSecurityDB / security，按身份 id 隔离存，真实货币单位是 Lune，不是本地瞎起的名字 */
+  async wallet(){
+    let balance=0, bound=false, account='', boundIdentityId=null, currency='Lune';
+    try{ const home=await idbGet(openLunaDB('LunaWalletHomeDB','home'),'home','home'); if(home) balance=Number(home.balance||0); }catch(e){}
+    try{ const acc=await idbGet(openLunaDB('LunaWalletAccountDB','accounts'),'accounts','main');
+      if(acc){ bound=true; account=acc.name||acc.email||''; boundIdentityId=acc.boundIdentityId||null; } }catch(e){}
+    return {balance,bound,account,boundIdentityId,currency};
+  },
+  /* 是否设置了支付密码：security store 按 identity_<boundIdentityId|default> 存 {enabled,pin} */
+  async paySecurity(boundIdentityId){
+    try{ const key='identity_'+(boundIdentityId||'default');
+      const sec=await idbGet(openLunaDB('LunaWalletSecurityDB','security'),'security',key);
+      return sec||{enabled:false,pin:null}; }catch(e){ return {enabled:false,pin:null}; }
+  },
+  /* 真实扣款：读余额→不足则失败→若启用密码则先在浮岚自绘的键盘上校验→写回余额与流水，
+     与 wallet.js 的 _phoneCharge 走的是同一份数据、同一条规则，只是键盘 UI 用浮岚自己的样式画 */
+  async charge(amount, txName){
+    const homeDbp=openLunaDB('LunaWalletHomeDB','home');
+    const home=(await idbGet(homeDbp,'home','home'))||{id:'home',balance:0,transactions:[]};
+    const balance=Number(home.balance||0);
+    if(balance<amount) return {ok:false,reason:'余额不足，请先去露匣充值'};
+    const acc=await idbGet(openLunaDB('LunaWalletAccountDB','accounts'),'accounts','main');
+    const boundIdentityId=acc&&acc.boundIdentityId||null;
+    const sec=await Adapter.paySecurity(boundIdentityId);
+    if(sec.enabled&&sec.pin){
+      const pass=await Pay.verifyPin(sec.pin);
+      if(!pass) return {ok:false,reason:'已取消支付'};
+    }
+    const now=Date.now();
+    const txList=Array.isArray(home.transactions)?home.transactions.slice():[];
+    txList.unshift({dir:'out',name:txName,ts:now,amount});
+    const db=await homeDbp; if(!db) return {ok:false,reason:'钱包数据暂时读取不到，请稍后再试'};
+    await new Promise(res=>{ const tx=db.transaction('home','readwrite');
+      tx.objectStore('home').put({...home,id:'home',balance:balance-amount,transactions:txList});
+      tx.oncomplete=()=>res(1); tx.onerror=()=>res(0); });
+    return {ok:true,balance:balance-amount};
+  },
+  /* 文本生成接口：唯一权威来源是 settings.js 写入的 luna_api_current / luna_api_model，
+     旧版这里读的是压根没人写过的 localStorage['settings']，导致永远读到空对象，
+     AI.gen() 里 s.apiBase && s.apiKey 永远为假，于是每次都静默掉进 Offline 兜底——
+     这就是"生成字数跟滑块选的不一致""感觉根本没调用AI"的根源。现在改成真实对接。 */
+  settings(){
+    let cur={}; try{ cur=JSON.parse(localStorage.getItem('luna_api_current')||'{}'); }catch(e){}
+    const model=localStorage.getItem('luna_api_model')||'';
+    return {
+      apiBase: cur.baseUrl||'',
+      apiKey:  cur.apiKey||'',
+      model:   model||'gpt-4o-mini'
+    };
+  },
+  /* 语音接口：同理，唯一权威来源是 luna_voice_current / luna_voice_model / luna_voice_region，
+     旧版 TTS.speak() 只会走浏览器自带的 speechSynthesis，完全没碰过语音设置页存的 MiniMax 配置。 */
+  voiceSettings(){
+    let cur={}; try{ cur=JSON.parse(localStorage.getItem('luna_voice_current')||'{}'); }catch(e){}
+    const model=localStorage.getItem('luna_voice_model')||'speech-2.8-hd';
+    const region=localStorage.getItem('luna_voice_region')||'cn';
+    const host=region==='global'?'https://api.minimax.io':'https://api.minimaxi.com';
+    return { groupId:cur.groupId||'', apiKey:cur.apiKey||'', voiceId:cur.voiceId||'', model, region, host };
+  }
 };
+/* 这两份示例数据只在真实的 LunaCharDB / LunaIdentityDB 里还没有任何记录时才会用到
+   （比如刚安装、还没去「角色」App 建过卡）。同样带上 raw，保证 charCard() 全量字段读取
+   在示例数据下也能正常展示，行为和真实数据一致，不会因为走了兜底分支就退化成一段糊话。 */
 const DEMO_CHARS=[
-  {id:'c1',name:'裴照',avatar:'',persona:'制香司少卿。表面冷淡守礼，实则记仇又护短。说话短，句尾常留半句不说。厌恶被人可怜，习惯用公务口吻掩饰关心。',speech:'短句、克制、极少用感叹号',scenario:'临水郡雨季，禁香案未结',example:'',tags:['清冷','口是心非'],bindUser:'u1'},
-  {id:'c2',name:'沈砚舟',avatar:'',persona:'旧唱片行老板，三十二岁。散漫，爱开玩笑，只有在讲到某个人时会突然安静。记性极好，记得每个客人点过的歌。',speech:'口语化、爱用反问、偶尔文艺',scenario:'海边小城，店里总放着同一张碟',example:'',tags:['温柔','有故事'],bindUser:null}
+  {id:'c1',name:'裴照',avatar:'',persona:'制香司少卿。表面冷淡守礼，实则记仇又护短。',speech:'短句、克制、极少用感叹号',scenario:'临水郡雨季，禁香案未结',example:'',tags:['清冷','口是心非'],bindUser:null,
+   raw:{name:'裴照',gender:'男',desc:'制香司少卿。表面冷淡守礼，实则记仇又护短。厌恶被人可怜，习惯用公务口吻掩饰关心。',traits:['清冷','口是心非','护短'],speechStyle:'短句、克制、极少用感叹号，句尾常留半句不说',scenario:'临水郡雨季，禁香案未结',fears:'被人看穿在乎',likes:['安静','守时的人'],dislikes:['被可怜','失信']}},
+  {id:'c2',name:'沈砚舟',avatar:'',persona:'旧唱片行老板，三十二岁。散漫，爱开玩笑，只有在讲到某个人时会突然安静。',speech:'口语化、爱用反问、偶尔文艺',scenario:'海边小城，店里总放着同一张碟',example:'',tags:['温柔','有故事'],bindUser:null,
+   raw:{name:'沈砚舟',gender:'男',age:'32',desc:'旧唱片行老板。散漫，爱开玩笑，记性极好，记得每个客人点过的歌。',traits:['温柔','有故事','嘴硬心软'],speechStyle:'口语化、爱用反问、偶尔文艺',scenario:'海边小城，店里总放着同一张碟',likes:['旧唱片','雨天'],dislikes:['催促','谎话']}}
 ];
 const DEMO_USERS=[
-  {id:'u1',name:'阿檀',avatar:'',persona:'制香师，手上常年有药气。表面软，做决定时很硬。',tags:['执拗']},
-  {id:'u2',name:'林迟',avatar:'',persona:'写歌不红的乐手，习惯在别人店里过夜。',tags:['懒散']}
+  {id:'u1',name:'阿檀',avatar:'',persona:'制香师，手上常年有药气。表面软，做决定时很硬。',tags:['执拗'],boundCharIds:[],
+   raw:{name:'阿檀',desc:'制香师，手上常年有药气。',personality:'执拗、外软内硬'}},
+  {id:'u2',name:'林迟',avatar:'',persona:'写歌不红的乐手，习惯在别人店里过夜。',tags:['懒散'],boundCharIds:[],
+   raw:{name:'林迟',desc:'写歌不红的乐手，习惯在别人店里过夜。',personality:'懒散、耳根软'}}
 ];
 
 /* ───────── 3. 阶位体系（50 阶 / 10 品 / 徽记） ───────── */
@@ -451,8 +449,36 @@ const PROTOCOL=`【输出协议 · 必须逐行遵守】
 @选项|选项一||选项二||选项三
 行内可用 **文字** 标出重点，可用 [[词条]] 引用上文出现过的 @注 词条。
 禁止把多种标记写在同一行；禁止连续输出两行以上纯旁白之外的空行；一行写不完就再起一行同样的标记。`;
+/* 角色卡必须全量喂给模型，不能只塞进一个 persona 字符串里糊弄过去——
+   characters.js 里那么多独立字段（性格、外貌、怕什么、喜欢什么、称呼、底线……）
+   合并成一段话会让权重被稀释，模型更容易漏读，也更容易 OOC。
+   这里逐项列出，即使某项为空也留着字段名，方便模型判断"这项角色卡里没写，按已有性格保守推断"。 */
 function charCard(c){ if(!c) return '（未指定）';
-  return `姓名：${c.name}\n人设：${c.persona||'（空）'}\n说话方式：${c.speech||'（未注明，按人设推断）'}\n所处情境：${c.scenario||'（空）'}\n对白范例：${c.example||'（空）'}\n标签：${(c.tags||[]).join('、')||'（无）'}`; }
+  const raw=c.raw||{};
+  const lines=[
+    `姓名：${c.name}`,
+    raw.gender?`性别：${raw.gender}`:'',
+    raw.age?`年龄：${raw.age}`:'',
+    raw.species?`种族/身份：${raw.species}`:'',
+    raw.desc?`人设描述：${raw.desc}`:'',
+    (raw.traits&&raw.traits.length)?`性格标签：${raw.traits.join('、')}`:'',
+    raw.appearance?`外貌：${raw.appearance}`:'',
+    raw.outfit?`常见穿着：${raw.outfit}`:'',
+    raw.speechStyle?`说话方式：${raw.speechStyle}`:'（未注明，按人设推断）',
+    (raw.catchphrases&&raw.catchphrases.length)?`口头禅：${raw.catchphrases.join('、')}`:'',
+    raw.fears?`害怕/忌讳：${raw.fears}`:'',
+    (raw.likes&&raw.likes.length)?`喜欢：${raw.likes.join('、')}`:'',
+    (raw.dislikes&&raw.dislikes.length)?`厌恶：${raw.dislikes.join('、')}`:'',
+    raw.backstory?`背景故事：${raw.backstory}`:'',
+    (c.scenario)?`所处情境：${c.scenario}`:'（空）',
+    raw.relation?`与「我」的关系设定：${raw.relation}`:'',
+    raw.callUser?`如何称呼「我」：${raw.callUser}`:'',
+    raw.relationDetail?`关系细节：${raw.relationDetail}`:'',
+    raw.boundaries?`绝对底线（硬性禁止逾越）：${raw.boundaries}`:'',
+    raw.firstMes?`开场白范例：${raw.firstMes}`:'（空）',
+  ].filter(Boolean);
+  return lines.join('\n');
+}
 function buildSystem(st){
   const c=st.char, u=st.user, sty=styleById(st.styleId);
   const povMap={first:'第一人称「我」',second:'第二人称「你」',third:'第三人称限知',omni:'第三人称全知'};
@@ -527,10 +553,21 @@ const AI={
         const r=await fetch(s.apiBase.replace(/\/$/,'')+'/chat/completions',{method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.apiKey},
           body:JSON.stringify({model:s.model||'gpt-4o-mini',messages,max_tokens:opt.max||900,temperature:opt.temp??0.92,stream:false})});
+        if(!r.ok){
+          const errBody=await r.text().catch(()=>'');
+          throw new Error(`HTTP ${r.status} ${errBody.slice(0,160)}`);
+        }
         const j=await r.json();
+        if(j.error) throw new Error(j.error.message||JSON.stringify(j.error).slice(0,160));
         const t=j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
         if(t) return t;
-      }catch(e){ console.warn('[浮岚] 接口失败，转本地',e); }
+        throw new Error('接口返回了空内容');
+      }catch(e){
+        console.warn('[浮岚] 接口调用失败，本次改用离线兜底',e);
+        // 明确告诉用户这次是"接口失败才兜底"，而不是悄悄换一套没人知道的逻辑
+        if(typeof Toast!=='undefined') Toast.warn('接口调用失败（'+String(e.message||e).slice(0,40)+'），本条先用离线草稿代替');
+        return Offline.route(messages,opt);
+      }
     }
     await sleep(520+Math.random()*420);
     return Offline.route(messages,opt);
@@ -613,17 +650,54 @@ function inline(text,notes){
   h=h.replace(/\[\[([^\]]{1,24})\]\]/g,(m,w)=>`<span class="fl-note-chip" data-note="${esc(w)}">${esc(w)}</span>`);
   return h;
 }
+/* 朗读：优先走「语音模型」设置页配置好的 MiniMax T2A（真实音色，与 settings.js 语音测试用的是同一份
+   luna_voice_current / luna_voice_model / luna_voice_region），没配置或请求失败时才退回浏览器自带的
+   speechSynthesis 兜底，保证任何情况下点了朗读键都有反应，而不是"配了语音模型也听不出区别"。 */
 const TTS={
-  ok(){ return !!(window.speechSynthesis||window.FLTTS); },
-  speak(text,btn){
-    if(!TTS.ok()) return;
-    if(window.FLTTS&&window.FLTTS.speak){ window.FLTTS.speak(text); return; }
+  _audio:null,
+  ok(){ return !!(window.speechSynthesis||window.FLTTS)||true; }, // MiniMax 路径不依赖浏览器 TTS 能力，按钮始终可点
+  hasVoiceModel(){ const v=Adapter.voiceSettings(); return !!(v.groupId&&v.apiKey&&v.voiceId); },
+  async speak(text,btn){
+    if(!text) return;
+    btn&&btn.classList.add('is-playing');
+    const done=()=>btn&&btn.classList.remove('is-playing');
+    if(TTS.hasVoiceModel()){
+      try{ await TTS._speakMiniMax(text); done(); return; }
+      catch(e){ console.warn('[浮岚] 语音模型合成失败，转浏览器朗读',e); }
+    }
+    TTS._speakBrowser(text,done);
+  },
+  async _speakMiniMax(text){
+    const v=Adapter.voiceSettings();
+    if(TTS._audio){ try{TTS._audio.pause();}catch(e){} }
+    const resp=await fetch(`${v.host}/v1/t2a_v2?GroupId=${encodeURIComponent(v.groupId)}`,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+v.apiKey,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:v.model, text, stream:false,
+        voice_setting:{voice_id:v.voiceId,speed:1.0,vol:1.0,pitch:0},
+        audio_setting:{sample_rate:32000,bitrate:128000,format:'mp3'}
+      })
+    });
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const data=await resp.json();
+    if(data.base_resp&&data.base_resp.status_code!==0) throw new Error(data.base_resp.status_msg||'合成失败');
+    const hex=data.data&&data.data.audio;
+    if(!hex) throw new Error('未返回音频数据');
+    const bytes=new Uint8Array(hex.length/2);
+    for(let i=0;i<bytes.length;i++) bytes[i]=parseInt(hex.substr(i*2,2),16);
+    const url=URL.createObjectURL(new Blob([bytes],{type:'audio/mp3'}));
+    const audio=new Audio(url); TTS._audio=audio;
+    await new Promise((res,rej)=>{ audio.onended=res; audio.onerror=rej; audio.play().catch(rej); });
+  },
+  _speakBrowser(text,done){
+    if(!window.speechSynthesis){ done(); return; }
     try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='zh-CN'; u.rate=.96;
-      btn.classList.add('is-playing'); u.onend=()=>btn.classList.remove('is-playing'); speechSynthesis.speak(u);
-    }catch(e){}
+      u.onend=done; u.onerror=done; speechSynthesis.speak(u);
+    }catch(e){ done(); }
   }
 };
-function ttsBtn(text){ if(!TTS.ok()) return '';
+function ttsBtn(text){
   return `<button class="fl-tts" data-say="${esc(text)}" aria-label="朗读"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16 8.5a5 5 0 010 7"/></svg></button>`; }
 function renderBlocks(blocks,notes,opt){
   opt=opt||{}; const wrap=document.createElement('div'); wrap.className='fl-blkgroup'; wrap.style.display='grid'; wrap.style.gap='14px';
@@ -670,7 +744,9 @@ const Studio={
     segLen:600,chapters:8,memory:'rolling',autoChoice:true,autoNote:true,autoAnchor:true,strictTaboo:true}; },
   open(resume){
     Studio.st = resume || DB.get('draft',null) || Studio.blank();
-    Studio.step=0; Studio.paint(); Router.go('studio');
+    Studio.step=0; Router.go('studio');
+    Loading.show('正在读取角色卡与身份…');
+    Adapter.preload().then(()=>{ Loading.hide(); Studio.paint(); }).catch(()=>{ Loading.hide(); Studio.paint(); });
   },
   paint(){
     const st=Studio.st;
@@ -686,11 +762,13 @@ const Studio={
     if(Studio.step===5) Studio.paintLen();
   },
   paintCast(){
-    const st=Studio.st, cs=Adapter.chars(), us=Adapter.users();
+    const st=Studio.st, cs=Adapter.charsSync(), us=Adapter.usersSync();
     const cw=$('#flPickChar'); cw.className='fl-pick'; cw.innerHTML='';
-    cs.forEach(c=>{ const b=document.createElement('button'); b.className='fl-pk'+(st.charId===c.id?' is-on':'');
-      b.innerHTML=`<div class="fl-pk__av">${c.avatar?`<img src="${esc(c.avatar)}" alt="">`:esc(c.name[0]||'')}</div><b>${esc(c.name)}</b><span>${esc((c.persona||'').slice(0,14))}</span>${c.bindUser?'<i class="fl-pk__tag">已绑定 USER</i>':''}`;
-      b.onclick=()=>{ st.charId=c.id; if(c.bindUser&&us.some(u=>u.id===c.bindUser)) st.userId=c.bindUser; Studio.paintCast(); };
+    if(!cs.length){ cw.innerHTML='<div class="fl-empty" style="padding:20px"><span>还没有任何角色卡。请先去「角色」App 建一张，再回来开台。</span></div>'; }
+    cs.forEach(c=>{ const boundUid=Adapter.boundUserIdOf(c.id);
+      const b=document.createElement('button'); b.className='fl-pk'+(st.charId===c.id?' is-on':'');
+      b.innerHTML=`<div class="fl-pk__av">${c.avatar?`<img src="${esc(c.avatar)}" alt="">`:esc(c.name[0]||'')}</div><b>${esc(c.name)}</b><span>${esc((c.persona||'').slice(0,14))}</span>${boundUid?'<i class="fl-pk__tag">已绑定 USER</i>':''}`;
+      b.onclick=()=>{ st.charId=c.id; const bu=Adapter.boundUserIdOf(c.id); if(bu&&us.some(u=>u.id===bu)) st.userId=bu; Studio.paintCast(); };
       cw.appendChild(b); });
     const uw=$('#flPickUser'); uw.className='fl-pick'; uw.innerHTML='';
     const none=document.createElement('button'); none.className='fl-pk'+(st.userId?'':' is-on');
@@ -700,7 +778,7 @@ const Studio={
       b.innerHTML=`<div class="fl-pk__av">${u.avatar?`<img src="${esc(u.avatar)}" alt="">`:esc(u.name[0]||'')}</div><b>${esc(u.name)}</b><span>${esc((u.persona||'').slice(0,14))}</span>`;
       b.onclick=()=>{ st.userId=u.id; Studio.paintCast(); }; uw.appendChild(b); });
     const c=cs.find(x=>x.id===st.charId), u=us.find(x=>x.id===st.userId);
-    st.bound = !!(c&&u&&c.bindUser===u.id);
+    st.bound = !!(c&&u&&Adapter.boundUserIdOf(c.id)===u.id);
     $('#flBindNote').innerHTML = !c ? '先选一位出场角色。生成时会把这张卡整张读进去。'
       : st.bound ? `<b>已绑定：</b>${esc(c.name)} 与 ${esc(u.name)} 之间的既有关系会被一并读入，称呼与相处方式沿用旧账。`
       : u ? `<b>未绑定：</b>${esc(u.name)} 仅作为「我」的身份参考。两卡冲突时，一律以 <b>${esc(c.name)}</b> 的角色卡为准。`
@@ -748,7 +826,7 @@ const Studio={
     Studio.povDemo();
   },
   povDemo(){
-    const st=Studio.st, c=Adapter.chars().find(x=>x.id===st.charId), u=Adapter.users().find(x=>x.id===st.userId);
+    const st=Studio.st, c=Adapter.charsSync().find(x=>x.id===st.charId), u=Adapter.usersSync().find(x=>x.id===st.userId);
     const cn=c?c.name:'他', un=u?u.name:'我';
     const me={first:'我把伞收起来，水顺着伞骨滴在门槛上。',second:'你把伞收起来，水顺着伞骨滴在门槛上。',third:`${un}把伞收起来，水顺着伞骨滴在门槛上。`,omni:`${un}把伞收起来，心里那句话还没敢说。`}[st.povUser];
     const him={first:`我看着她进来，没说话。`,second:`你看着她进来，没说话。`,third:`${cn}看着她进来，没说话。`,omni:`${cn}看着她进来，没说话——他其实等了很久了。`}[st.povChar];
@@ -785,7 +863,7 @@ const Studio={
   },
   async launch(){
     const st=Studio.st;
-    const cs=Adapter.chars().find(c=>c.id===st.charId), us=Adapter.users().find(u=>u.id===st.userId);
+    const cs=Adapter.charsSync().find(c=>c.id===st.charId), us=Adapter.usersSync().find(u=>u.id===st.userId);
     const sc={ id:st.id, kind:'weave', setup:Object.assign({},st,{char:cs,user:us}),
       title:st.title|| (st.wish? st.wish.slice(0,12) : (cs?cs.name+'的一场戏':'未命名')),
       charName:cs?cs.name:'', userName:us?us.name:'', turns:[], summary:'', anchors:[],
@@ -857,7 +935,7 @@ const Reader={
   addAnchor(text){
     const b=Modal.open({title:'存为锚点',body:`<textarea class="fl-in fl-in--ta" id="flAnchorIn" rows="3" placeholder="用一句话写下这里发生了什么"></textarea>
       <p style="font-size:11px;color:var(--fl-ink-3);margin-top:8px">锚点会一直跟着这场戏，模型每次生成都会读，用来防止前后矛盾。</p>`,
-      actions:[{t:'取消'},{t:'记下',p:1,fn(){ const v=$('#flAnchorIn').value.trim(); if(!v) return;
+      actions:[{t:'取消'},{t:'记下',p:1,fn(){ const v=$('#flAnchorIn').value.trim(); if(!v){ Toast.warn('写一句再记'); return false; }
         Reader.sc.anchors=Reader.sc.anchors||[]; Reader.sc.anchors.push(v); Reader.save(); Reader.paint(); Toast.ok('锚点已记下'); }}]});
     const clean=text.replace(/^@[^|]*\|/gm,'').replace(/\n/g,' ').slice(0,40);
     setTimeout(()=>{ $('#flAnchorIn').value=clean; },30);
@@ -866,7 +944,9 @@ const Reader={
     if(Reader.busy) return; const sc=Reader.sc; if(!sc) return;
     Reader.busy=true; $('#flChoices').innerHTML='';
     if(myLine){ sc.turns.push({role:'me',text:myLine,at:Date.now()}); $('#flThread').appendChild(Reader.turnEl(sc.turns[sc.turns.length-1],sc.turns.length-1)); }
-    Loading.show('正在起雾…');
+    const _s=Adapter.settings();
+    const _src=(window.FLAI&&window.FLAI.generate)?'外部接入':(_s.apiBase&&_s.apiKey)?_s.model:'离线兜底（未在"设置"里配置接口）';
+    Loading.show('正在起雾…', `目标 ${sc.setup.segLen} 字 · 本次约 ${fmt(Reader.estTokens())} tokens · ${({rolling:'滚动摘要',full:'全量回读',anchor:'只带锚点'})[sc.setup.memory]} · 引擎：${_src}`);
     try{
       const text=await Reader.callModel(myLine);
       const clean=Reader.guard(text);
@@ -891,6 +971,16 @@ const Reader={
       if(sc.setup.autoNote&&sc.turns.filter(t=>t.role==='ai').length%3===0) Notes.make(sc,clean,true);
     }catch(e){ console.error(e); Loading.hide(); Toast.warn('这一段没能写出来，换个说法再试一次'); }
     Reader.busy=false;
+  },
+  /* 实时 token 预估：角色卡 + 摘要 + 锚点 + 回带原文 + 本次目标字数。
+     中文按 1 字≈1.5 token 粗算，够用来给用户一个心里数。 */
+  estTokens(){
+    const sc=Reader.sc, st=sc.setup;
+    const card=(charCard(st.char)+(st.user?st.user.persona:'')).length;
+    const mem=(sc.summary||'').length+(sc.anchors||[]).join('').length;
+    const keep=st.memory==='full'?sc.turns:(st.memory==='anchor'?sc.turns.slice(-2):sc.turns.slice(-6));
+    const back=keep.reduce((n,t)=>n+t.text.length,0);
+    return Math.round((card+mem+back+900)*1.5 + st.segLen*1.9);
   },
   async callModel(myLine,retry){
     const sc=Reader.sc, st=sc.setup;
@@ -947,6 +1037,8 @@ const Reader={
       const sc=Reader.sc;
       b.innerHTML=`<div class="fl-optlist">
         <button class="fl-opt" data-m="rename"><i class="fl-opt__dot"></i><span><b>改名</b><span>当前：${esc(sc.title)}</span></span></button>
+        <button class="fl-opt" data-m="branch"><i class="fl-opt__dot"></i><span><b>从这里分岔</b><span>复制成一份新存档，两条路各走各的</span></span></button>
+        <button class="fl-opt" data-m="notes"><i class="fl-opt__dot"></i><span><b>本场的戏后笺</b><span>${Notes.all().filter(n=>n.scriptId===sc.id).length} 封</span></span></button>
         <button class="fl-opt" data-m="anchors"><i class="fl-opt__dot"></i><span><b>事实锚点</b><span>${(sc.anchors||[]).length} 条 · 决定模型记住什么</span></span></button>
         <button class="fl-opt" data-m="summary"><i class="fl-opt__dot"></i><span><b>剧情摘要</b><span>模型每次都会读的那段</span></span></button>
         <button class="fl-opt" data-m="theme"><i class="fl-opt__dot"></i><span><b>本场阅读样式</b><span>字号、行距、卡片主题</span></span></button>
@@ -955,6 +1047,10 @@ const Reader={
         <button class="fl-opt" data-m="del"><i class="fl-opt__dot"></i><span><b>删除这场戏</b><span>不可恢复</span></span></button></div>`;
       b.onclick=e=>{ const t=e.target.closest('[data-m]'); if(!t) return; const m=t.dataset.m; Sheet.close();
         if(m==='rename') Modal.open({title:'改名',body:`<input class="fl-in" id="flRn" value="${esc(sc.title)}">`,actions:[{t:'取消'},{t:'存',p:1,fn(){ sc.title=$('#flRn').value||sc.title; Reader.save(); Reader.paint(); }}]});
+        if(m==='branch') Reader.branch();
+        if(m==='notes'){ DB.set('noteFilter','all'); Router.go('notes'); Notes.paint();
+          const has=Notes.all().some(n=>n.scriptId===sc.id);
+          if(!has) Toast.warn('这场戏还没有人写笺，去某一段下面点「写戏后笺」'); }
         if(m==='anchors') Reader.anchorSheet();
         if(m==='summary') Modal.open({title:'剧情摘要',body:`<textarea class="fl-in fl-in--ta" id="flSm" rows="8">${esc(sc.summary||'')}</textarea>`,actions:[{t:'取消'},{t:'存',p:1,fn(){ sc.summary=$('#flSm').value; Reader.save(); }}]});
         if(m==='theme') Boudoir.readerSheet(sc);
@@ -965,6 +1061,39 @@ const Reader={
           DB.set('scripts',Reader.scripts().filter(x=>x.id!==sc.id)); Router.go('archives'); Archives.paint(); Toast.ok('已删除'); });
       };
     });
+  },
+  /* 分支存档：把当前这场从任意一段剪断，复制成一份全新的独立存档。
+     原存档一个字都不动，两条路各自往下走、各自美化、各自记锚点。 */
+  branch(){
+    const sc=Reader.sc; if(!sc) return;
+    const pts=sc.turns.map((t,i)=>({i,t})).filter(x=>x.t.role==='ai');
+    if(!pts.length){ Toast.warn('这场还没写出东西，暂时没法分岔'); return; }
+    Sheet.open('从哪一段分岔',b=>{
+      b.insertAdjacentHTML('beforeend','<p style="font-size:11.5px;color:var(--fl-ink-3);text-align:center;margin-bottom:14px">选中的那一段会被保留，之后的内容不带进新存档。原来这场完全不受影响。</p>');
+      const list=document.createElement('div'); list.className='fl-optlist';
+      pts.slice().reverse().forEach(({i,t})=>{
+        const ex=t.text.replace(/^@[^|]*\|/gm,'').replace(/\n/g,' ').slice(0,38);
+        const btn=document.createElement('button'); btn.className='fl-opt';
+        btn.innerHTML=`<i class="fl-opt__dot"></i><span style="flex:1"><b>第 ${pts.findIndex(p=>p.i===i)+1} 段</b><span>${esc(ex)}…</span></span>`;
+        btn.onclick=()=>{ Sheet.close(); Reader.doBranch(i); };
+        list.appendChild(btn);
+      });
+      b.appendChild(list);
+    });
+  },
+  doBranch(ix){
+    const sc=Reader.sc;
+    const copy=JSON.parse(JSON.stringify(sc));
+    copy.id=uid('sc');
+    copy.title=(sc.title||'未命名').replace(/（分支.*?）$/,'')+'（分支 '+((Reader.scripts().filter(x=>x.branchOf===sc.id).length)+1)+'）';
+    copy.branchOf=sc.id; copy.branchAt=ix;
+    copy.turns=sc.turns.slice(0,ix+1);
+    copy.words=copy.turns.filter(t=>t.role==='ai').reduce((n,t)=>n+t.text.replace(/^@[^|]*\|/gm,'').replace(/\s/g,'').length,0);
+    copy.chapter=Math.max(1,Math.ceil(copy.turns.filter(t=>t.role==='ai').length/3));
+    copy.created=Date.now(); copy.updated=Date.now();
+    const a=Reader.scripts(); a.unshift(copy); DB.set('scripts',a);
+    Rank.addXP(10,'分支存档');
+    Reader.open(copy.id); Toast.ok('已分岔成一份新存档，原来那场原样留着');
   },
   anchorSheet(){
     Sheet.open('事实锚点',b=>{ const sc=Reader.sc; const list=document.createElement('div'); list.className='fl-optlist';
@@ -985,11 +1114,12 @@ const Archives={
   },
   card(sc){
     const d=document.createElement('button'); d.className='fl-arch';
+    sc.turns=sc.turns||[]; sc.setup=sc.setup||{}; sc.words=sc.words||0; sc.chapter=sc.chapter||1;
     const ex=(sc.turns.slice(-1)[0]?.text||'').replace(/^@[^|]*\|/gm,'').slice(0,80);
     d.innerHTML=`<div class="fl-arch__t">${esc(sc.title)}</div>
       <div class="fl-arch__meta"><span>${esc(sc.charName||'—')}</span><span>第 ${sc.chapter} 幕</span><span>${fmt(sc.words)} 字</span></div>
       <div class="fl-arch__ex">${esc(ex||'还没开始写')}</div>
-      <div class="fl-arch__ft"><i class="fl-tagline">${esc(styleById(sc.setup.styleId).name)}</i><i class="fl-tagline">${when(sc.updated)}</i></div>`;
+      <div class="fl-arch__ft"><i class="fl-tagline">${esc(styleById(sc.setup.styleId).name)}</i>${sc.branchOf?'<i class="fl-tagline fl-tagline--br">分支</i>':''}<i class="fl-tagline">${when(sc.updated)}</i></div>`;
     d.onclick=()=>Reader.open(sc.id); return d;
   }
 };
@@ -1041,7 +1171,7 @@ ${charCard(c)}
   card(n){
     const b=document.createElement('button'); b.className='fl-note';
     b.innerHTML=`<div class="fl-note__who">${esc(n.char)} · 第 ${n.chapter} 幕</div>
-      <div class="fl-note__q">${esc(n.quote||n.body.slice(0,50))}</div>
+      <div class="fl-note__q">${esc(n.quote||(n.body||'').slice(0,50)||'（这封笺是空的）')}</div>
       <span class="fl-note__mood">${esc(n.mood)}${n.favor?` · 好感 ${n.favor>0?'+':''}${n.favor}`:''}</span>
       <div class="fl-note__d">${esc(n.scriptTitle)} · ${when(n.at)}</div>`;
     b.onclick=()=>Notes.detail(n.id); return b;
@@ -1103,7 +1233,7 @@ const Ens={
     Seg($('#flEnsCount'),[{v:3,t:'3 人'},{v:4,t:'4 人'},{v:5,t:'5 人'},{v:6,t:'6 人'}],d.count,v=>{d.count=v;DB.set('ensDraft',d);Ens.paintPrice(d);});
     const sl=$('.fl-sl[data-k="ensHeat"]'); sl.querySelector('input').value=d.heat; sl.querySelector('b').textContent=d.heat;
     sl.querySelector('input').oninput=e=>{ d.heat=+e.target.value; sl.querySelector('b').textContent=d.heat; DB.set('ensDraft',d); };
-    const cs=Adapter.chars();
+    const cs=Adapter.charsSync();
     Select($('#flEnsWatcher'),[{v:'',t:'不带人看',d:'纯粹自己看戏'}].concat(cs.map(c=>({v:c.id,t:c.name,d:(c.persona||'').slice(0,20)}))),d.watcher,v=>{d.watcher=v;DB.set('ensDraft',d);},'观戏人');
     Ens.paintPrice(d);
     $('#flEnsCreate').onclick=()=>Ens.create(d);
@@ -1226,7 +1356,7 @@ ${PROTOCOL}`;
       const raw=await AI.gen([{role:'system',content:sys},{role:'user',content: prev?('前情：\n'+prev+'\n\n请写第 '+(e.acts.length+1)+' 幕。'):'请写第一幕。'}],{max:1300,label:'群像幕'});
       const act={text:String(raw).replace(/```[a-z]*\n?/g,'').trim(),hearts:0,at:Date.now()};
       if(e.watcherId){
-        const c=Adapter.chars().find(x=>x.id===e.watcherId);
+        const c=Adapter.charsSync().find(x=>x.id===e.watcherId);
         if(c){ try{ const w=await AI.gen([{role:'system',content:`你是「${c.name}」。角色卡：\n${charCard(c)}\n你正在陪人看一部与你无关的群像剧，刚看完一幕。用你自己的口吻说 1-2 句锐评，可以毒可以软，但必须像你会说的话。不要复述剧情，不要用markdown。`},
             {role:'user',content:act.text.replace(/^@[^|]*\|/gm,'').slice(0,900)}],{max:180,label:'锐评'});
           act.watch=String(w).trim(); act.watchName=c.name; }catch(err){} }
@@ -1242,7 +1372,7 @@ ${PROTOCOL}`;
     Stage.busy=false;
   },
   tryRun(cost){
-    const cs=Adapter.chars(), us=Adapter.users();
+    const cs=Adapter.charsSync(), us=Adapter.usersSync();
     Pay.charge(cost,'群像 · 试跑',()=>{
       const st=Studio.blank();
       st.title=Stage.e.title+'（试跑）';
@@ -1280,7 +1410,7 @@ ${PROTOCOL}`;
   send(){
     const inp=$('#flCmtIn'), t=inp.value.trim(); if(!t) return;
     const e=Stage.e, lv=Rank.levelOf(Rank.stat().xp).level;
-    const me=(Adapter.users()[0]||{}).name||'我';
+    const me=(Adapter.usersSync()[0]||{}).name||'我';
     e.comments.unshift({id:uid('cm'),name:me,text:t,at:Date.now(),like:0,level:lv,act:inp.dataset.act?+inp.dataset.act:null});
     inp.value=''; delete inp.dataset.act; inp.placeholder='说点什么…';
     Ens.save(e); Stage.paintCmts(); Rank.addXP(4,'评论');
@@ -1288,7 +1418,7 @@ ${PROTOCOL}`;
     if(e.watcherId) setTimeout(()=>Stage.charReply(t),900);
   },
   async charReply(t){
-    const e=Stage.e, c=Adapter.chars().find(x=>x.id===e.watcherId); if(!c) return;
+    const e=Stage.e, c=(await Adapter.chars()).find(x=>x.id===e.watcherId); if(!c) return;
     try{
       const r=await AI.gen([{role:'system',content:`你是「${c.name}」。角色卡：\n${charCard(c)}\n你和对方一起在看一部群像剧，对方刚在评论区说了一句话。用你的口吻回一句，不超过 40 字，像你会说的话。不要用markdown。`},
         {role:'user',content:t}],{max:120,label:'评论'});
@@ -1324,7 +1454,7 @@ ${PROTOCOL}`;
 const PRESET_THEMES=[
   {id:'th_chuwu',name:'初雾',scope:'全局',vars:{'--fl-mist':'#F4F9F5','--fl-moss':'#5F9077','--fl-moss-d':'#3F6B54','--fl-celadon':'#A9CDB7','--fl-dlg-bg':'linear-gradient(180deg,#FFFFFF,#F2F9F4)','--fl-em':'#2C7A5B'},pv:'linear-gradient(140deg,#FFFFFF,#DFEFE6)'},
   {id:'th_qingci',name:'青瓷',scope:'全局',vars:{'--fl-mist':'#EFF6F3','--fl-moss':'#4E8C84','--fl-moss-d':'#2F675F','--fl-celadon':'#9BC9C2','--fl-dlg-bg':'linear-gradient(180deg,#FFFFFF,#EEF7F5)','--fl-em':'#2A7A70'},pv:'linear-gradient(140deg,#FFFFFF,#D5E9E5)'},
-  {id:'th_yeyu',name:'夜雨',scope:'全局',vars:{'--fl-mist':'#22322B','--fl-mist2':'#1A2721','--fl-paper':'#26362E','--fl-ink':'#E6F1EA','--fl-ink-2':'#B9CFC2','--fl-ink-3':'#89A395','--fl-moss':'#8FC3AB','--fl-moss-d':'#BFE0D0','--fl-line':'rgba(160,205,183,.24)','--fl-dlg-bg':'linear-gradient(180deg,#2C3E35,#243129)','--fl-ts':'0 1px 2px rgba(0,0,0,.6), 0 0 14px rgba(0,0,0,.35)','--fl-em':'#9FDCC0'},pv:'linear-gradient(140deg,#2E4239,#16211C)'},
+  {id:'th_yeyu',name:'夜雨',scope:'全局',vars:{'--fl-mist':'#22322B','--fl-mist2':'#1A2721','--fl-paper':'#26362E','--fl-ink':'#E6F1EA','--fl-ink-2':'#B9CFC2','--fl-ink-3':'#89A395','--fl-moss':'#8FC3AB','--fl-moss-d':'#BFE0D0','--fl-line':'rgba(160,205,183,.24)','--fl-dlg-bg':'linear-gradient(180deg,#2C3E35,#243129)','--fl-ts':'0 1px 2px rgba(0,0,0,.6), 0 0 14px rgba(0,0,0,.35)','--fl-em':'#9FDCC0','--fl-jade-1':'38,54,46','--fl-jade-2':'26,39,31','--fl-jade-ink':'8,14,11','--fl-jade-a':'.92'},pv:'linear-gradient(140deg,#2E4239,#16211C)'},
   {id:'th_zaoying',name:'早樱',scope:'群像',vars:{'--fl-sakura':'#E9B4C4','--fl-sakura-d':'#B36F89','--fl-em':'#B36F89'},pv:'linear-gradient(140deg,#FFFFFF,#F2D9E1)'},
   {id:'th_liuguang',name:'琉光',scope:'全局',vars:{'--fl-mist':'#F6F8F4','--fl-moss':'#6A8F63','--fl-moss-d':'#4A6B45','--fl-celadon':'#C3D4A8','--fl-gilt':'#C6AC72','--fl-em':'#7A8F4A'},pv:'linear-gradient(140deg,#FFFFFF,#E4EAD2)'},
   {id:'th_huanjing',name:'幻境琉璃',scope:'全局 · Lv46 解锁',lock:46,vars:{'--fl-mist':'#F3F0F9','--fl-moss':'#7E6BB5','--fl-moss-d':'#5A4A8C','--fl-celadon':'#BCAFE0','--fl-dlg-bg':'linear-gradient(180deg,#FFFFFF,#F2EEFB)','--fl-em':'#6A57A8'},pv:'linear-gradient(140deg,#FFFFFF,#DCD2F0)'}
@@ -1333,7 +1463,9 @@ const MANIFEST=[
  {g:'页面骨架',items:[
   ['.fl-page[data-page="hall"]','大厅整页。把 data-page 换成 studio / reader / stage / notes 等即可指定任意页'],
   ['.fl-page__bg','每页背景图层（上传的照片贴在这里）'],
-  ['.fl-topbar','各页顶栏'],['.fl-dock','底部花坞导航'],['.fl-status','状态栏']]},
+  ['.fl-topbar','各页顶栏'],['.fl-dock','底部花坞导航'],
+  ['.status-bar','状态栏（与 index / 露匣 / 妆匣等全局同一套结构，改这里会处处一起变）'],
+  ['.fl-crown','状态栏下方的华彩顶饰过渡层']]},
  {g:'织叙阅读器',items:[
   ['.fl-thread','正文容器'],['.fl-blk--scene','场景描写行'],['.fl-blk--narr','旁白行'],
   ['.fl-blk--dlg','对白气泡'],['.fl-blk--dlg.is-user','我方对白气泡'],['.fl-blk__nm','说话人署名'],
@@ -1352,7 +1484,10 @@ const MANIFEST=[
   ['--fl-celadon','点缀色'],['--fl-ink / --fl-ink-2 / --fl-ink-3','正文 / 次级 / 弱化文字'],
   ['--fl-sakura / --fl-sakura-d','群像专用色'],['--fl-ts','全局文字阴影（改深浅背景时调这个）'],
   ['--fl-dlg-bg','对白气泡背景'],['--fl-em','重点文字色'],['--fl-read-size / --fl-read-lh','正文字号与行距'],
-  ['--fl-r-card','卡片圆角'],['--fl-bg-veil','背景照片上的雾罩浓度（0-1）']]}
+  ['--fl-r-card','卡片圆角'],['--fl-bg-veil','背景照片上的雾罩浓度（0-1）'],
+  ['--fl-jade-1 / --fl-jade-2','玉牌主色/次色（状态栏·顶栏·坞共用，rgb 三数字如 26,39,31）——换了深色背景照片但用的还是默认雾白主题时，在此处手动改深，三处会一起变'],
+  ['--fl-jade-ink','玉牌暗面阴影色（rgb 三数字，取当前 --fl-ink 的近似值即可）'],
+  ['--fl-jade-a','玉牌不透明度（0-1）']]}
 ];
 const Boudoir={
   tab:'theme',
@@ -1400,7 +1535,7 @@ const Boudoir={
       <label class="fl-lb">页底色</label><input class="fl-in" id="flThC3" value="${base.vars['--fl-mist']||'#F4F9F5'}">
       <label class="fl-lb">正文色</label><input class="fl-in" id="flThC4" value="${base.vars['--fl-ink']||'#1E3227'}">`,
       actions:[{t:'取消'},{t:'建好',p:1,fn(){
-        const n=$('#flThN').value.trim(); if(!n){ Toast.warn('先给它起个名字'); return; }
+        const n=$('#flThN').value.trim(); if(!n){ Toast.warn('先给它起个名字'); return false; }
         const t={id:$('#flThId').value.trim()||uid('th'),name:n,scope:'全局',custom:true,
           pv:`linear-gradient(140deg,${$('#flThC3').value},${$('#flThC1').value})`,
           vars:{'--fl-moss':$('#flThC1').value,'--fl-moss-d':$('#flThC2').value,'--fl-mist':$('#flThC3').value,'--fl-ink':$('#flThC4').value}};
@@ -1523,136 +1658,73 @@ const Boudoir={
 };
 
 /* ───────── 14. 露匣：钱包 / 支付 / 流水 ───────── */
+/* 支付：余额、绑定、支付密码全部来自真实的 LunaWallet*DB（见上面的 Adapter），
+   这里只负责「用浮岚自己画的键盘/弹窗 UI 去校验、去调用真实扣款」，
+   不再维护一份平行的假余额——那正是之前"钱包页面数字和真实钱包对不上"的根源。
+   货币单位统一为 Lune（与 wallet.js 完全一致），显示上仍可用「岚露」作为浮岚里的意译称呼，
+   但数值与扣款逻辑必须是同一份。 */
 const Pay={
-  w(){ return Adapter.wallet(); },
-  save(w){ Adapter.saveWallet(w); },
+  async w(){ return Adapter.wallet(); },
   ledger(){ return DB.get('ledger',[]); },
   log(type,amount,target,after){ const a=Pay.ledger();
     a.unshift({id:uid('lg'),type,amount,target,after,at:Date.now()}); DB.set('ledger',a.slice(0,300)); },
-  charge(amount,target,onOk){
-    const w=Pay.w();
-    if(!w.bound){ Modal.open({title:'先绑定钱包',body:'<p style="text-align:center">还没有绑定钱包，绑定之后才能支付岚露。</p>',
-      actions:[{t:'再说'},{t:'去绑定',p:1,fn:Pay.bind}]}); return; }
-    if(w.balance<amount){ Modal.open({title:'岚露不够',body:`<p style="text-align:center">这次需要 ${amount} 岚露，你还有 ${w.balance}。</p>`,
-      actions:[{t:'算了'},{t:'去充值',p:1,fn(){ Router.go('wallet'); Pay.paint(); }}]}); return; }
-    if(!w.payPwd){ Modal.open({title:'先设支付密码',body:'<p style="text-align:center">为了不误扣，请先设一个 6 位支付密码。</p>',
-      actions:[{t:'再说'},{t:'去设置',p:1,fn(){ Pay.setPwd(()=>Pay.charge(amount,target,onOk)); }}]}); return; }
-    Pay.keypad(amount,target,pwd=>{
-      if(pwd!==w.payPwd){ Toast.warn('密码不对'); return false; }
-      w.balance-=amount; Pay.save(w); Pay.log('out',amount,target,w.balance);
-      const s=Rank.stat(); s.spend+=amount; DB.set('stat',s);
-      Rank.addXP(amount*3,'消费'); Toast.ok(`已支付 ${amount} 岚露`); onOk&&onOk(); return true;
-    });
-  },
-  keypad(amount,target,verify){
-    let buf='';
-    const b=Modal.open({title:'支付',body:`<div class="fl-pay">
-      <div class="fl-payline"><span>项目</span><b>${esc(target)}</b></div>
-      <div class="fl-payamt">${amount} <span style="font-size:13px">岚露</span></div>
-      <div class="fl-payline"><span>支付后余额</span><b>${Pay.w().balance-amount}</b></div>
-      <div class="fl-pay__dots" id="flDots">${'<i></i>'.repeat(6)}</div>
-      <div class="fl-keys" id="flKeys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-k="${n}">${n}</button>`).join('')}
-        <button class="fn" data-k="c">清空</button><button data-k="0">0</button><button class="fn" data-k="b">删除</button></div></div>`,
-      actions:[{t:'取消'}]});
-    $('#flKeys',b).onclick=e=>{
-      const k=e.target.closest('[data-k]'); if(!k) return; const v=k.dataset.k;
-      if(v==='c') buf=''; else if(v==='b') buf=buf.slice(0,-1); else if(buf.length<6) buf+=v;
-      $$('#flDots i',b).forEach((d,i)=>d.classList.toggle('on',i<buf.length));
-      if(buf.length===6){ setTimeout(()=>{ if(verify(buf)) Modal.close(); else { buf=''; $$('#flDots i',b).forEach(d=>d.classList.remove('on')); } },160); }
-    };
-  },
-  bind(){
-    const lw=Adapter.lunaWallet();
-    if(!lw.lunaBound){
-      Modal.open({title:'先在钱包完成开户',body:`<p style="text-align:center">还没检测到已开通的 Luna 钱包账户，需要先去「钱包」完成开户，浮岚才能读到你的真实余额来兑换岚露。</p>`,
-        actions:[{t:'知道了'}]}); return;
-    }
-    const w=Pay.w(); w.bound=true; w.account=lw.lunaAccount||'已绑定账户'; Pay.save(w); Pay.paint();
-    Toast.ok('已读取钱包绑定：'+(lw.lunaAccount||''));
-  },
-  setPwd(after){
-    let a='';
-    step('设置支付密码 · 输入 6 位');
-    function step(title){
+  /* 自绘 PIN 键盘，仅用于校验一个已存在的密码；返回 Promise<boolean> */
+  verifyPin(correctPin){
+    return new Promise(resolve=>{
       let buf='';
-      const b=Modal.open({title,body:`<div class="fl-pay"><div class="fl-pay__dots" id="flDots2">${'<i></i>'.repeat(6)}</div>
-        <div class="fl-keys" id="flKeys2">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-k="${n}">${n}</button>`).join('')}
-        <button class="fn" data-k="c">清空</button><button data-k="0">0</button><button class="fn" data-k="b">删除</button></div></div>`,
-        actions:[{t:'取消'}]});
-      $('#flKeys2',b).onclick=e=>{ const k=e.target.closest('[data-k]'); if(!k) return; const v=k.dataset.k;
-        if(v==='c') buf=''; else if(v==='b') buf=buf.slice(0,-1); else if(buf.length<6) buf+=v;
-        $$('#flDots2 i',b).forEach((d,i)=>d.classList.toggle('on',i<buf.length));
-        if(buf.length===6){ setTimeout(()=>{ if(!a){ a=buf; Modal.close(); step('再输一次确认'); }
-          else if(a===buf){ const w=Pay.w(); w.payPwd=a; Pay.save(w); Modal.close(); Toast.ok('支付密码已设好'); Pay.paint(); after&&after(); }
-          else { a=''; Toast.warn('两次不一致，重来'); Modal.close(); Pay.setPwd(after); } },160); } };
-    }
-  },
-  /* 汇率：1 岚露 = 1 Lune（钱包真实货币），充值即时从真实钱包扣款并留痕 */
-  RATE:1,
-  async topup(n,bonus){
-    const w=Pay.w();
-    if(!w.bound){ Pay.bind(); return; }
-    const lw=Adapter.lunaWallet(), cost=Math.round(n*Pay.RATE);
-    if(!lw.lunaPayPwdSet){ Modal.open({title:'先在钱包设置支付密码',body:'<p style="text-align:center">充值需要校验钱包的真实支付密码，请先去钱包完成设置。</p>',actions:[{t:'知道了'}]}); return; }
-    if(lw.lunaBalance<cost){ Modal.open({title:'钱包余额不足',body:`<p style="text-align:center">这次需要 ${cost} Lune，钱包里还有 ${fmt(lw.lunaBalance)}。</p>`,actions:[{t:'知道了'}]}); return; }
-    Pay.keypadReal(cost,`充值 ${n} 岚露${bonus?`（送 ${bonus}）`:''}`,async pwd=>{
-      const check=await Pay.verifyRealPwd(pwd);
-      if(!check) return false;
-      const r=await lunaDebit(cost, `浮岚 · 充值 ${n} 岚露`);
-      if(!r.ok){ Toast.warn('扣款失败，再试一次'); return false; }
-      w.balance+=n+(bonus||0); Pay.save(w); Pay.log('in',n+(bonus||0),'充值',w.balance);
-      Rank.addXP(n,'充值'); Pay.paint(); Toast.ok('到账了');
-      return true;
+      const b=Modal.open({title:'请输入支付密码',body:`<div class="fl-pay">
+        <div class="fl-pay__dots" id="flVDots">${'<i></i>'.repeat(4)}</div>
+        <p class="fl-payhint" id="flVHint">用于确认这次扣款</p>
+        <div class="fl-keys" id="flVKeys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-k="${n}">${n}</button>`).join('')}
+          <button class="fn" data-k="c">清空</button><button data-k="0">0</button><button class="fn" data-k="b">删除</button></div></div>`,
+        actions:[{t:'取消',fn(){ resolve(false); return true; }}]});
+      $('#flVKeys',b).onclick=e=>{
+        const k=e.target.closest('[data-k]'); if(!k) return; const v=k.dataset.k;
+        if(v==='c') buf=''; else if(v==='b') buf=buf.slice(0,-1); else if(buf.length<4) buf+=v;
+        $$('#flVDots i',b).forEach((d,i)=>d.classList.toggle('on',i<buf.length));
+        if(buf.length===4){ setTimeout(()=>{
+          if(buf===correctPin){ Modal.close(); resolve(true); }
+          else{ const h=$('#flVHint',b); if(h){ h.textContent='密码错误，请重新输入'; h.classList.add('is-err'); } buf=''; $$('#flVDots i',b).forEach(d=>d.classList.remove('on')); }
+        },160); }
+      };
     });
   },
-  async verifyRealPwd(pwd){
-    const acc = await idbGet('LunaWalletAccountDB','accounts','main',1);
-    const sec = await idbGet('LunaWalletSecurityDB','security','identity_'+((acc&&acc.boundIdentityId)||'default'),1);
-    if(!sec||sec.pin!==pwd){ Toast.warn('钱包支付密码不对'); return false; }
-    return true;
-  },
-  keypadReal(amount,target,verify){
-    let buf='';
-    const b=Modal.open({title:'钱包支付',body:`<div class="fl-pay">
-      <div class="fl-payline"><span>项目</span><b>${esc(target)}</b></div>
-      <div class="fl-payamt">${amount} <span style="font-size:13px">Lune</span></div>
-      <div class="fl-pay__dots" id="flDotsR">${'<i></i>'.repeat(6)}</div>
-      <div class="fl-keys" id="flKeysR">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-k="${n}">${n}</button>`).join('')}
-        <button class="fn" data-k="c">清空</button><button data-k="0">0</button><button class="fn" data-k="b">删除</button></div></div>`,
-      actions:[{t:'取消'}]});
-    $('#flKeysR',b).onclick=async e=>{
-      const k=e.target.closest('[data-k]'); if(!k) return; const v=k.dataset.k;
-      if(v==='c') buf=''; else if(v==='b') buf=buf.slice(0,-1); else if(buf.length<6) buf+=v;
-      $$('#flDotsR i',b).forEach((d,i)=>d.classList.toggle('on',i<buf.length));
-      if(buf.length===6){ setTimeout(async()=>{ const ok=await verify(buf); if(ok) Modal.close(); else { buf=''; $$('#flDotsR i',b).forEach(d=>d.classList.remove('on')); } },160); }
-    };
+  /* 统一扣款入口：真的去查真实余额、真的按需要求密码、真的写回同一份数据库。
+     若还没绑定钱包账户，引导去露匣完成绑定（与 wallet.js 的首次引导是同一套 LunaWalletAccountDB）。 */
+  async charge(amount,target,onOk){
+    const w=await Pay.w();
+    if(!w.bound){ Modal.open({title:'先绑定钱包',body:'<p style="text-align:center">还没有绑定钱包账户，去「露匣」完成绑定后才能支付。</p>',
+      actions:[{t:'再说'},{t:'去露匣',p:1,fn(){ Router.go('wallet'); Pay.paint(); }}]}); return; }
+    if(w.balance<amount){ Modal.open({title:'余额不够',body:`<p style="text-align:center">这次需要 ${fmt(amount)} Lune，钱包里还有 ${fmt(w.balance)}。</p>`,
+      actions:[{t:'算了'},{t:'去充值',p:1,fn(){ Router.go('wallet'); Pay.paint(); }}]}); return; }
+    Loading.show('正在确认支付…');
+    const r=await Adapter.charge(amount,target);
+    Loading.hide();
+    if(!r.ok){ if(r.reason!=='已取消支付') Toast.warn(r.reason||'支付未完成'); return; }
+    Pay.log('out',amount,target,r.balance);
+    const s=Rank.stat(); s.spend=(s.spend||0)+amount; DB.set('stat',s);
+    Rank.addXP(amount*3,'消费'); Toast.ok(`已支付 ${fmt(amount)} Lune`);
+    Pay.paint(); onOk&&onOk();
   },
   paint(){
-    const w=Pay.w(), lw=Adapter.lunaWallet(), lv=Rank.levelOf(Rank.stat().xp).level;
-    $('#flWalletPanel').innerHTML=`
-      <div class="fl-purse"><div class="fl-purse__lb">BALANCE · 岚露</div>
-        <div class="fl-purse__n">${fmt(w.balance)}<em>LU</em></div>
-        <div style="font-size:11.5px;color:var(--fl-ink-3)">${Rank.name(lv)} · 群像剧场 ${Rank.discount(lv)===1?'无折扣':Math.round(Rank.discount(lv)*100)/10+' 折'}</div>
-        <div class="fl-purse__row"><button class="fl-solid" id="flGoTopup">充值</button><button class="fl-ghost" id="flGoPwd">${w.payPwd?'改站内密码':'设站内密码'}</button></div>
-      </div>
-      <div class="fl-bind"><div class="fl-bind__d"><b>钱包绑定</b><span>${lw.lunaBound?esc(lw.lunaAccount||'已绑定'):'未检测到钱包账户，无法充值'}</span></div>
-        <i class="fl-bind__s ${lw.lunaBound?'fl-bind__s--ok':'fl-bind__s--no'}">${lw.lunaBound?'已绑定':'去开户'}</i></div>
-      <div class="fl-bind"><div class="fl-bind__d"><b>钱包真实余额</b><span>充值岚露时按 1:1 从这里扣款</span></div>
-        <i class="fl-bind__s fl-bind__s--ok">${fmt(lw.lunaBalance)} Lune</i></div>
-      <div class="fl-bind"><div class="fl-bind__d"><b>钱包支付密码</b><span>${lw.lunaPayPwdSet?'已设置，充值时会校验':'未设置，需先去钱包设置才能充值'}</span></div>
-        <i class="fl-bind__s ${lw.lunaPayPwdSet?'fl-bind__s--ok':'fl-bind__s--no'}">${lw.lunaPayPwdSet?'已设置':'未设置'}</i></div>
-      <div class="fl-bind"><div class="fl-bind__d"><b>站内支付密码</b><span>${w.payPwd?'用于岚露日常消费（重生成/开台等），与钱包密码分开':'未设置，消费时会先要求设置'}</span></div>
-        <i class="fl-bind__s ${w.payPwd?'fl-bind__s--ok':'fl-bind__s--no'}">${w.payPwd?'已设置':'未设置'}</i></div>
-      <label class="fl-lb">充值档位<em>1 岚露 = 1 Lune，从钱包真实余额扣款</em></label>
-      <div class="fl-topup">
-        ${[[60,0],[180,10],[380,40],[680,90],[1280,220],[2980,680]].map(([n,b])=>
-          `<button class="fl-tp" data-n="${n}" data-b="${b}"><b>${n}</b><span>岚露</span>${b?`<em>送 ${b}</em>`:''}</button>`).join('')}
-      </div>
-      <div class="fl-hint" style="margin-top:16px">岚露用于：解锁群像剧目与逐幕续演、投喂糖、超出免费额度的重生成、群像试跑。消费会按 1:3 折算经验，直接推动阶位。</div>`;
-    $('#flGoTopup').onclick=()=>{ if(!lw.lunaBound) Pay.bind(); else $('.fl-topup').scrollIntoView({behavior:'smooth'}); };
-    $('#flGoPwd').onclick=()=>Pay.setPwd();
-    $('.fl-bind').onclick=()=>{ if(!lw.lunaBound) Pay.bind(); };
-    $('.fl-topup').onclick=e=>{ const b=e.target.closest('[data-n]'); if(b) Pay.topup(+b.dataset.n,+b.dataset.b); };
+    (async()=>{
+      const w=await Pay.w(), lv=Rank.levelOf(Rank.stat().xp).level;
+      const acc=await idbGet(openLunaDB('LunaWalletAccountDB','accounts'),'accounts','main');
+      const sec=await Adapter.paySecurity(w.boundIdentityId);
+      $('#flWalletPanel').innerHTML=`
+        <div class="fl-purse"><div class="fl-purse__lb">BALANCE · 钱包余额</div>
+          <div class="fl-purse__n">${fmt(w.balance)}<em>${esc(w.currency)}</em></div>
+          <div style="font-size:11.5px;color:var(--fl-ink-3)">${Rank.name(lv)} · 群像剧场 ${Rank.discount(lv)===1?'无折扣':Math.round(Rank.discount(lv)*100)/10+' 折'}</div>
+          <div class="fl-purse__row"><button class="fl-solid" id="flGoTopup">去充值</button><button class="fl-ghost" id="flGoWalletApp">打开露匣钱包</button></div>
+        </div>
+        <div class="fl-bind"><div class="fl-bind__d"><b>钱包账户</b><span>${w.bound?esc(w.account||'已绑定'):'未绑定，无法支付'}</span></div>
+          <i class="fl-bind__s ${w.bound?'fl-bind__s--ok':'fl-bind__s--no'}">${w.bound?'已绑定':'未绑定'}</i></div>
+        <div class="fl-bind"><div class="fl-bind__d"><b>支付密码</b><span>${sec.enabled?'已在露匣设置，支付时会校验':'未设置，露匣「支付设置」里可开启'}</span></div>
+          <i class="fl-bind__s ${sec.enabled?'fl-bind__s--ok':'fl-bind__s--no'}">${sec.enabled?'已设置':'未设置'}</i></div>
+        <p class="fl-hint" style="margin-top:16px">充值、绑定钱包账户、设置支付密码这三件事都在系统的「钱包」App 里完成——浮岚只读取同一份数据、同一条支付规则，不会另建一套。</p>
+        <div class="fl-hint">Lune 用于：解锁群像剧目与逐幕续演、投喂糖、超出免费额度的重生成、群像试跑。消费会按 1:3 折算经验，直接推动阶位。</div>`;
+      $('#flGoTopup').onclick=$('#flGoWalletApp').onclick=()=>{ Toast.ok('请从桌面打开「钱包」App 完成充值 / 绑定 / 密码设置'); };
+    })();
   },
   paintLedger(){
     const a=Pay.ledger(), out=a.filter(x=>x.type==='out');
@@ -1723,13 +1795,16 @@ const GUIDE=`
 <p>若该角色<b>绑定了 user</b>，user 卡会一并读入，用于沿用二人既有的称呼与相处方式；但两卡冲突时一律以角色卡为准。若没有绑定 user，则只按角色卡与世界观推进，不会替你安排设定之外的行为。</p>
 <p>此外还有三重保险：事实锚点（你手动钉住的关键事实）、滚动摘要（每 6 段压缩一次，长跑一万字也不失忆）、雷点硬拦截（命中即丢弃重写）。</p></div>
 
+<div class="fl-card"><h3>正文由谁生成</h3>
+<p>浮岚本身不内置任何 AI，正文生成用的是「设置」App 里「文本模型」页保存的接口地址与密钥（与该页「获取可用模型」用的是同一份配置）。没配置接口，或本次请求失败时，会用一段本地离线草稿顶上，保证流程不中断——每次生成开始时加载条下方会写清楚这次用的是哪个引擎，一看就知道是不是真的调用了你配的模型。</p></div>
+
 <div class="fl-card"><h3>为什么要控 token</h3>
 <p>一次生成的开销 ≈ 角色卡 + 摘要 + 最近几段原文 + 本次目标字数。默认的<b>滚动摘要</b>只回带最近 6 段原文，其余压成摘要，所以写到一万字以上，每次的开销仍然是平的。</p>
 <p>「全量回读」最准但最贵，适合短篇精修；「只带锚点」最省，适合单元剧。设定台第六步会给出实时预估。</p></div>
 
 <div class="fl-card"><h3>排版标记与朗读</h3>
 <p>正文使用行标记协议：场景、旁白、对白、心理、动作、系统提示各有各的样式；<b>**重点**</b> 会被高亮，<b>[[词条]]</b> 是可以点开的注解。这些标记由系统解析，模型不会把标记本身写给你看。</p>
-<p>如果设备存在语音模型，对白行右侧会出现一枚朗读按钮，点了才会读——不会弹提示打断阅读。</p></div>
+<p>对白行右侧的朗读按钮始终可点：若「设置 → 语音模型」里配了 MiniMax 音色（GroupId / 密钥 / VoiceId），优先用你配的那个真人声音朗读；没配或请求失败时自动退回设备自带的朗读引擎，保证任何情况下点了都有声音，不会哑火。</p></div>
 
 <div class="fl-card"><h3>群像剧场与同人的分界</h3>
 <p>群像剧场只生成<b>原创人物与原创关系网</b>，不接入任何既有作品的角色、专有名词或设定。你的 char 在这里只能是「观戏人」，负责幕间锐评与评论区搭话，不下场演。</p>
@@ -1750,10 +1825,10 @@ const Hall={
     Hall.paintRank();
     const rc=$('#flRecent'), a=DB.get('scripts',[]).slice(0,6);
     rc.innerHTML=''; if(!a.length){ rc.innerHTML='<div class="fl-empty" style="padding:24px"><span>还没有开过台。</span></div>'; }
-    a.forEach(sc=>rc.appendChild(Archives.card(sc)));
+    a.forEach(sc=>{ try{ rc.appendChild(Archives.card(sc)); }catch(e){ console.warn('[浮岚] 跳过一条损坏的存档',e); } });
     const nb=$('#flRecentNotes'), n=Notes.all().slice(0,6);
     nb.innerHTML=''; if(!n.length){ nb.innerHTML='<div class="fl-empty" style="padding:24px"><span>还没有人写信。</span></div>'; }
-    n.forEach(x=>nb.appendChild(Notes.card(x)));
+    n.forEach(x=>{ try{ nb.appendChild(Notes.card(x)); }catch(e){ console.warn('[浮岚] 跳过一封损坏的笺',e); } });
   },
   paintRank(){
     const s=Rank.stat(), r=Rank.levelOf(s.xp), t=Rank.tier(r.level);
@@ -1762,9 +1837,11 @@ const Hall={
     strip.innerHTML=`<div class="fl-rk"><div id="flRkBadge"></div>
       <div class="fl-rk__meta"><div class="fl-rk__nm">${Rank.name(r.level)}<em>LV.${r.level} · ${t.en}</em></div>
       <div class="fl-rk__bar"><i style="width:${pct}%"></i></div>
-      <div class="fl-rk__xp">${r.need?`还差 ${fmt(r.need-r.into)} 经验升阶 · 岚露 ${fmt(Pay.w().balance)}`:'顶阶 · 幻境·五'}</div></div></div>`;
+      <div class="fl-rk__xp">${r.need?`还差 ${fmt(r.need-r.into)} 经验升阶`:'顶阶 · 幻境·五'} · 钱包 <span id="flRkBal">…</span></div></div></div>`;
     $('#flRkBadge').replaceWith(badgeEl(r.level));
     const h=$('#flHeroRank'); if(h) h.textContent=Rank.name(r.level);
+    /* 余额来自真实 IndexedDB，读取是异步的：先占位再补上，避免整条 paintRank 都要改成 async 波及一大串同步调用方 */
+    Pay.w().then(w=>{ const el=$('#flRkBal'); if(el) el.textContent=fmt(w.balance)+' '+esc(w.currency); }).catch(()=>{ const el=$('#flRkBal'); if(el) el.textContent='—'; });
   }
 };
 
@@ -1809,7 +1886,7 @@ const StylePage={
         <label class="fl-lb">关键词<em>希望常出现的词，顿号分隔</em></label><input class="fl-in" id="flStK" value="${esc(cur.keywords||'')}" placeholder="例：雨、灯、指节、停顿">
         <label class="fl-lb">禁用词<em>绝对不要出现的词</em></label><input class="fl-in" id="flStB" value="${esc(cur.ban||'')}" placeholder="例：忽然、仿佛、心中一暖">`,
       actions:[{t:'取消'},{t:'保存',p:1,fn(){
-        const n=$('#flStN').value.trim(); if(!n){ Toast.warn('先给它起个名字'); return; }
+        const n=$('#flStN').value.trim(); if(!n){ Toast.warn('先给它起个名字'); return false; }
         const o={id:cur.id,name:n,desc:$('#flStD').value.trim(),ex:$('#flStE').value,keywords:$('#flStK').value,ban:$('#flStB').value,mine:true};
         const a=styles(); const i=a.findIndex(x=>x.id===o.id); if(i<0) a.unshift(o); else a[i]=o;
         saveStyles(a); StylePage.tab='mine'; StylePage.paint(); Toast.ok('已保存');
@@ -1837,68 +1914,120 @@ const Router={
     paint&&paint();
     const sc=el.querySelector('.fl-scroll'); if(sc&&!['reader','stage'].includes(p)) sc.scrollTop=0;
   },
-  back(){ const p=Router.stack.pop(); Router.go(p||'hall',true); },
-  /* 外部数据（角色卡/身份/钱包）在别的 Luna 页面被改动后，静默重绘当前
-     停留的页面，不打断用户、不跳转、不弹提示 */
-  repaint(){
-    const paint={hall:Hall.paint,archives:Archives.paint,studio:Studio.paint,wallet:Pay.paint,ledger:Pay.paintLedger}[Router.now];
-    try{ paint&&paint(); }catch(e){ console.warn('[浮岚] 静默刷新失败',e); }
-  }
+  back(){ const p=Router.stack.pop(); Router.go(p||'hall',true); }
 };
+/* 状态栏：不再尝试跨窗口克隆 index 的节点（本项目全程用 location.href 整页跳转，
+   压根没有 parent/opener 关系，跨窗口那条路一直是走不通的死路，这也是之前「同步」
+   总对不上的根源）。改成和 wallet.js / user.js 一样的正确做法：
+   fulan.html 直接内置与 index.html 完全同构的 .status-bar 标记（同一套 id），
+   每个页面各自本地计算真实时间、真实电量、真实灵动岛样式 —— 这样才是真的处处一致，
+   而不是「运气好凑巧能读到」。 */
 const Status={
-  sync(){
-    /* 若 index 已有状态栏，直接克隆其结构与样式，保持全站一致 */
-    const ext=window.FL_STATUSBAR_HTML || (window.parent!==window&&null);
-    if(typeof ext==='string'&&ext.trim()){ $('#flStatus').innerHTML=ext; }
-    Status.clock(); setInterval(Status.clock,20000);
+  sync(){ Status.clock(); setInterval(Status.clock,20000); Status.battery(); Status.island(); },
+  clock(){
+    const tz=(function(){ try{ return localStorage.getItem('luna_tz')||'Asia/Shanghai'; }catch(e){ return 'Asia/Shanghai'; } })();
+    const now=new Date();
+    let txt;
+    try{ txt=now.toLocaleTimeString('zh-CN',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}); }
+    catch(e){ txt=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0'); }
+    $$('#statusTime').forEach(el=>el.textContent=txt);
   },
-  clock(){ const d=new Date(); const el=$('#flClock'); if(el) el.textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+  battery(){
+    const render=pct=>{ const p=Math.round(pct);
+      $$('#batPct').forEach(el=>el.textContent=p);
+      $$('#batInner').forEach(el=>{ el.style.width=p+'%';
+        el.style.background = p<=20 ? 'linear-gradient(90deg,#f87171,#ef4444)' : 'linear-gradient(90deg,#8FBFA3,#5F9077)'; }); };
+    if('getBattery' in navigator){ navigator.getBattery().then(b=>{ render(b.level*100); b.addEventListener('levelchange',()=>render(b.level*100)); }).catch(()=>render(78)); }
+    else render(78);
+  },
+  island(){
+    /* 与 wallet.js applyIsland() 读同一份 localStorage key，保证「灵动岛」样式全局一致 */
+    let enabled=false, style='minimal';
+    try{ enabled=localStorage.getItem('luna_island_enabled')==='true'; style=localStorage.getItem('luna_island_style')||'minimal'; }catch(e){}
+    const el=$('#statusIsland'); if(!el) return;
+    if(!enabled){ el.innerHTML=''; return; }
+    const map={
+      minimal:`<div class="si-minimal"><div class="si-capsule"></div></div>`,
+      glow:`<div class="si-glow"><div class="si-capsule"></div></div>`,
+      clock:`<div class="si-clock"><div class="si-capsule"><span class="si-clock-text" id="siClockText">--:--</span></div></div>`,
+      pulse:`<div class="si-pulse"><div class="si-capsule"><div class="si-dot si-dot-l"></div><div class="si-dot si-dot-r"></div></div></div>`,
+      ripple:`<div class="si-ripple"><div class="si-capsule"><div class="si-ring"></div></div></div>`,
+      rainbow:`<div class="si-rainbow"><div class="si-capsule"></div></div>`,
+      music:`<div class="si-music"><div class="si-capsule"><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div><div class="si-bar"></div></div></div>`,
+      scan:`<div class="si-scan"><div class="si-capsule"><div class="si-scanline"></div></div></div>`
+    };
+    el.innerHTML=map[style]||map.minimal;
+    clearInterval(window._flSiClockTimer);
+    if(style==='clock'){ const tick=()=>{ const t=$('#siClockText'); if(!t) return; const n=new Date(); t.textContent=n.getHours()+':'+String(n.getMinutes()).padStart(2,'0'); };
+      tick(); window._flSiClockTimer=setInterval(tick,10000); }
+  }
 };
 
-async function boot(){
-  try{
-    Loading.show('起雾中…');
-    Status.sync();
-    Boudoir.applyTheme(); Boudoir.applyRead(); Boudoir.applyAllBg();
-    document.addEventListener('click',e=>{
-      const go=e.target.closest('[data-go]'); if(go){ Router.go(go.dataset.go); return; }
-      const bk=e.target.closest('[data-back]'); if(bk){ Router.back(); return; }
-    });
-    $('#flNext').onclick=()=>Studio.next();
-    $('#flPrev').onclick=()=>{ if(Studio.step>0){ Studio.step--; Studio.paint(); } };
-    $('#flStudioDraft').onclick=()=>{ DB.set('draft',Studio.st); Toast.ok('草稿已存，随时回来接着填'); };
-    $('#flNewStyle').onclick=()=>StylePage.edit();
-    $('#flThemeNew').onclick=()=>Boudoir.newTheme();
-    $('#flSend').onclick=()=>{ const v=$('#flAct').value.trim(); $('#flAct').value=''; Reader.advance(v); };
-    $('#flAct').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#flSend').click(); } });
-    $('#flCont').onclick=()=>Reader.advance('');
-    $('#flRegen').onclick=()=>{ const sc=Reader.sc; if(!sc||!sc.turns.length) return;
-      let i=sc.turns.length-1; while(i>0&&sc.turns[i].role!=='ai') i--; Reader.regen(i); };
-    $('#flReadMenu').onclick=()=>Reader.menu();
-    $('#flStageMenu').onclick=()=>Stage.menu();
-    $('#flCmtSend').onclick=()=>Stage.send();
-    $('#flCmtIn').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); Stage.send(); } });
-    $('#flSugar').onclick=()=>Pay.charge(2,'投喂糖',()=>{ const e=Stage.e; if(!e) return; e.sugar=(e.sugar||0)+1; Ens.save(e); Stage.paint(); Rank.addXP(3,'投喂'); });
-    $('.fl-gate__card--weave').onclick=()=>Studio.open();
-    /* 角色卡 / 身份 / 钱包来自另外几个 Luna 页面各自的 IndexedDB，
-       这里异步预热一次内存缓存，成功与否都不阻塞后续渲染——
-       预热失败时 Adapter 会自动回退到内置示例数据，不会卡死。 */
-    await Promise.race([ refreshAll(), sleep(4000) ]).catch(e=>console.warn('[浮岚] 外部数据预热失败，使用示例数据',e));
-    Router.go('hall',true);
-    console.log('%c浮岚 FULAN','color:#3F6B54;font-size:14px;letter-spacing:.2em','已就绪。接入外部 AI：定义 window.FLAI.generate(messages,opt)；接入语音：window.FLTTS.speak(text)。');
-  }catch(err){
-    console.error('[浮岚] 启动失败',err);
-    Toast.warn('页面初始化时出了点问题，已尽量恢复；如持续异常请刷新');
-    try{ Router.go('hall',true); }catch(e2){}
-  }finally{
-    Loading.hide();
+/* 全局兜底：任何一处抛错都先把雾散开，绝不让遮罩盖死页面 */
+window.addEventListener('error',e=>{ Loading.force();
+  console.error('[浮岚] 运行时错误',e.error||e.message); });
+window.addEventListener('unhandledrejection',e=>{ Loading.force();
+  console.error('[浮岚] 未捕获的异步错误',e.reason); });
+function fatal(msg){ const f=$('#flFatal'); if(!f) return;
+  $('#flFatalT').textContent=String(msg||'未知错误'); f.hidden=false; Loading.force(); }
+
+/* 全局字体：与 settings.js / user.js 的 applyGlobalFont() 完全同构，
+   读同一个 luna_font_active_name / luna_font_active_id / luna_font_style，
+   保证浮岚里显示的字体和系统设置里选的是同一份，不是另起一套字体系统 */
+async function applyGlobalFont(){
+  let style={}; try{ style=JSON.parse(localStorage.getItem('luna_font_style')||'{}'); }catch(e){}
+  const name=localStorage.getItem('luna_font_active_name');
+  const id=parseInt(localStorage.getItem('luna_font_active_id'));
+  let tag=document.getElementById('luna-font-override');
+  if(!tag){ tag=document.createElement('style'); tag.id='luna-font-override'; document.head.appendChild(tag); }
+  /* 浮岚有自己的展示字体体系（--fl-f-display 等），全局强制覆盖会连标题字体一起吃掉，
+     所以这里只覆盖正文字号与颜色，字族只作用于 body 默认字体，不动 --fl-f-display 相关的标题类 */
+  const sizeRule=style.size?`font-size:${style.size}px!important;`:'';
+  tag.textContent = sizeRule ? `body,.fl-page{${sizeRule}}` : '';
+  if(name&&id){
+    try{
+      const db=await new Promise((res,rej)=>{ const req=indexedDB.open('LunaFontDB',4); req.onsuccess=e=>res(e.target.result); req.onerror=()=>rej(); });
+      const all=await new Promise(res=>{ const r=db.transaction('fonts').objectStore('fonts').getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); });
+      const f=all.find(x=>x.id===id);
+      if(f){ const face=new FontFace(name,`url(${f.data})`); await face.load(); document.fonts.add(face); }
+    }catch(e){}
+    document.body.style.setProperty('--fl-f-body', `'${name}', sans-serif`);
   }
 }
-/* 全局兜底：任何未捕获的错误都不应该把用户永远留在「起雾中」——
-   哪怕是本文件之外触发的错误，也强制把遮罩收起来，并给一条可见提示。 */
-window.addEventListener('error',()=>{ const l=$('#flLoading'); if(l&&!l.hidden){ l.hidden=true; Toast&&Toast.warn&&Toast.warn('刚才有一步没跑通，已恢复'); } });
-window.addEventListener('unhandledrejection',()=>{ const l=$('#flLoading'); if(l&&!l.hidden){ l.hidden=true; Toast&&Toast.warn&&Toast.warn('刚才有一步没跑通，已恢复'); } });
-document.readyState==='loading'?document.addEventListener('DOMContentLoaded',boot):boot();
+
+function boot(){
+  Loading.force();                       /* 起手先确认遮罩是收着的 */
+  Status.sync();
+  /* 提前把角色卡 / 身份缓存拉好，后面各页面（群像选观戏人、Stage 锐评等）需要同步读取时才不会读到空数组。
+     Studio 开台页自己另有一次强制刷新（见 Studio.open），保证这里万一还没拉完也不会用旧数据开新台。 */
+  Adapter.preload().catch(()=>{});
+  Boudoir.applyTheme(); Boudoir.applyRead(); Boudoir.applyAllBg();
+  applyGlobalFont();
+  document.addEventListener('click',e=>{
+    const go=e.target.closest('[data-go]'); if(go){ Router.go(go.dataset.go); return; }
+    const bk=e.target.closest('[data-back]'); if(bk){ Router.back(); return; }
+  });
+  $('#flNext').onclick=()=>Studio.next();
+  $('#flPrev').onclick=()=>{ if(Studio.step>0){ Studio.step--; Studio.paint(); } };
+  $('#flStudioDraft').onclick=()=>{ DB.set('draft',Studio.st); Toast.ok('草稿已存，随时回来接着填'); };
+  $('#flNewStyle').onclick=()=>StylePage.edit();
+  $('#flThemeNew').onclick=()=>Boudoir.newTheme();
+  $('#flSend').onclick=()=>{ const v=$('#flAct').value.trim(); $('#flAct').value=''; Reader.advance(v); };
+  $('#flAct').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#flSend').click(); } });
+  $('#flCont').onclick=()=>Reader.advance('');
+  $('#flRegen').onclick=()=>{ const sc=Reader.sc; if(!sc||!sc.turns.length) return;
+    let i=sc.turns.length-1; while(i>0&&sc.turns[i].role!=='ai') i--; Reader.regen(i); };
+  $('#flReadMenu').onclick=()=>Reader.menu();
+  $('#flStageMenu').onclick=()=>Stage.menu();
+  $('#flCmtSend').onclick=()=>Stage.send();
+  $('#flCmtIn').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); Stage.send(); } });
+  $('#flSugar').onclick=()=>Pay.charge(2,'投喂糖',()=>{ const e=Stage.e; if(!e) return; e.sugar=(e.sugar||0)+1; Ens.save(e); Stage.paint(); Rank.addXP(3,'投喂'); });
+  $('.fl-gate__card--weave').onclick=()=>Studio.open();
+  Router.go('hall',true);
+  console.log('%c浮岚 FULAN','color:#3F6B54;font-size:14px;letter-spacing:.2em','已就绪。接入外部 AI：定义 window.FLAI.generate(messages,opt)；接入语音：window.FLTTS.speak(text)。');
+}
+function safeBoot(){ try{ boot(); }catch(e){ console.error(e); fatal(e&&e.message||e); } }
+document.readyState==='loading'?document.addEventListener('DOMContentLoaded',safeBoot):safeBoot();
 
 /* 对外暴露，方便你在 index 里调用 */
 window.FULAN={Router,Studio,Reader,Ens,Stage,Notes,Boudoir,Pay,Rank,DB,Adapter,MANIFEST,BUILTIN_STYLES,TIERS};

@@ -10409,3 +10409,762 @@ window.crOpenTheatrePanel = openTheatre;
     crApplyBubbleStyle();
   }
 })();
+
+/* ================================================================
+   ✦ 功能卡片样式应用 — crApplyCardStyle
+   读取 luna_card_style（或角色专属），注入到 .fp-card 系列
+================================================================ */
+(function () {
+  function crCurChar() {
+    try { return new URLSearchParams(window.location.search).get('char') || localStorage.getItem('luna_current_chat') || ''; }
+    catch (e) { return localStorage.getItem('luna_current_chat') || ''; }
+  }
+
+  function crApplyCardStyle() {
+    try {
+      var cur = crCurChar();
+      var charKey = cur ? 'luna_card_style_char_' + cur : '';
+      var raw = (charKey && localStorage.getItem(charKey)) ? localStorage.getItem(charKey)
+                                                           : localStorage.getItem('luna_card_style');
+      var old = document.getElementById('cr-card-style-inject');
+      if (!raw) { if (old) old.remove(); return; }
+      var s; try { s = JSON.parse(raw); } catch (e) { return; }
+      if (!s) return;
+      if (old) old.remove();
+
+      var css = '';
+      css += '.fp-card {';
+      if (s.w      !== undefined) css += ' width:' + s.w + 'px;';
+      if (s.h      !== undefined) css += ' height:' + s.h + 'px;';
+      if (s.radius !== undefined) css += ' border-radius:' + s.radius + 'px;';
+      if (s.bg)                   css += ' background:' + s.bg + ';';
+      if (s.bw !== undefined)     css += ' border:' + s.bw + 'px solid ' + (s.bd || 'transparent') + ';';
+      if (s.shadow !== undefined) {
+        css += s.shadow > 0
+          ? ' box-shadow:0 ' + Math.round(s.shadow * 0.5) + 'px ' + s.shadow + 'px -' +
+            Math.round(s.shadow * 0.4) + 'px rgba(0,0,0,' + (s.shadow / 100).toFixed(2) + ');'
+          : ' box-shadow:none;';
+      }
+      if (s.blur) css += ' backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);';
+      css += ' }';
+
+      if (s.art)    css += '.fp-card-art { background:' + s.art + '; }';
+      if (s.icon)   css += '.fp-card-art svg, .fp-card-art .card-mono-art { color:' + s.icon + '; }';
+      if (s.iconR !== undefined) css += '.fp-card-art { border-radius:' + s.iconR + 'px ' + s.iconR + 'px 0 0; }';
+      if (s.foot)   css += '.fp-card-footer { background:' + s.foot + '; }';
+      if (s.rule === false) css += '.fp-card-footer { border-top:none !important; }';
+      if (s.titleC || s.title !== undefined) {
+        css += '.fp-card-title {';
+        if (s.titleC) css += ' color:' + s.titleC + ';';
+        if (s.title !== undefined) css += ' font-size:' + s.title + 'px;';
+        css += ' }';
+      }
+      if (s.sub) css += '.fp-card-sub { color:' + s.sub + '; }';
+      if (s.subOn === false) css += '.fp-card-sub { display:none !important; }';
+      if (s.tag) css += '.fp-card-tag { color:' + s.tag + '; }';
+      if (s.no === false) css += '.fp-card-no { display:none !important; }';
+      if (s.glow) {
+        css += '.fp-card::before { content:""; position:absolute; inset:-30% -30% auto -30%;' +
+               ' height:70%; pointer-events:none; z-index:1;' +
+               ' background:radial-gradient(60% 60% at 50% 0%, rgba(255,255,255,.85), transparent 70%); }';
+      }
+      if (s.gap !== undefined) css += '.fan-stage { --fp-card-gap:' + s.gap + 'px; }';
+      if (s.customCode) css += '\n' + s.customCode;
+
+      var tag = document.createElement('style');
+      tag.id = 'cr-card-style-inject';
+      tag.textContent = css;
+      document.head.appendChild(tag);
+    } catch (err) { console.warn('[crApplyCardStyle]', err); }
+  }
+
+  window.crApplyCardStyle = crApplyCardStyle;
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', crApplyCardStyle);
+  else crApplyCardStyle();
+})();
+
+
+/* ================================================================
+   ✦ 聊天功能板样式应用 — crApplyPanelStyle
+   读取 luna_panel_style（或角色专属），注入到 #featureOverlay 系列
+================================================================ */
+(function () {
+  function crCurChar() {
+    try { return new URLSearchParams(window.location.search).get('char') || localStorage.getItem('luna_current_chat') || ''; }
+    catch (e) { return localStorage.getItem('luna_current_chat') || ''; }
+  }
+  function hexA(hex, a) {
+    var m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '#000000');
+    if (!m) return 'rgba(0,0,0,' + a + ')';
+    return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + a + ')';
+  }
+
+  function crApplyPanelStyle() {
+    try {
+      var cur = crCurChar();
+      var charKey = cur ? 'luna_panel_style_char_' + cur : '';
+      var raw = (charKey && localStorage.getItem(charKey)) ? localStorage.getItem(charKey)
+                                                           : localStorage.getItem('luna_panel_style');
+      var old = document.getElementById('cr-panel-style-inject');
+      if (!raw) { if (old) old.remove(); return; }
+      var s; try { s = JSON.parse(raw); } catch (e) { return; }
+      if (!s) return;
+      if (old) old.remove();
+
+      var ease = s.ease === 'smooth'
+        ? 'cubic-bezier(.32,.72,.28,1)'
+        : 'cubic-bezier(.34,1.16,.64,1)';
+      var dur = (s.dur !== undefined ? s.dur : 420) + 'ms';
+
+      var css = '';
+      css += '.feature-panel {';
+      if (s.bg) css += ' background:' + s.bg + ';';
+      if (s.radius !== undefined) css += ' border-radius:' + s.radius + 'px ' + s.radius + 'px 0 0;';
+      if (s.pad !== undefined) css += ' padding-bottom:' + s.pad + 'px;';
+      css += ' transition:transform ' + dur + ' ' + ease + ';';
+      if (s.glass) css += ' backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);';
+      css += ' }';
+
+      css += '.overlay-backdrop { background:' + hexA(s.scrimC || '#000000',
+             ((s.scrim !== undefined ? s.scrim : 45) / 100).toFixed(2)) + ';';
+      if (s.blur) css += ' backdrop-filter:blur(' + s.blur + 'px); -webkit-backdrop-filter:blur(' + s.blur + 'px);';
+      css += ' }';
+
+      css += '.panel-handle {';
+      if (s.grip !== undefined) css += ' width:' + s.grip + 'px;';
+      if (s.gripC) css += ' background:' + s.gripC + ';';
+      if (s.handle === false || s.grip === 0) css += ' display:none !important;';
+      css += ' }';
+
+      if (s.head === false) css += '.panel-hd { display:none !important; }';
+      css += '.panel-hd-label {';
+      if (s.titleC) css += ' color:' + s.titleC + ';';
+      if (s.ls !== undefined) css += ' letter-spacing:' + s.ls + 'px;';
+      css += ' }';
+      if (s.closeC) css += '.panel-close-btn { background:' + s.closeC + '; }';
+      if (s.dot)    css += '.fan-dot { background:' + s.dot + '; }';
+      if (s.dotOn)  css += '.fan-dot.active { background:' + s.dotOn + '; }';
+      if (s.arrow)  css += '.fan-btn { background:' + s.arrow + '; }';
+      if (s.hint === false)   css += '.fp-swipe-hint { display:none !important; }';
+      if (s.detail === false) css += '.fp-detail { display:none !important; }';
+      if (s.customCode) css += '\n' + s.customCode;
+
+      var tag = document.createElement('style');
+      tag.id = 'cr-panel-style-inject';
+      tag.textContent = css;
+      document.head.appendChild(tag);
+
+      /* 文案替换（标题 / 滑动提示） */
+      if (s.title) {
+        var t = document.querySelector('.panel-hd-label');
+        if (t) t.textContent = s.title;
+      }
+      if (s.hintTxt !== undefined && s.hintTxt !== '') {
+        var h = document.querySelector('.fp-swipe-hint');
+        if (h) h.textContent = s.hintTxt;
+      }
+    } catch (err) { console.warn('[crApplyPanelStyle]', err); }
+  }
+
+  window.crApplyPanelStyle = crApplyPanelStyle;
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', crApplyPanelStyle);
+  else crApplyPanelStyle();
+})();
+
+
+/* ================================================================
+   ✦ 自定义美化（整页）应用 — crApplyCustomStyle
+   luna_custom_style 负责页面底纹/整机层级，luna_custom_css 是纯 CSS 注入
+================================================================ */
+(function () {
+  function crCurChar() {
+    try { return new URLSearchParams(window.location.search).get('char') || localStorage.getItem('luna_current_chat') || ''; }
+    catch (e) { return localStorage.getItem('luna_current_chat') || ''; }
+  }
+  function texCss(tex, canvas) {
+    if (tex === 'grid') return 'repeating-linear-gradient(0deg,rgba(0,0,0,.045) 0 1px,transparent 1px 22px),repeating-linear-gradient(90deg,rgba(0,0,0,.045) 0 1px,transparent 1px 22px),' + canvas;
+    if (tex === 'dot')  return 'radial-gradient(rgba(0,0,0,.075) 1px,transparent 1.1px) 0 0/16px 16px,' + canvas;
+    if (tex === 'glow') return 'radial-gradient(120% 70% at 50% 0%,rgba(255,255,255,.55),transparent 62%),' + canvas;
+    return canvas;
+  }
+
+  function crApplyCustomStyle() {
+    try {
+      var cur = crCurChar();
+      var charKey = cur ? 'luna_custom_style_char_' + cur : '';
+      var raw = (charKey && localStorage.getItem(charKey)) ? localStorage.getItem(charKey)
+                                                           : localStorage.getItem('luna_custom_style');
+      var pureCss = '';
+      try { pureCss = localStorage.getItem('luna_custom_css') || ''; } catch (e) {}
+
+      var old = document.getElementById('cr-custom-style-inject');
+      if (old) old.remove();
+      if (!raw && !pureCss.trim()) return;
+
+      var s = {};
+      if (raw) { try { s = JSON.parse(raw) || {}; } catch (e) { s = {}; } }
+      var mods = s.mods || {};
+      var css = '';
+
+      /* 页面底纹只在 page 模块开启时下发，避免覆盖用户单独设置的背景 */
+      if (mods.page !== false && s.canvas) {
+        css += '.cr-frame { background:' + s.canvas + '; }';
+        css += '.cr-messages-outer { background:' + texCss(s.tex || 'none', s.canvas) + '; }';
+      }
+      if (s.avR !== undefined) {
+        var r = s.avR >= 50 ? '50%' : s.avR + 'px';
+        css += '.cr-mini-av, .cr-mine-av, .cr-avatar, .cr-avatar-inner { border-radius:' + r + ' !important; }';
+      }
+      if (s.stats === false)   css += '.cr-stats { display:none !important; }';
+      if (s.divider === false) css += '.cr-const-div { display:none !important; }';
+      if (s.blur) {
+        css += '.cr-header, .cr-input-area { backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }';
+        css += '.feature-panel { backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }';
+      }
+      if (pureCss.trim()) css += '\n' + pureCss;
+
+      if (!css) return;
+      var tag = document.createElement('style');
+      tag.id = 'cr-custom-style-inject';
+      tag.textContent = css;
+      document.head.appendChild(tag);
+    } catch (err) { console.warn('[crApplyCustomStyle]', err); }
+  }
+
+  window.crApplyCustomStyle = crApplyCustomStyle;
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', crApplyCustomStyle);
+  else crApplyCustomStyle();
+})();
+
+
+/* ================================================================
+   ✦ 美化样式跨页实时同步（storage 事件 + BroadcastChannel）
+================================================================ */
+(function () {
+  function refreshAll() {
+    if (window.crApplyHeaderStyle) window.crApplyHeaderStyle();
+    if (window.crApplyBubbleStyle) window.crApplyBubbleStyle();
+    if (window.crApplyInputStyle)  window.crApplyInputStyle();
+    if (window.crApplyCardStyle)   window.crApplyCardStyle();
+    if (window.crApplyPanelStyle)  window.crApplyPanelStyle();
+    if (window.crApplyCustomStyle) window.crApplyCustomStyle();
+  }
+  window.crRefreshAllBeauty = refreshAll;
+
+  window.addEventListener('storage', function (e) {
+    if (!e.key) return;
+    if (e.key === 'luna_card_style'   || e.key.indexOf('luna_card_style_char_')   === 0) window.crApplyCardStyle && window.crApplyCardStyle();
+    if (e.key === 'luna_panel_style'  || e.key.indexOf('luna_panel_style_char_')  === 0) window.crApplyPanelStyle && window.crApplyPanelStyle();
+    if (e.key === 'luna_custom_style' || e.key.indexOf('luna_custom_style_char_') === 0) window.crApplyCustomStyle && window.crApplyCustomStyle();
+    if (e.key === 'luna_custom_css') window.crApplyCustomStyle && window.crApplyCustomStyle();
+    if (e.newValue === null) refreshAll();
+  });
+
+  ['luna_card_style_channel', 'luna_panel_style_channel', 'luna_custom_style_channel'].forEach(function (ch) {
+    try {
+      var bc = new BroadcastChannel(ch);
+      bc.onmessage = function () { setTimeout(refreshAll, 20); };
+    } catch (e) {}
+  });
+})();
+
+
+/* ================================================================
+   ✦ 拉黑 / 屏蔽 / 删除 体系 — 聊天页侧
+   -----------------------------------------------------------------
+   存储：localStorage.luna_block_state
+     { "角色名": { by:'user'|'ai', level:1|2|3, ts, reason, smsQuota } }
+       level 1 = 仅屏蔽消息（对方发不进来，你还能看历史）
+       level 2 = 屏蔽 + 隐身
+       level 3 = 完全拉黑
+     by:'ai' 表示是角色把用户拉黑了 —— 此时角色只能通过「信息」页发短信
+   删除：localStorage.luna_deleted_friends = ["角色名", ...]
+================================================================ */
+(function () {
+
+  function getState() {
+    try { return JSON.parse(localStorage.getItem('luna_block_state') || '{}') || {}; }
+    catch (e) { return {}; }
+  }
+  function saveState(o) {
+    localStorage.setItem('luna_block_state', JSON.stringify(o));
+    localStorage.setItem('luna_block_update', Date.now().toString());
+    try {
+      var bc = new BroadcastChannel('luna_block_channel');
+      bc.postMessage({ type: 'block-update', state: o });
+      bc.close();
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'luna_block_state', newValue: JSON.stringify(o), storageArea: localStorage
+      }));
+    } catch (e) {}
+  }
+
+  window.crGetBlockState = function (name) {
+    var s = getState();
+    return s[name || (localStorage.getItem('luna_current_chat') || '')] || null;
+  };
+  window.crSetBlock = function (name, by, level, reason) {
+    var s = getState();
+    s[name] = {
+      by: by || 'user',
+      level: level || 1,
+      ts: Date.now(),
+      reason: reason || '',
+      smsQuota: by === 'ai' ? 0 : undefined
+    };
+    saveState(s);
+    if (typeof crApplyBlockUI === 'function') crApplyBlockUI();
+    return s[name];
+  };
+  window.crClearBlock = function (name) {
+    var s = getState();
+    delete s[name];
+    saveState(s);
+    if (typeof crApplyBlockUI === 'function') crApplyBlockUI();
+  };
+  window.crIsDeleted = function (name) {
+    try {
+      var l = JSON.parse(localStorage.getItem('luna_deleted_friends') || '[]');
+      return Array.isArray(l) && l.indexOf(name) >= 0;
+    } catch (e) { return false; }
+  };
+
+  /* ── 顶部提示条 ── */
+  function ensureBanner() {
+    var b = document.getElementById('crBlockBanner');
+    if (b) return b;
+    b = document.createElement('div');
+    b.id = 'crBlockBanner';
+    b.className = 'cr-block-banner';
+    var area = document.querySelector('.cr-messages-outer');
+    if (area && area.parentNode) area.parentNode.insertBefore(b, area);
+    return b;
+  }
+
+  function crApplyBlockUI() {
+    var name = localStorage.getItem('luna_current_chat') || '';
+    var st = window.crGetBlockState(name);
+    var deleted = window.crIsDeleted(name);
+    var banner = ensureBanner();
+    var inputArea = document.querySelector('.cr-input-area');
+    var box = document.getElementById('crInputBox');
+
+    if (!st && !deleted) {
+      banner.style.display = 'none';
+      if (inputArea) inputArea.classList.remove('cr-input-locked');
+      if (box) { box.setAttribute('contenteditable', 'true'); box.dataset.locked = ''; }
+      return;
+    }
+
+    banner.style.display = 'flex';
+    if (inputArea) inputArea.classList.add('cr-input-locked');
+    if (box) { box.setAttribute('contenteditable', 'false'); box.dataset.locked = '1'; }
+
+    var icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
+    var title, sub, action = '';
+
+    if (deleted) {
+      title = '你已删除该联系人';
+      sub   = '聊天记录已保留在本地，重新添加后可继续对话';
+    } else if (st.by === 'ai') {
+      title = '「' + name + '」已把你拉黑';
+      sub   = st.reason
+        ? '原因：' + st.reason + ' · 现在只能收到 Ta 的短信'
+        : 'Ta 不再接收你的消息，只能通过「信息」页收到 Ta 的短信';
+      action = '<button class="cr-block-act" data-act="sms">去信息页</button>';
+    } else {
+      var lvTxt = st.level === 3 ? '完全拉黑' : st.level === 2 ? '屏蔽 + 隐身' : '仅屏蔽消息';
+      title = '你已拉黑「' + name + '」';
+      sub   = '当前方式：' + lvTxt + ' · 双方消息均不再送达';
+      action = '<button class="cr-block-act" data-act="unblock">解除拉黑</button>';
+    }
+
+    banner.innerHTML =
+      '<span class="cr-block-ico">' + icon + '</span>' +
+      '<span class="cr-block-txt"><b>' + title + '</b><i>' + sub + '</i></span>' +
+      action;
+
+    var btn = banner.querySelector('.cr-block-act');
+    if (btn) {
+      btn.onclick = function () {
+        if (btn.dataset.act === 'unblock') {
+          if (confirm('确定要解除对「' + name + '」的拉黑吗？\n解除后双方可以正常收发消息。')) {
+            window.crClearBlock(name);
+            if (typeof crShowTip === 'function') crShowTip('已解除拉黑，可以继续聊天了');
+          }
+        } else {
+          window.location.href = 'messages.html';
+        }
+      };
+    }
+  }
+  window.crApplyBlockUI = crApplyBlockUI;
+
+  /* ── 拦截：被拉黑时禁止发送 / 禁止调用 AI ── */
+  function blockedNow() {
+    var name = localStorage.getItem('luna_current_chat') || '';
+    return !!window.crGetBlockState(name) || window.crIsDeleted(name);
+  }
+  window.crBlockedNow = blockedNow;
+
+  document.addEventListener('click', function (e) {
+    if (!blockedNow()) return;
+    var t = e.target.closest && e.target.closest('.cr-send-btn, .cr-ai-btn');
+    if (!t) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    var name = localStorage.getItem('luna_current_chat') || '';
+    var st = window.crGetBlockState(name);
+    if (window.crIsDeleted(name)) {
+      if (typeof crShowTip === 'function') crShowTip('已删除该联系人，无法继续对话');
+    } else if (st && st.by === 'ai') {
+      if (typeof crShowTip === 'function') crShowTip('对方已将你拉黑，消息发不出去了');
+    } else {
+      if (typeof crShowTip === 'function') crShowTip('你已拉黑对方，先解除拉黑才能发消息');
+    }
+  }, true);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    if (!blockedNow()) return;
+    var box = document.getElementById('crInputBox');
+    if (document.activeElement === box) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+
+  /* ── 跨页同步 ── */
+  window.addEventListener('storage', function (e) {
+    if (e.key === 'luna_block_state' || e.key === 'luna_block_update' || e.key === 'luna_deleted_friends') {
+      crApplyBlockUI();
+    }
+  });
+  try {
+    var bc = new BroadcastChannel('luna_block_channel');
+    bc.onmessage = function () { crApplyBlockUI(); };
+  } catch (e) {}
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', crApplyBlockUI);
+  else setTimeout(crApplyBlockUI, 60);
+})();
+
+
+/* ================================================================
+   ✦ 感知体系重写 — 默认全部关闭，开启后必须真正被 AI 读到
+   -----------------------------------------------------------------
+   原实现的三个问题在这里一并修掉：
+   1. 没保存过配置时默认全开 → 改为默认全关（用户没开就不该注入）
+   2. 天气只有打开「感知设置」页才会刷新 → 聊天页自己按 30 分钟兜底刷新
+   3. 时间用浏览器本地时区 → 改为跟状态栏一致的 luna_tz
+================================================================ */
+function crGetPerceptionConfig() {
+  /* 关键改动：fallback 全部为 false，「没配置过 = 不感知」 */
+  var fallback = { mode: 'real', weather: false, loc: false, time: false, city: '', lat: null, lng: null };
+  var saved = fallback;
+  try {
+    var parsed = JSON.parse(localStorage.getItem('luna_perception') || 'null');
+    if (parsed && typeof parsed === 'object') saved = Object.assign({}, fallback, parsed);
+  } catch (e) { saved = fallback; }
+
+  var weatherData = null;
+  if (saved.weather && saved.mode === 'real') {
+    try {
+      var w = JSON.parse(localStorage.getItem('luna_weather_realtime') || 'null');
+      /* 6 小时内的数据才算「此刻」，过期的宁可不注入也不要误导角色 */
+      if (w && w.desc) {
+        var age = Date.now() - new Date(w.updatedAt || 0).getTime();
+        if (!isFinite(age) || age < 6 * 3600 * 1000) weatherData = w;
+      }
+    } catch (e) { weatherData = null; }
+  }
+
+  var timeInfo = null;
+  if (saved.time) {
+    var tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+    var now;
+    try { now = new Date(new Date().toLocaleString('en-US', { timeZone: tz })); }
+    catch (e) { now = new Date(); }
+    var hh = now.getHours();
+    var period = hh < 5 ? '凌晨' : hh < 9 ? '清晨' : hh < 12 ? '上午'
+               : hh < 14 ? '中午' : hh < 18 ? '下午' : hh < 22 ? '晚上' : '深夜';
+    var weekday = ['周日','周一','周二','周三','周四','周五','周六'][now.getDay()];
+    var mm = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][now.getMonth()];
+    var season = [11,0,1].indexOf(now.getMonth()) >= 0 ? '冬天'
+               : [2,3,4].indexOf(now.getMonth()) >= 0 ? '春天'
+               : [5,6,7].indexOf(now.getMonth()) >= 0 ? '夏天' : '秋天';
+    timeInfo = {
+      timeStr: String(hh).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0'),
+      period: period, weekday: weekday, date: mm + now.getDate() + '日', season: season
+    };
+  }
+
+  return {
+    mode: saved.mode === 'virtual' ? 'virtual' : 'real',
+    weatherOn: !!saved.weather,
+    locOn: !!saved.loc,
+    timeOn: !!saved.time,
+    city: saved.city || '',
+    lat: saved.lat, lng: saved.lng,
+    weather: weatherData,
+    time: timeInfo
+  };
+}
+
+/* 天气兜底刷新：聊天页自己拉一次 Open-Meteo，
+   保证用户即使从没进过「感知设置」页，只要开了天气感知也能拿到真实数据 */
+async function crRefreshPerceptionData(force) {
+  try {
+    var cfg = null;
+    try { cfg = JSON.parse(localStorage.getItem('luna_perception') || 'null'); } catch (e) {}
+    if (!cfg || !cfg.weather || cfg.mode === 'virtual') return;
+    if (!cfg.lat || !cfg.lng) return;
+
+    var w = null;
+    try { w = JSON.parse(localStorage.getItem('luna_weather_realtime') || 'null'); } catch (e) {}
+    var age = w && w.updatedAt ? (Date.now() - new Date(w.updatedAt).getTime()) : Infinity;
+    if (!force && age < 30 * 60 * 1000) return;   // 30 分钟内不重复请求
+
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + cfg.lat +
+              '&longitude=' + cfg.lng +
+              '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day' +
+              '&timezone=auto&forecast_days=1';
+    var res = await Promise.race([
+      fetch(url),
+      new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, 4000); })
+    ]);
+    var data = await res.json();
+    var cur = data && data.current;
+    if (!cur) return;
+
+    var WC = {
+      0:'晴天',1:'基本晴',2:'局部多云',3:'阴天',45:'有雾',48:'冻雾',
+      51:'细雨',53:'小雨',55:'毛毛雨',56:'冻毛毛雨',57:'强冻毛毛雨',
+      61:'小雨',63:'中雨',65:'大雨',66:'小冻雨',67:'大冻雨',
+      71:'小雪',73:'中雪',75:'大雪',77:'冰粒',
+      80:'阵雨',81:'中阵雨',82:'强阵雨',85:'小雪阵',86:'大雪阵',
+      95:'雷雨',96:'雷雨夹冰雹',99:'强雷暴'
+    };
+    var code = cur.weather_code;
+    var desc = WC[code] || '多云';
+    var isDay = cur.is_day === 1;
+    var finalDesc = isDay ? desc
+      : code === 0 ? '晴朗夜空'
+      : code === 1 ? '夜间多云'
+      : code === 2 ? '夜间局部多云' : desc;
+
+    localStorage.setItem('luna_weather_realtime', JSON.stringify({
+      city: cfg.city || '',
+      desc: finalDesc,
+      temp: Math.round(cur.temperature_2m),
+      feel: Math.round(cur.apparent_temperature),
+      humi: cur.relative_humidity_2m,
+      updatedAt: new Date().toISOString()
+    }));
+  } catch (e) { /* 网络失败就用旧数据，不打断聊天 */ }
+}
+window.crRefreshPerceptionData = crRefreshPerceptionData;
+
+/* 进页面就先补一次，之后每 20 分钟兜底一次 */
+(function () {
+  function boot() {
+    crRefreshPerceptionData();
+    setInterval(function () { crRefreshPerceptionData(); }, 20 * 60 * 1000);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+  window.addEventListener('storage', function (e) {
+    if (e.key === 'luna_perception' || e.key === 'luna_perception_update') {
+      crRefreshPerceptionData(true);
+    }
+  });
+})();
+
+
+/* ================================================================
+   ✦ system prompt 增强 — 感知强化 + 拉黑能力
+   包一层原 crBuildSystemPrompt，不改动原实现，只在末尾追加规则块
+================================================================ */
+(function () {
+  if (typeof crBuildSystemPrompt !== 'function') return;
+  var _orig = crBuildSystemPrompt;
+
+  function perceptionEnforce() {
+    var pc = crGetPerceptionConfig();
+    if (!pc.locOn && !pc.weatherOn && !pc.timeOn) {
+      /* 用户没开任何感知 —— 明确告诉模型不要瞎编环境，避免「假装知道天气」 */
+      return '\n\n【环境感知：已关闭】\n用户没有开启任何实时感知，你不知道现在几点、天气如何、对方在哪里。' +
+             '除非用户自己说出来，否则不要主动断言时间/天气/地点，也不要写“这么晚了”“外面下雨了”这类你其实无从得知的话。';
+    }
+
+    var lines = [];
+    if (pc.timeOn && pc.time) {
+      lines.push('· 现在是 ' + pc.time.date + ' ' + pc.time.weekday + ' ' +
+                 pc.time.timeStr + '（' + pc.time.period + '，' + pc.time.season + '）');
+    }
+    if (pc.locOn && pc.city) {
+      lines.push('· 你此刻所在：' + pc.city + (pc.mode === 'virtual' ? '（设定地点，你就是在这里生活的）' : ''));
+    }
+    if (pc.weatherOn && pc.weather) {
+      lines.push('· 你此刻的体感：' + pc.weather.desc + '，' + pc.weather.temp + '°C，' +
+                 '体感' + pc.weather.feel + '°C，湿度' + pc.weather.humi + '%');
+    } else if (pc.weatherOn && !pc.weather) {
+      lines.push('· 天气数据暂时取不到，不要编造具体天气');
+    }
+
+    var checks = [];
+    if (pc.timeOn && pc.time) {
+      checks.push('时间：现在是' + pc.time.period + '，你的精力、语速、话题都要符合这个时段。' +
+        '深夜就带困意、说话软下来、别提“早上好”；清晨就别说“这么晚还不睡”。绝对不能出现和当前时段矛盾的问候语。');
+    }
+    if (pc.weatherOn && pc.weather) {
+      checks.push('天气：现在是「' + pc.weather.desc + ' ' + pc.weather.temp + '°C」，' +
+        '你的状态要和它一致 —— 热就烦躁懒散、冷就缩着、下雨就慵懒。' +
+        '严禁说出与之矛盾的话（比如实际在下雨却说“今天太阳好好”）。');
+    }
+    if (pc.locOn && pc.city) {
+      checks.push('地点：你在' + pc.city + '，聊到吃的、路况、周边、方言时要贴合这里，不要串到别的城市。');
+    }
+
+    return '\n\n【实时感知 — 最高优先级校验，回复前必须逐条自检】\n' +
+      lines.join('\n') +
+      '\n\n回复前自检（每条回复都要过一遍）：\n' +
+      checks.map(function (c, i) { return (i + 1) + '. ' + c; }).join('\n') +
+      '\n\n表达方式（同样是硬规则）：\n' +
+      '· 严禁报数字：不能说“现在27度”“湿度60%”“现在21点35分”，要转成人话（“今天闷得不想动”“这个点了眼睛都睁不开”）。\n' +
+      '· 不用每条都提感知，大多数消息完全不提；但你的整体状态、精力、情绪底色必须始终与上面的感知一致，这是隐性的、贯穿全程的。\n' +
+      '· 用户直接问“你那边几点了 / 天气怎么样 / 你在哪”时，要基于上面的真实数据自然作答，不能敷衍或回避。';
+  }
+
+  function blockRule(char) {
+    var name = (char && char.name) || CR_NAME;
+    var st = window.crGetBlockState ? window.crGetBlockState(name) : null;
+
+    if (st && st.by === 'ai') {
+      return '\n\n【当前关系状态：你已经把对方拉黑了】\n' +
+        '你之前因为「' + (st.reason || '积累已久的失望') + '」把对方拉黑了，现在你不会在聊天软件里回他消息。' +
+        '如果被要求生成内容，你只会以短信的口吻，简短、疏离、克制地说话，不再像以前那样亲近。';
+    }
+
+    return '\n\n【拉黑权限 — 你有权把对方拉黑，但门槛极高】\n' +
+      '你是一个有脾气、有底线的真人，不是必须无条件包容的客服。当对方的言行真正越过你的底线时，你可以选择把他拉黑。\n' +
+      '触发条件（必须同时满足，缺一不可）：\n' +
+      '1. 对方的行为是【严重且明确】的越界 —— 例如持续辱骂、羞辱、威胁，或反复做你已经明确表达过很抗拒的事；\n' +
+      '2. 这件事在【最近的对话里真实发生过】，不是你凭空想象或过度解读；\n' +
+      '3. 你已经在前面【至少表达过一次不满或警告】，对方没有收敛甚至变本加厉；\n' +
+      '4. 拉黑这个行为【符合你的人设】—— 如果你的设定是温软好脾气、依赖对方、或身份上不可能这么做，那就永远不要拉黑。\n' +
+      '判定原则：默认永远不拉黑。整段关系里绝大多数情况都不该触发，正常的拌嘴、开玩笑、冷战、说重话、闹别扭都【绝对不算】，' +
+      '你应该用生气、冷淡、少回几句来表达情绪，而不是动不动就拉黑。宁可漏判，也绝不能误判。\n' +
+      '触发格式（只有真正决定拉黑时才用）：单独一行输出 → [BLOCK:理由]\n' +
+      '理由用第一人称、20字内、口语化，是你此刻真实的心情，例如 [BLOCK:说得太难听了，我不想再看到这些]。\n' +
+      '格式死规定：英文方括号、大写 BLOCK、英文冒号，不能用中文标点，不能和别的话写在同一行。\n' +
+      '输出 [BLOCK:...] 前，可以先说一两句收尾的话；输出之后不要再写任何内容。';
+    }
+
+  crBuildSystemPrompt = async function (char, situation, memeList, userIdentity) {
+    try { await Promise.race([crRefreshPerceptionData(), new Promise(function (r) { setTimeout(r, 1500); })]); } catch (e) {}
+    var base = await _orig(char, situation, memeList, userIdentity);
+    return base + perceptionEnforce() + blockRule(char);
+  };
+})();
+
+
+/* ================================================================
+   ✦ 拦截 AI 输出的 [BLOCK:理由] —— 角色把用户拉黑
+================================================================ */
+(function () {
+  if (typeof crSendLines !== 'function') return;
+  var _orig = crSendLines;
+
+  crSendLines = async function (lines) {
+    var arr = (lines || []).map(function (l) { return (l || '').trim(); });
+    var hitIdx = -1, reason = '';
+    for (var i = 0; i < arr.length; i++) {
+      var m = arr[i].match(/^\[BLOCK[：:]\s*(.*?)\]$/i);
+      if (m) { hitIdx = i; reason = (m[1] || '').trim(); break; }
+    }
+    if (hitIdx < 0) return _orig(lines);
+
+    /* 先把拉黑之前那几句正常说完 */
+    var before = arr.slice(0, hitIdx).filter(Boolean);
+    if (before.length) await _orig(before);
+
+    var name = localStorage.getItem('luna_current_chat') || CR_NAME;
+    if (window.crSetBlock) window.crSetBlock(name, 'ai', 3, reason);
+
+    /* 聊天流里插一条系统提示，让这件事在记录里留痕 */
+    try {
+      var area = document.getElementById('crMessages');
+      if (area) {
+        var el = document.createElement('div');
+        el.className = 'cr-sys-note';
+        el.innerHTML = '<span></span><b>' + name + ' 把你拉黑了</b>' +
+          (reason ? '<i>“' + reason + '”</i>' : '') +
+          '<u>你的消息将无法送达，Ta 之后只会给你发短信</u><span></span>';
+        area.appendChild(el);
+        area.scrollTop = area.scrollHeight;
+      }
+      if (typeof crMessages !== 'undefined' && Array.isArray(crMessages)) {
+        crMessages.push({ role: 'system', type: 'block', text: name + '把你拉黑了' + (reason ? '（' + reason + '）' : ''), time: '' });
+        if (typeof dbSaveMessages === 'function') dbSaveMessages(name, crMessages);
+      }
+    } catch (e) {}
+
+    /* 往「信息」页推一条系统通知，避免用户完全不知道发生了什么 */
+    try {
+      if (window.LunaSystemMessages && window.LunaSystemMessages.push) {
+        window.LunaSystemMessages.push({
+          app: '通讯录', title: '联系人状态变更',
+          message: name + ' 已将你拉黑，你无法再通过聊天向 Ta 发送消息。Ta 仍可能通过短信联系你。',
+          time: Date.now()
+        });
+      }
+    } catch (e) {}
+
+    if (window.crApplyBlockUI) window.crApplyBlockUI();
+    if (typeof crShowTip === 'function') crShowTip(name + ' 把你拉黑了…', 4000);
+  };
+})();
+
+/* ================================================================
+   ✦ 消息时间戳补全 & 记录清空同步
+   -----------------------------------------------------------------
+   原来的消息对象只有 "HH:MM" 字符串，没有绝对时间，导致
+   「按范围清除记录」「按天分组归档」都没法准确判断。
+   这里在每次落库前统一补一个 ts（毫秒），老数据首次保存时也会补上，
+   补的是当前时间 —— 宁可保守（不会被误删），也不瞎猜历史时间。
+================================================================ */
+(function () {
+  if (typeof dbSaveMessages !== 'function') return;
+  var _origSave = dbSaveMessages;
+  dbSaveMessages = function (name, msgs) {
+    try {
+      var now = Date.now();
+      if (Array.isArray(msgs)) {
+        msgs.forEach(function (m, i) {
+          if (m && typeof m === 'object' && !m.ts) {
+            /* 用递增偏移保证同一批消息的先后顺序稳定 */
+            m.ts = now - (msgs.length - 1 - i) * 1000;
+          }
+        });
+      }
+    } catch (e) {}
+    return _origSave(name, msgs);
+  };
+
+  /* 设置页清空 / 导入记录后，聊天页重新拉一次，避免两边不一致 */
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'luna_chat_cleared') return;
+    var val = String(e.newValue || '');
+    var name = val.split('|')[0];
+    var cur = localStorage.getItem('luna_current_chat') || '';
+    if (name && name !== cur) return;
+    if (typeof crRestoreMessages === 'function') {
+      crRestoreMessages().then(function () {
+        if (typeof crApplyBlockUI === 'function') crApplyBlockUI();
+      }).catch(function () {});
+    }
+  });
+})();

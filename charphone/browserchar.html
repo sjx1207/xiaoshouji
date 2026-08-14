@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Halo Browser</title>
+<link rel="stylesheet" href="browserchar.css">
+</head>
+<body>
+
+  <!-- 背景层：主列表页（日常 / 私密两个面板共用）的唯一背景来源。
+       默认浅色光晕；用户上传后，这一张图会原样、清晰、不做任何模糊地铺满整个列表页，
+       列表页上的玻璃卡片透出这张图。网页详情页（#webview）是独立的一层"打开的内容"，
+       刻意不复用这张背景图，固定使用统一的浅/深底色，避免"背景穿透"到详情页的错觉。 -->
+  <div class="bg-glow" id="bgGlow"></div>
+  <div class="bg-photo" id="bgPhoto"></div>
+  <input type="file" id="bgUploadInput" accept="image/*" hidden>
+  <div class="bg-toast" id="bgToast">背景已更新</div>
+
+  <!-- 状态栏 -->
+  <div class="status-bar">
+    <div class="status-time" id="time">09:41</div>
+    <div class="status-right">
+      <svg class="icon signal" viewBox="0 0 20 14" fill="none">
+        <rect x="0" y="9" width="3" height="5" rx="0.8" fill="currentColor"/>
+        <rect x="5.5" y="6.5" width="3" height="7.5" rx="0.8" fill="currentColor"/>
+        <rect x="11" y="3.5" width="3" height="10.5" rx="0.8" fill="currentColor"/>
+        <rect x="16.5" y="0" width="3" height="14" rx="0.8" fill="currentColor"/>
+      </svg>
+      <svg class="icon battery" viewBox="0 0 25 12" fill="none">
+        <rect x="0.75" y="0.75" width="20.5" height="10.5" rx="2.75" stroke="currentColor" stroke-width="1"/>
+        <rect id="batteryLevel" x="2.25" y="2.25" width="16" height="7.5" rx="1.5" fill="currentColor"/>
+        <path d="M23 4.2V7.8C23.8 7.45 24.3 6.55 24.3 6C24.3 5.45 23.8 4.55 23 4.2Z" fill="currentColor" opacity="0.4"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- 顶部：角色专属浏览器身份 + 隐私模式切换 -->
+  <div class="browser-topbar">
+    <div class="topbar-card liquid-glass">
+      <div class="brand-mark" id="brandMark">
+        <span class="brand-avatar" id="brandAvatar">
+          <span class="brand-avatar-ring">
+            <span class="brand-avatar-letter" id="brandAvatarLetter">?</span>
+            <img class="brand-avatar-img" id="brandAvatarImg" alt="">
+          </span>
+          <span class="brand-avatar-dot"></span>
+        </span>
+        <span class="brand-text">
+          <span class="brand-name" id="brandName">加载中</span>
+          <span class="brand-sub" id="brandSub">同步中 · 记录已加密</span>
+        </span>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="mode-switch" id="modeSwitch">
+          <button type="button" class="mode-btn is-active" data-mode="normal">日常</button>
+          <button type="button" class="mode-btn" data-mode="private">私密</button>
+        </div>
+        <button type="button" class="topbar-more" id="topbarMore" aria-label="更多">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="5.2" r="1.05" fill="currentColor" stroke="none"/>
+            <circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none"/>
+            <circle cx="12" cy="18.8" r="1.05" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 搜索框（静态入口占位） -->
+  <div class="search-shell liquid-glass" id="searchShell">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="6.5"/>
+      <path d="M20 20l-4.6-4.6"/>
+    </svg>
+    <span class="search-placeholder" id="searchPlaceholder">搜索或输入网址</span>
+    <span class="search-lock" id="searchLock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5.5" y="10.5" width="13" height="9" rx="2.2"/>
+        <path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/>
+      </svg>
+    </span>
+  </div>
+
+  <!-- 主体：两个面板随模式切换 -->
+  <div class="browser-body">
+
+    <!-- 日常记录面板 -->
+    <section class="panel is-active" id="panelNormal">
+      <div class="panel-heading">
+        <span class="panel-title">最近搜索</span>
+        <button type="button" class="panel-clear" data-clear="normal">清除</button>
+      </div>
+
+      <div class="history-group liquid-glass">
+        <div class="group-label">今天</div>
+
+        <a class="history-row" href="#" data-entry data-entry-id="e1"
+           data-title="今天穿什么才不显冷 秋日穿搭合集"
+           data-site="weibo.com" data-action="搜索" data-time="09:24 · 今天"
+           data-fav="fv-cyan"
+           data-mood="盯着看了很久" data-mood-tone="focus"
+           data-os="这件外套的颜色好像会显白，如果我也买一件……不知道适不适合我。"
+           data-author="乐乐生活记" data-author-meta="今天 09:20 · 秋日穿搭"
+           data-article-title="今天穿什么才不显冷丨秋日穿搭合集"
+           data-paragraphs="进入十月之后，早晚的温差变得很明显，很多人开始纠结通勤到底该怎么穿。||其实秋天最讨喜的不是堆叠很多层，而是选对一件真正扛冷又不显臃肿的外套，剩下的交给内搭去做温度调节。||驼色和燕麦色系今年依然是首选，耐看不挑人，配一条直筒牛仔裤就很难出错。||如果本身皮肤偏暗，可以试试雾霾蓝或者深灰这种低饱和度的颜色，反而比纯黑更显气色。||最后提醒一句，秋天穿搭最容易忽略的其实是鞋子，一双干净的小白鞋比什么都重要。"
+           data-annotate="0::1|颜色这块她盯着看了很久，来回划了好几遍。::2||3|她把这两段截了图，应该是在犹豫要不要买同色系的。::4|"
+           >
+          <span class="row-favicon fv-cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M4 12h16M12 3.8c2.1 2.1 3.3 4.9 3.3 8.2s-1.2 6.1-3.3 8.2c-2.1-2.1-3.3-4.9-3.3-8.2S9.9 5.9 12 3.8z"/></svg>
+          </span>
+          <span class="row-body">
+            <span class="row-title">今天穿什么才不显冷 秋日穿搭合集</span>
+            <span class="row-url">weibo.com · 搜索</span>
+            <span class="row-mood" data-tone="focus"><span class="row-mood-dot"></span>盯着看了很久</span>
+          </span>
+          <span class="row-time">09:24</span>
+        </a>
+
+        <a class="history-row" href="#" data-entry data-entry-id="e2"
+           data-title="附近好评咖啡馆 安静适合看书"
+           data-site="dianping.com" data-action="搜索" data-time="08:47 · 今天"
+           data-fav="fv-peach"
+           data-mood="随手翻了翻" data-mood-tone="casual"
+           data-os="离得挺近的，改天真可以一个人去坐一下午。"
+           data-author="城市探店笔记" data-author-meta="3天前更新 · 探店合集"
+           data-article-title="安静适合看书的咖啡馆清单"
+           data-paragraphs="这次整理了几家人少、灯光舒服、适合久坐的咖啡馆，都在市中心步行可达的范围内。||第一家是巷子里的老宅改造空间，位置不好找，但正因为这样反而很安静，基本不会遇到拍照打卡的人流。||第二家开到很晚，晚上九点之后几乎是包场体验，很适合下班后一个人待一会儿。||第三家有免费续杯的规则，坐一整天也不会觉得不好意思，很适合看书或者写东西。||建议避开周末下午去，人会多一些，工作日的傍晚是体验最好的时间段。"
+           data-annotate="1|这家她收藏了，备注写着“下次一个人去”。::3|续杯这条对她来说很重要，之前抱怨过总不好意思坐太久。"
+           >
+          <span class="row-favicon fv-peach">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M4 9.5h16M9 5v14"/></svg>
+          </span>
+          <span class="row-body">
+            <span class="row-title">附近好评咖啡馆 安静适合看书</span>
+            <span class="row-url">dianping.com · 搜索</span>
+            <span class="row-mood" data-tone="casual"><span class="row-mood-dot"></span>随手翻了翻</span>
+          </span>
+          <span class="row-time">08:47</span>
+        </a>
+
+        <a class="history-row" href="#" data-entry data-entry-id="e3"
+           data-title="音乐榜单 深夜安静歌单推荐"
+           data-site="music.163.com" data-action="访问" data-time="00:12 · 今天"
+           data-fav="fv-lilac"
+           data-mood="循环播放了三次" data-mood-tone="soft"
+           data-os="这首歌的前奏怎么这么像去年冬天常听的那首……有点出神了。"
+           data-author="深夜电台 Vol.42" data-author-meta="昨晚更新 · 安静歌单"
+           data-article-title="深夜安静歌单 · 适合一个人听的十首"
+           data-paragraphs="选这份歌单的初衷是想找一些不会吵到人，但又不至于太沉闷的曲子，适合睡前或者一个人待着的时候放。||前几首节奏都偏慢，钢琴和弦乐居多，情绪是铺开的，不会有太突兀的转折。||中段插了一首带一点点忧郁气质的英文歌，很多人说单曲循环了很久，评论区也是这首最多人留言。||最后两首收得比较轻，像是在跟这一天慢慢道别，适合戴上耳机走一段夜路的时候听。||如果只想留一首反复听，评论区最推荐的就是第七首，很多人说听哭过。"
+           data-annotate="2|这首她单曲循环了不止三次，手机播放记录里连着刷了一整晚。::4|她点进评论区往下翻了很久，像是在看别人怎么说这首歌。"
+           >
+          <span class="row-favicon fv-lilac">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-9.6-9.1C.9 8.2 2.6 5 6 5c2 0 3.4 1.1 4 2.3.6-1.2 2-2.3 4-2.3 3.4 0 5.1 3.2 3.6 6.9C19.5 16.4 12 21 12 21z"/></svg>
+          </span>
+          <span class="row-body">
+            <span class="row-title">音乐榜单 深夜安静歌单推荐</span>
+            <span class="row-url">music.163.com · 访问</span>
+            <span class="row-mood" data-tone="soft"><span class="row-mood-dot"></span>循环播放了三次</span>
+          </span>
+          <span class="row-time">00:12</span>
+        </a>
+      </div>
+
+      <div class="history-group liquid-glass">
+        <div class="group-label">昨天</div>
+
+        <a class="history-row" href="#" data-entry data-entry-id="e4"
+           data-title="简单好做的一人食晚餐食谱"
+           data-site="xiaohongshu.com" data-action="搜索" data-time="19:36 · 昨天"
+           data-fav="fv-sage"
+           data-mood="收藏了一份" data-mood-tone="focus"
+           data-os="步骤看起来不难，冰箱里好像刚好有需要的东西，今天试试看。"
+           data-author="一人食日常" data-author-meta="今天 18:50 · 家常菜"
+           data-article-title="十分钟搞定的一人食晚餐"
+           data-paragraphs="一个人住之后最容易放弃的就是好好吃饭，经常凑合一顿，其实很多菜十分钟内就能搞定。||番茄炒蛋盖饭是最不容易失败的一道，掌握好番茄炒到出汁的火候就行，几乎不需要额外调味。||如果懒得开火，用微波炉也能做一份还不错的懒人焗饭，铺满芝士基本不会踩雷。||建议一次多煮一点米饭冷冻分装，这样临时想吃点什么的时候会方便很多。||最后附上这周的采买清单，照着买基本能撑过整整一周的晚餐。"
+           data-annotate="2|这道她收藏了，备注写了“周末试试”。::4|清单她截了图存在相册里。"
+           >
+          <span class="row-favicon fv-sage">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17" rx="2.2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+          </span>
+          <span class="row-body">
+            <span class="row-title">简单好做的一人食晚餐食谱</span>
+            <span class="row-url">xiaohongshu.com · 搜索</span>
+            <span class="row-mood" data-tone="focus"><span class="row-mood-dot"></span>收藏了一份</span>
+          </span>
+          <span class="row-time">19:36</span>
+        </a>
+
+        <a class="history-row" href="#" data-entry data-entry-id="e5"
+           data-title="附近皮肤科 预约挂号方式"
+           data-site="baidu.com" data-action="搜索" data-time="14:02 · 昨天"
+           data-fav="fv-cyan"
+           data-mood="查完就关掉了" data-mood-tone="casual"
+           data-os="应该不是什么大问题，就是想确认一下，先查完再说。"
+           data-author="健康信息平台" data-author-meta="更新于本周 · 就医指南"
+           data-article-title="附近皮肤科预约挂号方式一览"
+           data-paragraphs="很多常见的皮肤问题其实不需要挂急诊，普通门诊就能处理，提前预约可以省下不少排队时间。||线上预约目前支持三种方式，公众号小程序、医院官网、以及第三方挂号平台，三者号源是互通的。||建议优先选择工作日上午的号，医生问诊时间会相对更充裕，不会因为患者多而被压缩。||如果只是想先简单判断严重程度，也可以先使用图文问诊功能，医生会给出是否需要到院的建议。||最后提醒，复诊记得带上之前的病历和用药记录，方便医生对比变化。"
+           data-annotate="2|她选的是最早的工作日上午号。"
+           >
+          <span class="row-favicon fv-cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5C4 5.1 5.1 4 6.5 4h11C18.9 4 20 5.1 20 6.5v7c0 1.4-1.1 2.5-2.5 2.5H9l-4 4v-4H6.5C5.1 16 4 14.9 4 13.5z"/></svg>
+          </span>
+          <span class="row-body">
+            <span class="row-title">附近皮肤科 预约挂号方式</span>
+            <span class="row-url">baidu.com · 搜索</span>
+            <span class="row-mood" data-tone="casual"><span class="row-mood-dot"></span>查完就关掉了</span>
+          </span>
+          <span class="row-time">14:02</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- 私密搜索面板 -->
+    <section class="panel" id="panelPrivate">
+      <div class="private-banner">
+        <span class="private-banner-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5.5" y="10.5" width="13" height="9" rx="2.2"/>
+            <path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/>
+            <circle cx="12" cy="15" r="1.15" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
+        <span class="private-banner-text">私密标签页不会出现在常规历史记录中</span>
+      </div>
+
+      <div class="panel-heading">
+        <span class="panel-title">私密记录</span>
+        <button type="button" class="panel-clear" data-clear="private">清除</button>
+      </div>
+
+      <div class="history-group liquid-glass">
+        <div class="group-label">今天 · 私密</div>
+
+        <a class="history-row is-private" href="#" data-entry data-private data-entry-id="p1"
+           data-title="怎么才能睡个整觉"
+           data-site="私密搜索" data-action="搜索" data-time="02:47 · 今天"
+           data-fav="fv-ink"
+           data-mood="反复搜了好几次" data-mood-tone="deep"
+           data-os="已经是这周第三次凌晨还醒着了，是不是哪里不对劲。"
+           data-author="睡眠研究小组" data-author-meta="私密浏览 · 不会留下痕迹"
+           data-article-title="总是睡不好整觉，可能是这几个原因"
+           data-paragraphs="偶尔一两次失眠很正常，但如果连续超过两周都难以入睡或者维持睡眠，就值得认真看待了。||最常见的原因是睡前依然处于"清醒警觉"状态，比如临睡前还在看让人情绪起伏的内容，或者反复思考白天没解决的事情。||生理层面上，褪黑素分泌紊乱、咖啡因残留、以及不规律的作息都会直接影响入睡难度。||短期内可以尝试固定的睡前流程，比如把手机放在够不到的地方，用二十分钟做一些不需要用脑的事。||如果持续超过一个月依然没有改善，建议还是和医生聊一聊，而不是一直自己硬扛。"
+           data-annotate="1|这句她读了两遍，光标在这里停了很久。::4|这条建议她划了线，但最后还是把页面关掉了，没有点进去查医生。"
+           >
+          <span class="row-favicon fv-ink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.6-4.6"/></svg>
+          </span>
+          <span class="row-body">
+            <span class="row-title text-blur" data-reveal>点按查看这条记录</span>
+            <span class="row-url">私密搜索 · 02:47</span>
+            <span class="row-mood" data-tone="deep"><span class="row-mood-dot"></span>反复搜了好几次</span>
+          </span>
+          <span class="row-time">02:47</span>
+        </a>
+
+        <a class="history-row is-private" href="#" data-entry data-private data-entry-id="p2"
+           data-title="怎么假装自己很开心"
+           data-site="私密搜索" data-action="搜索" data-time="01:58 · 今天"
+           data-fav="fv-ink"
+           data-mood="停顿了很久才点开" data-mood-tone="deep"
+           data-os="其实也没什么大事，就是不太想让别人看出来而已。"
+           data-author="匿名树洞" data-author-meta="私密浏览 · 不会留下痕迹"
+           data-article-title="总是要“看起来没事”，其实很累吧"
+           data-paragraphs="很多人问过类似的问题，怎么在别人面前表现得云淡风轻，哪怕心里并不是这样。||需要先说清楚一件事：能够在人前维持基本的情绪管理是一种能力，但长期压抑真实感受，是有代价的。||短期的"扮演"是可以理解的，比如某个场合确实不适合表露情绪，撑过去就好。||但如果这种状态变成了日常，几乎从来不在任何人面前表现真实的情绪，那更值得关注的其实是有没有一个可以说真话的出口。||哪怕只是写下来、说给一个信任的人听，或者找专业的人聊聊，都比一个人一直装下去要轻松。"
+           data-annotate="1|“是有代价的”这四个字她盯着看了好一会儿。::4|这段她没有截图，也没有收藏，只是停在这里没往下滑。"
+           >
+          <span class="row-favicon fv-ink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.6-4.6"/></svg>
+          </span>
+          <span class="row-body">
+            <span class="row-title text-blur" data-reveal>点按查看这条记录</span>
+            <span class="row-url">私密搜索 · 01:58</span>
+            <span class="row-mood" data-tone="deep"><span class="row-mood-dot"></span>停顿了很久才点开</span>
+          </span>
+          <span class="row-time">01:58</span>
+        </a>
+
+        <a class="history-row is-private" href="#" data-entry data-private data-entry-id="p3"
+           data-title="独自一人待着的时候在想什么"
+           data-site="私密搜索" data-action="搜索" data-time="01:12 · 今天"
+           data-fav="fv-ink"
+           data-mood="打完字又删掉一半" data-mood-tone="deep"
+           data-os="这句话打了删删了打，最后还是原样发出去了。"
+           data-author="夜聊自习室" data-author-meta="私密浏览 · 不会留下痕迹"
+           data-article-title="一个人的时候，脑子里其实都在想什么"
+           data-paragraphs="独处的时候胡思乱想很常见，尤其是夜深人静、外界的声音都停下来的时候，思绪反而会变得特别活跃。||心理学上把这种状态称为"默认模式网络"被激活，是大脑在没有明确任务时自动进入的一种运转方式，并不代表出了什么问题。||常见的内容往往是对过去某个场景的反复回放，或者对未来某件事的提前担忧，两者都很正常。||如果这些念头开始影响到入睡或者情绪，可以试着把它们写下来，用文字的方式"卸载"一部分脑内运转。||偶尔的胡思乱想不需要过度解读，它只是大脑在安静下来之后自然的副产品。"
+           data-annotate="1|这条解释她反复看了两次，好像是想确认自己不是“有问题”。::3|“卸载”这个说法她记下来了，备忘录里存了一句一模一样的话。"
+           >
+          <span class="row-favicon fv-ink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.6-4.6"/></svg>
+          </span>
+          <span class="row-body">
+            <span class="row-title text-blur" data-reveal>点按查看这条记录</span>
+            <span class="row-url">私密搜索 · 01:12</span>
+            <span class="row-mood" data-tone="deep"><span class="row-mood-dot"></span>打完字又删掉一半</span>
+          </span>
+          <span class="row-time">01:12</span>
+        </a>
+      </div>
+
+      <div class="history-group liquid-glass">
+        <div class="group-label">更早 · 私密</div>
+
+        <a class="history-row is-private" href="#" data-entry data-private data-entry-id="p4"
+           data-title="明明很累却睡不着怎么办"
+           data-site="私密搜索" data-action="搜索" data-time="23:40 · 昨天"
+           data-fav="fv-ink"
+           data-mood="躺下又爬起来查的" data-mood-tone="deep"
+           data-os="躺了快一个小时了，脑子里还是很吵，干脆爬起来查一查。"
+           data-author="睡眠研究小组" data-author-meta="私密浏览 · 不会留下痕迹"
+           data-article-title="明明很困却睡不着，是什么在作怪"
+           data-paragraphs="这是一种很矛盾的体感：身体明明疲惫，脑子却异常清醒，很多人形容这种状态叫"累到睡不着"。||背后常见的原因是皮质醇水平在临睡前没有顺利下降，可能和白天的压力、临睡前的强光刺激或者情绪波动有关。||短时间内，深呼吸、渐进式放松这类不依赖任何设备的方法，反而比看手机更容易让身体重新进入放松状态。||如果脑子里全是没处理完的念头，与其硬躺着对抗，不如先起身简单记几行字，把它们暂时放到纸面上。||记住偶尔一次的失眠不需要太紧张，真正需要留意的是它是否变成了几乎每天都发生的常态。"
+           data-annotate="2|她起来把手机换到了另一个房间，这条大概是唯一的例外。"
+           >
+          <span class="row-favicon fv-ink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.6-4.6"/></svg>
+          </span>
+          <span class="row-body">
+            <span class="row-title text-blur" data-reveal>点按查看这条记录</span>
+            <span class="row-url">私密搜索 · 昨天 23:40</span>
+            <span class="row-mood" data-tone="deep"><span class="row-mood-dot"></span>躺下又爬起来查的</span>
+          </span>
+          <span class="row-time">昨天</span>
+        </a>
+
+        <a class="history-row is-private" href="#" data-entry data-private data-entry-id="p5"
+           data-title="想找人说话又不知道找谁"
+           data-site="私密搜索" data-action="搜索" data-time="3天前"
+           data-fav="fv-ink"
+           data-mood="翻了通讯录又锁屏了" data-mood-tone="deep"
+           data-os="翻到第三个名字的时候还是把手机锁上了，好像谁都不太合适。"
+           data-author="匿名树洞" data-author-meta="私密浏览 · 不会留下痕迹"
+           data-article-title="很想找人说话，却又一个都没联系"
+           data-paragraphs="这种矛盾很多人都经历过：明明很想被听见，翻开通讯录却又一个个划过去，最后还是没发出那条消息。||常见的顾虑是怕给对方添麻烦，或者担心说出口之后反而要花更多力气去解释和安抚对方的情绪。||但值得留意的是，愿意主动联系你、真心想知道你过得好不好的人，往往不会觉得这是"麻烦"。||如果实在开不了口，可以先从很轻的一句话开始，比如"最近有点累"，不需要一次说清楚所有事。||找到一个哪怕只是安静听着、不急着给建议的人，有时候比自己扛着更重要。"
+           data-annotate="2|这句她截了图，应该是想留着提醒自己。::4|“不急着给建议”这几个字她单独划了出来。"
+           >
+          <span class="row-favicon fv-ink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.6-4.6"/></svg>
+          </span>
+          <span class="row-body">
+            <span class="row-title text-blur" data-reveal>点按查看这条记录</span>
+            <span class="row-url">私密搜索 · 3天前</span>
+            <span class="row-mood" data-tone="deep"><span class="row-mood-dot"></span>翻了通讯录又锁屏了</span>
+          </span>
+          <span class="row-time">3天前</span>
+        </a>
+      </div>
+
+      <div class="private-empty-hint">向下滑动没有更多记录了</div>
+    </section>
+
+  </div>
+
+  <!-- 底部工具栏 -->
+  <div class="browser-tabbar liquid-glass">
+    <button type="button" class="tab-btn" data-tab-action="back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5L7 12l7.5 6.5"/></svg>
+    </button>
+    <button type="button" class="tab-btn" data-tab-action="forward">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5.5L17 12l-7.5 6.5"/></svg>
+    </button>
+    <button type="button" class="tab-btn tab-btn-mid" id="refreshBtn" data-tab-action="refresh">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5"/>
+        <path d="M17.5 3.5v3.6h-3.6M6.5 20.5v-3.6h3.6"/>
+      </svg>
+    </button>
+    <button type="button" class="tab-btn" data-tab-action="upload-bg" id="uploadBgBtn" aria-label="上传背景">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14" rx="4"/><circle cx="10" cy="10.3" r="1.6" fill="currentColor" stroke="none"/><path d="M6 17l4.2-4.6a1.4 1.4 0 0 1 2 0L15 15.6l1-1.1a1.4 1.4 0 0 1 2 0l1 1.3"/></svg>
+    </button>
+    <button type="button" class="tab-btn" data-tab-action="menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="5.2" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="18.8" cy="12" r="1.1" fill="currentColor" stroke="none"/></svg>
+    </button>
+  </div>
+
+  <!-- 内容详情页：点按一条历史记录后打开的"那个当时被看的网页/帖子"
+       结构：webview-topbar(地址栏，液态玻璃) → webview-page(正文滚动区)
+             正文内包含：来源信息条 → 浏览器视角OS(可折叠) → 正文段落(逐段落挂批注图钉) -->
+  <div class="webview" id="webview">
+
+    <div class="webview-topbar">
+      <div class="webview-address-card liquid-glass">
+        <button type="button" class="webview-back" id="webviewBack" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5L7 12l7.5 6.5"/></svg>
+        </button>
+        <span class="webview-address-lock" id="webviewAddressLock">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5.5" y="10.5" width="13" height="9" rx="2.2"/>
+            <path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/>
+          </svg>
+        </span>
+        <span class="webview-address-text" id="webviewAddressText">weibo.com</span>
+        <button type="button" class="webview-delete" id="webviewDeleteBtn" aria-label="删除这条记录">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.8c0-.6.5-1.1 1.1-1.1h3.8c.6 0 1.1.5 1.1 1.1V7m-9 0 .8 12.2c.05.9.8 1.6 1.7 1.6h6.8c.9 0 1.65-.7 1.7-1.6L18.5 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="webview-page" id="webviewPage">
+
+      <div class="webview-private-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5.5" y="10.5" width="13" height="9" rx="2.2"/>
+          <path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/>
+        </svg>
+        <span>私密浏览 · 不会留下痕迹</span>
+      </div>
+
+      <!-- 内容来源卡：模拟这条帖子/文章本身的作者信息条 -->
+      <div class="article-source" id="articleSource">
+        <span class="article-source-avatar" id="articleSourceAvatar">乐</span>
+        <span class="article-source-info">
+          <span class="article-source-name" id="articleSourceName">乐乐生活记</span>
+          <span class="article-source-meta" id="articleSourceMeta">今天 09:20 · 秋日穿搭</span>
+        </span>
+      </div>
+
+      <h1 class="article-title" id="articleTitle">今天穿什么才不显冷 秋日穿搭合集</h1>
+
+      <!-- 浏览器视角：手机主人翻看这篇内容时的内心 OS。
+           这是「浏览器」作为旁观者的独立叙述层，和下方逐段落的批注是两件事：
+           批注挂在具体某一段正文上；这里是读这篇内容整体时候的心理状态，
+           每条历史记录都有自己独立的一句，默认展开，点击卡片本身可以折叠/展开，
+           配合图标呼吸动效强调这是"活的旁观视角" -->
+      <button type="button" class="owner-os" id="ownerOs" aria-expanded="true">
+        <span class="owner-os-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c-4.4 0-8 3.2-8 7.2 0 2.3 1.2 4.4 3.1 5.7-.1 1-.5 1.9-1.2 2.7 1.4.1 2.8-.3 4-1.1.7.2 1.4.3 2.1.3 4.4 0 8-3.2 8-7.2s-3.6-7.2-8-7.2z"/><circle cx="9" cy="10.6" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="10.6" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="10.6" r=".9" fill="currentColor" stroke="none"/></svg>
+        </span>
+        <span class="owner-os-body">
+          <span class="owner-os-label">浏览器视角 · 她翻看这条时，心里想的是</span>
+          <span class="owner-os-text" id="ownerOsText">这件外套的颜色好像会显白，如果我也买一件……不知道适不适合。</span>
+        </span>
+        <span class="owner-os-chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </span>
+      </button>
+
+      <!-- 正文：逐段落渲染，每段末尾挂一个批注图钉；
+           默认所有批注收起，点击图钉后该段落正下方就地展开批注气泡（渲染进内容本身，不是弹层） -->
+      <div class="article-body" id="articleBody">
+        <!-- JS 动态生成：每段 <p class="article-p"> + 段内批注 -->
+      </div>
+
+      <div class="article-endcap" id="articleEndcap">已经翻到底了</div>
+
+    </div>
+  </div>
+
+<script src="browserchar.js"></script>
+</body>
+</html>

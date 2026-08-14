@@ -1375,3 +1375,71 @@ body {
   color: var(--ink-5);
   white-space: nowrap;
 }
+/* ================================================================
+   ✦ 拉黑状态 & AI 短信
+================================================================ */
+.thread-state-tag {
+  flex-shrink: 0;
+  font-size: 8.5px;
+  letter-spacing: .06em;
+  padding: 1.5px 6px;
+  border-radius: 8px;
+  font-family: 'Space Mono', monospace;
+  background: rgba(255,255,255,0.07);
+  color: #9a9aa2;
+  border: 0.5px solid rgba(255,255,255,0.08);
+}
+.thread-state-tag.blk { background: rgba(190,120,120,0.12); color: #c08a8a; border-color: rgba(190,120,120,0.18); }
+.thread-state-tag.del { background: rgba(255,255,255,0.05); color: #7d7d85; }
+.thread-item.is-restricted .thread-avatar { filter: grayscale(0.7); opacity: .82; }
+.thread-item.is-restricted .thread-name   { color: #9e9ea6; }
+
+/* 会话详情页顶部拉黑提示条 */
+.td-block-bar {
+  display: none;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 14px 6px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: rgba(255,255,255,0.045);
+  border: 0.5px solid rgba(255,255,255,0.08);
+  animation: tdBbIn .3s cubic-bezier(.32,1,.48,1) both;
+}
+@keyframes tdBbIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+.td-block-bar.is-ai { background: rgba(190,120,120,0.08); border-color: rgba(190,120,120,0.16); }
+.td-bb-dot {
+  flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%;
+  margin-top: 5px; background: #8a8a92;
+}
+.td-block-bar.is-ai .td-bb-dot { background: #c08a8a; }
+.td-bb-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.td-bb-txt b { font-size: 11.5px; font-weight: 600; color: #e6e6ea; letter-spacing: .01em; }
+.td-bb-txt i { font-style: normal; font-size: 10px; color: #8f8f98; line-height: 1.55; }
+
+/* AI 短信按钮：加载态 */
+.td-ai-btn.is-loading { pointer-events: none; opacity: .55; }
+.td-ai-btn.is-loading svg { animation: tdAiSpin 1.1s linear infinite; transform-origin: 50% 50%; }
+@keyframes tdAiSpin { to { transform: rotate(360deg); } }
+
+/* Toast */
+.msg-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(28,28,32,0.95);
+  color: #f2f2f4;
+  font-size: 12px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  padding: 9px 18px;
+  border-radius: 20px;
+  border: 0.5px solid rgba(255,255,255,0.09);
+  box-shadow: 0 12px 34px -14px rgba(0,0,0,0.8);
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: opacity .24s ease, transform .24s ease;
+}
+.msg-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

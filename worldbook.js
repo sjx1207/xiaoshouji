@@ -572,7 +572,7 @@ async function openNewEntry() {
   document.getElementById('previewTitle').textContent        = '条目名称';
   document.getElementById('previewSub').textContent          = '简短描述';
   document.getElementById('previewCat').textContent          = '人物';
-  document.getElementById('formCat').value                   = '人物';
+  syncCatDropdown('人物');
 
   document.querySelectorAll('.wb-pos-btn').forEach(b => b.classList.toggle('active', b.dataset.pos === 'before'));
   document.querySelectorAll('.wb-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'keyword'));
@@ -608,7 +608,7 @@ async function editEntry(id) {
   document.getElementById('scanDepthVal').textContent    = String(e.scanDepth ?? 4);
   document.getElementById('formRecursion').checked       = !!e.recursion;
   document.getElementById('formGroup').value              = e.group || '';
-  document.getElementById('formCat').value             = e.cat         || '人物';
+  syncCatDropdown(e.cat || '人物');
   document.getElementById('previewTitle').textContent  = e.title       || '条目名称';
   document.getElementById('previewSub').textContent    = e.sub         || '简短描述';
   document.getElementById('previewCat').textContent    = e.cat         || '人物';
@@ -631,7 +631,7 @@ function createFromTemplate(cat) {
   const tpl = ENTRY_TEMPLATES[cat];
   openNewEntry().then(() => {
     if (!tpl) return;
-    document.getElementById('formCat').value = cat;
+    syncCatDropdown(cat);
     document.getElementById('previewCat').textContent = cat;
     document.getElementById('formSub').value = tpl.sub || '';
     document.getElementById('previewSub').textContent = tpl.sub || '简短描述';
@@ -697,6 +697,58 @@ function toggleCharSel(el, id) {
 
 function onCatChange(sel) {
   document.getElementById('previewCat').textContent = sel.value;
+}
+
+/* ================================
+   分类下拉（自定义样式的 select）
+   原生 <select id="formCat"> 被隐藏，仅用于持有真实值；
+   下面这套函数负责展开/收起面板、勾选高亮、
+   以及把选择结果写回原生 select 并触发预览更新。
+================================ */
+const CAT_LABELS = {
+  '人物': '人物设定', '地点': '地点', '势力': '势力', '事件': '事件',
+  '关系': '关系网', '物品': '物品/概念', '规则': '规则/OOC防护', '其他': '其他'
+};
+
+function toggleCatDropdown() {
+  const wrap = document.getElementById('formCatSelect');
+  const isOpen = wrap.classList.contains('open');
+  if (isOpen) {
+    closeCatDropdown();
+  } else {
+    wrap.classList.add('open');
+    document.addEventListener('click', _catDropdownOutsideClick, true);
+  }
+}
+
+function closeCatDropdown() {
+  document.getElementById('formCatSelect').classList.remove('open');
+  document.removeEventListener('click', _catDropdownOutsideClick, true);
+}
+
+function _catDropdownOutsideClick(e) {
+  const wrap = document.getElementById('formCatSelect');
+  if (wrap && !wrap.contains(e.target)) closeCatDropdown();
+}
+
+function pickCatOption(el) {
+  const value = el.dataset.value;
+  syncCatDropdown(value);
+  document.getElementById('previewCat').textContent = value;
+  closeCatDropdown();
+}
+
+/* 供「新建/编辑/模板」等直接修改 formCat.value 的地方调用，
+   保证自定义下拉的显示文字和高亮状态跟原生 select 同步 */
+function syncCatDropdown(value) {
+  const select = document.getElementById('formCat');
+  select.value = value;
+  const label = CAT_LABELS[value] || value;
+  const textEl = document.getElementById('formCatTriggerText');
+  if (textEl) textEl.textContent = label;
+  document.querySelectorAll('#formCatPanel .wb-select-opt').forEach(opt => {
+    opt.classList.toggle('selected', opt.dataset.value === value);
+  });
 }
 
 function selectPos(btn) {
@@ -1006,6 +1058,34 @@ function importEntries(input) {
     }
   };
   reader.readAsText(file);
+}
+
+/* ================================
+   使用说明书
+   点标签只显示对应分节，其他隐藏——真正切换，不是滚动定位。
+   HTML 里第一个标签和第一节已经写死 .active，所以哪怕 JS
+   没跑起来，打开时看到的也是"基本概念"这一节，不会空白。
+================================ */
+function openHelp() {
+  document.getElementById('wbHelpOverlay').classList.add('show');
+  document.getElementById('wbHelpSheet').classList.add('show');
+  const firstTab = document.querySelector('.wb-help-tab');
+  if (firstTab) jumpHelpSection(firstTab);
+}
+
+function closeHelp() {
+  document.getElementById('wbHelpOverlay').classList.remove('show');
+  document.getElementById('wbHelpSheet').classList.remove('show');
+}
+
+function jumpHelpSection(btn) {
+  document.querySelectorAll('.wb-help-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.wb-help-sec').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById(btn.dataset.sec);
+  if (target) target.classList.add('active');
+  const body = document.getElementById('wbHelpBody');
+  if (body) body.scrollTop = 0;
 }
 
 /* ================================
