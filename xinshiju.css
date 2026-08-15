@@ -7,6 +7,14 @@
 
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
+/* 内容面板的实际屏幕矩形，由 JS（xjSyncPanelRect）实时写入，供所有
+   position:fixed 的漂浮/散字层作为定位基准，使其始终贴合当前可见的
+   卡片区域 —— 桌面端居中限宽、移动端占满全屏都能正确适配 */
+:root {
+  --xj-panel-left:0px; --xj-panel-top:0px;
+  --xj-panel-w:100vw;  --xj-panel-h:100dvh;
+}
+
 /* ============================================================
    全局性能优化
    - .xj-anim-paused：页面切到后台/锁屏时由 JS 打上，暂停所有装饰性
@@ -337,7 +345,7 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 .xj-diver-bar:active { transform:scale(0.97); background:rgba(111,214,255,0.1); }
 .xj-diver-seal {
   width:26px; height:26px; border-radius:50%; flex-shrink:0;
-  background-size:cover; background-position:center;
+  background-size:cover; background-position:center top;
   background:linear-gradient(160deg,#8fd8ff,#4a7fa8);
   display:flex; align-items:center; justify-content:center;
   font-size:11px; font-weight:700; color:#010509;
@@ -381,7 +389,7 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 .xj-diver-card.active { border-color:rgba(111,214,255,0.55); background:rgba(111,214,255,0.1); box-shadow:0 0 18px rgba(111,214,255,0.15); }
 .xj-diver-card-seal {
   width:46px; height:46px; border-radius:50%;
-  background-size:cover; background-position:center;
+  background-size:cover; background-position:center top;
   background:linear-gradient(160deg,#8fd8ff,#4a7fa8);
   display:flex; align-items:center; justify-content:center;
   font-size:16px; font-weight:700; color:#010509;
@@ -769,7 +777,9 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
    逐字带不同的漂移方向与速度沉入深处，最终完全消散
 --------------------------------------------------------- */
 .xj-scatter-layer {
-  position:fixed; inset:0; z-index:15; pointer-events:none;
+  position:fixed; z-index:15; pointer-events:none;
+  left:var(--xj-panel-left,0); top:var(--xj-panel-top,0);
+  width:var(--xj-panel-w,100%); height:var(--xj-panel-h,100%);
   display:flex; align-items:center; justify-content:center;
   flex-wrap:wrap; padding:0 15%;
 }
@@ -799,7 +809,7 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 --------------------------------------------------------- */
 .xj-summon-wrap {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  min-height:60vh; gap:0;
+  min-height:60dvh; gap:0;
 }
 .xj-echo-summon {
   position:relative; width:100%; height:150px;
@@ -851,7 +861,7 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
    正文容器：由 AI 情绪基调决定的整体氛围类
 --------------------------------------------------------- */
 .xj-echo-field {
-  position:relative; min-height:calc(100vh - 220px);
+  position:relative; min-height:calc(100dvh - 220px);
   display:flex; flex-direction:column; justify-content:center;
   padding:20px 22px 40px;
 }
@@ -870,7 +880,7 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 @keyframes echoMetaIn { to { opacity:1; } }
 .xj-echo-seal-mini {
   width:27px; height:27px; border-radius:50%; flex-shrink:0;
-  background-size:cover; background-position:center;
+  background-size:cover; background-position:center top;
   background:linear-gradient(160deg,#8fd8ff,#4a7fa8);
   display:flex; align-items:center; justify-content:center;
   font-size:11px; font-weight:700; color:#010509;
@@ -882,7 +892,7 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 /* 正文本体：句块以行内块形式流式排布，每句携带独立入场方式与轻微错位，
    营造"诗行聚散"感而非规整的从上到下堆砌 */
 .xj-echo-paper {
-  font-size:16px; line-height:2.3; letter-spacing:0.4px;
+  font-size:clamp(14px, 4.2vw, 16px); line-height:2.3; letter-spacing:0.4px;
   color:rgba(234,246,255,0.94);
 }
 .xj-echo-line {
@@ -1091,8 +1101,12 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
    不消失，直到 AI 回应抵达才引导它们聚拢 / 沉没退场
 --------------------------------------------------------- */
 .xj-drift-layer {
-  position:fixed; inset:0; z-index:14; pointer-events:none;
+  /* 定位基准改为当前内容面板（桌面端居中限宽 560px，移动端占满全屏），
+     而不是整个浏览器视口 —— 否则桌面端漂浮字会跑到卡片外的空白区域 */
+  position:fixed; z-index:14; pointer-events:none;
   overflow:hidden;
+  left:var(--xj-panel-left,0); top:var(--xj-panel-top,0);
+  width:var(--xj-panel-w,100%); height:var(--xj-panel-h,100%);
 }
 .xj-drift-glyph {
   position:absolute;
@@ -1317,7 +1331,7 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
   width:28px; height:28px; border-radius:50%; flex-shrink:0;
   display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700;
   background:linear-gradient(160deg,#8fd8ff,#3f6f96); color:#010509;
-  background-size:cover; background-position:center;
+  background-size:cover; background-position:center top;
   box-shadow:0 0 10px rgba(111,214,255,0.25);
 }
 .xj-archive-drift-time {
@@ -1406,7 +1420,7 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 .xj-detail-question {
   position:relative; padding:14px 18px; border-radius:3px 16px 16px 16px;
   background:rgba(111,214,255,0.05); border:1px solid rgba(111,214,255,0.14);
-  color:rgba(234,246,255,0.8); font-size:13.5px; line-height:1.8;
+  color:rgba(234,246,255,0.8); font-size:clamp(12.5px, 3.6vw, 13.5px); line-height:1.8;
   white-space:pre-wrap; word-break:break-word;
   opacity:0; filter:blur(4px); transform:translateY(6px);
   min-height:26px;
@@ -1442,7 +1456,10 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 
 /* 拾字漂浮层：铺满详情页画面，散字持续缓慢漂荡，直到被逐一点触收起 */
 .xj-detail-scatter-layer--float {
-  position:fixed; inset:0; z-index:360; pointer-events:none;
+  position:fixed; z-index:360; pointer-events:none;
+  left:var(--xj-panel-left,0); top:var(--xj-panel-top,0);
+  width:var(--xj-panel-w,100%); height:var(--xj-panel-h,100%);
+  overflow:hidden;
 }
 .xj-qfloat-glyph {
   position:fixed; z-index:361;
@@ -1484,7 +1501,7 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
    Toast
 ============================================================ */
 .xj-toast {
-  position:fixed; left:50%; bottom:60px; transform:translateX(-50%) translateY(10px);
+  position:fixed; left:50%; bottom:calc(60px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(10px);
   background:rgba(6,20,31,0.95); border:1px solid rgba(111,214,255,0.25);
   color:#eaf6ff; font-size:12.5px; letter-spacing:1px;
   padding:11px 20px; border-radius:22px; z-index:500;

@@ -8,6 +8,45 @@
    - 当前仅呈现：待命发光核心 → 点击唤醒 → 书写深处 的极简交互
 ================================================================ */
 
+/* ================================================================
+   适配辅助：所有 position:fixed 的漂浮/散字层，都应当以"当前实际
+   显示的内容面板"（.xj-wrap 在桌面端被居中限宽到 560px，移动端则
+   占满全宽）为坐标基准，而不是原始 window.innerWidth/innerHeight。
+   否则字符会飘出居中卡片之外的空白区域，桌面端尤其明显；同时
+   在移动端地址栏收起/展开导致视口高度变化时，也需要用这里取得
+   的实时矩形而非一次性缓存的数值。
+================================================================ */
+function xjWrapRect() {
+  const wrap = document.getElementById('xjWrap');
+  if (wrap) {
+    const r = wrap.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return r;
+  }
+  return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight, right: window.innerWidth, bottom: window.innerHeight };
+}
+
+/* 将 .xj-wrap 当前的真实屏幕矩形写入 CSS 自定义属性，供所有
+   position:fixed 的漂浮层（CSS 中通过 var(--xj-panel-*) 读取）作为
+   定位基准。需要在：初次加载、窗口尺寸变化、屏幕旋转、
+   移动端地址栏收起展开导致的可视视口变化时都重新同步一次。 */
+function xjSyncPanelRect() {
+  const r = xjWrapRect();
+  const root = document.documentElement.style;
+  root.setProperty('--xj-panel-left', r.left + 'px');
+  root.setProperty('--xj-panel-top', r.top + 'px');
+  root.setProperty('--xj-panel-w', r.width + 'px');
+  root.setProperty('--xj-panel-h', r.height + 'px');
+}
+function xjSetupPanelRectSync() {
+  xjSyncPanelRect();
+  window.addEventListener('resize', xjSyncPanelRect);
+  window.addEventListener('orientationchange', () => setTimeout(xjSyncPanelRect, 60));
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', xjSyncPanelRect);
+    window.visualViewport.addEventListener('scroll', xjSyncPanelRect);
+  }
+}
+
 /* ---------------- 返回 ---------------- */
 function goBack() {
   const mask = document.createElement('div');
@@ -748,47 +787,87 @@ function motionToClass(motion) {
   return MOTION_CLASS_MAP[motion] || 'xj-motion-default';
 }
 
+/* 去除各类可能混入正文的 Markdown/代码符号，确保呈现的是纯文字。
+   即便模型被要求"只输出 JSON"，text/heart 字段内部仍偶尔会夹带
+   **加粗**、`行内代码`、# 标题号、- 列表符、> 引用符等书写习惯，
+   这里做统一清洗，覆盖字段级与整段兜底文本两条路径。 */
+function stripMarkdownSymbols(str) {
+  let t = String(str || '');
+  // 代码块 ```...``` 整体去除围栏，保留内部文字
+  t = t.replace(/```[a-zA-Z]*\n?/g, '').replace(/```/g, '');
+  // 行内代码 `code`
+  t = t.replace(/`([^`]*)`/g, '$1');
+  // 加粗/斜体 **text** *text* __text__ _text_
+  t = t.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
+  t = t.replace(/__([^_]+)__/g, '$1').replace(/(?<![\u4e00-\u9fa5\w])_([^_]+)_(?![\u4e00-\u9fa5\w])/g, '$1');
+  // 标题符号 #, ##, ### 开头
+  t = t.replace(/^\s{0,3}#{1,6}\s+/gm, '');
+  // 列表符号 -, *, + 开头（避免误删句中破折号，仅匹配行首）
+  t = t.replace(/^\s{0,3}[-*+]\s+/gm, '');
+  // 引用符号 > 开头
+  t = t.replace(/^\s{0,3}>\s?/gm, '');
+  // Markdown 链接/图片 [text](url) → text
+  t = t.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1');
+  // 残留的孤立反引号或多余星号
+  t = t.replace(/[`*_#]{1,}/g, m => (m.length <= 1 ? '' : ''));
+  return t.trim();
+}
+
 function extractJsonBlock(raw) {
   let t = String(raw || '').trim();
-  // 去除可能的 markdown 代码块包裹
+  // 去除可能的 markdown 代码块包裹（```json ... ``` 或裸 ``` ... ```）
   t = t.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  // 模型有时会在 JSON 前后附加说明性文字（如"以下是回应："），
+  // 只截取第一个 { 到最后一个 } 之间的内容作为候选 JSON
   const start = t.indexOf('{');
   const end = t.lastIndexOf('}');
   if (start === -1 || end === -1 || end <= start) return null;
   return t.slice(start, end + 1);
 }
 
+/* 对候选 JSON 文本做宽松修复后再尝试解析：去除内容中偶尔出现的
+   尾随逗号、以及模型输出中偶尔混入的注释符号，提升解析成功率，
+   减少"生成不出来内容"（因严格 JSON.parse 失败而整段丢弃）的情况 */
+function tryParseJsonLenient(jsonStr) {
+  if (!jsonStr) return null;
+  try { return JSON.parse(jsonStr); } catch (e) { /* fall through */ }
+  let fixed = jsonStr
+    .replace(/,\s*([}\]])/g, '$1')        // 去除尾随逗号
+    .replace(/\/\/[^\n]*$/gm, '')         // 去除行尾 // 注释
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ''); // 去除非法控制字符
+  try { return JSON.parse(fixed); } catch (e) { return null; }
+}
+
 function parseEchoContent(raw) {
   const jsonStr = extractJsonBlock(raw);
-  let parsed = null;
-  if (jsonStr) {
-    try { parsed = JSON.parse(jsonStr); } catch (e) { parsed = null; }
-  }
+  const parsed = tryParseJsonLenient(jsonStr);
 
   // 结构化解析成功
   if (parsed && Array.isArray(parsed.lines)) {
-    const mood = typeof parsed.mood === 'string' ? parsed.mood.trim() : '';
+    const mood = typeof parsed.mood === 'string' ? stripMarkdownSymbols(parsed.mood) : '';
     const units = [];
     let anchorSeq = 0;
     parsed.lines.forEach(item => {
       if (!item || typeof item !== 'object') return;
       if (item.type === 'parabreak') { units.push({ type: 'parabreak' }); return; }
-      const text = String(item.text || '').trim();
+      const text = stripMarkdownSymbols(item.text || '');
       if (!text) return;
       const motion = MOTION_KEYWORDS.includes(item.motion) ? item.motion : '';
       const unit = { type: 'line', text, motionClass: motionToClass(motion) };
-      if (item.heart && String(item.heart).trim()) {
+      const heartText = stripMarkdownSymbols(item.heart || '');
+      if (heartText) {
         anchorSeq++;
-        unit.heart = String(item.heart).trim();
+        unit.heart = heartText;
         unit.anchorId = 'anchor-' + Date.now() + '-' + anchorSeq;
       }
       units.push(unit);
     });
-    return { mood: mood || '', units };
+    if (units.length) return { mood: mood || '', units };
   }
 
-  // 兜底：模型未按 JSON 格式返回，退化为纯文本句子切分，使用默认运动
-  const text = String(raw || '').trim();
+  // 兜底：模型未按 JSON 格式返回（或解析失败），退化为纯文本句子切分，
+  // 同样先清洗 Markdown/代码符号，再切句，使用默认运动
+  const text = stripMarkdownSymbols(String(raw || ''));
   const cleaned = text.replace(/\[心声\]([\s\S]*?)\[\/心声\]/g, ''); // 防止旧格式泄露
   const paras = cleaned.split(/\n+/).map(p => p.trim()).filter(Boolean);
   const units = [];
@@ -858,25 +937,50 @@ function buildNonceHint() {
   return `[此刻独立标记 · 请勿参考任何以往回应 · 时间:${stamp} · 随机种子:${rand}]`;
 }
 
-/* 调用 AI 并确保正文（不含心声）达到最低字数要求，不足则追加一次续写/重写请求 */
+/* 调用 AI 并确保：
+   1) 至少解析出可渲染的 units（避免"生成不出来内容"——例如模型偶尔
+      返回非法 JSON、或空数组——此时不应直接放弃，而是重新请求一次）
+   2) 正文（不含心声）达到最低字数要求，不足则追加续写/重写请求
+   两类问题共用同一重试循环，最多尝试 3 次（1 次原始 + 2 次重写）。 */
 async function callAI(systemPrompt, userText) {
   const MIN_CHARS = 500;
+  const MAX_ATTEMPTS = 3;
   const userContent = `${userText}\n\n${buildNonceHint()}`;
   let messages = [{ role: 'user', content: userContent }];
   let reply = await callAIRaw(systemPrompt, messages);
   let parsedResult = parseEchoContent(reply);
 
   let attempts = 0;
-  while (countBodyChars(parsedResult.units) < MIN_CHARS && attempts < 2) {
+  while (attempts < MAX_ATTEMPTS - 1) {
+    const noContent = !parsedResult.units || !parsedResult.units.some(u => u.type === 'line');
+    const tooShort = countBodyChars(parsedResult.units) < MIN_CHARS;
+    if (!noContent && !tooShort) break;
+
     attempts++;
+    const retryReason = noContent
+      ? `刚才的回应未能解析出有效内容（可能不是合法的 JSON 格式，或 lines 为空）。请严格只输出一个完整合法的 JSON 对象，不要包含任何 JSON 之外的说明文字，也不要使用 Markdown 代码块（不要\`\`\`json 包裹），字段结构与此前要求完全一致。`
+      : `刚才的 JSON 回应中 lines 里 text 拼接起来的总字数不够，请严格保持同样的 JSON 结构、同样人设与语气，重新输出一版，确保正文总字数不少于500字，段落更充分地展开，依然只输出 JSON 本身，不要使用 Markdown 代码块包裹。`;
+
     messages = [
       { role: 'user', content: userContent },
       { role: 'assistant', content: reply },
-      { role: 'user', content: `刚才的 JSON 回应中 lines 里 text 拼接起来的总字数不够，请严格保持同样的 JSON 结构、同样人设与语气，重新输出一版，确保正文总字数不少于500字，段落更充分地展开，依然只输出 JSON 本身。` }
+      { role: 'user', content: retryReason }
     ];
-    reply = await callAIRaw(systemPrompt, messages);
+    try {
+      reply = await callAIRaw(systemPrompt, messages);
+    } catch (e) {
+      // 若重写请求本身失败，保留上一次已有的结果（若有内容则仍可用），
+      // 避免因为最后一次网络错误而让此前已经解析出的内容也一并丢失
+      if (parsedResult.units && parsedResult.units.some(u => u.type === 'line')) break;
+      throw e;
+    }
     parsedResult = parseEchoContent(reply);
   }
+
+  if (!parsedResult.units || !parsedResult.units.some(u => u.type === 'line')) {
+    throw new Error('未能生成有效内容，请稍后重试');
+  }
+
   return { raw: reply, mood: parsedResult.mood, units: parsedResult.units };
 }
 
@@ -1048,7 +1152,7 @@ async function submitEntry() {
     field.dataset.mood = result.mood || '';
     field.innerHTML = `
       <div class="xj-echo-meta">
-        <div class="xj-echo-seal-mini" style="${avatar ? `background-image:url('${avatar}');background-size:cover;background-position:center;` : ''}">${avatar ? '' : escHtml((_activeChar.name||'?')[0]||'?')}</div>
+        <div class="xj-echo-seal-mini" style="${avatar ? `background-image:url('${avatar}');background-size:cover;background-position:center top;` : ''}">${avatar ? '' : escHtml((_activeChar.name||'?')[0]||'?')}</div>
         <div class="xj-echo-name">${escHtml(_activeChar.name || '未命名')}</div>
         <div class="xj-echo-time">${nowStamp()}</div>
       </div>
@@ -1261,7 +1365,8 @@ function spawnPersistentDrift(text) {
 function dismissDriftLayer(layer, success) {
   if (!layer || !layer.isConnected) return;
   const glyphs = layer.querySelectorAll('.xj-drift-glyph');
-  const cx = window.innerWidth / 2, cy = window.innerHeight * 0.4;
+  const wrapRect = xjWrapRect();
+  const cx = wrapRect.left + wrapRect.width / 2, cy = wrapRect.top + wrapRect.height * 0.4;
   glyphs.forEach((g, i) => {
     const rect = g.getBoundingClientRect();
     if (success) {
@@ -1634,7 +1739,7 @@ async function openDetail(id) {
     </div>
     <div class="xj-echo-field" id="detailEchoField" data-mood="${escHtml(mood || '')}" style="min-height:auto; padding:6px 22px 40px; display:none;">
       <div class="xj-echo-meta" style="opacity:1; animation:none;">
-        <div class="xj-echo-seal-mini" style="${entry.avatar ? `background-image:url('${entry.avatar}');background-size:cover;background-position:center;` : ''}">${entry.avatar ? '' : escHtml((entry.charName||'?')[0]||'?')}</div>
+        <div class="xj-echo-seal-mini" style="${entry.avatar ? `background-image:url('${entry.avatar}');background-size:cover;background-position:center top;` : ''}">${entry.avatar ? '' : escHtml((entry.charName||'?')[0]||'?')}</div>
         <div class="xj-echo-name">${escHtml(entry.charName || '未命名')}</div>
         <div class="xj-echo-time">${timeStr}</div>
       </div>
@@ -1738,9 +1843,11 @@ function scatterFloatQuestion(text) {
         g.setAttribute('role', 'button');
         g.setAttribute('aria-label', '触碰拾回此字');
 
-        // 随机散落起始位置：铺满可视区域，避开顶部状态栏
-        const startX = 24 + Math.random() * (window.innerWidth - 48);
-        const startY = window.innerHeight * 0.16 + Math.random() * (window.innerHeight * 0.62);
+        // 随机散落起始位置：铺满当前内容面板（而非整个浏览器视口），
+        // 避开顶部状态栏；桌面端居中限宽卡片、移动端全屏都能正确落位
+        const panelRect = xjWrapRect();
+        const startX = panelRect.left + 24 + Math.random() * Math.max(0, panelRect.width - 48);
+        const startY = panelRect.top + panelRect.height * 0.16 + Math.random() * (panelRect.height * 0.62);
         g.style.left = startX + 'px';
         g.style.top = startY + 'px';
         g.style.setProperty('--qfx', (Math.random() * 22 - 11).toFixed(1) + 'px');
@@ -1840,6 +1947,7 @@ const XJ_COUNTS = XJ_LOW_POWER
 document.addEventListener('DOMContentLoaded', async () => {
   if (XJ_LOW_POWER) document.documentElement.classList.add('xj-low-power');
 
+  xjSetupPanelRectSync();
   updateTime();
   updateBattery();
   applyIsland();
