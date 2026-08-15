@@ -1492,19 +1492,19 @@ let _archiveBgSpawned = false;
 function spawnArchiveBackground() {
   if (_archiveBgSpawned) return;
   _archiveBgSpawned = true;
-  spawnMotesInto('xjArchiveMotes');
-  spawnJelliesInto('xjArchiveJellies', 3);
-  spawnFishesInto('xjArchiveFishes', 4);
-  spawnBubblesInto('xjArchiveBubbles');
+  spawnMotesInto('xjArchiveMotes', XJ_COUNTS.archiveMotes);
+  spawnJelliesInto('xjArchiveJellies', XJ_COUNTS.archiveJellies);
+  spawnFishesInto('xjArchiveFishes', XJ_COUNTS.archiveFishes);
+  spawnBubblesInto('xjArchiveBubbles', XJ_COUNTS.archiveBubbles);
 }
 let _detailBgSpawned = false;
 function spawnDetailBackground() {
   if (_detailBgSpawned) return;
   _detailBgSpawned = true;
-  spawnMotesInto('xjDetailMotes');
-  spawnJelliesInto('xjDetailJellies', 2);
-  spawnFishesInto('xjDetailFishes', 3);
-  spawnBubblesInto('xjDetailBubbles');
+  spawnMotesInto('xjDetailMotes', XJ_COUNTS.detailMotes);
+  spawnJelliesInto('xjDetailJellies', XJ_COUNTS.detailJellies);
+  spawnFishesInto('xjDetailFishes', XJ_COUNTS.detailFishes);
+  spawnBubblesInto('xjDetailBubbles', XJ_COUNTS.detailBubbles);
 }
 
 async function openArchive() {
@@ -1817,21 +1817,60 @@ async function deleteCurrentArchiveEntry() {
 /* ================================================================
    初始化
 ================================================================ */
+/* ================================================================
+   性能分级 —— 移动端粒子数量大幅削减
+   原版本主舞台一次性铺了 26 + 5 + 7 + 16 = 54 个持续动画的 DOM
+   节点（微粒/水母/游鱼/气泡），信匣和详情页打开时又各自叠加约
+   50 个，且从不销毁、只是隐藏，导致同屏可动画元素越积越多。
+   这里按设备能力分挡，手机端仅保留氛围所需的最少数量。
+================================================================ */
+const XJ_LOW_POWER = (() => {
+  const ua = navigator.userAgent || '';
+  const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+  const smallViewport = Math.min(window.innerWidth, window.innerHeight) <= 480;
+  const coarsePointer = window.matchMedia && window.matchMedia('(hover:none) and (pointer:coarse)').matches;
+  const lowCores = (navigator.hardwareConcurrency || 8) <= 4;
+  return isMobileUA || (smallViewport && coarsePointer) || lowCores;
+})();
+
+const XJ_COUNTS = XJ_LOW_POWER
+  ? { motes:10, jellies:2, fishes:3, bubbles:6, archiveMotes:6, archiveJellies:1, archiveFishes:2, archiveBubbles:4, detailMotes:5, detailJellies:1, detailFishes:1, detailBubbles:3 }
+  : { motes:26, jellies:5, fishes:7, bubbles:16, archiveMotes:16, archiveJellies:3, archiveFishes:4, archiveBubbles:10, detailMotes:16, detailJellies:2, detailFishes:3, detailBubbles:10 };
+
 document.addEventListener('DOMContentLoaded', async () => {
+  if (XJ_LOW_POWER) document.documentElement.classList.add('xj-low-power');
+
   updateTime();
   updateBattery();
   applyIsland();
   applyGlobalFont();
   setInterval(updateTime, 30000);
 
-  spawnMotes();
-  spawnJellies();
-  spawnFishes();
-  spawnBubbles();
+  spawnMotes('xjMotes', XJ_COUNTS.motes);
+  spawnJellies('xjJellies', XJ_COUNTS.jellies);
+  spawnFishes('xjFishes', XJ_COUNTS.fishes);
+  spawnBubbles('xjBubbles', XJ_COUNTS.bubbles);
   spawnKelp();
 
   bindInputAutosize();
   await renderRoster();       // 逻辑保留：角色数据仍会加载，供后续接入
   updateDiverBar();
   refreshArchiveBadge();
+
+  xjSetupVisibilityPause();
 });
+
+/* ================================================================
+   可见性/后台暂停 —— 页面不可见（切后台、锁屏）时暂停所有 CSS 动画，
+   避免手机在后台仍持续消耗电量与算力；恢复可见时再继续。
+================================================================ */
+function xjSetupVisibilityPause() {
+  const root = document.getElementById('xjWrap') || document.body;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      root.classList.add('xj-anim-paused');
+    } else {
+      root.classList.remove('xj-anim-paused');
+    }
+  });
+}

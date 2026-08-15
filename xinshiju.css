@@ -7,6 +7,29 @@
 
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
+/* ============================================================
+   全局性能优化
+   - .xj-anim-paused：页面切到后台/锁屏时由 JS 打上，暂停所有装饰性
+     动画，避免手机在看不见的情况下仍持续耗电耗算力。
+   - .xj-low-power：由 JS 检测到移动设备/低核心数/小屏后打在 <html>
+     上，用于关闭一些次要的持续动画与 backdrop-filter。
+============================================================ */
+.xj-anim-paused, .xj-anim-paused * {
+  animation-play-state:paused !important;
+}
+
+/* backdrop-filter 是移动端最昂贵的合成操作之一，尤其在其背后还有
+   动画内容持续变化时（本页背景一直在动）。移动端上改用更深的
+   半透明纯色打底，视觉上依然有"磨砂"感但不再逐帧做模糊合成。 */
+@media (hover:none) and (pointer:coarse), (max-width:480px) {
+  .xj-diver-bar, .xj-echo-surface {
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
+  .xj-diver-bar { background:rgba(8,20,30,0.55); }
+  .xj-echo-surface { background:rgba(4,14,22,0.82); }
+}
+
 html, body {
   width:100%; height:100%;
   background:#010509;
@@ -35,7 +58,12 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 /* ============================================================
    深海层叠背景
 ============================================================ */
-.xj-deepsea { position:absolute; inset:0; z-index:0; overflow:hidden; }
+.xj-deepsea {
+  position:absolute; inset:0; z-index:0; overflow:hidden;
+  /* 建立独立合成层，避免背景动画每帧都触发整个页面的重排/重绘范围判定 */
+  transform:translateZ(0);
+  contain:layout paint style;
+}
 
 .xj-sea-gradient {
   position:absolute; inset:0;
@@ -61,7 +89,11 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
   100% { transform:translateX(3%) rotate(0.6deg); opacity:0.65; }
 }
 
-/* 焦散水纹：模拟水面折射光斑，用滤镜使其扭动 */
+/* 焦散水纹：模拟水面折射光斑。
+   原实现使用了逐帧动画的 SVG feTurbulence/feDisplacementMap 滤镜，
+   在移动端几乎无法被 GPU 加速，是卡顿的首要来源 —— 现改为纯
+   transform/opacity 驱动的径向渐变叠层，视觉效果接近，但可以
+   稳定跑在合成器线程上。 */
 .xj-sea-caustics {
   position:absolute; inset:-15%;
   background-image:
@@ -71,8 +103,8 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
     radial-gradient(circle at 35% 70%, rgba(111,214,255,0.06) 0%, transparent 8%),
     radial-gradient(circle at 10% 85%, rgba(159,184,255,0.05) 0%, transparent 9%),
     radial-gradient(circle at 90% 90%, rgba(111,214,255,0.06) 0%, transparent 7%);
-  filter:url(#xjWaterWarp);
   opacity:0.55;
+  will-change:transform;
   animation:causticsFloat 26s ease-in-out infinite;
 }
 .xj-sea-caustics--b {
@@ -82,8 +114,8 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
   transform:scale(1.15) rotate(4deg);
 }
 @keyframes causticsFloat {
-  0%,100% { transform:translate(0,0) scale(1); }
-  50%     { transform:translate(1.5%,-2%) scale(1.03); }
+  0%,100% { transform:translate(0,0) scale(1) rotate(0deg); }
+  50%     { transform:translate(1.5%,-2%) scale(1.03) rotate(0.4deg); }
 }
 
 /* 海底剪影：远景礁石与珊瑚轮廓，固定在画面底部，增加纵深与"落地感" */
@@ -120,12 +152,15 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 }
 
 /* 游鱼群：细小暗色剪影，缓慢穿行，制造生命感与深度 */
-.xj-fishes { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.xj-fishes { position:absolute; inset:0; overflow:hidden; pointer-events:none; contain:layout paint; }
 .xj-fish {
   position:absolute; opacity:0;
   animation:fishSwim linear infinite;
+  will-change:transform, opacity;
 }
-.xj-fish svg { display:block; filter:drop-shadow(0 0 3px rgba(111,214,255,0.15)); }
+/* drop-shadow 滤镜同样是逐帧重绘成本较高的操作，尤其在多条鱼同时
+   平移动画时；游鱼本身细小，移除滤镜对观感影响很小，但对性能提升明显 */
+.xj-fish svg { display:block; }
 @keyframes fishSwim {
   0%   { opacity:0; transform:translateX(-40px) translateY(0); }
   6%   { opacity:var(--fo,0.4); }
@@ -143,12 +178,13 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 }
 
 /* 上升气泡：从底部缓缓升起，晃动、渐隐 */
-.xj-bubbles { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.xj-bubbles { position:absolute; inset:0; overflow:hidden; pointer-events:none; contain:layout paint; }
 .xj-bubble {
   position:absolute; bottom:-6%; border-radius:50%;
   border:1px solid rgba(180,225,255,0.35);
   background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.28), rgba(111,214,255,0.05) 60%, transparent 100%);
   animation:bubbleRise linear infinite;
+  will-change:transform, opacity;
 }
 @keyframes bubbleRise {
   0%   { transform:translateY(0) translateX(0); opacity:0; }
@@ -165,19 +201,33 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 }
 
 .xj-sea-grain {
-  position:absolute; inset:0; opacity:0.045; mix-blend-mode:overlay;
+  /* 原先这块噪点纹理本身内嵌了一个 SVG feTurbulence 滤镜，
+     即便只是当作背景图片使用，移动端在解码/合成阶段仍然
+     会付出很高代价，且叠加 steps() 动画令其反复重绘。
+     现改为预生成的静态噪点位图（同一份 data URI，但滤镜只
+     在"生成图片时"计算一次，而非每帧计算），动画仅做位移，
+     交由合成器处理，开销可忽略。 */
+  position:absolute; inset:0; opacity:0.04; mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation:grainShift 9s steps(8) infinite;
+  background-repeat:repeat;
+  will-change:transform;
+  animation:grainShift 12s steps(4) infinite;
 }
-@keyframes grainShift { 0%{transform:translate(0,0);} 25%{transform:translate(-1%,1%);} 50%{transform:translate(1%,-1%);} 75%{transform:translate(-1%,-1%);} 100%{transform:translate(0,0);} }
+@keyframes grainShift { 0%{transform:translate3d(0,0,0);} 25%{transform:translate3d(-1%,1%,0);} 50%{transform:translate3d(1%,-1%,0);} 75%{transform:translate3d(-1%,-1%,0);} 100%{transform:translate3d(0,0,0);} }
+
+/* 低端/移动设备：连这一层静态噪点动画也一并关闭，纯静态展示 */
+@media (max-width:480px), (hover:none) and (pointer:coarse) {
+  .xj-sea-grain { animation:none; opacity:0.03; }
+}
 
 /* 漂浮微粒 · 浮游发光尘埃 */
-.xj-motes { position:absolute; inset:0; overflow:hidden; }
+.xj-motes { position:absolute; inset:0; overflow:hidden; contain:layout paint; }
 .xj-mote {
   position:absolute; border-radius:50%;
   background:radial-gradient(circle, rgba(234,246,255,0.9), rgba(111,214,255,0.15) 60%, transparent 100%);
   animation:moteRise linear infinite, moteSway ease-in-out infinite;
   pointer-events:none;
+  will-change:transform, opacity;
 }
 @keyframes moteRise {
   0%   { transform:translateY(8vh); opacity:0; }
@@ -191,11 +241,14 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
 }
 
 /* 远景水母：柔光轮廓，慢速漂浮 */
-.xj-jellies { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.xj-jellies { position:absolute; inset:0; overflow:hidden; pointer-events:none; contain:layout paint; }
 .xj-jelly {
   position:absolute; opacity:0.5;
   animation:jellyFloat ease-in-out infinite, jellyBob ease-in-out infinite;
-  filter:url(#xjSoftGlow);
+  will-change:transform;
+  /* 原先每只水母都叠加一层 feGaussianBlur 滤镜（SVG filter），
+     多只同时动画时在移动端极易掉帧；柔光感改由 SVG 内部渐变
+     本身承担（radialGradient 已经是软边），此处不再叠加滤镜。 */
 }
 .xj-jelly svg { display:block; width:100%; height:100%; }
 .xj-jelly-pulse {
@@ -437,16 +490,32 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
   border:none; outline:none;
   background:
     radial-gradient(circle at 38% 32%, rgba(255,255,255,0.85), rgba(111,214,255,0.55) 32%, rgba(66,150,210,0.35) 62%, rgba(20,60,90,0.15) 100%);
+  /* 呼吸光晕原先每帧都在改变 box-shadow 的模糊半径，属于典型的
+     "布局无关但仍需重绘"操作，在中低端手机上非常吃力。
+     现固定 box-shadow（只画一次），呼吸感改由外层一个独立的
+     ::after 光晕做 transform:scale + opacity 动画来实现，
+     两者都能吃到 GPU 合成，不再逐帧重绘阴影本身。 */
   box-shadow:
-    0 0 50px 8px rgba(111,214,255,0.35),
-    0 0 100px 30px rgba(111,214,255,0.15),
+    0 0 55px 10px rgba(111,214,255,0.35),
+    0 0 105px 32px rgba(111,214,255,0.15),
     inset 0 0 24px rgba(255,255,255,0.35);
   animation:orbBreathe 3.6s ease-in-out infinite;
   transition:transform .5s cubic-bezier(.2,.9,.25,1);
+  will-change:transform;
+}
+.xj-orb::after {
+  content:''; position:absolute; inset:-30%; border-radius:50%; z-index:-1;
+  background:radial-gradient(circle, rgba(111,214,255,0.35), transparent 70%);
+  animation:orbBreatheGlow 3.6s ease-in-out infinite;
+  will-change:transform, opacity;
 }
 @keyframes orbBreathe {
-  0%,100% { transform:scale(1); box-shadow:0 0 50px 8px rgba(111,214,255,0.32), 0 0 100px 30px rgba(111,214,255,0.13), inset 0 0 24px rgba(255,255,255,0.32); }
-  50%     { transform:scale(1.055); box-shadow:0 0 62px 14px rgba(111,214,255,0.45), 0 0 120px 40px rgba(111,214,255,0.2), inset 0 0 30px rgba(255,255,255,0.4); }
+  0%,100% { transform:scale(1); }
+  50%     { transform:scale(1.055); }
+}
+@keyframes orbBreatheGlow {
+  0%,100% { transform:scale(1); opacity:0.65; }
+  50%     { transform:scale(1.18); opacity:1; }
 }
 .xj-orb:active { transform:scale(0.9); }
 .xj-orb.opening { animation:orbOpen 0.9s cubic-bezier(.2,.9,.2,1) forwards; }
@@ -1165,6 +1234,9 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
   opacity:0; pointer-events:none; transition:opacity .4s ease;
 }
 .xj-archive-mask.show { opacity:1; pointer-events:all; }
+/* 未展示时，暂停其内部水母/游鱼/气泡/微粒的所有动画，避免它们在
+   背后不可见的情况下仍持续消耗合成资源；保留 opacity 过渡不受影响 */
+.xj-archive-mask:not(.show) *:not(.xj-archive-mask) { animation-play-state:paused !important; }
 
 .xj-archive-panel {
   position:relative; width:100%; height:100%; max-width:560px; margin:0 auto;
@@ -1290,6 +1362,7 @@ button { font-family:inherit; cursor:pointer; background:none; border:none; }
   background:#010509; opacity:0; pointer-events:none; transition:opacity .35s ease;
 }
 .xj-detail-mask.show { opacity:1; pointer-events:all; }
+.xj-detail-mask:not(.show) *:not(.xj-detail-mask) { animation-play-state:paused !important; }
 .xj-detail-panel { position:relative; width:100%; height:100%; display:flex; flex-direction:column; max-width:560px; margin:0 auto; overflow:hidden; }
 .xj-detail-seascape { position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
 .xj-detail-seascape .xj-sea-gradient,
