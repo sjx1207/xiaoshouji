@@ -354,6 +354,12 @@ function buildCard(c, idx) {
     </div>
     <div class="ch-card-actions">
       <button class="ch-btn-edit" onclick="event.stopPropagation();openView(${c.id})">查看</button>
+      <button class="ch-btn-export" onclick="event.stopPropagation();exportSingleChar(${c.id})" title="导出此角色">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none">
+          <path d="M12 15V3M12 15l-3.5-3.5M12 15l3.5-3.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <button class="ch-btn-apply${isActive ? ' applied' : ''}" onclick="event.stopPropagation();applyCard(${c.id})">
         ${isActive ? '✓ 已应用' : '应用'}
       </button>
@@ -1407,4 +1413,300 @@ async function buildMemoryPromptStandalone(charId) {
   lines.push('- 若记忆与用户当前所说内容冲突，以维持角色人设一致性为优先，不随意"失忆"或人设漂移');
 
   return lines.join('\n');
+}
+/* ================================================
+   导入 / 导出
+   - 单个导出：卡片上的导出按钮
+   - 批量导出：勾选任意数量角色，打包成一个 JSON 文件下载
+   - 导入：选择 JSON 文件（单个角色 或 批量合集均可识别），
+     预览后勾选需要导入的角色，可选择“作为新角色”或“同名覆盖”
+   - 全程不使用浏览器原生 alert/confirm/prompt，用自定义
+     Toast + 面板交互代替
+================================================ */
+
+const IO_EXPORT_VERSION = 1;
+let _ioExportSel = new Set();   // 导出面板：选中的角色 id
+let _ioImportData = [];         // 导入面板：从文件解析出的角色数组
+let _ioImportSel = new Set();   // 导入面板：选中的索引
+
+/* ---- Toast ---- */
+let _ioToastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('ioToast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_ioToastTimer);
+  _ioToastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ---- 打开 / 关闭弹窗 ---- */
+async function openIOModal() {
+  document.getElementById('ioOverlay').classList.add('show');
+  document.getElementById('ioModal').classList.add('show');
+  switchIOTab('export');
+  await renderIOExportList();
+}
+function closeIOModal() {
+  document.getElementById('ioOverlay').classList.remove('show');
+  document.getElementById('ioModal').classList.remove('show');
+}
+function switchIOTab(tab) {
+  document.querySelectorAll('.io-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('ioPanelExport').style.display = tab === 'export' ? '' : 'none';
+  document.getElementById('ioPanelImport').style.display = tab === 'import' ? '' : 'none';
+}
+
+/* ---- 导出：渲染角色选择列表 ---- */
+function ioCharAvatarHtml(c) {
+  const letter = (c.name || '?')[0].toUpperCase();
+  return c.avatar
+    ? `<img src="${c.avatar}" alt=""/>`
+    : `<span>${escHtml(letter)}</span>`;
+}
+
+async function renderIOExportList() {
+  const chars = await getAllChars();
+  _chars = chars; // 保持全局列表同步，便于单个导出按钮使用
+  _ioExportSel = new Set(chars.map(c => c.id)); // 默认全选，方便一键导出全部
+  const wrap = document.getElementById('ioExportList');
+  document.getElementById('ioTotalCount').textContent = chars.length;
+
+  if (!chars.length) {
+    wrap.innerHTML = `<div class="io-empty">还没有可导出的角色</div>`;
+    updateIOExportCount();
+    return;
+  }
+
+  wrap.innerHTML = chars.map(c => `
+    <div class="io-char-row selected" data-id="${c.id}" onclick="ioToggleExportRow(${c.id})">
+      <div class="io-checkbox"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="io-char-avatar">${ioCharAvatarHtml(c)}</div>
+      <div class="io-char-info">
+        <div class="io-char-name">${escHtml(c.name || '未命名角色')}</div>
+        <div class="io-char-role">${escHtml(c.role || '未设定定位')}</div>
+      </div>
+    </div>
+  `).join('');
+  updateIOExportCount();
+}
+
+function ioToggleExportRow(id) {
+  const row = document.querySelector(`#ioExportList .io-char-row[data-id="${id}"]`);
+  if (!row) return;
+  if (_ioExportSel.has(id)) { _ioExportSel.delete(id); row.classList.remove('selected'); }
+  else { _ioExportSel.add(id); row.classList.add('selected'); }
+  updateIOExportCount();
+}
+
+function updateIOExportCount() {
+  document.getElementById('ioSelCount').textContent = _ioExportSel.size;
+  const allSelected = _chars.length > 0 && _ioExportSel.size === _chars.length;
+  document.getElementById('ioSelectAllBtn').textContent = allSelected ? '取消全选' : '全选';
+}
+
+function ioToggleSelectAll() {
+  const allSelected = _chars.length > 0 && _ioExportSel.size === _chars.length;
+  _ioExportSel = allSelected ? new Set() : new Set(_chars.map(c => c.id));
+  document.querySelectorAll('#ioExportList .io-char-row').forEach(row => {
+    row.classList.toggle('selected', _ioExportSel.has(parseInt(row.dataset.id)));
+  });
+  updateIOExportCount();
+}
+
+/* ---- 触发浏览器文件下载（非弹窗，仅生成本地文件） ---- */
+function downloadJSON(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function sanitizeFileName(name) {
+  return String(name || '角色').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 40) || '角色';
+}
+
+function buildExportPayload(chars) {
+  return {
+    app: 'LunaCharacterStudio',
+    type: 'character-export',
+    version: IO_EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    count: chars.length,
+    characters: chars,
+  };
+}
+
+/* 单个角色导出（卡片按钮触发） */
+async function exportSingleChar(id) {
+  const chars = _chars && _chars.length ? _chars : await getAllChars();
+  const c = chars.find(x => x.id === id);
+  if (!c) { showToast('未找到该角色'); return; }
+  const payload = buildExportPayload([c]);
+  downloadJSON(payload, `角色_${sanitizeFileName(c.name)}.json`);
+  showToast(`已导出「${c.name || '未命名角色'}」`);
+}
+
+/* 批量导出：选中的角色 */
+async function exportSelectedChars() {
+  if (!_ioExportSel.size) { showToast('请至少选择一个角色'); return; }
+  const chars = _chars.filter(c => _ioExportSel.has(c.id));
+  const payload = buildExportPayload(chars);
+  const filename = chars.length === 1
+    ? `角色_${sanitizeFileName(chars[0].name)}.json`
+    : `角色合集_${chars.length}个_${Date.now()}.json`;
+  downloadJSON(payload, filename);
+  showToast(`已导出 ${chars.length} 个角色`);
+}
+
+/* 批量导出：全部角色 */
+async function exportAllChars() {
+  const chars = await getAllChars();
+  if (!chars.length) { showToast('还没有可导出的角色'); return; }
+  const payload = buildExportPayload(chars);
+  downloadJSON(payload, `角色全部备份_${chars.length}个_${Date.now()}.json`);
+  showToast(`已导出全部 ${chars.length} 个角色`);
+}
+
+/* ---- 导入：解析所选文件 ---- */
+function handleIOFileSelect(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  document.getElementById('ioDropzoneText').textContent = file.name;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    let parsed;
+    try {
+      parsed = JSON.parse(e.target.result);
+    } catch (err) {
+      showToast('文件解析失败，请确认是有效的 JSON 备份文件');
+      return;
+    }
+
+    let list = [];
+    if (Array.isArray(parsed)) {
+      list = parsed; // 兼容纯数组格式
+    } else if (parsed && Array.isArray(parsed.characters)) {
+      list = parsed.characters; // 批量导出格式
+    } else if (parsed && typeof parsed === 'object' && (parsed.name || parsed.prompt || parsed.desc)) {
+      list = [parsed]; // 单个角色导出格式
+    }
+
+    list = list.filter(x => x && typeof x === 'object');
+    if (!list.length) {
+      showToast('文件中没有可识别的角色数据');
+      return;
+    }
+
+    _ioImportData = list;
+    _ioImportSel = new Set(list.map((_, i) => i));
+    renderIOImportList();
+    document.getElementById('ioImportPreviewWrap').style.display = '';
+    showToast(`识别到 ${list.length} 个角色`);
+  };
+  reader.onerror = () => showToast('文件读取失败，请重试');
+  reader.readAsText(file, 'utf-8');
+}
+
+function renderIOImportList() {
+  const wrap = document.getElementById('ioImportList');
+  document.getElementById('ioImportTotalCount').textContent = _ioImportData.length;
+
+  wrap.innerHTML = _ioImportData.map((c, i) => `
+    <div class="io-char-row selected" data-idx="${i}" onclick="ioToggleImportRow(${i})">
+      <div class="io-checkbox"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="io-char-avatar">${ioCharAvatarHtml(c)}</div>
+      <div class="io-char-info">
+        <div class="io-char-name">${escHtml(c.name || '未命名角色')}</div>
+        <div class="io-char-role">${escHtml(c.role || '未设定定位')}</div>
+      </div>
+    </div>
+  `).join('');
+  updateIOImportCount();
+}
+
+function ioToggleImportRow(idx) {
+  const row = document.querySelector(`#ioImportList .io-char-row[data-idx="${idx}"]`);
+  if (!row) return;
+  if (_ioImportSel.has(idx)) { _ioImportSel.delete(idx); row.classList.remove('selected'); }
+  else { _ioImportSel.add(idx); row.classList.add('selected'); }
+  updateIOImportCount();
+}
+
+function updateIOImportCount() {
+  document.getElementById('ioImportSelCount').textContent = _ioImportSel.size;
+  const allSelected = _ioImportData.length > 0 && _ioImportSel.size === _ioImportData.length;
+  document.getElementById('ioImportSelectAllBtn').textContent = allSelected ? '取消全选' : '全选';
+}
+
+function ioToggleImportSelectAll() {
+  const allSelected = _ioImportData.length > 0 && _ioImportSel.size === _ioImportData.length;
+  _ioImportSel = allSelected ? new Set() : new Set(_ioImportData.map((_, i) => i));
+  document.querySelectorAll('#ioImportList .io-char-row').forEach(row => {
+    row.classList.toggle('selected', _ioImportSel.has(parseInt(row.dataset.idx)));
+  });
+  updateIOImportCount();
+}
+
+function resetIOImport() {
+  _ioImportData = [];
+  _ioImportSel = new Set();
+  document.getElementById('ioImportPreviewWrap').style.display = 'none';
+  document.getElementById('ioFileInput').value = '';
+  document.getElementById('ioDropzoneText').textContent = '点击选择 JSON 文件';
+}
+
+/* 清理导入数据里不该带入新库的字段（如旧 id，避免和已有数据冲突） */
+function sanitizeImportChar(raw, keepId) {
+  const c = Object.assign({}, raw);
+  if (!keepId) delete c.id;
+  // worldEntries 里存的是旧库世界书条目 id，跨设备/跨库不一定还存在，
+  // 保留字段但不做强校验，交由用户在角色详情页里自行确认关联是否仍有效
+  return c;
+}
+
+async function confirmImportChars() {
+  if (!_ioImportSel.size) { showToast('请至少选择一个要导入的角色'); return; }
+
+  const mode = (_pillState && _pillState.ioModeSelect) || 'new';
+  const existing = await getAllChars();
+  const byName = new Map(existing.map(c => [c.name, c]));
+
+  let added = 0, overwritten = 0;
+  for (const idx of _ioImportSel) {
+    const raw = _ioImportData[idx];
+    if (!raw) continue;
+
+    if (mode === 'overwrite' && raw.name && byName.has(raw.name)) {
+      const target = byName.get(raw.name);
+      const data = sanitizeImportChar(raw, false);
+      data.id = target.id;
+      await saveChar(data);
+      overwritten++;
+    } else {
+      const data = sanitizeImportChar(raw, false);
+      await saveChar(data);
+      added++;
+    }
+  }
+
+  resetIOImport();
+  await renderList();
+  await renderIOExportList();
+
+  /* 通知其它页面同步 */
+  localStorage.setItem('luna_char_db_update', Date.now());
+  localStorage.setItem('luna_characters_updated', Date.now());
+
+  const parts = [];
+  if (added) parts.push(`新增 ${added} 个`);
+  if (overwritten) parts.push(`覆盖 ${overwritten} 个`);
+  showToast(parts.length ? `导入完成：${parts.join('，')}` : '导入完成');
+  switchIOTab('export');
 }
