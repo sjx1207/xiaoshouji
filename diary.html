@@ -7,9 +7,12 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" />
 
 <link rel="stylesheet" href="diary.css" />
+<link rel="stylesheet" href="char-diary.css">
+<link rel="stylesheet" href="private.css" />
 </head>
 <body style="margin:0; padding:0;">
 
@@ -38,7 +41,9 @@
 
   <!-- 页头 -->
   <div class="diary-header">
-    <!-- 返回按钮：非常规造型 —— 一枚展开的墨迹弧线，而非常见的 "<" 箭头 -->
+    <!-- 返回按钮：非常规造型 —— 一枚展开的墨迹弧线，而非常见的 "<" 箭头。
+         非"我的日记"页时按钮本身淡出收起，同时其内部叠加显示一枚花徽印章，
+         占据同一物理位置，避免该区域在其余分页显得空旷 -->
     <button class="diary-back-btn" id="diaryBackBtn" aria-label="返回" data-page-scope="mine">
       <span class="dbb-ring"></span>
       <svg viewBox="0 0 24 24" fill="none">
@@ -47,7 +52,32 @@
       </svg>
     </button>
 
-    <div class="diary-header-center">
+    <span class="hdr-char-emblem" id="hdrCharEmblem" aria-hidden="true">
+      <svg viewBox="0 0 40 40" fill="none">
+        <defs>
+          <linearGradient id="hceGrad" x1="4" y1="3" x2="36" y2="37" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="var(--lilac-deep)"/>
+            <stop offset="50%" stop-color="var(--rose-deep)"/>
+            <stop offset="100%" stop-color="var(--gold-hair)"/>
+          </linearGradient>
+          <radialGradient id="hceCore" cx="50%" cy="42%" r="65%">
+            <stop offset="0%" stop-color="#fffefb"/>
+            <stop offset="100%" stop-color="var(--rose-mist)"/>
+          </radialGradient>
+        </defs>
+        <circle class="hce-ring" cx="20" cy="20" r="17" stroke="url(#hceGrad)" stroke-width="1" stroke-dasharray="0.9 4.6" stroke-linecap="round"/>
+        <g class="hce-petals">
+          <path d="M20 6.5c2.7 3.2 4.4 5.8 4.4 8.4 0 2.4-2 4.3-4.4 4.3s-4.4-1.9-4.4-4.3c0-2.6 1.7-5.2 4.4-8.4Z" fill="url(#hceGrad)"/>
+          <path d="M20 33.5c-2.7-3.2-4.4-5.8-4.4-8.4 0-2.4 2-4.3 4.4-4.3s4.4 1.9 4.4 4.3c0 2.6-1.7 5.2-4.4 8.4Z" fill="url(#hceGrad)"/>
+          <path d="M6.5 20c3.2-2.7 5.8-4.4 8.4-4.4 2.4 0 4.3 2 4.3 4.4s-1.9 4.4-4.3 4.4c-2.6 0-5.2-1.7-8.4-4.4Z" fill="url(#hceGrad)" opacity="0.85"/>
+          <path d="M33.5 20c-3.2 2.7-5.8 4.4-8.4 4.4-2.4 0-4.3-2-4.3-4.4s1.9-4.4 4.3-4.4c2.6 0 5.2 1.7 8.4 4.4Z" fill="url(#hceGrad)" opacity="0.85"/>
+        </g>
+        <circle cx="20" cy="20" r="5.4" fill="url(#hceCore)" stroke="var(--ink-deep)" stroke-width="0.55" stroke-opacity="0.2"/>
+        <circle class="hce-spark" cx="18.2" cy="18.2" r="1.1" fill="#ffffff"/>
+      </svg>
+    </span>
+
+    <div class="diary-header-center" id="diaryHeaderCenter" data-active-tab="mine">
       <div class="diary-header-eyebrow">Luna Diary</div>
       <div class="diary-header-title" id="diaryTitle">我的日记</div>
     </div>
@@ -92,6 +122,58 @@
            右侧是横向滑动提示，而非写日记按钮 -->
       <div class="char-topbar" id="charTopbar">
         <div class="char-topbar-left">
+          <span class="ctb-emblem" aria-hidden="true">
+            <svg viewBox="0 0 56 56" fill="none">
+              <defs>
+                <linearGradient id="ctbEmblemGrad" x1="6" y1="4" x2="50" y2="52" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="var(--lilac-deep)"/>
+                  <stop offset="50%" stop-color="var(--rose-deep)"/>
+                  <stop offset="100%" stop-color="var(--gold-hair)"/>
+                </linearGradient>
+                <linearGradient id="ctbEmblemGrad2" x1="50" y1="4" x2="6" y2="52" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="var(--gold-hair)"/>
+                  <stop offset="100%" stop-color="var(--lilac-deep)"/>
+                </linearGradient>
+                <radialGradient id="ctbEmblemCore" cx="50%" cy="42%" r="65%">
+                  <stop offset="0%" stop-color="#fffefb"/>
+                  <stop offset="70%" stop-color="var(--rose-mist)"/>
+                  <stop offset="100%" stop-color="var(--rose-deep)"/>
+                </radialGradient>
+              </defs>
+
+              <!-- 最外层：破折仪式印章环 -->
+              <circle class="ctb-em-ring" cx="28" cy="28" r="25" stroke="url(#ctbEmblemGrad)" stroke-width="1.3" stroke-dasharray="1 5.5" stroke-linecap="round"/>
+
+              <!-- 八角放射短线：如同勋章的光芒刻线 -->
+              <g class="ctb-em-rays" stroke="url(#ctbEmblemGrad2)" stroke-width="1.4" stroke-linecap="round">
+                <path d="M28 6 L28 12.5"/>
+                <path d="M28 43.5 L28 50"/>
+                <path d="M6 28 L12.5 28"/>
+                <path d="M43.5 28 L50 28"/>
+                <path d="M12.9 12.9 L17.2 17.2"/>
+                <path d="M38.8 38.8 L43.1 43.1"/>
+                <path d="M12.9 43.1 L17.2 38.8"/>
+                <path d="M38.8 17.2 L43.1 12.9"/>
+              </g>
+
+              <!-- 八瓣花徽本体：两组交叠水滴瓣，构成浮凸的立体花形 -->
+              <g class="ctb-em-petals">
+                <path d="M28 10c3.6 4.4 6 8 6 11.6 0 3.2-2.7 5.8-6 5.8s-6-2.6-6-5.8c0-3.6 2.4-7.2 6-11.6Z" fill="url(#ctbEmblemGrad)"/>
+                <path d="M28 46c-3.6-4.4-6-8-6-11.6 0-3.2 2.7-5.8 6-5.8s6 2.6 6 5.8c0 3.6-2.4 7.2-6 11.6Z" fill="url(#ctbEmblemGrad)"/>
+                <path d="M10 28c4.4-3.6 8-6 11.6-6 3.2 0 5.8 2.7 5.8 6s-2.6 6-5.8 6c-3.6 0-7.2-2.4-11.6-6Z" fill="url(#ctbEmblemGrad2)"/>
+                <path d="M46 28c-4.4 3.6-8 6-11.6 6-3.2 0-5.8-2.7-5.8-6s2.6-6 5.8-6c3.6 0 7.2 2.4 11.6 6Z" fill="url(#ctbEmblemGrad2)"/>
+                <path d="M15.5 15.5c5.4-1.2 9.3-1 11.9 1.6 2.3 2.3 2.3 5.9 0 8.2s-5.9 2.3-8.2 0c-2.6-2.6-2.8-6.5-1.7-9.8Z" fill="url(#ctbEmblemGrad)" opacity="0.88"/>
+                <path d="M40.5 40.5c-5.4 1.2-9.3 1-11.9-1.6-2.3-2.3-2.3-5.9 0-8.2s5.9-2.3 8.2 0c2.6 2.6 2.8 6.5 1.7 9.8Z" fill="url(#ctbEmblemGrad)" opacity="0.88"/>
+                <path d="M40.5 15.5c1.1 5.4.9 9.3-1.7 11.9-2.3 2.3-5.9 2.3-8.2 0s-2.3-5.9 0-8.2c2.6-2.6 6.5-2.8 9.9-1.7Z" fill="url(#ctbEmblemGrad2)" opacity="0.88"/>
+                <path d="M15.5 40.5c-1.1-5.4-.9-9.3 1.7-11.9 2.3-2.3 5.9-2.3 8.2 0s2.3 5.9 0 8.2c-2.6 2.6-6.5 2.8-9.9 1.7Z" fill="url(#ctbEmblemGrad2)" opacity="0.88"/>
+              </g>
+
+              <!-- 中心圆核：珍珠光泽 + 清晰描边，锚定视觉重心 -->
+              <circle cx="28" cy="28" r="8.2" fill="url(#ctbEmblemCore)" stroke="var(--ink-deep)" stroke-width="0.7" stroke-opacity="0.22"/>
+              <circle cx="28" cy="28" r="8.2" fill="none" stroke="#ffffff" stroke-width="0.6" stroke-opacity="0.55"/>
+              <circle class="ctb-em-spark" cx="25.3" cy="25.3" r="1.6" fill="#ffffff"/>
+            </svg>
+          </span>
           <span class="ctb-count" id="ctbCount">0</span>
           <span class="ctb-count-label">本日记本</span>
         </div>
@@ -124,12 +206,14 @@
 
     </div>
 
+    <!-- ============================================================
+         ★ 私密 —— 两个板块（角色 / 陌生人）的秘密社区 ★
+         页面骨架由 private.js 动态构建（身份条 / 板块切换 / 角色带 /
+         日期仪式条 / 信息流），日历、抽屉、详情页等浮层同样由 JS
+         注入到 .diary-app 下，此处只保留一个挂载点。
+    ============================================================ -->
     <div class="diary-page" data-page="private">
-      <div class="diary-placeholder">
-        <div class="diary-placeholder-mark"></div>
-        <div class="diary-placeholder-text">只属于你的角落<br/>无人知晓，无人打扰</div>
-        <div class="diary-placeholder-sub">Private · Coming Soon</div>
-      </div>
+      <div class="pv-root" id="pvRoot" data-pv-theme="moon"></div>
     </div>
 
   </div>
@@ -590,6 +674,488 @@
   </div>
 
   <!-- ============================================================
+       ★★★★★ Char 日记专属主页 —— 点击书架上的日记本后打开 ★★★★★
+       结构：专属状态栏 → 角色主题化 Hero（头像/名号/纹样，随 skin 变色）→
+             折叠式自绘日历（点击展开，可任意跳选日期，标注真实节假日）→
+             时间轴日记流（拍立得 / 便签纸条 / 卡片，样式随日期哈希轮换，
+             内容为待接入真实 AI 生成的占位文案，随人设与日期变化）
+  ============================================================ -->
+  <div class="cdh-veil" id="cdhVeil"></div>
+  <div class="cdh-page" id="cdhPage" aria-hidden="true">
+
+    <!-- 专属状态栏（结构与主状态栏一致，由 diary.js 同步时间/电量） -->
+    <div class="status-bar cdh-status-bar">
+      <div class="status-time" id="cdhStatusTime">9:41</div>
+      <div class="status-island" id="cdhStatusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="cdhBatPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="cdhBatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 顶部工具条：返回 + 角色名号水印 + 日历开关 -->
+    <div class="cdh-topbar">
+      <button class="cdh-back-btn" id="cdhBackBtn" aria-label="返回">
+        <span class="dbb-ring"></span>
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M14.5 6.5 C10.5 8.5 8 10.5 7 12 C8 13.5 10.5 15.5 14.5 17.5" />
+          <path class="dbb-tail" d="M7 12 L11.5 12" />
+        </svg>
+      </button>
+      <div class="cdh-topbar-mark">
+        <span class="dtm-dot"></span>
+        <span id="cdhTopbarLabel">Ta 的日记</span>
+      </div>
+      <button class="cdh-cal-btn" id="cdhCalBtn" aria-label="选择日期">
+        <span class="cdh-cal-halo"></span>
+        <svg viewBox="0 0 24 24" fill="none">
+          <rect x="4.5" y="6" width="15" height="14" rx="3"/>
+          <path d="M4.5 10.2h15" />
+          <path d="M8.3 4.2v3.6M15.7 4.2v3.6" stroke-linecap="round"/>
+          <circle class="cdh-cal-dot" cx="12" cy="15" r="1.15" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 可滚动主体 -->
+    <div class="cdh-scroll" id="cdhScroll">
+      <div class="cdh-scroll-inner">
+
+        <!-- ============ Hero：角色主题化头部 ============ -->
+        <div class="cdh-hero" id="cdhHero">
+          <div class="cdh-hero-aura"></div>
+          <div class="cdh-hero-emblem" id="cdhHeroEmblem"></div>
+
+          <div class="cdh-hero-avatar-wrap">
+            <div class="cdh-hero-avatar-ring">
+              <div class="cdh-hero-avatar" id="cdhHeroAvatar"></div>
+            </div>
+            <!-- 背景设置入口：栖息在头像环右下角的一枚"调色印"，
+                 非常规设置齿轮/加号按钮——一枚half-dipped画笔造型徽记，
+                 呼应"为这本日记调色"的仪式感，而非工具化的"创建"按钮 -->
+            <button class="cdh-bg-trigger" id="cdhBgTrigger" type="button" aria-label="设置日记背景">
+              <span class="cbt-halo"></span>
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M8 20c-2.5 0-4.5-1.9-4.5-4.5 0-1.6.8-2.7 1.9-3.7L15.6 2.6c.5-.5 1.3-.5 1.8 0l2 2c.5.5.5 1.3 0 1.8L9.2 16.6c-.4.4-.6 1-.5 1.6.1.7-.4 1.3-1.1 1.4-1 .1-1.9.1-2.9.1"/>
+                <path d="M13.5 5 L19 10.5" opacity="0.6"/>
+                <circle class="cbt-drip" cx="7.2" cy="16.8" r="1.15" fill="currentColor" stroke="none"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="cdh-hero-name" id="cdhHeroName">未命名</div>
+          <div class="cdh-hero-role" id="cdhHeroRole">未署名的角色</div>
+
+          <div class="cdh-hero-plate">
+            <span class="cdh-hero-plate-line"></span>
+            <span id="cdhHeroPlateTitle">「雾蔷笺」</span>
+            <span class="cdh-hero-plate-line"></span>
+          </div>
+
+          <!-- 当前浏览月份 · 篇数统计仪式条 -->
+          <div class="cdh-hero-stats" id="cdhHeroStats">
+            <div class="cdh-hero-stat">
+              <span class="cdh-hs-num" id="cdhStatMonth">08</span>
+              <span class="cdh-hs-label">本月落笔</span>
+            </div>
+            <span class="cdh-hs-sep"></span>
+            <div class="cdh-hero-stat">
+              <span class="cdh-hs-num" id="cdhStatTotal">--</span>
+              <span class="cdh-hs-label">此刻感知</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ 日历入口条：一枚仪式感的"翻阅时光"提示条，
+             非常见按钮造型——左侧是手绘日晷刻度短线，右侧是当前选中的
+             日期铭文，整条可点，唤出居中卡片式日历弹窗（见页面末尾
+             cdhCalModal），不再使用折叠面板 ============ -->
+        <button class="cdh-cal-rail" id="cdhCalRail" type="button">
+          <span class="ccr-dial" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none">
+              <circle cx="20" cy="20" r="15.5" stroke-dasharray="1.6 4.2" stroke-linecap="round"/>
+              <path d="M20 20 L20 10.5" stroke-linecap="round"/>
+              <path d="M20 20 L27 24" stroke-linecap="round"/>
+              <circle cx="20" cy="20" r="1.6" fill="currentColor" stroke="none"/>
+            </svg>
+          </span>
+          <span class="ccr-text">
+            <span class="ccr-label" id="cdhCalRailLabel">选择一个日子</span>
+            <span class="ccr-sub">翻阅时光 · TIMELINE</span>
+          </span>
+          <span class="ccr-arrow" aria-hidden="true">
+            <svg viewBox="0 0 12 12" fill="none"><path d="M4 2.5 L8 6 L4 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+
+        <!-- ============ 时间轴日记流 ============ -->
+        <div class="cdh-timeline" id="cdhTimeline">
+          <!-- 由 diary.js 动态渲染插入：每一天一个时间轴节点 + 一张随机样式卡片 -->
+        </div>
+
+        <div class="cdh-timeline-end" id="cdhTimelineEnd">
+          <span class="cte-line"></span>
+          <span class="cte-text">时光尚未走到更早以前</span>
+          <span class="cte-line"></span>
+        </div>
+
+        <div class="cdh-bottom-pad"></div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       ★ Char 日记 · 背景设置弹窗（居中卡片式，带遮罩） ★
+       点击头像旁的"调色印"唤出；两种模式切换：纯色（CSS 颜色选择器）
+       / 图片（本地上传，经 IndexedDB 持久化）。保存后同步两处：
+       该角色的专属主页背景 + 书架上对应日记本封面背景。
+  ============================================================ -->
+  <div class="cdh-bg-veil" id="cdhBgVeil"></div>
+  <div class="cdh-bg-modal" id="cdhBgModal" aria-hidden="true">
+    <div class="cbm-sheet">
+      <span class="cbm-sheet-sheen" aria-hidden="true"></span>
+      <span class="cbm-corner cbm-corner-tl" aria-hidden="true"></span>
+      <span class="cbm-corner cbm-corner-tr" aria-hidden="true"></span>
+
+      <div class="ccm-topbar cbm-topbar">
+        <span class="ccm-topbar-mark cbm-topbar-mark">
+          <span class="cbm-mark-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3c-4.4 3-6.5 6.2-6.5 9.4A6.5 6.5 0 0 0 12 19a6.5 6.5 0 0 0 6.5-6.6C18.5 9.2 16.4 6 12 3Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          </span>
+          为这本日记调色
+        </span>
+        <button class="ccm-close" id="cdhBgCloseBtn" aria-label="关闭" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <!-- 模式切换：纯色 / 图片 -->
+      <div class="cbm-mode-switch" id="cbmModeSwitch">
+        <span class="cbm-mode-glider" id="cbmModeGlider" aria-hidden="true"></span>
+        <button class="cbm-mode-btn is-active" data-mode="theme" type="button">默认主题</button>
+        <button class="cbm-mode-btn" data-mode="color" type="button">纯色</button>
+        <button class="cbm-mode-btn" data-mode="image" type="button">图片</button>
+      </div>
+
+      <!-- 预览条：实时展示当前选择的效果 -->
+      <div class="cbm-preview" id="cbmPreview">
+        <span class="cbm-preview-frame" aria-hidden="true"></span>
+        <span class="cbm-preview-hint" id="cbmPreviewHint">跟随日记本原有主题色</span>
+      </div>
+
+      <!-- 纯色面板：全自绘颜色选择器（拒绝浏览器原生 input[type=color]） -->
+      <div class="cbm-panel cbm-panel-color" id="cbmPanelColor" hidden>
+
+        <!-- 饱和度 / 明度 拾色面板：canvas 绘制，圆形拾取点 -->
+        <div class="ccp-field" id="ccpField">
+          <canvas class="ccp-canvas" id="ccpCanvas" width="280" height="180"></canvas>
+          <span class="ccp-thumb" id="ccpThumb"></span>
+        </div>
+
+        <!-- 色相滑条 -->
+        <div class="ccp-hue-row">
+          <div class="ccp-hue-track" id="ccpHueTrack">
+            <span class="ccp-hue-thumb" id="ccpHueThumb"></span>
+          </div>
+        </div>
+
+        <!-- 透明度滑条 -->
+        <div class="ccp-alpha-row">
+          <div class="ccp-alpha-track" id="ccpAlphaTrack">
+            <span class="ccp-alpha-thumb" id="ccpAlphaThumb"></span>
+          </div>
+        </div>
+
+        <div class="cbm-color-row">
+          <span class="ccp-preview" id="ccpPreviewChip" aria-hidden="true"></span>
+          <input type="text" class="cbm-color-text" id="cbmColorText" placeholder="#e3c9d1 / rgba(...) / 任意合法 CSS 颜色" maxlength="40" />
+          <button type="button" class="ccp-eyedrop" id="ccpEyedrop" aria-label="屏幕取色" title="从屏幕取色" hidden>
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12.5 5.5 18 11 8.5 20.5 4 21l0.5-4.5L14 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 3 21 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div class="cbm-swatches" id="cbmSwatches">
+          <!-- 由 diary.js 填充一组预设色板，均取自六套版型主题色 -->
+        </div>
+      </div>
+
+      <!-- 图片面板：本地上传 -->
+      <div class="cbm-panel cbm-panel-image" id="cbmPanelImage" hidden>
+        <button class="cbm-upload-btn" id="cbmUploadBtn" type="button">
+          <span class="cub-ring"></span>
+          <span class="cub-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+          </span>
+          <em id="cbmUploadText">选择一张图片</em>
+        </button>
+        <input type="file" id="cbmFileInput" accept="image/*" hidden />
+        <p class="cbm-upload-tip">图片将保存在本机浏览器中（IndexedDB），不做压缩处理，仅本设备可见</p>
+      </div>
+
+      <!-- 文字明暗：自定义背景（纯色/图片）时才出现，控制专属主页文字色的自适应策略 -->
+      <div class="cbm-panel cbm-panel-contrast" id="cbmPanelContrast" hidden>
+        <div class="cbm-contrast-head">
+          <span class="cbm-contrast-title">页面文字颜色</span>
+          <span class="cbm-contrast-sub">仅作用于这本日记的专属主页</span>
+        </div>
+        <div class="cbm-contrast-switch" id="cbmContrastSwitch">
+          <span class="cbm-contrast-glider" id="cbmContrastGlider" aria-hidden="true"></span>
+          <button class="cbm-contrast-btn is-active" data-contrast="auto" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v2.4M12 18.6V21M21 12h-2.4M5.4 12H3M18.36 5.64l-1.7 1.7M7.34 16.66l-1.7 1.7M18.36 18.36l-1.7-1.7M7.34 7.34l-1.7-1.7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="12" cy="12" r="3.6" stroke="currentColor" stroke-width="1.4"/></svg>
+            自动
+          </button>
+          <button class="cbm-contrast-btn" data-contrast="light" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.4"/></svg>
+            浅色字
+          </button>
+          <button class="cbm-contrast-btn" data-contrast="dark" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M20 14.2A8.2 8.2 0 1 1 9.8 4 6.6 6.6 0 0 0 20 14.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            深色字
+          </button>
+        </div>
+        <p class="cbm-contrast-tip" id="cbmContrastTip">自动：根据背景明暗实时判断，深色背景自动变白字，浅色背景自动变黑字</p>
+      </div>
+
+      <div class="cbm-actions">
+        <button class="cbm-reset" id="cbmResetBtn" type="button">恢复默认</button>
+        <button class="cbm-confirm" id="cbmConfirmBtn" type="button">
+          <span class="cp-glow"></span>
+          <span class="cp-text">保存并同步</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ★ Char 日记 · 日历弹窗（居中卡片式，带遮罩） ★
+       点击 .cdh-cal-rail 唤出；结构与配图描述弹层同构（veil + 居中
+       sheet），而非顶部折叠面板，也不是常见的"创建"按钮样式。
+  ============================================================ -->
+  <div class="cdh-cal-veil" id="cdhCalVeil"></div>
+  <div class="cdh-cal-modal" id="cdhCalModal" aria-hidden="true">
+    <div class="ccm-sheet">
+
+      <div class="ccm-topbar">
+        <span class="ccm-topbar-mark">
+          <span class="dtm-dot"></span>翻阅时光
+        </span>
+        <button class="ccm-close" id="cdhCalCloseBtn" aria-label="关闭" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="cdh-cal-head">
+        <button class="cdh-cal-nav" id="cdhCalPrev" aria-label="上个月" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M14.5 6.5 C10.5 8.5 8 10.5 7 12 C8 13.5 10.5 15.5 14.5 17.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="cdh-cal-headtext" id="cdhCalHeadJump" type="button" aria-label="快速跳转年月">
+          <span class="cdh-cal-month" id="cdhCalMonthLabel">AUGUST</span>
+          <span class="cdh-cal-year" id="cdhCalYearLabel">2026 · 八月</span>
+        </button>
+        <button class="cdh-cal-nav" id="cdhCalNext" aria-label="下个月" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9.5 6.5 C13.5 8.5 16 10.5 17 12 C16 13.5 13.5 15.5 9.5 17.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="cdh-cal-weekrow" id="cdhCalWeekrow">
+        <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span class="wk-end">六</span><span class="wk-end">日</span>
+      </div>
+
+      <div class="cdh-cal-grid" id="cdhCalGrid">
+        <!-- 由 diary.js 动态渲染日期格 -->
+      </div>
+
+      <div class="cdh-cal-legend">
+        <span class="ccl-item"><i class="ccl-dot ccl-has"></i>已落笔</span>
+        <span class="ccl-item"><i class="ccl-dot ccl-holiday"></i>节假日</span>
+        <span class="ccl-item"><i class="ccl-dot ccl-today"></i>今日</span>
+      </div>
+
+      <!-- ============================================================
+           ★ 落笔仪式条 —— 选中某天后，在这里唤起该角色当天的日记 ★
+           不是常见的方形提交按钮：左侧是钤印式的墨章（点按落印），
+           右侧是这一天的铭文与状态，整体作为一条完整的「印信」存在。
+      ============================================================ -->
+      <div class="cdh-quill" id="cdhQuill" data-state="idle">
+        <button class="cdq-seal" id="cdhQuillBtn" type="button" aria-label="生成这一天的日记">
+          <span class="cdq-seal-ring"></span>
+          <span class="cdq-seal-face">
+            <svg class="cdq-seal-quill" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 18.5c0-5.6 4.2-10.6 9.8-11.8.9-.2 1.5.8 1 1.6-2.4 3.7-4.6 6-7.6 7.6"/>
+              <path d="M5 19.5c1.6-.6 3-1.3 4.2-2.1" opacity="0.65"/>
+              <path d="M15.4 6.9c.6-1.5 1.7-2.6 3.3-3.4" opacity="0.5"/>
+            </svg>
+            <svg class="cdq-seal-spin" viewBox="0 0 44 44" fill="none" aria-hidden="true">
+              <circle cx="22" cy="22" r="19.5" />
+            </svg>
+          </span>
+        </button>
+        <div class="cdq-plate">
+          <span class="cdq-eyebrow" id="cdhQuillEyebrow">选中一个日子</span>
+          <span class="cdq-line" id="cdhQuillLine">Ta 会为那一天留下什么</span>
+          <span class="cdq-hint" id="cdhQuillHint">按下墨章，落笔</span>
+        </div>
+        <button class="cdq-goto" id="cdhQuillGoto" type="button" aria-label="前往这一天">
+          <span>前往</span>
+          <svg viewBox="0 0 12 12" fill="none"><path d="M4 2.5 L8 6 L4 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <!-- 年月快速跳转面板：点击顶部月份文字唤出，覆盖在日历格上方，
+           左列可滚动选年，右侧网格可直接点选月份，一步到位 -->
+      <div class="cdh-cal-jump" id="cdhCalJump" hidden>
+        <div class="ccj-eyebrow">选择年份与月份</div>
+        <div class="ccj-body">
+          <div class="ccj-years-wrap">
+            <div class="ccj-years-band" aria-hidden="true"></div>
+            <div class="ccj-years" id="ccjYears"><!-- 由 diary.js 填充年份列表 --></div>
+          </div>
+          <div class="ccj-divider" aria-hidden="true"></div>
+          <div class="ccj-months" id="ccjMonths"><!-- 由 diary.js 填充 12 个月份 --></div>
+        </div>
+        <div class="ccj-actions">
+          <button type="button" class="ccj-today" id="ccjTodayBtn">回到今日</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       ★★★★★ Char 日记 · 单篇详情页（AI 生成内容的阅读场） ★★★★★
+       背景 / 文字色与角色专属主页完全同步（由 char-diary.js 搬运
+       skin-* 与自定义背景变量），状态栏与内容区共用同一层背景，
+       整页无任何分割线，靠留白与字重建立层级。
+  ============================================================ -->
+  <div class="cdd-veil" id="cddVeil"></div>
+  <div class="cdd-page" id="cddPage" aria-hidden="true">
+
+    <div class="status-bar cdd-status-bar">
+      <div class="status-time" id="cddStatusTime">9:41</div>
+      <div class="status-island" id="cddStatusIsland"></div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="cddBatPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="cddBatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cdd-topbar">
+      <button class="cdd-back-btn" id="cddBackBtn" aria-label="返回">
+        <span class="dbb-ring"></span>
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M14.5 6.5 C10.5 8.5 8 10.5 7 12 C8 13.5 10.5 15.5 14.5 17.5" />
+          <path class="dbb-tail" d="M7 12 L11.5 12" />
+        </svg>
+      </button>
+      <div class="cdd-topbar-mark">
+        <span class="cdd-topbar-name" id="cddTopbarName">Ta 的日记</span>
+        <span class="cdd-topbar-sub" id="cddTopbarSub">此刻回望</span>
+      </div>
+      <div class="cdd-topbar-index" id="cddTopbarIndex"><span>壹</span></div>
+      <div class="cdd-progress" id="cddProgress"><i></i></div>
+    </div>
+
+    <div class="cdd-scroll" id="cddScroll">
+      <div class="cdd-scroll-inner">
+
+        <!-- 抬头：日期 / 天气 / 心情，由 JS 渲染 -->
+        <header class="cdd-head" id="cddHead"></header>
+
+        <!-- 正文画布：AI 返回的分块内容在这里被排成多样版式 -->
+        <article class="cdd-canvas" id="cddCanvas"></article>
+
+        <!-- 批注库：正文里的批注标记全部汇集到这里 -->
+        <section class="cdd-notes" id="cddNotes" hidden></section>
+
+        <!-- 同一天的其他篇目：横向翻阅 -->
+        <section class="cdd-siblings" id="cddSiblings" hidden></section>
+
+        <!-- ============================================================
+             ★ 四道仪式（回响传送门 / 多重笔迹 / 蝴蝶效应 / 时光回流）★
+             不是按钮，也不是卡片：一列可展开的「笺条」，
+             收起时只有序号铭文与题名，展开后在原位生长出内容。
+        ============================================================ -->
+        <section class="cdd-rituals" id="cddRituals">
+          <div class="cdr-eyebrow">
+            <span class="cdr-eyebrow-cn">四道仪式</span>
+            <span class="cdr-eyebrow-en">RITUALS OF RECOLLECTION</span>
+          </div>
+
+          <div class="cdr-item" data-ritual="echo">
+            <div class="cdr-head" role="button" tabindex="0">
+              <span class="cdr-index">壹</span>
+              <span class="cdr-titles">
+                <span class="cdr-cn">回响传送门</span>
+                <span class="cdr-en">ECHO PORTAL</span>
+              </span>
+              <span class="cdr-desc">找出与这一篇共振的旧日子</span>
+              <span class="cdr-chev"><svg viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5 L6 8 L9.5 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </div>
+            <div class="cdr-body"><div class="cdr-body-inner" id="cdrEcho"></div></div>
+          </div>
+
+          <div class="cdr-item" data-ritual="hands">
+            <div class="cdr-head" role="button" tabindex="0">
+              <span class="cdr-index">贰</span>
+              <span class="cdr-titles">
+                <span class="cdr-cn">多重笔迹</span>
+                <span class="cdr-en">MANY HANDS</span>
+              </span>
+              <span class="cdr-desc">同一段话，Ta 还可能怎么写</span>
+              <span class="cdr-chev"><svg viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5 L6 8 L9.5 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </div>
+            <div class="cdr-body"><div class="cdr-body-inner" id="cdrHands"></div></div>
+          </div>
+
+          <div class="cdr-item" data-ritual="butterfly">
+            <div class="cdr-head" role="button" tabindex="0">
+              <span class="cdr-index">叁</span>
+              <span class="cdr-titles">
+                <span class="cdr-cn">蝴蝶效应</span>
+                <span class="cdr-en">BUTTERFLY</span>
+              </span>
+              <span class="cdr-desc">改动这一天的一件小事</span>
+              <span class="cdr-chev"><svg viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5 L6 8 L9.5 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </div>
+            <div class="cdr-body"><div class="cdr-body-inner" id="cdrButterfly"></div></div>
+          </div>
+
+          <div class="cdr-item" data-ritual="reflux">
+            <div class="cdr-head" role="button" tabindex="0">
+              <span class="cdr-index">肆</span>
+              <span class="cdr-titles">
+                <span class="cdr-cn">时光回流</span>
+                <span class="cdr-en">TIME REFLUX</span>
+              </span>
+              <span class="cdr-desc">很久以后，Ta 重读了这一页</span>
+              <span class="cdr-chev"><svg viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5 L6 8 L9.5 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </div>
+            <div class="cdr-body"><div class="cdr-body-inner" id="cdrReflux"></div></div>
+          </div>
+        </section>
+
+        <div class="cdd-bottom-pad"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        功能卡片点开后的浮层容器（四种功能共用同一层壳，内容按需切换）
   ============================================================ -->
   <div class="feature-veil" id="featureVeil"></div>
@@ -617,5 +1183,7 @@
 </div>
 
 <script src="diary.js"></script>
+<script src="char-diary.js"></script>
+<script src="private.js"></script>
 </body>
 </html>

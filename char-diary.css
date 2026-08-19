@@ -1,0 +1,1552 @@
+/* ==================================================================
+   char-diary.css —— Char 日记 · 落笔仪式条 + 单篇详情页 + 四道仪式
+
+   视觉基调：浅色韩系，纸白 + 角色主题色的极淡晕染，靠留白、字重与
+   微弱的高光/暗角建立层级；全篇不使用任何分割线、不使用 emoji、
+   不使用米色。所有配色都从 --cdh-* 变量派生，因此详情页的背景与
+   文字色始终与角色专属主页一致。
+================================================================== */
+
+/* ==================================================================
+   一 · 日历弹窗底部的「落笔仪式条」
+   左侧为可按下的墨章，右侧为这一天的铭文，最右是前往这一天的引子。
+================================================================== */
+.cdh-quill{
+  position: relative;
+  margin: 14px 4px 2px;
+  padding: 12px 12px 12px 12px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.92) 0%, color-mix(in srgb, var(--cdh-accent-soft) 16%, rgba(255,255,255,0.86)) 100%);
+  box-shadow:
+    0 14px 30px -20px color-mix(in srgb, var(--cdh-accent-deep) 60%, transparent),
+    0 1px 0 rgba(255,255,255,0.9) inset;
+  overflow: hidden;
+}
+.cdh-quill::after{
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 120% at 8% 50%, color-mix(in srgb, var(--cdh-gold) 22%, transparent), transparent 70%);
+  opacity: 0.7;
+}
+
+/* ---- 墨章 ---- */
+.cdq-seal{
+  position: relative;
+  width: 54px; height: 54px;
+  flex-shrink: 0;
+  border: 0;
+  padding: 0;
+  border-radius: 17px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.34s cubic-bezier(.22,1,.36,1);
+}
+.cdq-seal:active{ transform: scale(0.9) rotate(-3deg); }
+.cdq-seal-face{
+  position: absolute; inset: 0;
+  border-radius: 17px;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--cdh-accent) 70%, white 30%) 0%, var(--cdh-accent-deep) 100%);
+  box-shadow:
+    0 10px 20px -10px color-mix(in srgb, var(--cdh-accent-deep) 85%, transparent),
+    0 1px 0 rgba(255,255,255,0.55) inset,
+    0 -6px 12px -8px rgba(0,0,0,0.35) inset;
+}
+.cdq-seal-ring{
+  position: absolute; inset: -4px;
+  border-radius: 21px;
+  background: conic-gradient(from 140deg, var(--cdh-accent-soft), var(--cdh-gold), var(--cdh-accent), var(--cdh-accent-soft));
+  opacity: 0.5;
+  filter: blur(7px);
+  transition: opacity 0.5s ease;
+}
+.cdq-seal-quill{
+  width: 25px; height: 25px;
+  position: relative; z-index: 2;
+}
+.cdq-seal-quill path{
+  stroke: #fff;
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cdq-seal-spin{
+  position: absolute;
+  width: 44px; height: 44px;
+  opacity: 0;
+  transform: rotate(-90deg);
+}
+.cdq-seal-spin circle{
+  stroke: rgba(255,255,255,0.92);
+  stroke-width: 1.6;
+  fill: none;
+  stroke-dasharray: 30 92;
+  stroke-linecap: round;
+}
+
+/* ---- 铭文 ---- */
+.cdq-plate{
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: relative;
+  z-index: 2;
+}
+.cdq-eyebrow{
+  font-size: 12.5px;
+  font-weight: 620;
+  letter-spacing: 0.05em;
+  color: var(--cdh-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cdq-line{
+  font-size: 11.5px;
+  color: var(--cdh-ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cdq-hint{
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  color: color-mix(in srgb, var(--cdh-accent-deep) 78%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- 前往 ---- */
+.cdq-goto{
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  border: 0;
+  padding: 8px 12px 8px 14px;
+  border-radius: 14px;
+  display: flex; align-items: center; gap: 5px;
+  background: color-mix(in srgb, var(--cdh-card-bg) 84%, transparent);
+  color: var(--cdh-accent-deep);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 6px 14px -10px color-mix(in srgb, var(--cdh-accent-deep) 70%, transparent);
+  transition: transform 0.28s cubic-bezier(.22,1,.36,1), opacity 0.3s ease;
+}
+.cdq-goto:active{ transform: scale(0.94); }
+.cdq-goto svg{ width: 10px; height: 10px; }
+
+/* ---- 状态机 ---- */
+.cdh-quill[data-state="working"] .cdq-seal-quill{ opacity: 0.25; }
+.cdh-quill[data-state="working"] .cdq-seal-spin{ opacity: 1; animation: cdqSpin 1.05s linear infinite; }
+.cdh-quill[data-state="working"] .cdq-seal-ring{ opacity: 1; animation: cdqPulse 1.6s ease-in-out infinite; }
+.cdh-quill[data-state="working"] .cdq-seal{ pointer-events: none; }
+.cdh-quill[data-state="working"] .cdq-hint{ color: var(--cdh-accent-deep); }
+.cdh-quill[data-state="future"] .cdq-seal{ pointer-events: none; }
+.cdh-quill[data-state="future"] .cdq-seal-face{ filter: grayscale(0.6) opacity(0.5); }
+.cdh-quill[data-state="future"] .cdq-seal-ring{ opacity: 0; }
+.cdh-quill[data-state="error"] .cdq-hint{ color: #b4576b; }
+.cdh-quill[data-state="done"] .cdq-seal-ring{ opacity: 0.85; }
+
+@keyframes cdqSpin{ to{ transform: rotate(270deg); } }
+@keyframes cdqPulse{ 0%,100%{ opacity: 0.55; } 50%{ opacity: 1; } }
+
+/* ==================================================================
+   二 · 详情页外壳
+   与 .cdh-page 同一套变量与背景铺法：状态栏与内容共用一层背景，
+   全屏不断裂，不出现任何分割线。
+================================================================== */
+.cdd-veil{
+  position: fixed; inset: 0;
+  z-index: 449;
+  background: rgba(20,18,26,0.3);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+.cdd-veil.show{ opacity: 1; pointer-events: auto; }
+
+.cdd-page{
+  position: fixed; inset: 0;
+  z-index: 450;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.62s cubic-bezier(.2,.9,.25,1), opacity 0.5s ease;
+
+  --cdh-bg-1:#fbf6f7; --cdh-bg-2:#f6ecee; --cdh-bg-3:#f0e1e4;
+  --cdh-accent:#c99aab; --cdh-accent-deep:#a9677c; --cdh-accent-soft:#e3c9d1;
+  --cdh-ink:#5c3d47; --cdh-ink-soft:#8a6a72;
+  --cdh-gold:#d4c49a; --cdh-card-bg:#fffdfb;
+
+  --cdd-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif;
+  --cdd-sans: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", system-ui, sans-serif;
+  --cdd-hand: "Zhi Mang Xing", "Ma Shan Zheng", "Xingkai SC", "STXingkai", var(--cdd-serif);
+}
+.cdd-page.show{ transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+.cdd-page.skin-a{ --cdh-bg-1:#faf8fc; --cdh-bg-2:#f2edf8; --cdh-bg-3:#e8ddf2; --cdh-accent:#9c8fc4; --cdh-accent-deep:#7b6ba8; --cdh-accent-soft:#c9bfe0; --cdh-ink:#453d5c; --cdh-ink-soft:#7a6f96; --cdh-gold:#c4b3e0; --cdh-card-bg:#fdfcff; }
+.cdd-page.skin-b{ --cdh-bg-1:#fbf6f7; --cdh-bg-2:#f6ecee; --cdh-bg-3:#f0e1e4; --cdh-accent:#c99aab; --cdh-accent-deep:#a9677c; --cdh-accent-soft:#e3c9d1; --cdh-ink:#5c3d47; --cdh-ink-soft:#8a6a72; --cdh-gold:#d4c49a; --cdh-card-bg:#fffdfb; }
+.cdd-page.skin-c{ --cdh-bg-1:#fafafb; --cdh-bg-2:#f2f2f4; --cdh-bg-3:#e6e7ea; --cdh-accent:#9a9ca6; --cdh-accent-deep:#6f717c; --cdh-accent-soft:#c7c9cf; --cdh-ink:#3c3c44; --cdh-ink-soft:#7b7c85; --cdh-gold:#b8bac2; --cdh-card-bg:#fdfdfe; }
+.cdd-page.skin-d{ --cdh-bg-1:#fdfcfa; --cdh-bg-2:#f8f5ef; --cdh-bg-3:#efe8da; --cdh-accent:#c4a86a; --cdh-accent-deep:#a3874e; --cdh-accent-soft:#e7dbb8; --cdh-ink:#4a4238; --cdh-ink-soft:#8a7d64; --cdh-gold:#d4c49a; --cdh-card-bg:#fffefb; }
+.cdd-page.skin-e{ --cdh-bg-1:#252230; --cdh-bg-2:#1c1a25; --cdh-bg-3:#151319; --cdh-accent:#c9bfe0; --cdh-accent-deep:#8f80b8; --cdh-accent-soft:#a89bcf; --cdh-ink:#eae7f0; --cdh-ink-soft:#a29cb5; --cdh-gold:#cfc4ea; --cdh-card-bg:#2c2938; }
+.cdd-page.skin-f{ --cdh-bg-1:#f8fbf9; --cdh-bg-2:#eef6f2; --cdh-bg-3:#dcece4; --cdh-accent:#7ea595; --cdh-accent-deep:#5f8a79; --cdh-accent-soft:#a4c9ba; --cdh-ink:#3c4a44; --cdh-ink-soft:#6f8579; --cdh-gold:#a8c9b8; --cdh-card-bg:#fbfefc; }
+
+.cdd-page.on-dark{
+  --cdh-ink:#f3f0f6; --cdh-ink-soft:#cdc6d8;
+  --cdh-card-bg: rgba(30,26,38,0.62);
+  --cdh-accent-soft: color-mix(in srgb, var(--cdh-accent) 55%, white 20%);
+}
+.cdd-page.on-light{
+  --cdh-ink:#332c38; --cdh-ink-soft:#6c6274;
+  --cdh-card-bg: rgba(255,253,251,0.86);
+}
+
+.cdd-page::before{
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+.cdd-page::after{
+  content: '';
+  position: absolute; inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 75% 38% at 18% 0%, color-mix(in srgb, var(--cdh-accent-soft) 34%, transparent) 0%, transparent 62%),
+    radial-gradient(ellipse 60% 34% at 90% 8%, color-mix(in srgb, var(--cdh-gold) 20%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 100%, color-mix(in srgb, var(--cdh-accent) 10%, transparent) 0%, transparent 65%),
+    linear-gradient(178deg, var(--cdh-bg-1) 0%, var(--cdh-bg-2) 52%, var(--cdh-bg-3) 100%);
+}
+.cdd-page.custom-bg-color::after{
+  background:
+    linear-gradient(178deg, color-mix(in srgb, var(--cdh-custom-bg, var(--cdh-bg-1)) 88%, white) 0%, var(--cdh-custom-bg, var(--cdh-bg-2)) 55%, color-mix(in srgb, var(--cdh-custom-bg, var(--cdh-bg-3)) 82%, black) 100%);
+}
+.cdd-page.custom-bg-image::after{
+  background-image:
+    linear-gradient(180deg, rgba(10,8,14,0.30) 0%, rgba(10,8,14,0.02) 16%, rgba(10,8,14,0.02) 70%, rgba(10,8,14,0.38) 100%),
+    var(--cdh-custom-bg-img);
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+}
+.cdd-page.custom-bg-image::before{ opacity: 0.12; }
+
+/* ---- 状态栏：与内容区共用同一层背景，配色跟随 ink ---- */
+.cdd-status-bar{ position: relative; z-index: 5; flex-shrink: 0; }
+.cdd-status-bar .status-time,
+.cdd-status-bar .bat-pct{ color: var(--cdh-ink); opacity: 0.92; }
+.cdd-status-bar .signal i{ background: var(--cdh-ink); }
+.cdd-status-bar .bat-shell{ border-color: color-mix(in srgb, var(--cdh-ink) 45%, transparent); }
+.cdd-status-bar .bat-inner{ background: var(--cdh-ink); }
+.cdd-status-bar .bat-nub{ background: color-mix(in srgb, var(--cdh-ink) 45%, transparent); }
+
+/* ---- 顶栏 ---- */
+.cdd-topbar{
+  position: relative;
+  z-index: 5;
+  flex-shrink: 0;
+  padding: 4px 20px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cdd-back-btn{
+  position: relative;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.7);
+  background: color-mix(in srgb, var(--cdh-card-bg) 78%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--cdh-accent-deep) 30%, transparent), 0 1px 0 rgba(255,255,255,0.7) inset;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+}
+.cdd-back-btn:active{ transform: scale(0.92); }
+.cdd-back-btn svg{ width: 17px; height: 17px; }
+.cdd-back-btn svg path{ stroke: var(--cdh-ink); stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+.cdd-topbar-mark{
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.cdd-topbar-name{
+  font-size: 12.5px;
+  font-weight: 640;
+  letter-spacing: 0.04em;
+  color: var(--cdh-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cdd-topbar-sub{
+  font-family: var(--cdd-sans);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--cdh-ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cdd-topbar-index{
+  flex-shrink: 0;
+  width: 34px; height: 34px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--cdh-accent-soft) 34%, transparent);
+  color: var(--cdh-accent-deep);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.cdd-progress{
+  position: absolute;
+  left: 20px; right: 20px; bottom: 2px;
+  height: 1.5px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--cdh-ink) 8%, transparent);
+}
+.cdd-progress i{
+  display: block; height: 100%;
+  transform-origin: left center;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, var(--cdh-accent), var(--cdh-accent-deep));
+  transition: transform 0.18s linear;
+}
+
+/* ---- 滚动区 ---- */
+.cdd-scroll{
+  position: relative;
+  z-index: 4;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.cdd-scroll::-webkit-scrollbar{ display: none; }
+.cdd-scroll-inner{ padding: 6px 22px 0; }
+.cdd-bottom-pad{ height: 78px; }
+
+/* ==================================================================
+   三 · 抬头
+================================================================== */
+.cdd-head{ padding: 10px 0 4px; }
+.cdd-head-day{
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.cdd-head-num{
+  font-family: var(--cdd-serif);
+  font-size: 54px;
+  line-height: 0.84;
+  font-weight: 300;
+  color: var(--cdh-ink);
+  letter-spacing: -0.02em;
+}
+.cdd-head-stack{ display: flex; flex-direction: column; gap: 4px; padding-bottom: 3px; }
+.cdd-head-month{
+  font-family: var(--cdd-sans);
+  font-size: 9px;
+  letter-spacing: 0.34em;
+  color: var(--cdh-accent-deep);
+}
+.cdd-head-week{
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--cdh-ink-soft);
+}
+.cdd-head-title{
+  margin: 18px 0 0;
+  font-family: var(--cdd-serif);
+  font-size: 25px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--cdh-ink);
+  letter-spacing: 0.01em;
+}
+.cdd-head-meta{
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cdd-hm{
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--cdh-card-bg) 62%, transparent);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--cdh-ink-soft);
+}
+.cdd-hm-mood{ color: var(--cdh-accent-deep); }
+.cdd-hm-mood svg{ width: 13px; height: 13px; }
+.cdd-hm-mood svg path, .cdd-hm-mood svg circle{ stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linecap: round; }
+.cdd-hm-mood em{ font-style: normal; }
+
+/* ==================================================================
+   四 · 正文画布与各种文本块
+   —— 基调：正文走编辑排版的严谨感（清晰的字号阶梯、强对比的引言、
+   分栏感的清单/对话），批注与"贴纸类"块（便签/夹页/划改）走手作
+   拼贴感（纸张纹理、胶带、墨迹描边、轻微歪斜）。
+   两套语言共用同一份 --cdh-* 配色，换肤自动生效。
+================================================================== */
+.cdd-canvas{
+  margin-top: 26px;
+  font-family: var(--cdd-serif);
+  color: var(--cdh-ink);
+  font-size: 15px;
+  line-height: 2.0;
+  letter-spacing: 0.012em;
+  position: relative;
+}
+.cdd-b{ margin: 0 0 20px; position: relative; }
+
+/* 起笔段：编辑排版感的大字重开篇 */
+.cdd-lead{
+  font-size: 18px;
+  line-height: 1.82;
+  font-weight: 600;
+  color: var(--cdh-ink);
+  margin-bottom: 24px;
+  letter-spacing: 0.01em;
+}
+.cdd-para{ text-align: justify; }
+
+/* 强调段：编辑刊物里的"大字重点段"，用于承载最重的一句判断 */
+.cdd-emph{
+  margin: 30px 0 28px;
+  font-size: 19px;
+  line-height: 1.62;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--cdh-ink);
+  padding: 2px 0 2px 18px;
+  border-left: 3px solid var(--cdh-accent-deep);
+}
+
+/* 引语：真正的编辑刊物大引言 —— 巨大字号 + 顶部装饰引号，
+   不再是"极短墨挑" */
+.cdd-quote{
+  margin: 34px 0 30px;
+  padding: 6px 4px 2px;
+  position: relative;
+  text-align: center;
+}
+.cdd-quote-hook{
+  display: block;
+  margin: 0 auto 10px;
+  width: 30px; height: 2px;
+  border-radius: 2px;
+  background: var(--cdh-accent-deep);
+  opacity: 0.75;
+}
+.cdd-quote blockquote{
+  margin: 0;
+  font-family: var(--cdd-serif);
+  font-size: 21px;
+  line-height: 1.5;
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--cdh-ink) 92%, var(--cdh-accent-deep));
+}
+.cdd-quote figcaption{
+  margin-top: 12px;
+  font-family: var(--cdd-sans);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: var(--cdh-ink-soft);
+}
+.cdd-quote figcaption::before{ content: '— '; }
+
+/* 碎句：逐行错落，模拟写到一半停笔；保留手写体气质 */
+.cdd-fragment{
+  margin: 26px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.cdd-frag-line{
+  font-family: var(--cdd-hand);
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--cdh-ink);
+  padding-left: calc(var(--k) * 18px);
+  opacity: 0.96;
+  letter-spacing: 0.02em;
+}
+
+/* 清单：编辑排版感的分栏卡片，去掉圆角软糖感，改用清晰的表格感 */
+.cdd-list{
+  margin: 26px 0;
+  padding: 0;
+}
+.cdd-list-label{
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--cdd-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  color: var(--cdh-accent-deep);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cdh-ink) 14%, transparent);
+}
+.cdd-list ul{ margin: 0; padding: 0; list-style: none; }
+.cdd-list li{
+  display: flex; gap: 12px;
+  font-size: 14.5px;
+  line-height: 1.8;
+  padding: 9px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--cdh-ink) 8%, transparent);
+}
+.cdd-list li:last-child{ border-bottom: 0; }
+.cdd-li-idx{
+  flex-shrink: 0;
+  font-family: var(--cdd-serif);
+  color: var(--cdh-accent-deep);
+  font-size: 12px;
+  font-weight: 600;
+  padding-top: 2px;
+  opacity: 0.9;
+  min-width: 16px;
+}
+
+/* 对话：清晰的双栏感 */
+.cdd-dialogue{
+  margin: 26px 0;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 18px 18px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--cdh-card-bg) 46%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--cdh-ink) 12%, transparent);
+}
+.cdd-dlg-line{
+  margin: 0;
+  display: flex; gap: 12px;
+  font-size: 14.5px;
+  line-height: 1.78;
+}
+.cdd-dlg-who{
+  flex-shrink: 0;
+  font-family: var(--cdd-sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--cdh-accent-deep);
+  padding-top: 4px;
+  min-width: 40px;
+  text-align: right;
+}
+.cdd-dlg-text{ flex: 1; }
+
+/* 页边自语：更明显的引用感——竖线 + 略提亮的底色 */
+.cdd-aside{
+  margin: 24px 0;
+  padding: 14px 18px 14px 20px;
+  border-radius: 2px 14px 14px 2px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--cdh-accent-soft) 30%, transparent), color-mix(in srgb, var(--cdh-accent-soft) 10%, transparent));
+  font-family: var(--cdd-hand);
+  font-size: 18px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--cdh-ink) 88%, transparent);
+  position: relative;
+}
+.cdd-aside-tick{
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--cdh-accent-deep);
+  opacity: 0.8;
+}
+
+/* ---- 便签贴纸：手作拼贴感的核心之一 —— 纸张纹理 + 胶带 + 阴影 ---- */
+.cdd-scrap{
+  margin: 30px 10px;
+  padding: 20px 18px 18px;
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 27px, color-mix(in srgb, var(--cdh-accent) 8%, transparent) 27px 28px),
+    linear-gradient(170deg, rgba(255,255,255,0.97), color-mix(in srgb, var(--cdh-accent-soft) 20%, rgba(255,255,255,0.94)));
+  transform: rotate(var(--tilt, -1.5deg));
+  box-shadow:
+    0 18px 30px -20px rgba(40,30,45,0.55),
+    0 1px 0 rgba(255,255,255,0.9) inset;
+  position: relative;
+}
+.cdd-scrap-pin{
+  position: absolute;
+  top: -8px; left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  width: 56px; height: 17px;
+  border-radius: 1px;
+  background:
+    repeating-linear-gradient(115deg, color-mix(in srgb, var(--cdh-gold) 55%, rgba(255,255,255,0.7)) 0 3px, color-mix(in srgb, var(--cdh-gold) 40%, rgba(255,255,255,0.5)) 3px 6px);
+  opacity: 0.82;
+  box-shadow: 0 2px 4px -1px rgba(0,0,0,0.2);
+}
+.cdd-scrap p{
+  margin: 0;
+  font-family: var(--cdd-hand);
+  font-size: 19px;
+  line-height: 1.42;
+  color: #4a3f46;
+}
+.cdd-scrap-cap{
+  display: block;
+  margin-top: 11px;
+  font-family: var(--cdd-sans);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  color: #8a7a83;
+  text-align: right;
+}
+
+/* 划掉再写：更明显的墨迹改笔感 */
+.cdd-strike{ line-height: 1.95; }
+.cdd-strike s{
+  color: color-mix(in srgb, var(--cdh-ink) 40%, transparent);
+  text-decoration-color: var(--cdh-accent-deep);
+  text-decoration-thickness: 2px;
+  text-decoration-style: wavy;
+}
+.cdd-strike-new{
+  display: block;
+  margin-top: 8px;
+  padding-left: 20px;
+  color: var(--cdh-ink);
+  font-family: var(--cdd-hand);
+  font-size: 18px;
+  line-height: 1.5;
+  position: relative;
+}
+.cdd-strike-new::before{
+  content: '→';
+  position: absolute; left: 0; top: 0;
+  color: var(--cdh-accent-deep);
+  font-family: var(--cdd-sans);
+}
+
+/* 时刻标：编辑刊物侧标签感 */
+.cdd-timestamp{ margin: 30px 0; }
+.cdd-ts-label{
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 4px 12px;
+  border-radius: 2px;
+  background: var(--cdh-accent-deep);
+  font-family: var(--cdd-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--cdh-card-bg);
+}
+.cdd-timestamp p{ margin: 0; text-align: justify; }
+
+/* 夹页：手作拼贴感——票根 / 干花 / 纸条的物件感 */
+.cdd-pressed{
+  margin: 28px 0;
+  padding: 18px 18px 16px;
+  border-radius: 2px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--cdh-card-bg) 78%, transparent), color-mix(in srgb, var(--cdh-accent-soft) 20%, transparent));
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.7) inset,
+    0 12px 24px -18px rgba(20,14,26,0.5);
+  border: 1px dashed color-mix(in srgb, var(--cdh-accent-deep) 32%, transparent);
+  position: relative;
+}
+.cdd-pressed-tag{
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-bottom: 10px;
+  font-family: var(--cdd-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--cdh-accent-deep);
+}
+.cdd-pressed-tag::before{
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--cdh-accent-deep);
+}
+.cdd-pressed p{
+  margin: 0;
+  font-family: var(--cdd-hand);
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--cdh-ink);
+}
+
+/* 落款 */
+.cdd-sign{
+  margin: 38px 0 6px;
+  display: flex;
+  justify-content: flex-end;
+}
+.cdd-sign span{
+  font-family: var(--cdd-hand);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: var(--cdh-accent-deep);
+  opacity: 0.92;
+}
+
+/* ==================================================================
+   ★ 批注：正文里的批注标记 —— 行内展开（点击后在本行下方长出
+   一小块手写体批注，挤开正文），宽屏（≥760px）时自动切换为
+   真侧边栏，浮在正文右侧空白处、贴齐对应段落。
+================================================================== */
+.cdd-note-mark{
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  margin-left: 4px;
+  width: 17px; height: 17px;
+  border-radius: 50%;
+  font-family: var(--cdd-sans);
+  font-size: 9.5px;
+  font-weight: 600;
+  vertical-align: super;
+  color: var(--cdh-accent-deep);
+  background: color-mix(in srgb, var(--cdh-accent) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cdh-accent-deep) 38%, transparent);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.25s ease, transform 0.25s cubic-bezier(.22,1,.36,1), color 0.25s ease;
+}
+.cdd-note-mark.is-open{
+  background: var(--cdh-accent-deep);
+  color: var(--cdh-card-bg);
+  transform: scale(1.08);
+}
+
+/* 行内展开面板：跟在含标记的块后面插入的独立元素（由 JS 管理），
+   而不是 ::after 悬浮气泡——这样才能真正"挤开正文" */
+.cdd-note-inline{
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.42s cubic-bezier(.22,1,.36,1), opacity 0.3s ease, margin 0.42s cubic-bezier(.22,1,.36,1);
+  margin: 0 0 0;
+}
+.cdd-note-inline.is-open{
+  max-height: 240px;
+  opacity: 1;
+  margin: -8px 0 20px;
+}
+.cdd-note-inline-body{
+  padding: 12px 16px 13px 18px;
+  border-radius: 2px 14px 14px 2px;
+  background: color-mix(in srgb, var(--cdh-accent-soft) 26%, var(--cdh-card-bg) 74%);
+  border-left: 2.5px solid var(--cdh-accent-deep);
+  position: relative;
+  transform: rotate(-0.4deg);
+}
+.cdd-note-inline-mark{
+  display: inline-block;
+  margin-right: 6px;
+  font-family: var(--cdd-sans);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cdh-accent-deep);
+  vertical-align: top;
+}
+.cdd-note-inline-text{
+  font-family: var(--cdd-hand);
+  font-size: 18px;
+  line-height: 1.48;
+  color: color-mix(in srgb, var(--cdh-ink) 90%, transparent);
+  display: inline;
+}
+.cdd-note-inline-tag{
+  display: block;
+  margin-top: 6px;
+  font-family: var(--cdd-sans);
+  font-size: 8.5px;
+  letter-spacing: 0.2em;
+  color: var(--cdh-ink-soft);
+  opacity: 0.75;
+}
+
+/* 宽屏：真侧边栏批注，贴齐所属段落，正文让出右侧空间 */
+@media (min-width: 760px){
+  .cdd-canvas.has-notes{
+    max-width: 640px;
+    padding-right: 0;
+  }
+  .cdd-scroll-inner:has(.cdd-canvas.has-notes){
+    max-width: none;
+  }
+  .cdd-note-inline{
+    position: absolute;
+    left: calc(100% + 28px);
+    top: 0;
+    width: 220px;
+    max-height: none;
+    opacity: 0;
+    overflow: visible;
+    transform: translateX(-8px);
+    pointer-events: none;
+    transition: opacity 0.32s ease, transform 0.36s cubic-bezier(.22,1,.36,1);
+    margin: 0;
+  }
+  .cdd-note-inline.is-open{
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+    margin: 0;
+  }
+  .cdd-note-inline-body{ transform: none; }
+}
+
+/* ==================================================================
+   ★ 五种版式皮肤 —— 每一种都要在字号阶梯、对齐方式、装饰元素上
+   有明显差异，让同一批块在不同版式下"长得完全不一样"，
+   而不是只调了字距/缩进这种小打小闹。
+================================================================== */
+
+/* lay-a · 古典书页：首字下沉 + 罗马式对称留白，最"编辑严谨"的一版 */
+.cdd-lay-a .cdd-para{ text-indent: 2.2em; }
+.cdd-lay-a .cdd-lead{
+  font-size: 16px;
+  line-height: 1.9;
+}
+.cdd-lay-a .cdd-lead::first-letter{
+  font-size: 3.4em;
+  line-height: 0.82;
+  float: left;
+  margin: 4px 10px -6px 0;
+  font-weight: 700;
+  color: var(--cdh-accent-deep);
+  font-family: var(--cdd-serif);
+}
+.cdd-lay-a .cdd-quote blockquote{ font-size: 23px; }
+.cdd-lay-a .cdd-b{ margin-bottom: 22px; }
+
+/* lay-b · 中央刊头式：所有起笔/引言居中，大留白，像杂志跨页题图 */
+.cdd-lay-b{ font-size: 14.5px; line-height: 2.15; }
+.cdd-lay-b .cdd-b{ margin-bottom: 28px; }
+.cdd-lay-b .cdd-lead{
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0 6px 14px;
+  position: relative;
+}
+.cdd-lay-b .cdd-lead::after{
+  content: '';
+  display: block;
+  width: 34px; height: 2px;
+  margin: 16px auto 0;
+  background: var(--cdh-accent-deep);
+  opacity: 0.7;
+}
+.cdd-lay-b .cdd-quote{ text-align: center; }
+.cdd-lay-b .cdd-emph{ text-align: center; border-left: none; border-top: 3px solid var(--cdh-accent-deep); padding: 14px 0 0; }
+.cdd-lay-b .cdd-para{ text-align: center; }
+.cdd-lay-b .cdd-para:first-of-type::first-line{ letter-spacing: 0.03em; }
+
+/* lay-c · 密排札记：左对齐紧凑、块间几乎无缝，像速记本，
+   aside/fragment 明显右缩，营造"随手补一句"的即时感 */
+.cdd-lay-c{ font-size: 15.5px; line-height: 1.88; }
+.cdd-lay-c .cdd-para{ text-align: left; }
+.cdd-lay-c .cdd-b + .cdd-b{ margin-top: -4px; }
+.cdd-lay-c .cdd-lead{ font-size: 16.5px; font-weight: 500; }
+.cdd-lay-c .cdd-aside{
+  margin-left: 30px;
+  border-radius: 2px 14px 14px 2px;
+}
+.cdd-lay-c .cdd-fragment .cdd-frag-line{
+  padding-left: 0;
+  padding-right: calc(var(--k) * 16px);
+  text-align: right;
+}
+.cdd-lay-c .cdd-quote{ text-align: left; padding-left: 20px; }
+.cdd-lay-c .cdd-quote-hook{ margin: 0 0 10px; }
+
+/* lay-d · 卡片剪贴簿：每个块都像单独裁切贴上的纸片，明显的错落 + 阴影，
+   拼贴感最重的一版 */
+.cdd-lay-d{ letter-spacing: 0.02em; }
+.cdd-lay-d .cdd-b{ margin-bottom: 24px; }
+.cdd-lay-d .cdd-para:nth-of-type(odd){ padding-left: 16px; }
+.cdd-lay-d .cdd-para,
+.cdd-lay-d .cdd-lead,
+.cdd-lay-d .cdd-emph{
+  padding: 16px 18px 14px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--cdh-card-bg) 58%, transparent);
+  box-shadow: 0 10px 20px -18px rgba(20,14,26,0.4);
+}
+.cdd-lay-d .cdd-lead{
+  font-size: 17px;
+  transform: rotate(-0.5deg);
+}
+.cdd-lay-d .cdd-para:nth-of-type(3n){ transform: rotate(0.4deg); }
+.cdd-lay-d .cdd-para:nth-of-type(3n+1){ transform: rotate(-0.3deg); }
+.cdd-lay-d .cdd-scrap{ margin-left: 20px; margin-right: 0; }
+.cdd-lay-d .cdd-emph{ border-left: none; border-top: 2px solid var(--cdh-accent-deep); }
+
+/* lay-e · 无衬线现代刊物：sans 字体为主，强对比字重，网格感强，
+   最"杂志专栏"的一版 */
+.cdd-lay-e{
+  font-family: var(--cdd-sans);
+  font-size: 14.5px;
+  line-height: 1.98;
+}
+.cdd-lay-e .cdd-para{ text-indent: 0; }
+.cdd-lay-e .cdd-b:nth-child(3n){ padding-left: 22px; border-left: 1px solid color-mix(in srgb, var(--cdh-ink) 14%, transparent); }
+.cdd-lay-e .cdd-lead{
+  font-family: var(--cdd-sans);
+  font-size: 16.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.cdd-lay-e .cdd-quote blockquote{ font-family: var(--cdd-sans); font-weight: 700; font-size: 19px; letter-spacing: 0; }
+.cdd-lay-e .cdd-timestamp .cdd-ts-label{ border-radius: 0 2px 2px 0; }
+.cdd-lay-e .cdd-emph{ font-family: var(--cdd-sans); font-size: 17px; }
+
+/* ==================================================================
+   五 · 批注库（汇总回顾）—— 手作拼贴感的卡片墙，非简单列表
+================================================================== */
+.cdd-notes{ margin-top: 46px; }
+.cdd-notes-eyebrow{
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cdh-ink) 14%, transparent);
+}
+.cdn-cn{
+  font-family: var(--cdd-serif);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--cdh-ink);
+}
+.cdn-en{
+  font-family: var(--cdd-sans);
+  font-size: 8.5px;
+  letter-spacing: 0.26em;
+  color: var(--cdh-ink-soft);
+}
+.cdd-notes-list{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+}
+.cdd-note{
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 15px 15px 14px;
+  border-radius: 2px;
+  background: linear-gradient(172deg, rgba(255,255,255,0.95), color-mix(in srgb, var(--cdh-accent-soft) 18%, rgba(255,255,255,0.9)));
+  box-shadow: 0 10px 22px -18px rgba(30,20,30,0.5);
+  transform: rotate(var(--nk-tilt, 0deg));
+  cursor: pointer;
+  transition: background 0.4s ease, transform 0.3s cubic-bezier(.22,1,.36,1), box-shadow 0.3s ease;
+}
+.cdd-note:nth-child(3n){ --nk-tilt: -1.4deg; }
+.cdd-note:nth-child(3n+1){ --nk-tilt: 1deg; }
+.cdd-note:nth-child(3n+2){ --nk-tilt: -0.6deg; }
+.cdd-note.is-lit{
+  background: color-mix(in srgb, var(--cdh-accent-soft) 48%, white);
+  transform: rotate(0deg) scale(1.03);
+  box-shadow: 0 16px 30px -18px color-mix(in srgb, var(--cdh-accent-deep) 50%, transparent);
+}
+.cdd-note-idx{
+  flex-shrink: 0;
+  color: var(--cdh-accent-deep);
+  font-family: var(--cdd-sans);
+  font-size: 11px;
+  font-weight: 700;
+}
+.cdd-note-text{
+  font-family: var(--cdd-hand);
+  font-size: 16px;
+  line-height: 1.4;
+  color: #4a3f46;
+}
+
+/* ==================================================================
+   六 · 同日其他篇
+================================================================== */
+.cdd-siblings{ margin-top: 34px; }
+.cdd-sib-eyebrow{
+  font-family: var(--cdd-sans);
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  color: var(--cdh-ink-soft);
+  margin-bottom: 12px;
+}
+.cdd-sib-row{
+  display: flex; gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
+}
+.cdd-sib-row::-webkit-scrollbar{ display: none; }
+.cdd-sib{
+  flex: 0 0 74%;
+  scroll-snap-align: start;
+  text-align: left;
+  border: 0;
+  padding: 15px 16px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--cdh-card-bg) 62%, transparent);
+  display: flex; flex-direction: column; gap: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+}
+.cdd-sib:active{ transform: scale(0.97); }
+.cdd-sib-time{
+  font-family: var(--cdd-sans);
+  font-size: 9px; letter-spacing: 0.22em;
+  color: var(--cdh-accent-deep);
+}
+.cdd-sib-title{
+  font-family: var(--cdd-serif);
+  font-size: 14.5px; font-weight: 600;
+  color: var(--cdh-ink);
+}
+.cdd-sib-ex{
+  font-size: 11.5px; line-height: 1.7;
+  color: var(--cdh-ink-soft);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* ==================================================================
+   七 · 四道仪式（笺条式，展开在原位生长）
+================================================================== */
+.cdd-rituals{ margin-top: 44px; }
+.cdr-eyebrow{
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 16px;
+}
+.cdr-eyebrow-cn{
+  font-family: var(--cdd-serif);
+  font-size: 15px; font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--cdh-ink);
+}
+.cdr-eyebrow-en{
+  font-family: var(--cdd-sans);
+  font-size: 8px; letter-spacing: 0.3em;
+  color: var(--cdh-ink-soft);
+}
+
+.cdr-item{
+  margin-bottom: 10px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--cdh-card-bg) 46%, transparent);
+  transition: background 0.5s ease, box-shadow 0.5s ease;
+}
+.cdr-item.open{
+  background: color-mix(in srgb, var(--cdh-card-bg) 74%, transparent);
+  box-shadow: 0 22px 44px -34px color-mix(in srgb, var(--cdh-accent-deep) 90%, transparent);
+}
+.cdr-head{
+  display: grid;
+  grid-template-columns: 30px 1fr 16px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cdr-head:focus-visible{ outline: 2px solid var(--cdh-accent-deep); outline-offset: -4px; border-radius: 20px; }
+.cdr-index{
+  font-family: var(--cdd-serif);
+  font-size: 17px;
+  color: var(--cdh-accent-deep);
+  opacity: 0.75;
+  text-align: center;
+  transition: opacity 0.4s ease, transform 0.5s cubic-bezier(.22,1,.36,1);
+}
+.cdr-item.open .cdr-index{ opacity: 1; transform: translateY(-1px); }
+.cdr-titles{ display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cdr-cn{
+  font-family: var(--cdd-serif);
+  font-size: 15px; font-weight: 620;
+  letter-spacing: 0.06em;
+  color: var(--cdh-ink);
+}
+.cdr-en{
+  font-family: var(--cdd-sans);
+  font-size: 8px; letter-spacing: 0.3em;
+  color: var(--cdh-ink-soft);
+}
+.cdr-desc{
+  grid-column: 2 / 3;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--cdh-ink-soft);
+  opacity: 0.9;
+  margin-top: 2px;
+}
+.cdr-chev{
+  grid-row: 1 / 3;
+  grid-column: 3 / 4;
+  color: var(--cdh-accent-deep);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.45s cubic-bezier(.22,1,.36,1);
+}
+.cdr-chev svg{ width: 12px; height: 12px; }
+.cdr-item.open .cdr-chev{ transform: rotate(180deg); }
+
+.cdr-body{
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.55s cubic-bezier(.22,1,.36,1);
+}
+.cdr-item.open .cdr-body{ grid-template-rows: 1fr; }
+.cdr-body-inner{
+  overflow: hidden;
+  padding: 0 16px;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.45s ease 0.08s, transform 0.5s cubic-bezier(.22,1,.36,1) 0.06s, padding 0.4s ease;
+}
+.cdr-item.open .cdr-body-inner{ opacity: 1; transform: translateY(0); padding-bottom: 18px; }
+
+.cdr-mini-eyebrow{
+  display: block;
+  font-family: var(--cdd-sans);
+  font-size: 9px; letter-spacing: 0.24em;
+  color: var(--cdh-ink-soft);
+  margin-bottom: 12px;
+}
+.cdr-empty{
+  padding: 16px 2px;
+  font-size: 12px; line-height: 1.8;
+  color: var(--cdh-ink-soft);
+}
+.cdr-loading{
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 2px;
+  font-size: 11.5px; letter-spacing: 0.1em;
+  color: var(--cdh-accent-deep);
+}
+.cdr-load-ink{
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 32%, var(--cdh-accent-soft), var(--cdh-accent-deep));
+  animation: cdrInk 1.5s ease-in-out infinite;
+}
+@keyframes cdrInk{
+  0%,100%{ transform: scale(0.72); opacity: 0.6; }
+  50%{ transform: scale(1); opacity: 1; }
+}
+.cdr-error{
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 14px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, #b4576b 12%, transparent);
+}
+.cdr-error-title{ font-size: 12.5px; font-weight: 600; color: #b4576b; }
+.cdr-error-msg{ font-size: 11px; line-height: 1.7; color: var(--cdh-ink-soft); }
+.cdr-retry{
+  align-self: flex-start;
+  margin-top: 4px;
+  border: 0;
+  padding: 7px 14px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--cdh-accent-deep) 88%, transparent);
+  color: #fff;
+  font-size: 11px; letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+/* ---- 壹 · 回响传送门 ---- */
+.cdr-echo-intro{
+  font-size: 11.5px; line-height: 1.8;
+  color: var(--cdh-ink-soft);
+  margin-bottom: 12px;
+}
+.cdr-echo-list{ display: flex; flex-direction: column; gap: 8px; }
+.cdr-echo{
+  border: 0;
+  text-align: left;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 13px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--cdh-accent-soft) 16%, transparent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  animation: cdrRise 0.5s cubic-bezier(.22,1,.36,1) backwards;
+  animation-delay: calc(var(--k) * 60ms);
+  transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+}
+.cdr-echo:active{ transform: scale(0.975); }
+@keyframes cdrRise{ from{ opacity: 0; transform: translateY(10px); } to{ opacity: 1; transform: none; } }
+.cdr-echo-ring{
+  position: relative;
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cdh-accent) 22%, transparent);
+  display: flex; align-items: center; justify-content: center;
+}
+.cdr-echo-strength{
+  width: calc(6px + var(--s) * 12px);
+  height: calc(6px + var(--s) * 12px);
+  border-radius: 50%;
+  background: var(--cdh-accent-deep);
+  opacity: calc(0.45 + var(--s) * 0.5);
+}
+.cdr-echo-body{ flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.cdr-echo-date{
+  font-family: var(--cdd-sans);
+  font-size: 9px; letter-spacing: 0.2em;
+  color: var(--cdh-accent-deep);
+}
+.cdr-echo-title{
+  font-family: var(--cdd-serif);
+  font-size: 13.5px; font-weight: 600;
+  color: var(--cdh-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cdr-echo-ex{
+  font-size: 11px; line-height: 1.6;
+  color: var(--cdh-ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cdr-echo-gap{
+  flex-shrink: 0;
+  font-family: var(--cdd-sans);
+  font-size: 9px; letter-spacing: 0.1em;
+  color: var(--cdh-ink-soft);
+}
+
+/* ---- 贰 · 多重笔迹 ---- */
+.cdr-hands-pick{ display: flex; flex-direction: column; gap: 7px; }
+.cdr-hand-src{
+  border: 0;
+  text-align: left;
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--cdh-card-bg) 56%, transparent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.35s ease, transform 0.3s cubic-bezier(.22,1,.36,1);
+}
+.cdr-hand-src:active{ transform: scale(0.98); }
+.cdr-hand-src.is-on{ background: color-mix(in srgb, var(--cdh-accent-soft) 42%, transparent); }
+.cdr-hand-num{
+  flex-shrink: 0;
+  font-family: var(--cdd-serif);
+  font-size: 13px;
+  color: var(--cdh-accent-deep);
+}
+.cdr-hand-text{
+  font-size: 11.5px; line-height: 1.6;
+  color: var(--cdh-ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cdr-hands-out{ margin-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+.cdr-hand-var{
+  padding: 15px 16px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--cdh-card-bg) 70%, transparent);
+  animation: cdrRise 0.55s cubic-bezier(.22,1,.36,1) backwards;
+  animation-delay: calc(var(--k) * 110ms);
+}
+.cdr-hand-label{
+  display: inline-block;
+  margin-bottom: 8px;
+  font-family: var(--cdd-sans);
+  font-size: 9px; letter-spacing: 0.24em;
+  color: var(--cdh-accent-deep);
+}
+.cdr-hand-body{
+  margin: 0;
+  font-family: var(--cdd-serif);
+  font-size: 13.5px; line-height: 1.94;
+  color: var(--cdh-ink);
+  text-align: justify;
+}
+
+/* ---- 叁 · 蝴蝶效应 ---- */
+.cdr-invite{ padding: 4px 0 2px; }
+.cdr-invite-text{
+  margin: 0 0 14px;
+  font-size: 12.5px; line-height: 1.86;
+  color: var(--cdh-ink-soft);
+}
+.cdr-invite-act, .cdr-again{
+  border: 0;
+  padding: 11px 20px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cdh-accent) 76%, white 24%), var(--cdh-accent-deep));
+  color: #fff;
+  font-size: 11.5px; letter-spacing: 0.14em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 14px 26px -18px color-mix(in srgb, var(--cdh-accent-deep) 95%, transparent);
+  transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+}
+.cdr-invite-act:active, .cdr-again:active{ transform: scale(0.96); }
+.cdr-again{ margin-top: 14px; background: color-mix(in srgb, var(--cdh-card-bg) 78%, transparent); color: var(--cdh-accent-deep); box-shadow: none; }
+.cdr-bf-list{ display: flex; flex-direction: column; gap: 18px; }
+.cdr-bf{
+  animation: cdrRise 0.55s cubic-bezier(.22,1,.36,1) backwards;
+  animation-delay: calc(var(--k) * 120ms);
+}
+.cdr-bf-head{ display: flex; align-items: baseline; gap: 9px; }
+.cdr-bf-idx{
+  font-family: var(--cdd-serif);
+  font-size: 14px;
+  color: var(--cdh-accent-deep);
+}
+.cdr-bf-change{
+  font-family: var(--cdd-serif);
+  font-size: 14.5px; font-weight: 620;
+  color: var(--cdh-ink);
+}
+.cdr-bf-immediate{
+  margin: 9px 0 12px 23px;
+  font-size: 12.5px; line-height: 1.92;
+  color: var(--cdh-ink-soft);
+  text-align: justify;
+}
+.cdr-bf-ripple{
+  margin-left: 23px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.cdr-ripple{
+  display: flex; gap: 11px; align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--cdh-accent-soft) calc(22% - var(--k) * 6%), transparent);
+}
+.cdr-ripple-when{
+  flex-shrink: 0;
+  font-family: var(--cdd-sans);
+  font-size: 9px; letter-spacing: 0.16em;
+  color: var(--cdh-accent-deep);
+  padding-top: 3px;
+  min-width: 42px;
+}
+.cdr-ripple-what{
+  font-size: 12px; line-height: 1.78;
+  color: var(--cdh-ink);
+}
+
+/* ---- 肆 · 时光回流 ---- */
+.cdr-rf-dial{
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 6px 20px;
+}
+.cdr-rf-thread{
+  position: absolute;
+  left: 22px; right: 22px; top: 15px;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cdh-accent) 40%, transparent), color-mix(in srgb, var(--cdh-accent) 12%, transparent));
+  z-index: 0;
+}
+.cdr-rf-step{
+  position: relative;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0 6px;
+}
+.cdr-rf-dot{
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cdh-card-bg) 92%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cdh-accent) 22%, transparent);
+  transition: background 0.4s ease, box-shadow 0.4s ease, transform 0.4s cubic-bezier(.22,1,.36,1);
+}
+.cdr-rf-step:active .cdr-rf-dot{ transform: scale(0.85); }
+.cdr-rf-step.has .cdr-rf-dot{
+  background: var(--cdh-accent-deep);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cdh-accent) 34%, transparent);
+}
+.cdr-rf-label{
+  font-family: var(--cdd-sans);
+  font-size: 10px; letter-spacing: 0.14em;
+  color: var(--cdh-ink-soft);
+}
+.cdr-rf-step.has .cdr-rf-label{ color: var(--cdh-accent-deep); }
+.cdr-rf-note{
+  margin-top: 10px;
+  padding: 16px 16px 15px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--cdh-card-bg) 70%, transparent);
+  animation: cdrRise 0.55s cubic-bezier(.22,1,.36,1) backwards;
+  animation-delay: calc(var(--k) * 100ms);
+}
+.cdr-rf-note-head{
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 9px;
+}
+.cdr-rf-when{
+  font-family: var(--cdd-serif);
+  font-size: 13.5px; font-weight: 620;
+  color: var(--cdh-ink);
+}
+.cdr-rf-date{
+  font-family: var(--cdd-sans);
+  font-size: 9px; letter-spacing: 0.2em;
+  color: var(--cdh-ink-soft);
+}
+.cdr-rf-text{
+  margin: 0;
+  font-family: var(--cdd-serif);
+  font-size: 13.5px; line-height: 1.96;
+  color: var(--cdh-ink);
+  text-align: justify;
+}
+
+/* ==================================================================
+   八 · 无障碍与动效降级
+================================================================== */
+@media (prefers-reduced-motion: reduce){
+  .cdd-page, .cdr-body, .cdr-body-inner,
+  .cdr-echo, .cdr-hand-var, .cdr-bf, .cdr-rf-note{
+    transition-duration: 0.01ms !important;
+    animation: none !important;
+  }
+  .cdq-seal-spin{ animation: none !important; }
+}
+
+/* ==================================================================
+   九 · 时间轴卡片改为 <button> 后的元素级重置
+   （保持 diary.css 里原有的 .cdh-card 版型样式完全不变，
+     只中和浏览器给 button 的默认边框、字体与对齐）
+================================================================== */
+button.cdh-card{
+  /* 只中和浏览器给 button 的默认样式，绝不覆盖版型自身的
+     padding / 背景 / 描边 —— 那些全部交给 diary.css 里重做过的
+     卡片系统去决定，否则拍立得的宽白边会被 padding:0 抹平。 */
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+button.cdh-card::-moz-focus-inner{ border: 0; padding: 0; }
+
+/* ==================================================================
+   十 · 时间轴的重塑 —— 「落墨丝线」
+   不再是常见的"圆点 + 竖线"列表：轴线是一根渐隐的墨丝，
+   有落笔的日子会在轴上留下一枚化开的墨点与呼吸光晕；
+   日期数字放大后与星期铭文轻微交叠，形成排版上的层次，
+   没有落笔的日子则整体退到背景里，只留一道极淡的痕。
+================================================================== */
+.cdh-page .cdh-tl-axis{
+  width: 26px;
+  padding-top: 10px;
+}
+.cdh-page .cdh-tl-dot{
+  position: relative;
+  width: 13px; height: 13px;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 50%;
+}
+.cdh-page .cdh-tl-dot::before{
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cdh-ink-soft) 30%, transparent) inset;
+  transition: box-shadow 0.5s ease;
+}
+.cdh-page .cdh-tl-dot::after{
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 0; height: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 34% 30%, var(--cdh-accent), var(--cdh-accent-deep));
+  transition: width 0.6s cubic-bezier(.22,1,.36,1), height 0.6s cubic-bezier(.22,1,.36,1);
+}
+.cdh-page .cdh-tl-dot.is-lit::after{ width: 9px; height: 9px; }
+.cdh-page .cdh-tl-dot.is-lit::before{
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--cdh-accent) 55%, transparent) inset,
+    0 0 14px 2px color-mix(in srgb, var(--cdh-accent) 26%, transparent);
+  animation: cdhBreath 4.6s ease-in-out infinite;
+}
+.cdh-page .cdh-tl-dot.is-today::after{
+  width: 7px; height: 7px;
+  background: radial-gradient(circle at 34% 30%, #fff, var(--cdh-gold));
+}
+.cdh-page .cdh-tl-dot.is-today::before{
+  box-shadow: 0 0 0 1.4px var(--cdh-gold) inset, 0 0 0 4px color-mix(in srgb, var(--cdh-gold) 24%, transparent);
+}
+@keyframes cdhBreath{
+  0%,100%{ opacity: 0.75; }
+  50%{ opacity: 1; }
+}
+.cdh-page .cdh-tl-line{
+  width: 1px;
+  margin-top: 6px;
+  background:
+    repeating-linear-gradient(180deg,
+      color-mix(in srgb, var(--cdh-accent) 42%, transparent) 0 5px,
+      transparent 5px 11px);
+  opacity: 0.7;
+}
+
+/* 日期铭文：数字放大后与星期/节日轻微交叠 */
+.cdh-page .cdh-tl-daymark{
+  align-items: flex-end;
+  gap: 0;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.cdh-page .cdh-tl-daynum{
+  font-size: 34px;
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: -0.045em;
+  color: color-mix(in srgb, var(--cdh-ink) 62%, transparent);
+  transition: color 0.5s ease;
+}
+.cdh-page .cdh-tl-daymeta{
+  margin-left: -4px;
+  padding-bottom: 2px;
+  gap: 7px;
+}
+.cdh-page .cdh-tl-node:has(.cdh-tl-dot.is-lit) .cdh-tl-daynum{
+  color: var(--cdh-ink);
+}
+.cdh-page .cdh-tl-daymark.is-today .cdh-tl-daynum{ color: var(--cdh-accent-deep); }
+
+/* 没有落笔的日子：整体退到背景，只留一道极淡的痕 */
+.cdh-page .cdh-tl-blank{
+  padding-left: 2px;
+  opacity: 0.55;
+  letter-spacing: 0.16em;
+}

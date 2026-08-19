@@ -180,6 +180,55 @@
   transition: opacity 0.32s var(--ease-soft), transform 0.32s var(--ease-soft), visibility 0.32s;
 }
 
+/* ---- 页头左侧仪式徽记：绝对定位叠加在返回按钮的物理位置上 ----
+   与返回按钮是兄弟节点而非子节点——因为父级 .scope-hidden 的
+   opacity:0 会连带压制所有子元素的不透明度，子元素自身设
+   opacity:1 也无法覆盖，必须让二者平级、各自独立控制透明度，
+   靠 left/top 精确重合到同一物理坐标，才能在返回按钮淡出的
+   同时让花徽真正淡入显现，填补该区域在非"我的日记"页的空旷留白 */
+.hdr-char-emblem{
+  position: absolute;
+  left: 20px;  /* 与 .diary-header 的左内边距对齐，紧贴返回按钮所在列 */
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px; /* 垂直居中：按钮高度的一半 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 5px rgba(150, 130, 170, 0.36));
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.7) rotate(-20deg);
+  transition: opacity 0.34s var(--ease-silk), transform 0.34s var(--ease-silk), visibility 0.34s;
+  z-index: 1;
+}
+.diary-header-eyebrow, .diary-header-title{
+  position: relative;
+  z-index: 2; /* 确保标题文字始终叠在徽记之上，避免视觉冲突 */
+}
+[data-page-scope="mine"].scope-hidden ~ .hdr-char-emblem{
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1) rotate(0deg);
+}
+.hdr-char-emblem svg{ width: 100%; height: 100%; overflow: visible; }
+.hce-ring{
+  transform-origin: 20px 20px;
+  animation: ctbRingTurn 26s linear infinite;
+}
+.hce-petals{
+  transform-origin: 20px 20px;
+  animation: ctbPetalBreathe 5.2s var(--ease-soft) infinite;
+}
+.hce-spark{
+  animation: ctbSparkPulse 3.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce){
+  .hce-ring, .hce-petals, .hce-spark{ animation: none; }
+}
+
 /* ================================================================
    内容区（三页，占位——内容后续设计）
 ================================================================ */
@@ -2572,10 +2621,59 @@
 }
 .char-topbar-left{
   display: flex;
-  align-items: baseline;
-  gap: 7px;
+  align-items: center;
+  gap: 11px;
 }
+
+/* ---- 顶部左侧装饰徽记：仪式印章式花徽，替代原本的单调留白 ---- */
+.ctb-emblem{
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 5px rgba(150, 130, 170, 0.38));
+}
+.ctb-emblem svg{ width: 100%; height: 100%; overflow: visible; }
+.ctb-em-ring{
+  transform-origin: 28px 28px;
+  animation: ctbRingTurn 26s linear infinite;
+}
+.ctb-em-rays{
+  transform-origin: 28px 28px;
+  animation: ctbRayPulse 3.4s ease-in-out infinite;
+}
+.ctb-em-petals{
+  transform-origin: 28px 28px;
+  animation: ctbPetalBreathe 5.2s var(--ease-soft) infinite;
+}
+.ctb-em-spark{
+  animation: ctbSparkPulse 3.1s ease-in-out infinite;
+}
+@keyframes ctbRingTurn{
+  from{ transform: rotate(0deg); }
+  to{ transform: rotate(360deg); }
+}
+@keyframes ctbRayPulse{
+  0%, 100%{ opacity: 0.55; }
+  50%{ opacity: 1; }
+}
+@keyframes ctbPetalBreathe{
+  0%, 100%{ transform: scale(1); }
+  50%{ transform: scale(0.95); }
+}
+@keyframes ctbSparkPulse{
+  0%, 100%{ opacity: 0.4; transform: scale(0.8); }
+  50%{ opacity: 1; transform: scale(1.2); }
+}
+@media (prefers-reduced-motion: reduce){
+  .ctb-em-ring, .ctb-em-rays, .ctb-em-petals, .ctb-em-spark{ animation: none; }
+}
+
 .ctb-count{
+  align-self: baseline;
   font-family: 'Fraunces', 'Cormorant Garamond', serif;
   font-size: 28px;
   font-weight: 400;
@@ -2745,6 +2843,20 @@
 /* 点击涟漪反馈层 */
 .char-book-cover:active{ transform: scale(0.985); }
 .char-book{ transition: transform 0.3s var(--ease-silk); }
+
+/* ---- 自定义背景覆盖态：与专属主页使用同一份保存数据同步渲染 ---- */
+.char-book.custom-bg-color .char-book-cover{
+  background: linear-gradient(165deg, color-mix(in srgb, var(--ccb-custom-bg) 82%, white) 0%, var(--ccb-custom-bg) 55%, color-mix(in srgb, var(--ccb-custom-bg) 78%, black) 100%) !important;
+}
+.char-book.custom-bg-image .char-book-cover{
+  background-image:
+    linear-gradient(165deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.28) 100%),
+    var(--ccb-custom-bg-img) !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+.char-book.custom-bg-image .char-book-cover::after,
+.char-book.custom-bg-image .char-book-cover::before{ display: none; }
 
 /* 顶部：角色徽记区（头像 + 名字 + 角色简述） */
 .cbc-crest{
@@ -3052,4 +3164,2195 @@
   .char-book{ max-width: 280px; }
   .cbc-name{ font-size: 19px; }
   .cbc-avatar-ring{ width: 66px; height: 66px; }
+}
+/* ================================================================
+   ================================================================
+   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+   Char 日记专属主页（cdh = Char Diary Home）
+   点击书架任一本日记本后打开的全屏页面。
+   结构：专属状态栏 → 顶部工具条 → Hero 角色主题头 → 折叠日历 → 时间轴
+   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+   ================================================================
+================================================================ */
+
+.cdh-veil{
+  position: fixed; inset: 0;
+  z-index: 399;
+  background: rgba(20,18,26,0.32);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease-soft);
+}
+.cdh-veil.show{ opacity: 1; pointer-events: auto; }
+
+.cdh-page{
+  position: fixed; inset: 0;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.6s var(--ease-silk), opacity 0.5s var(--ease-soft);
+
+  /* —— 默认主题（未指定 skin 前的兜底，等同 skin-b 雾蔷调）—— */
+  --cdh-bg-1: #fbf6f7; --cdh-bg-2: #f6ecee; --cdh-bg-3: #f0e1e4;
+  --cdh-accent: #c99aab; --cdh-accent-deep: #a9677c; --cdh-accent-soft: #e3c9d1;
+  --cdh-ink: #5c3d47; --cdh-ink-soft: #8a6a72;
+  --cdh-gold: #d4c49a;
+  --cdh-card-bg: #fffdfb;
+}
+.cdh-page.show{ transform: translateY(0); opacity: 1; pointer-events: auto; }
+.cdh-page::before{
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+.cdh-page::after{
+  /* 统一底色铺满全页（状态栏 + 内容区），避免顶栏与内容背景不同步 */
+  content: '';
+  position: absolute; inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 75% 38% at 18% 0%, color-mix(in srgb, var(--cdh-accent-soft) 34%, transparent) 0%, transparent 62%),
+    radial-gradient(ellipse 60% 34% at 90% 8%, color-mix(in srgb, var(--cdh-gold) 20%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 100%, color-mix(in srgb, var(--cdh-accent) 10%, transparent) 0%, transparent 65%),
+    linear-gradient(178deg, var(--cdh-bg-1) 0%, var(--cdh-bg-2) 52%, var(--cdh-bg-3) 100%);
+}
+
+/* ---- 自定义背景覆盖态：由 diary.js 依据角色保存的背景设置动态挂载 ----
+   .custom-bg-color：--cdh-custom-bg 存放任意合法 CSS 颜色，叠加一层柔化
+   渐变保证文字可读性；.custom-bg-image：--cdh-custom-bg-img 存放
+   data URL，同样叠加渐变遮罩。两者都保留 ::before 噪点纹理不变。 */
+.cdh-page.custom-bg-color::after{
+  background:
+    linear-gradient(178deg, color-mix(in srgb, var(--cdh-custom-bg, var(--cdh-bg-1)) 88%, white) 0%, var(--cdh-custom-bg, var(--cdh-bg-2)) 55%, color-mix(in srgb, var(--cdh-custom-bg, var(--cdh-bg-3)) 82%, black) 100%);
+}
+/* 图片背景：图片本身保持完整清晰可见，仅在顶部/底部做极轻的渐隐，
+   保证状态栏文字与底部内容可读，不再用大面积半透明色层压暗整张图 */
+.cdh-page.custom-bg-image::after{
+  background-image:
+    linear-gradient(180deg, rgba(255,253,250,0.55) 0%, rgba(255,253,250,0.14) 18%, rgba(255,253,250,0.14) 68%, rgba(255,253,250,0.6) 100%),
+    var(--cdh-custom-bg-img);
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+}
+.cdh-page.custom-bg-image::before{ opacity: 0.12; }
+/* 深色偏好（用户在弹窗里手动选了"深色文字"以外的选项，或实测背景本身
+   偏暗）时，改用深色系的柔纱，避免浅色纱盖在暗照片上显得脏灰 */
+.cdh-page.custom-bg-image.on-dark::after{
+  background-image:
+    linear-gradient(180deg, rgba(10,8,14,0.32) 0%, rgba(10,8,14,0.05) 18%, rgba(10,8,14,0.05) 68%, rgba(10,8,14,0.4) 100%),
+    var(--cdh-custom-bg-img);
+}
+
+/* —— 六种主题色映射：与书架版型一一对应，"点开谁的书，页面就是谁的颜色" ——
+   同时也让 .cdh-bg-modal（背景设置弹窗，与 .cdh-page 是兄弟节点、不在其
+   内部）在挂载同名 skin-* class 时拿到同一套变量，弹窗因此天然呈现
+   这本日记自己的主题色，而不是脱离上下文的通用灰调 */
+.cdh-page.skin-a, .cdh-bg-modal.skin-a{
+  --cdh-bg-1:#faf8fc; --cdh-bg-2:#f2edf8; --cdh-bg-3:#e8ddf2;
+  --cdh-accent:#9c8fc4; --cdh-accent-deep:#7b6ba8; --cdh-accent-soft:#c9bfe0;
+  --cdh-ink:#453d5c; --cdh-ink-soft:#7a6f96; --cdh-gold:#c4b3e0; --cdh-card-bg:#fdfcff;
+}
+.cdh-page.skin-b, .cdh-bg-modal.skin-b{
+  --cdh-bg-1:#fbf6f7; --cdh-bg-2:#f6ecee; --cdh-bg-3:#f0e1e4;
+  --cdh-accent:#c99aab; --cdh-accent-deep:#a9677c; --cdh-accent-soft:#e3c9d1;
+  --cdh-ink:#5c3d47; --cdh-ink-soft:#8a6a72; --cdh-gold:#d4c49a; --cdh-card-bg:#fffdfb;
+}
+.cdh-page.skin-c, .cdh-bg-modal.skin-c{
+  --cdh-bg-1:#fafafb; --cdh-bg-2:#f2f2f4; --cdh-bg-3:#e6e7ea;
+  --cdh-accent:#9a9ca6; --cdh-accent-deep:#6f717c; --cdh-accent-soft:#c7c9cf;
+  --cdh-ink:#3c3c44; --cdh-ink-soft:#7b7c85; --cdh-gold:#b8bac2; --cdh-card-bg:#fdfdfe;
+}
+.cdh-page.skin-d, .cdh-bg-modal.skin-d{
+  --cdh-bg-1:#fdfcfa; --cdh-bg-2:#f8f5ef; --cdh-bg-3:#efe8da;
+  --cdh-accent:#c4a86a; --cdh-accent-deep:#a3874e; --cdh-accent-soft:#e7dbb8;
+  --cdh-ink:#4a4238; --cdh-ink-soft:#8a7d64; --cdh-gold:#d4c49a; --cdh-card-bg:#fffefb;
+}
+.cdh-page.skin-e, .cdh-bg-modal.skin-e{
+  --cdh-bg-1:#252230; --cdh-bg-2:#1c1a25; --cdh-bg-3:#151319;
+  --cdh-accent:#c9bfe0; --cdh-accent-deep:#8f80b8; --cdh-accent-soft:#a89bcf;
+  --cdh-ink:#eae7f0; --cdh-ink-soft:#a29cb5; --cdh-gold:#cfc4ea; --cdh-card-bg:#2c2938;
+}
+.cdh-page.skin-f, .cdh-bg-modal.skin-f{
+  --cdh-bg-1:#f8fbf9; --cdh-bg-2:#eef6f2; --cdh-bg-3:#dcece4;
+  --cdh-accent:#7ea595; --cdh-accent-deep:#5f8a79; --cdh-accent-soft:#a4c9ba;
+  --cdh-ink:#3c4a44; --cdh-ink-soft:#6f8579; --cdh-gold:#a8c9b8; --cdh-card-bg:#fbfefc;
+}
+
+/* ---- 自适应文字明暗：由 diary.js 依据当前背景（含自定义纯色/图片）
+   的实测亮度动态挂载。用户可自行切换，也会在选择背景时自动建议 ----
+   on-dark  → 背景偏暗，文字/卡片切换为浅色系
+   on-light → 背景偏亮，文字/卡片切换为深色系（多数默认皮肤已是此态）*/
+.cdh-page.on-dark{
+  --cdh-ink: #f3f0f6;
+  --cdh-ink-soft: #cdc6d8;
+  --cdh-card-bg: rgba(30,26,38,0.62);
+  --cdh-accent-soft: color-mix(in srgb, var(--cdh-accent) 55%, white 20%);
+}
+.cdh-page.on-light{
+  --cdh-ink: #332c38;
+  --cdh-ink-soft: #6c6274;
+  --cdh-card-bg: rgba(255,253,251,0.86);
+}
+
+/* ---- 专属状态栏（与主状态栏结构一致，保证观感不断裂） ---- */
+.cdh-status-bar{ position: relative; z-index: 5; flex-shrink: 0; }
+.cdh-status-bar .status-time,
+.cdh-status-bar .bat-pct{ color: var(--cdh-ink); opacity: 0.92; }
+.cdh-status-bar .signal i{ background: var(--cdh-ink); }
+
+/* ---- 顶部工具条 ---- */
+.cdh-topbar{
+  position: relative;
+  z-index: 5;
+  flex-shrink: 0;
+  padding: 4px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cdh-back-btn, .cdh-cal-btn{
+  position: relative;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.7);
+  background: color-mix(in srgb, var(--cdh-card-bg) 78%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--cdh-accent-deep) 30%, transparent), 0 1px 0 rgba(255,255,255,0.7) inset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.3s var(--ease-silk);
+}
+.cdh-back-btn:active, .cdh-cal-btn:active{ transform: scale(0.92); }
+.cdh-back-btn svg, .cdh-cal-btn svg{ width: 17px; height: 17px; position: relative; z-index: 1; }
+.cdh-back-btn svg path{ stroke: var(--cdh-ink); stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.cdh-cal-btn svg{ color: var(--cdh-ink); }
+.cdh-cal-btn svg rect, .cdh-cal-btn svg path{ stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linejoin: round; }
+.cdh-cal-btn svg .cdh-cal-dot{ fill: var(--cdh-accent-deep); stroke: none; }
+.cdh-cal-halo{
+  position: absolute; inset: -3px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cdh-accent-soft), var(--cdh-gold));
+  opacity: 0;
+  filter: blur(6px);
+  transition: opacity 0.3s var(--ease-soft);
+}
+.cdh-cal-btn:active .cdh-cal-halo{ opacity: 0.55; }
+
+.cdh-topbar-mark{
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cdh-accent-deep);
+  opacity: 0.85;
+  max-width: 52%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- 可滚动主体 ---- */
+.cdh-scroll{
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.cdh-scroll::-webkit-scrollbar{ display: none; }
+.cdh-scroll-inner{ padding: 4px 20px 0; }
+.cdh-bottom-pad{ height: 40px; }
+
+/* ================================================================
+   Hero —— 角色主题化头部
+================================================================ */
+.cdh-hero{
+  position: relative;
+  padding: 22px 8px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+  /* 与下方日历入口条/时间轴之间留出明确的呼吸区，避免任何内容
+     视觉上"糊"在头像卡片上、也不再产生任何硬边分割线 */
+  margin-bottom: 4px;
+}
+.cdh-hero-aura{
+  position: absolute;
+  top: -40%; left: 50%;
+  width: 280px; height: 280px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--cdh-accent-soft) 55%, transparent) 0%, transparent 68%);
+  filter: blur(6px);
+  pointer-events: none;
+  animation: cdhAuraBreathe 7s ease-in-out infinite alternate;
+}
+@keyframes cdhAuraBreathe{
+  0%{ opacity: 0.75; transform: translateX(-50%) scale(1); }
+  100%{ opacity: 1; transform: translateX(-50%) scale(1.08); }
+}
+.cdh-hero-emblem{
+  position: absolute;
+  top: 6px; left: 50%;
+  width: 230px; height: 200px;
+  transform: translateX(-50%);
+  color: var(--cdh-accent);
+  opacity: 0.16;
+  pointer-events: none;
+}
+.cdh-hero-emblem svg{ width: 100%; height: 100%; }
+
+.cdh-hero-avatar-wrap{
+  position: relative;
+  z-index: 1;
+  width: 92px; height: 92px;
+}
+.cdh-hero-avatar-ring{
+  position: relative;
+  width: 92px; height: 92px;
+  border-radius: 50%;
+  padding: 4px;
+  background: conic-gradient(from 0deg, var(--cdh-accent-soft), var(--cdh-gold), var(--cdh-accent), var(--cdh-accent-soft));
+  box-shadow: 0 12px 28px -12px color-mix(in srgb, var(--cdh-accent-deep) 45%, transparent);
+}
+
+/* ---- 背景设置入口：栖息在头像环右下角的"调色印"徽记按钮 ---- */
+.cdh-bg-trigger{
+  position: absolute;
+  right: -3px; bottom: -3px;
+  z-index: 2;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--cdh-card-bg);
+  background: linear-gradient(140deg, var(--cdh-accent-soft), var(--cdh-gold));
+  color: var(--cdh-ink);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--cdh-accent-deep) 55%, transparent);
+  transition: transform 0.3s var(--ease-silk);
+}
+.cdh-bg-trigger:active{ transform: scale(0.88) rotate(-8deg); }
+.cdh-bg-trigger svg{ width: 14px; height: 14px; position: relative; z-index: 1; }
+.cdh-bg-trigger svg path{ stroke: var(--cdh-ink); stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.cbt-drip{ opacity: 0.85; }
+.cbt-halo{
+  position: absolute; inset: -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--cdh-accent-soft), transparent 70%);
+  opacity: 0;
+  filter: blur(5px);
+  transition: opacity 0.3s var(--ease-soft);
+}
+.cdh-bg-trigger:active .cbt-halo{ opacity: 0.7; }
+.cdh-hero-avatar{
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--cdh-card-bg);
+  border: 2.5px solid var(--cdh-card-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif;
+  font-size: 30px;
+  color: var(--cdh-accent-deep);
+}
+.cdh-hero-avatar img{ width: 100%; height: 100%; object-fit: cover; }
+
+.cdh-hero-name{
+  position: relative; z-index: 1;
+  margin-top: 14px;
+  font-family: 'Noto Serif SC', 'Fraunces', serif;
+  font-size: 23px;
+  font-weight: 500;
+  color: var(--cdh-ink);
+  letter-spacing: 0.02em;
+}
+.cdh-hero-role{
+  position: relative; z-index: 1;
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--cdh-ink-soft);
+  letter-spacing: 0.03em;
+}
+.cdh-hero-plate{
+  position: relative; z-index: 1;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--cdh-accent-deep);
+  letter-spacing: 0.02em;
+}
+.cdh-hero-plate-line{
+  width: 22px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cdh-accent-deep));
+}
+.cdh-hero-plate-line:last-child{ background: linear-gradient(90deg, var(--cdh-accent-deep), transparent); }
+
+.cdh-hero-stats{
+  position: relative; z-index: 1;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 12px 26px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--cdh-card-bg) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cdh-accent-soft) 55%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 10px 26px -14px color-mix(in srgb, var(--cdh-accent-deep) 35%, transparent);
+}
+.cdh-hero-stat{ display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cdh-hs-num{
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--cdh-ink);
+}
+.cdh-hs-label{
+  font-size: 10px;
+  color: var(--cdh-ink-soft);
+  letter-spacing: 0.05em;
+}
+.cdh-hs-sep{
+  width: 1px; height: 26px;
+  background: linear-gradient(180deg, transparent, var(--cdh-accent-soft), transparent);
+}
+
+/* ================================================================
+   日历入口条 —— "翻阅时光"仪式条，取代原折叠面板顶栏
+   造型：左侧手绘日晷 + 中段日期铭文 + 右侧箭头，整条可点唤出居中弹窗
+================================================================ */
+.cdh-cal-rail{
+  position: relative;
+  width: 100%;
+  margin: 4px 0 22px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 18px;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--cdh-card-bg) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cdh-accent-soft) 60%, transparent);
+  box-shadow: 0 14px 34px -18px color-mix(in srgb, var(--cdh-accent-deep) 40%, transparent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-align: left;
+  font-family: inherit;
+  transition: transform 0.25s var(--ease-silk);
+}
+.cdh-cal-rail:active{ transform: scale(0.98); }
+.ccr-dial{
+  flex-shrink: 0;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--cdh-accent-deep);
+}
+.ccr-dial svg{ width: 100%; height: 100%; }
+.ccr-dial svg circle, .ccr-dial svg path{ stroke: currentColor; stroke-width: 1.4; fill: none; }
+.ccr-text{ flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ccr-label{
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--cdh-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ccr-sub{
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cdh-ink-soft);
+  opacity: 0.75;
+}
+.ccr-arrow{ flex-shrink: 0; width: 12px; height: 12px; color: var(--cdh-ink-soft); }
+.ccr-arrow svg{ width: 100%; height: 100%; }
+
+/* ================================================================
+   日历弹窗（居中卡片式，带遮罩）—— 韩系高级暗调设计
+   禁止使用浏览器默认 <input type=date>
+
+   独立配色变量（不透传主题皮肤的浅米色系，避免"廉价米色卡片"观感），
+   深墨底 + 香槟金细线 + 藕紫渐变强调色，弹层完全不透底层内容。
+================================================================ */
+.cdh-cal-veil,
+.cdh-cal-modal{
+  --cc-bg-0: #0d0c11;
+  --cc-bg-1: #16141c;
+  --cc-bg-2: #1e1b26;
+  --cc-line: rgba(255,255,255,0.08);
+  --cc-line-soft: rgba(255,255,255,0.05);
+  --cc-ink: #f3eef2;
+  --cc-ink-dim: #9d96a8;
+  --cc-ink-faint: #6c6577;
+  --cc-gold: #d9bd85;
+  --cc-gold-soft: #b6a179;
+  --cc-violet: #b79ce0;
+  --cc-violet-deep: #8a6bc4;
+  --cc-rose: #d998ab;
+  --cc-grad: linear-gradient(135deg, var(--cc-violet) 0%, var(--cc-violet-deep) 55%, #6a4fa0 100%);
+  --cc-grad-gold: linear-gradient(135deg, #ecd9ab 0%, var(--cc-gold) 55%, #a5834a 100%);
+
+  /* —— 兜底 --cdh-* 变量 ——
+     日历弹窗（.cdh-cal-modal）在 DOM 中并不嵌套于 .cdh-page 内部，
+     二者是兄弟节点，所以 .cdh-page 上挂载的角色主题变量（--cdh-ink /
+     --cdh-accent-deep 等）传不进来。而弹窗底部"落笔仪式条"(.cdh-quill
+     及其子元素 .cdq-*）复用的正是这套 --cdh-* 变量，缺省时这些
+     var() 全部失效，文字颜色退化成不可预期的默认值——这正是它在深色
+     弹窗里"几乎看不见"的根本原因，而不是设计上刻意调暗。这里补一份
+     与 .cdh-bg-modal 一致的浅色兜底值，保证仪式条在任何角色主题下都能
+     正常显示为深色文字压在浅白底上。 */
+  --cdh-bg-1: #fbf6f7; --cdh-bg-2: #f6ecee; --cdh-bg-3: #f0e1e4;
+  --cdh-accent: #c99aab; --cdh-accent-deep: #a9677c; --cdh-accent-soft: #e3c9d1;
+  --cdh-ink: #5c3d47; --cdh-ink-soft: #8a6a72;
+  --cdh-gold: #d4c49a;
+  --cdh-card-bg: #fffdfb;
+}
+
+.cdh-cal-veil{
+  position: fixed; inset: 0;
+  z-index: 500;
+  background: radial-gradient(120% 100% at 50% 0%, rgba(30,22,45,0.72) 0%, rgba(8,7,11,0.86) 68%);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-soft);
+}
+.cdh-cal-veil.show{ opacity: 1; pointer-events: auto; }
+
+.cdh-cal-modal{
+  position: fixed; inset: 0;
+  z-index: 501;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-soft);
+}
+.cdh-cal-modal.show{ opacity: 1; pointer-events: auto; }
+
+.ccm-sheet{
+  position: relative;
+  width: 100%;
+  max-width: 366px;
+  max-height: 86vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  border-radius: 28px;
+  padding: 22px 20px 24px;
+  /* 完全不透明的深底，杜绝“切换内容还能看见背后东西” */
+  background:
+    radial-gradient(140% 90% at 15% -10%, rgba(138,107,196,0.20) 0%, rgba(138,107,196,0) 46%),
+    radial-gradient(120% 80% at 100% 110%, rgba(217,189,133,0.13) 0%, rgba(217,189,133,0) 50%),
+    linear-gradient(165deg, var(--cc-bg-2) 0%, var(--cc-bg-1) 52%, var(--cc-bg-0) 100%);
+  border: 1px solid var(--cc-line);
+  box-shadow:
+    0 40px 90px -30px rgba(0,0,0,0.75),
+    0 1px 0 0 rgba(255,255,255,0.06) inset,
+    0 0 0 1px rgba(0,0,0,0.4);
+  transform: scale(0.92) translateY(10px);
+  transition: transform 0.42s var(--ease-silk);
+}
+.ccm-sheet::before{
+  /* 顶部一道细金光，仪式感边框 */
+  content: '';
+  position: absolute;
+  top: 0; left: 14%; right: 14%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cc-gold) 50%, transparent);
+  opacity: 0.55;
+}
+.ccm-sheet::-webkit-scrollbar{ display: none; }
+.cdh-cal-modal.show .ccm-sheet{ transform: scale(1) translateY(0); }
+
+.ccm-topbar{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.ccm-topbar-mark{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cc-gold);
+  opacity: 0.92;
+}
+.ccm-close{
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--cc-line);
+  background: rgba(255,255,255,0.04);
+  color: var(--cc-ink-dim);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.25s var(--ease-silk), color 0.25s, border-color 0.25s;
+}
+.ccm-close:active{ transform: scale(0.9) rotate(90deg); color: var(--cc-ink); border-color: rgba(255,255,255,0.2); }
+.ccm-close svg{ width: 14px; height: 14px; }
+
+/* ================================================================
+   背景设置弹窗（居中卡片式，带遮罩）—— 与日历弹窗同构，独立皮肤类名
+   ★ 视觉升级：华丽感来自"克制的一处亮点 + 处处对齐的细节"——
+   金属描边、绸缎高光扫过、模式切换的液态滑块、预览条的画框感，
+   而非堆砌颜色。所有取色仍完全遵循当前 --cdh-* 皮肤变量，换肤自动生效。
+================================================================ */
+.cdh-bg-veil{
+  position: fixed; inset: 0;
+  z-index: 500;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 20%, rgba(80,64,92,0.16), transparent 60%),
+    rgba(24,20,28,0.52);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-soft);
+}
+.cdh-bg-veil.show{ opacity: 1; pointer-events: auto; }
+
+.cdh-bg-modal{
+  position: fixed; inset: 0;
+  z-index: 501;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-soft);
+
+  /* 兜底默认色（等同 skin-b 雾蔷调）：弹窗打开时若未及时挂载 skin-*
+     class（例如角色尚无版型缓存），仍有完整的一套 --cdh-* 变量可用，
+     不会退化成无主题色的灰调 */
+  --cdh-bg-1: #fbf6f7; --cdh-bg-2: #f6ecee; --cdh-bg-3: #f0e1e4;
+  --cdh-accent: #c99aab; --cdh-accent-deep: #a9677c; --cdh-accent-soft: #e3c9d1;
+  --cdh-ink: #5c3d47; --cdh-ink-soft: #8a6a72;
+  --cdh-gold: #d4c49a;
+  --cdh-card-bg: #fffdfb;
+}
+.cdh-bg-modal.show{ opacity: 1; pointer-events: auto; }
+
+.cbm-sheet{
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  max-height: 88vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  border-radius: 28px;
+  padding: 20px 20px 24px;
+  background:
+    linear-gradient(168deg, color-mix(in srgb, var(--cdh-card-bg) 99%, white 4%) 0%, var(--cdh-card-bg) 46%, color-mix(in srgb, var(--cdh-card-bg) 94%, var(--cdh-accent-soft) 10%) 100%);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border: 1px solid color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 55%, white 15%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.6) inset,
+    0 0 0 1px color-mix(in srgb, var(--cdh-accent-deep) 12%, transparent),
+    0 36px 80px -26px rgba(60,44,70,0.5),
+    0 10px 28px -14px color-mix(in srgb, var(--cdh-accent-deep) 40%, transparent);
+  transform: scale(0.92) translateY(10px);
+  transition: transform 0.42s var(--ease-silk);
+}
+.cbm-sheet::-webkit-scrollbar{ display: none; }
+.cdh-bg-modal.show .cbm-sheet{ transform: scale(1) translateY(0); }
+
+/* 绸缎高光：一道极淡的光带从左上斜切而过，弹窗展开时轻轻扫一次 */
+.cbm-sheet-sheen{
+  position: absolute; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(115deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 16%, rgba(255,255,255,0) 100%);
+  opacity: 0.9;
+}
+/* 四角描花：细金线勾出左上/右上角，呼应"调色印"的仪式感，克制不喧宾夺主 */
+.cbm-corner{
+  position: absolute;
+  width: 30px; height: 30px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.55;
+}
+.cbm-corner::before, .cbm-corner::after{ content: ''; position: absolute; background: linear-gradient(90deg, color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-deep)) 75%, transparent), transparent); }
+.cbm-corner-tl{ top: 14px; left: 14px; }
+.cbm-corner-tl::before{ top: 0; left: 0; width: 20px; height: 1.5px; }
+.cbm-corner-tl::after{ top: 0; left: 0; width: 1.5px; height: 20px; background: linear-gradient(180deg, color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-deep)) 75%, transparent), transparent); }
+.cbm-corner-tr{ top: 14px; right: 14px; }
+.cbm-corner-tr::before{ top: 0; right: 0; width: 20px; height: 1.5px; background: linear-gradient(270deg, color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-deep)) 75%, transparent), transparent); }
+.cbm-corner-tr::after{ top: 0; right: 0; width: 1.5px; height: 20px; background: linear-gradient(180deg, color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-deep)) 75%, transparent), transparent); }
+
+.cbm-topbar{ position: relative; z-index: 2; margin-bottom: 16px; }
+.cbm-topbar-mark{ gap: 8px; font-size: 11px; }
+.cbm-mark-icon{
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  color: var(--cdh-accent-deep);
+  background: color-mix(in srgb, var(--cdh-accent-soft) 30%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 50%, transparent);
+}
+.cbm-mark-icon svg{ width: 12px; height: 12px; }
+
+/* 模式切换：液态滑块 + 三枚分段标签，滑块用 transform 平移，避免布局抖动 */
+.cbm-mode-switch{
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--cdh-accent-soft) 18%, transparent);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06) inset, 0 0 0 1px color-mix(in srgb, var(--cdh-accent-soft) 40%, transparent) inset;
+  margin-bottom: 16px;
+}
+.cbm-mode-glider{
+  position: absolute;
+  top: 4px; left: 4px;
+  width: calc((100% - 8px) / 3);
+  height: calc(100% - 8px);
+  border-radius: 11px;
+  background: linear-gradient(155deg, color-mix(in srgb, var(--cdh-card-bg) 100%, white 6%), var(--cdh-card-bg));
+  box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--cdh-accent-deep) 50%, transparent), 0 0 0 1px color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 45%, transparent);
+  transition: transform 0.36s var(--ease-silk);
+  pointer-events: none;
+}
+.cbm-mode-switch[data-active="color"] .cbm-mode-glider{ transform: translateX(100%); }
+.cbm-mode-switch[data-active="image"] .cbm-mode-glider{ transform: translateX(200%); }
+.cbm-mode-btn{
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 10px 4px;
+  border-radius: 11px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--cdh-ink-soft);
+  transition: color 0.3s var(--ease-soft);
+}
+.cbm-mode-btn.is-active{ color: var(--cdh-accent-deep); font-weight: 700; }
+
+/* 预览条：加一层内画框，模拟"取景窗"，让纯色/图片预览显得更精致 */
+.cbm-preview{
+  position: relative;
+  z-index: 2;
+  height: 92px;
+  border-radius: 18px;
+  margin-bottom: 18px;
+  overflow: hidden;
+  display: flex; align-items: flex-end;
+  background: linear-gradient(160deg, var(--cdh-bg-1), var(--cdh-bg-2) 55%, var(--cdh-bg-3));
+  border: 1px solid color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 45%, transparent);
+  box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--cdh-accent-deep) 50%, transparent), 0 1px 0 rgba(255,255,255,0.5) inset;
+  background-size: cover;
+  background-position: center;
+  transition: background 0.3s var(--ease-soft), background-image 0.3s var(--ease-soft);
+}
+.cbm-preview-frame{
+  position: absolute; inset: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.35);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05) inset;
+  pointer-events: none;
+}
+.cbm-preview-hint{
+  position: relative;
+  width: 100%;
+  padding: 8px 14px;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--cdh-ink-soft);
+  background: linear-gradient(0deg, color-mix(in srgb, var(--cdh-card-bg) 88%, transparent), transparent);
+  text-align: center;
+}
+
+.cbm-panel{ position: relative; z-index: 2; margin-bottom: 6px; }
+
+/* ================================================================
+   ★ 全自绘颜色选择器（Custom Color Picker） ★
+   拒绝浏览器原生 input[type=color]；饱和度/明度面板 + 色相滑条 +
+   透明度滑条 + 十六进制/rgba 文本输入，四者互相同步
+================================================================ */
+.ccp-field{
+  position: relative;
+  width: 100%;
+  height: 172px;
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  cursor: crosshair;
+  border: 1px solid color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 50%, transparent);
+  box-shadow: 0 14px 30px -16px color-mix(in srgb, var(--cdh-accent-deep) 48%, transparent), 0 0 0 1px color-mix(in srgb, var(--cdh-accent-deep) 8%, transparent);
+  touch-action: none;
+}
+.ccp-canvas{ position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ccp-thumb{
+  position: absolute;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,0.28), 0 4px 10px rgba(0,0,0,0.38), 0 0 0 5px rgba(255,255,255,0.18);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  left: 0; top: 0;
+}
+
+.ccp-hue-row, .ccp-alpha-row{ margin-bottom: 14px; }
+.ccp-hue-track{
+  position: relative;
+  height: 17px;
+  border-radius: 999px;
+  cursor: pointer;
+  touch-action: none;
+  background: linear-gradient(90deg,
+    #ff0000 0%, #ffdd00 17%, #46ff00 33%, #00fff2 50%,
+    #0033ff 67%, #dd00ff 83%, #ff0000 100%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 45%, transparent) inset,
+              0 1px 0 rgba(255,255,255,0.4) inset,
+              0 6px 14px -8px color-mix(in srgb, var(--cdh-accent-deep) 40%, transparent);
+}
+.ccp-alpha-track{
+  position: relative;
+  height: 17px;
+  border-radius: 999px;
+  cursor: pointer;
+  touch-action: none;
+  background-image:
+    linear-gradient(90deg, transparent, var(--ccp-current-opaque, #c99aab));
+  background-color: transparent;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 45%, transparent) inset,
+              0 1px 0 rgba(255,255,255,0.4) inset,
+              0 6px 14px -8px color-mix(in srgb, var(--cdh-accent-deep) 40%, transparent);
+}
+.ccp-alpha-track::before{
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 999px;
+  z-index: -1;
+  background-image:
+    linear-gradient(45deg, #d8d3da 25%, transparent 25%, transparent 75%, #d8d3da 75%),
+    linear-gradient(45deg, #d8d3da 25%, transparent 25%, transparent 75%, #d8d3da 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
+  background-color: #fff;
+}
+.ccp-hue-thumb, .ccp-alpha-thumb{
+  position: absolute;
+  top: 50%; left: 0%;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 3px 8px rgba(0,0,0,0.32), 0 0 0 4px rgba(255,255,255,0.16);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.cbm-color-row{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ccp-preview{
+  flex-shrink: 0;
+  width: 46px; height: 46px;
+  border-radius: 13px;
+  border: 1px solid color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 55%, transparent);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--cdh-accent-deep) 42%, transparent), 0 1px 0 rgba(255,255,255,0.5) inset;
+  background-image:
+    linear-gradient(45deg, #d8d3da 25%, transparent 25%, transparent 75%, #d8d3da 75%),
+    linear-gradient(45deg, #d8d3da 25%, transparent 25%, transparent 75%, #d8d3da 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 5px 5px;
+  background-color: #fff;
+  position: relative;
+}
+.ccp-preview::after{
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 12px;
+  background: var(--ccp-current, transparent);
+}
+.ccp-eyedrop{
+  flex-shrink: 0;
+  width: 42px; height: 42px;
+  border-radius: 13px;
+  border: 1px solid color-mix(in srgb, var(--cdh-accent-soft) 60%, transparent);
+  background: color-mix(in srgb, var(--cdh-accent-soft) 14%, transparent);
+  color: var(--cdh-accent-deep);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s var(--ease-silk), background 0.2s var(--ease-soft);
+}
+.ccp-eyedrop:active{ transform: scale(0.9); }
+.ccp-eyedrop svg{ width: 18px; height: 18px; }
+.cbm-color-text{
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 13px;
+  border: 1px solid color-mix(in srgb, var(--cdh-accent-soft) 55%, transparent);
+  background: color-mix(in srgb, var(--cdh-card-bg) 72%, transparent);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03) inset;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  color: var(--cdh-ink);
+  transition: border-color 0.25s var(--ease-soft), box-shadow 0.25s var(--ease-soft);
+}
+.cbm-color-text:focus{
+  outline: none;
+  border-color: var(--cdh-accent-deep);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cdh-accent-deep) 16%, transparent);
+}
+
+.cbm-swatches{
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 11px;
+}
+.cbm-swatch{
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--cdh-card-bg);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cdh-accent-soft) 75%, transparent), 0 5px 12px -6px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.55) inset;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.22s var(--ease-silk), box-shadow 0.22s var(--ease-silk);
+  padding: 0;
+}
+.cbm-swatch:active{ transform: scale(0.85); }
+.cbm-swatch.is-selected{
+  box-shadow: 0 0 0 2px var(--cdh-card-bg), 0 0 0 3.5px var(--cdh-gold, var(--cdh-accent-deep)), 0 6px 14px -4px color-mix(in srgb, var(--cdh-accent-deep) 55%, transparent);
+  transform: scale(1.1);
+}
+
+.cbm-upload-btn{
+  position: relative;
+  width: 100%;
+  padding: 26px 12px;
+  border-radius: 18px;
+  border: 1.5px dashed color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 65%, transparent);
+  background:
+    radial-gradient(ellipse 90% 120% at 50% 0%, color-mix(in srgb, var(--cdh-accent-soft) 16%, transparent), transparent 70%),
+    color-mix(in srgb, var(--cdh-accent-soft) 9%, transparent);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--cdh-accent-deep);
+  transition: border-color 0.25s var(--ease-soft), background 0.25s var(--ease-soft);
+}
+.cbm-upload-btn:active{ border-color: color-mix(in srgb, var(--cdh-accent-deep) 65%, transparent); }
+.cub-icon-wrap{
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(155deg, color-mix(in srgb, var(--cdh-card-bg) 100%, white 8%), var(--cdh-card-bg));
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--cdh-accent-deep) 45%, transparent), 0 0 0 1px color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 55%, transparent);
+}
+.cbm-upload-btn svg{ width: 20px; height: 20px; }
+.cbm-upload-btn svg path{ stroke: currentColor; stroke-width: 1.6; }
+.cbm-upload-btn em{
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--cdh-ink-soft);
+}
+.cub-ring{ display: none; }
+.cbm-upload-tip{
+  margin: 12px 2px 0;
+  font-size: 10.5px;
+  line-height: 1.65;
+  color: var(--cdh-ink-soft);
+  opacity: 0.85;
+}
+
+/* ---- 文字明暗开关：自动 / 浅色字 / 深色字，仅自定义背景时出现 ---- */
+.cbm-panel-contrast{
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px dashed color-mix(in srgb, var(--cdh-accent-soft) 55%, transparent);
+}
+.cbm-contrast-head{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.cbm-contrast-title{
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--cdh-ink);
+  letter-spacing: 0.01em;
+}
+.cbm-contrast-sub{
+  font-size: 10px;
+  color: var(--cdh-ink-soft);
+  opacity: 0.75;
+}
+.cbm-contrast-switch{
+  position: relative;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--cdh-accent-soft) 18%, transparent);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06) inset;
+  margin-bottom: 10px;
+}
+.cbm-contrast-glider{
+  position: absolute;
+  top: 4px; left: 4px;
+  width: calc((100% - 8px) / 3);
+  height: calc(100% - 8px);
+  border-radius: 10px;
+  background: linear-gradient(155deg, color-mix(in srgb, var(--cdh-card-bg) 100%, white 6%), var(--cdh-card-bg));
+  box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--cdh-accent-deep) 50%, transparent), 0 0 0 1px color-mix(in srgb, var(--cdh-gold, var(--cdh-accent-soft)) 45%, transparent);
+  transition: transform 0.32s var(--ease-silk);
+  pointer-events: none;
+}
+.cbm-contrast-switch[data-active="light"] .cbm-contrast-glider{ transform: translateX(100%); }
+.cbm-contrast-switch[data-active="dark"] .cbm-contrast-glider{ transform: translateX(200%); }
+.cbm-contrast-btn{
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--cdh-ink-soft);
+  transition: color 0.3s var(--ease-soft);
+}
+.cbm-contrast-btn svg{ width: 13px; height: 13px; flex-shrink: 0; }
+.cbm-contrast-btn.is-active{ color: var(--cdh-accent-deep); font-weight: 700; }
+.cbm-contrast-tip{
+  font-size: 10px;
+  line-height: 1.65;
+  color: var(--cdh-ink-soft);
+  opacity: 0.8;
+  margin: 0 2px;
+}
+
+.cbm-actions{
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.cbm-reset{
+  padding: 13px 16px;
+  border-radius: 15px;
+  border: 1px solid color-mix(in srgb, var(--cdh-accent-soft) 65%, transparent);
+  background: color-mix(in srgb, var(--cdh-card-bg) 50%, transparent);
+  color: var(--cdh-ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.25s var(--ease-soft), color 0.25s var(--ease-soft);
+}
+.cbm-reset:active{ border-color: var(--cdh-accent-deep); color: var(--cdh-accent-deep); }
+.cbm-confirm{
+  position: relative;
+  flex: 1;
+  padding: 13px 16px;
+  border-radius: 15px;
+  border: 1px solid color-mix(in srgb, var(--cdh-gold, white) 45%, transparent);
+  background: linear-gradient(135deg, var(--cdh-accent) 0%, var(--cdh-accent-deep) 68%, color-mix(in srgb, var(--cdh-accent-deep) 82%, black 12%) 100%);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+  box-shadow: 0 14px 28px -12px color-mix(in srgb, var(--cdh-accent-deep) 65%, transparent), 0 1px 0 rgba(255,255,255,0.4) inset;
+  transition: transform 0.2s var(--ease-silk), box-shadow 0.2s var(--ease-silk);
+}
+.cbm-confirm:active{ transform: scale(0.98); box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--cdh-accent-deep) 65%, transparent); }
+.cbm-confirm .cp-glow{
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transform: translateX(-100%);
+}
+.cbm-confirm:active .cp-glow{ transition: transform 0.6s var(--ease-soft); transform: translateX(100%); }
+
+.cdh-cal-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px 16px;
+}
+.cdh-cal-nav{
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--cc-line);
+  background: rgba(255,255,255,0.04);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--cc-gold);
+  transition: transform 0.25s var(--ease-silk), background 0.25s, border-color 0.25s;
+}
+.cdh-cal-nav:active{ transform: scale(0.88); background: rgba(217,189,133,0.12); border-color: rgba(217,189,133,0.4); }
+.cdh-cal-nav svg{ width: 15px; height: 15px; }
+.cdh-cal-headtext{
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  padding: 4px 16px; border-radius: 12px;
+  transition: background 0.25s var(--ease-soft);
+}
+.cdh-cal-headtext:active{ background: rgba(255,255,255,0.05); }
+.cdh-cal-month{
+  font-family: 'Fraunces', 'Cormorant Garamond', serif;
+  font-size: 19px;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: 0.05em;
+  color: var(--cc-ink);
+  display: flex; align-items: center; gap: 7px;
+}
+.cdh-cal-month::after{
+  content: '';
+  width: 5px; height: 5px;
+  border-right: 1.4px solid var(--cc-gold);
+  border-bottom: 1.4px solid var(--cc-gold);
+  transform: rotate(45deg) translateY(-1px);
+  opacity: 0.85;
+}
+.cdh-cal-year{
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--cc-ink-faint);
+  letter-spacing: 0.14em;
+}
+
+/* ================================================================
+   年月快速跳转面板 —— 覆盖式，替代"一个月一个月点"的翻页疲劳
+   设计方向：转轮式年份选择器（类 iOS picker）+ 更精致的月份网格。
+   呼应整体"翻阅时光"的复古金紫基调：年份用衬线数字体现仪式感，
+   选中带用金紫双色玻璃质感，月份卡片带真实材质分层而非纯色块。
+================================================================ */
+.cdh-cal-jump{
+  position: absolute;
+  left: 16px; right: 16px; top: 66px; bottom: 16px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  border-radius: 28px;
+  padding: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(130% 90% at 8% -6%, rgba(138,107,196,0.22) 0%, rgba(138,107,196,0) 50%),
+    radial-gradient(110% 70% at 100% 108%, rgba(217,189,133,0.13) 0%, rgba(217,189,133,0) 55%),
+    linear-gradient(165deg, var(--cc-bg-2) 0%, var(--cc-bg-0) 100%);
+  border: 1px solid var(--cc-line);
+  box-shadow: 0 24px 60px -18px rgba(0,0,0,0.75), 0 1px 0 0 rgba(255,255,255,0.06) inset;
+  opacity: 0;
+  transform: translateY(6px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 0.28s var(--ease-soft), transform 0.28s var(--ease-silk);
+}
+.cdh-cal-jump.show{ opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.cdh-cal-jump::before{
+  /* 顶部一道细金光，呼应弹窗外层 ccm-sheet 的仪式感边框 */
+  content: '';
+  position: absolute;
+  top: 0; left: 18%; right: 18%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cc-gold) 50%, transparent);
+  opacity: 0.4;
+  z-index: 3;
+}
+
+.ccj-eyebrow{
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 20px 2px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cc-ink-faint);
+}
+.ccj-eyebrow::before{
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--cc-gold);
+  box-shadow: 0 0 6px 1px rgba(217,189,133,0.6);
+}
+
+.ccj-body{
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  padding: 8px 16px 10px;
+}
+
+/* 中央选中带：固定不动，年份列表从它背后滚过，制造转轮效果 */
+.ccj-years-wrap{
+  flex-shrink: 0;
+  width: 108px;
+  position: relative;
+  height: 100%;
+}
+.ccj-years-band{
+  position: absolute;
+  left: 0; right: 10px; top: 50%;
+  height: 46px;
+  transform: translateY(-50%);
+  border-radius: 15px;
+  background: linear-gradient(135deg, rgba(217,189,133,0.16) 0%, rgba(183,156,224,0.24) 55%, rgba(138,107,196,0.20) 100%);
+  border: 1px solid rgba(217,189,133,0.38);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05) inset,
+    0 1px 0 0 rgba(255,255,255,0.12) inset,
+    0 6px 20px -6px rgba(138,107,196,0.55);
+  pointer-events: none;
+  z-index: 1;
+}
+/* 选中带两端各点一粒细小的菱形装饰，弱化"就是个方框"的机械感 */
+.ccj-years-band::before,
+.ccj-years-band::after{
+  content: '';
+  position: absolute;
+  top: 50%; left: 9px;
+  width: 4px; height: 4px;
+  transform: translateY(-50%) rotate(45deg);
+  background: var(--cc-gold);
+  opacity: 0.55;
+}
+.ccj-years-band::after{ left: auto; right: 9px; }
+
+.ccj-years{
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow-y: auto;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 129px 8px 129px 0;
+  /* 上下边缘渐隐，暗示列表可继续滚动 */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 68px, #000 calc(100% - 68px), transparent 100%);
+          mask-image: linear-gradient(to bottom, transparent 0, #000 68px, #000 calc(100% - 68px), transparent 100%);
+}
+.ccj-years::-webkit-scrollbar{ display: none; }
+
+.ccj-year-btn{
+  flex-shrink: 0;
+  height: 46px;
+  width: 100%;
+  padding: 0 8px;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: 'Fraunces', 'Space Mono', serif;
+  font-size: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  color: var(--cc-ink-faint);
+  cursor: pointer;
+  text-align: center;
+  opacity: 0.5;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.22s var(--ease-soft), opacity 0.22s var(--ease-soft), transform 0.2s var(--ease-silk), font-size 0.22s var(--ease-soft);
+}
+/* 明确清除所有交互状态下的默认外框，避免点击后残留一圈焦点框，
+   出现"看起来还有一个年份被选中"的错觉 */
+.ccj-year-btn:focus,
+.ccj-year-btn:focus-visible{ outline: none; box-shadow: none; }
+/* 每 5 年一个刻度年份，未被选中时也用小圆点提示，方便滚动时估位置 */
+.ccj-year-btn.is-tick:not(.is-active)::after{
+  content: '';
+  display: block;
+  width: 3px; height: 3px;
+  margin: 4px auto 0;
+  border-radius: 50%;
+  background: var(--cc-gold-soft);
+  opacity: 0.45;
+}
+.ccj-year-btn.is-current-year:not(.is-active){
+  color: var(--cc-gold-soft);
+  opacity: 0.9;
+}
+.ccj-year-btn:active{ transform: scale(0.94); }
+.ccj-year-btn.is-active{
+  color: #fffaf0;
+  font-size: 21px;
+  font-style: italic;
+  font-weight: 600;
+  opacity: 1;
+  text-shadow: 0 1px 12px rgba(217,189,133,0.35);
+}
+
+.ccj-divider{
+  flex-shrink: 0;
+  width: 1px;
+  align-self: stretch;
+  margin: 12px 8px 12px 6px;
+  background: linear-gradient(to bottom, transparent 0%, var(--cc-line) 18%, var(--cc-line) 82%, transparent 100%);
+}
+
+.ccj-months{
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 10px;
+  align-content: center;
+  padding: 4px 2px 4px 8px;
+}
+.ccj-month-btn{
+  position: relative;
+  border-radius: 14px;
+  border: 1px solid var(--cc-line);
+  background: linear-gradient(160deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 100%);
+  padding: 15px 2px;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--cc-ink-dim);
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s var(--ease-silk), background 0.25s, color 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+.ccj-month-btn:focus,
+.ccj-month-btn:focus-visible{ outline: none; box-shadow: none; }
+.ccj-month-btn:active{ transform: scale(0.94); }
+.ccj-month-btn.is-active{
+  background: var(--cc-grad);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.22) inset,
+    0 8px 20px -6px rgba(138,107,196,0.7);
+}
+/* 选中月份右上角缀一粒金点，作为与年份选中带呼应的一致装饰语言 */
+.ccj-month-btn.is-active::after{
+  content: '';
+  position: absolute;
+  top: 7px; right: 8px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--cc-gold);
+  box-shadow: 0 0 5px 1px rgba(217,189,133,0.7);
+}
+
+.ccj-actions{
+  flex-shrink: 0;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--cc-line-soft);
+}
+.ccj-today{
+  width: 100%;
+  padding: 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(217,189,133,0.4);
+  background: linear-gradient(135deg, rgba(217,189,133,0.16), rgba(217,189,133,0.04));
+  color: var(--cc-gold);
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.25s, transform 0.2s var(--ease-silk), border-color 0.25s;
+}
+.ccj-today:focus,
+.ccj-today:focus-visible{ outline: none; }
+.ccj-today:active{ transform: scale(0.97); background: rgba(217,189,133,0.22); border-color: rgba(217,189,133,0.65); }
+
+.cdh-cal-weekrow{
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 0 2px 10px;
+}
+.cdh-cal-weekrow span{
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--cc-ink-faint);
+}
+.cdh-cal-weekrow span.wk-end{ color: var(--cc-gold); }
+
+.cdh-cal-grid{
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cdh-cal-cell{
+  position: relative;
+  aspect-ratio: 1;
+  min-height: 40px;
+  border-radius: 13px;
+  border: 1px solid transparent;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Inter', sans-serif;
+  transition: transform 0.2s var(--ease-silk), background 0.25s, border-color 0.25s;
+  padding: 0;
+}
+.cdh-cal-cell.outside{ visibility: hidden; pointer-events: none; }
+.ccc-num{ font-size: 12.5px; font-weight: 500; color: var(--cc-ink); }
+.cdh-cal-cell.is-weekend .ccc-num{ color: var(--cc-rose); }
+.cdh-cal-cell.is-future{ opacity: 0.3; cursor: default; }
+.cdh-cal-cell.is-future .ccc-num{ color: var(--cc-ink-faint); }
+
+.cdh-cal-cell.is-holiday{ background: rgba(217,189,133,0.10); border-color: rgba(217,189,133,0.22); }
+.cdh-cal-cell.is-holiday .ccc-num{ color: var(--cc-gold); font-weight: 700; }
+.ccc-holiday{
+  font-size: 7.2px;
+  line-height: 1;
+  color: var(--cc-gold-soft);
+  letter-spacing: -0.01em;
+  max-width: 34px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cdh-cal-cell.has-entries .ccc-num{ font-weight: 700; }
+.ccc-dots{ display: flex; gap: 2px; height: 4px; }
+.ccc-dots i{
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: var(--cc-violet);
+  box-shadow: 0 0 4px rgba(183,156,224,0.6);
+}
+
+.cdh-cal-cell.is-today{
+  border-color: rgba(217,189,133,0.55);
+  box-shadow: 0 0 0 1px rgba(217,189,133,0.25) inset;
+}
+.cdh-cal-cell.is-today .ccc-num{ color: var(--cc-gold); }
+
+.cdh-cal-cell.is-selected{
+  background: var(--cc-grad);
+  transform: scale(1.06);
+  box-shadow: 0 12px 26px -8px rgba(106,79,160,0.65), 0 0 0 1px rgba(255,255,255,0.12) inset;
+}
+.cdh-cal-cell.is-selected .ccc-num{ color: #fff; font-weight: 700; }
+.cdh-cal-cell.is-selected .ccc-holiday{ color: rgba(255,255,255,0.85); }
+.cdh-cal-cell.is-selected .ccc-dots i{ background: rgba(255,255,255,0.9); box-shadow: none; }
+
+.cdh-cal-cell:not(.is-future):not(.outside):hover{ background: rgba(255,255,255,0.04); }
+.cdh-cal-cell:not(.is-future):not(.outside):active{ transform: scale(0.92); }
+
+.cdh-cal-legend{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cc-line);
+}
+.ccl-item{
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 10px;
+  color: var(--cc-ink-dim);
+}
+.ccl-dot{ width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.ccl-has{ background: var(--cc-violet); box-shadow: 0 0 5px rgba(183,156,224,0.6); }
+.ccl-holiday{ background: var(--cc-gold); box-shadow: 0 0 5px rgba(217,189,133,0.55); }
+.ccl-today{ background: none; border: 1.4px solid var(--cc-gold); }
+
+/* ================================================================
+   时间轴日记流
+================================================================ */
+.cdh-timeline{ position: relative; padding-bottom: 4px; }
+
+.cdh-tl-node{
+  position: relative;
+  display: flex;
+  gap: 14px;
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border-radius: 18px;
+  transition: background 0.6s var(--ease-soft);
+}
+.cdh-tl-node--flash{
+  background: color-mix(in srgb, var(--cdh-accent-soft) 22%, transparent);
+}
+
+.cdh-tl-axis{
+  flex-shrink: 0;
+  width: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 6px;
+}
+.cdh-tl-dot{
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cdh-ink-soft) 35%, transparent);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px var(--cdh-bg-1);
+}
+.cdh-tl-dot.is-lit{
+  background: linear-gradient(135deg, var(--cdh-accent), var(--cdh-accent-deep));
+  box-shadow: 0 0 0 3px var(--cdh-bg-1), 0 0 10px color-mix(in srgb, var(--cdh-accent) 60%, transparent);
+}
+.cdh-tl-dot.is-today{
+  background: var(--cdh-gold);
+  box-shadow: 0 0 0 3px var(--cdh-bg-1), 0 0 0 5px color-mix(in srgb, var(--cdh-gold) 45%, transparent);
+}
+.cdh-tl-line{
+  flex: 1;
+  width: 1.4px;
+  margin-top: 4px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cdh-accent-soft) 70%, transparent), transparent);
+}
+
+.cdh-tl-content{ flex: 1; padding-bottom: 26px; min-width: 0; }
+
+.cdh-tl-daymark{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 7px 14px 7px 11px;
+  border-radius: 14px;
+  width: fit-content;
+  max-width: 100%;
+  /* 一块不透明的浅色底板：不管背景是纯色还是照片，日期文字都稳稳落在
+     这块干净的浅色板上，不会再透出背景本身的图案/文字，也不会再有
+     "字贴在照片上"的重叠感 */
+  background: color-mix(in srgb, var(--cdh-card-bg, #fffdfb) 96%, transparent);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 8px 20px -12px rgba(0,0,0,0.22);
+}
+.cdh-page.custom-bg-image .cdh-tl-daymark,
+.cdh-page.custom-bg-color .cdh-tl-daymark{
+  /* 自定义背景（纯色/图片）时固定用浅色不透明板，不跟随 on-dark 变暗，
+     保证日期区域永远是浅色系，与照片本身分离得干干净净 */
+  background: #fffdfa;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 8px 20px -12px rgba(0,0,0,0.3);
+}
+.cdh-page.custom-bg-image .cdh-tl-daymark .cdh-tl-daynum,
+.cdh-page.custom-bg-color .cdh-tl-daymark .cdh-tl-daynum{ color: #4a3d3f; }
+.cdh-page.custom-bg-image .cdh-tl-daymark .cdh-tl-daymeta,
+.cdh-page.custom-bg-color .cdh-tl-daymark .cdh-tl-daymeta{ color: #8a7a7c; }
+.cdh-tl-daynum{
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--cdh-ink);
+  flex-shrink: 0;
+}
+.cdh-tl-daymark.is-today .cdh-tl-daynum{ color: var(--cdh-accent-deep); }
+.cdh-tl-daymeta{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--cdh-ink-soft);
+  min-width: 0;
+}
+.cdh-tl-holiday{
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cdh-gold) 22%, transparent);
+  color: var(--cdh-accent-deep);
+  font-weight: 600;
+  font-size: 10px;
+}
+.cdh-tl-todaytag{
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--cdh-accent-deep);
+  color: #fff;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+}
+
+.cdh-tl-blank{
+  padding: 14px 4px 4px;
+  font-size: 12px;
+  color: var(--cdh-ink-soft);
+  opacity: 0.55;
+  font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+}
+
+/* ---- 折叠的空白区间：连续多天没有落笔时，合并成一条细线上的
+        小标签，不再逐天铺一整行「没有落笔」，时间轴才不会被
+        一堆无内容的日期挤满、看起来黏在一起 ---- */
+.cdh-tl-gap{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 8px 22px 22px;
+  padding: 2px 0;
+}
+.cdh-tl-gap-line{
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cdh-accent-soft) 55%, transparent), transparent);
+}
+.cdh-tl-gap-line:last-child{
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cdh-accent-soft) 55%, transparent));
+}
+.cdh-tl-gap-text{
+  flex-shrink: 0;
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--cdh-ink-soft);
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+/* ================================================================
+   时间轴 · 空态（尚无任何落笔时的整体呈现）
+   取代原先"连续 21 天空行"的堆叠效果——只用一枚安静的仪式卡片，
+   不出现逐日的"没有落笔"文字墙
+================================================================ */
+.cdh-tl-empty{
+  position: relative;
+  margin-top: 6px;
+  padding: 40px 26px 36px;
+  border-radius: 24px;
+  text-align: center;
+  background: color-mix(in srgb, var(--cdh-card-bg) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cdh-accent-soft) 45%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 16px 38px -20px color-mix(in srgb, var(--cdh-accent-deep) 32%, transparent);
+}
+.cdh-tl-empty-mark{
+  width: 46px; height: 46px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--cdh-accent-soft) 55%, transparent), color-mix(in srgb, var(--cdh-gold) 40%, transparent));
+  color: var(--cdh-accent-deep);
+}
+.cdh-tl-empty-mark svg{ width: 20px; height: 20px; }
+.cdh-tl-empty-mark svg path{ stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.cdh-tl-empty-title{
+  font-family: 'Noto Serif SC', 'Fraunces', serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--cdh-ink);
+  margin-bottom: 6px;
+}
+.cdh-tl-empty-sub{
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--cdh-ink-soft);
+  max-width: 240px;
+  margin: 0 auto;
+}
+
+.cdh-tl-cards{
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding: 8px 4px 10px;
+}
+
+/* ================================================================
+   卡片系统 · 第二次重做（韩系浅白 · 高级华丽）
+   本次修复的核心问题：
+   1. 旧版把标题/摘要/页脚全部塞进 .cdh-card-inner，而拍立得版式又给
+      .cdh-card-inner 设了 aspect-ratio + overflow:hidden，导致所有文字
+      被压进一个小色块里（截图里"挤在一起"的根因）。
+      新版把「相纸窗」独立成 .cdh-card-plate，.cdh-card-inner 只负责文字，
+      永远自适应高度，绝不裁切。
+   2. 全面去米色：所有纸面统一为雾白 / 珍珠白 / 极淡丁香白，
+      点缀只用丁香紫与雾玫瑰，禁止 emoji 与图标堆砌。
+   3. 每种版式的差异来自"材质与结构"（相纸窗 / 胶带 / 折角 / 骑缝孔 /
+      蜡封 / 票根副券），而不是换个背景色。
+================================================================ */
+
+.cdh-card{
+  --tilt: 0deg;
+  --shift: 0px;
+  --paper-ink: #33313a;
+  --paper-ink-soft: #7b7885;
+  --meta-ink: #a6a2ae;
+  --tap-ink: var(--cdh-accent-deep);
+  --paper: #ffffff;
+  --paper-2: #fbfaff;
+  --hair: rgba(120, 108, 145, 0.14);
+
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transform: rotate(var(--tilt)) translateX(var(--shift));
+  transition: transform 0.46s var(--ease-silk), filter 0.46s var(--ease-silk);
+  transform-origin: center 30%;
+  filter: drop-shadow(0 18px 26px rgba(120, 105, 140, 0.13));
+}
+.cdh-card:active{
+  transform: rotate(var(--tilt)) translateX(var(--shift)) scale(0.978) translateY(1px);
+  filter: drop-shadow(0 10px 16px rgba(120, 105, 140, 0.16));
+}
+.cdh-card:focus-visible{ outline: 2px solid var(--cdh-accent); outline-offset: 5px; }
+
+.cdh-tl-cards .cdh-card:nth-of-type(5n+1){ --tilt: -0.45deg; --shift: -2px; }
+.cdh-tl-cards .cdh-card:nth-of-type(5n+2){ --tilt: 0.38deg;  --shift: 2px;  }
+.cdh-tl-cards .cdh-card:nth-of-type(5n+3){ --tilt: -0.18deg; --shift: 0px;  }
+.cdh-tl-cards .cdh-card:nth-of-type(5n+4){ --tilt: 0.3deg;   --shift: -2px; }
+.cdh-tl-cards .cdh-card:nth-of-type(5n+5){ --tilt: -0.34deg; --shift: 1px;  }
+
+/* ---- 身后压着的第二张纸：所有版式共用的厚度层 ---- */
+.cdh-card-stack{
+  content: '';
+  position: absolute;
+  inset: 6px -4px -6px 4px;
+  border-radius: inherit;
+  background: linear-gradient(170deg, #f7f5fb 0%, #f0edf6 100%);
+  transform: rotate(1.1deg);
+  z-index: 0;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset;
+}
+.cdh-card--notestrip .cdh-card-stack,
+.cdh-card--ticket .cdh-card-stack{ transform: rotate(-0.95deg); inset: 5px 4px -6px -4px; }
+
+/* ---- 半透明胶带：拍立得与便签共用，位置各自微调 ---- */
+.cdh-card-tape{
+  position: absolute;
+  z-index: 3;
+  width: 76px; height: 20px;
+  top: -9px; left: 50%;
+  transform: translateX(-50%) rotate(-2.4deg);
+  background:
+    linear-gradient(100deg, rgba(255,255,255,0.62), rgba(236,231,246,0.5) 46%, rgba(255,255,255,0.58)),
+    linear-gradient(0deg, rgba(201,191,224,0.24), rgba(201,191,224,0.24));
+  border-left: 1px dashed rgba(255,255,255,0.75);
+  border-right: 1px dashed rgba(255,255,255,0.75);
+  box-shadow: 0 2px 5px rgba(120,105,140,0.12);
+  backdrop-filter: blur(1px);
+  pointer-events: none;
+}
+.cdh-card--notestrip .cdh-card-tape{
+  width: 58px; height: 17px;
+  left: 20px; top: -8px;
+  transform: rotate(-6deg);
+}
+
+/* ---- 文字层：唯一承载内容的层，永远自适应高度 ---- */
+.cdh-card-inner{
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.cdh-card-topline{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cdh-card-mood{
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--meta-ink);
+}
+.cdh-card-mood svg{ display: none; }
+.cdh-card-mood::before{
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 14%, transparent);
+  flex-shrink: 0;
+}
+.cdh-card-mood em{ font-style: normal; font-weight: 500; }
+.cdh-card-topline::after{
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--meta-ink) 26%, transparent), transparent);
+}
+.cdh-card-time{
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--meta-ink);
+  letter-spacing: 0.04em;
+}
+
+.cdh-card-title{
+  display: block;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 18.5px;
+  font-weight: 600;
+  line-height: 1.55;
+  letter-spacing: 0.005em;
+  color: var(--paper-ink);
+  margin: 14px 0 10px;
+}
+.cdh-card-excerpt{
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12.8px;
+  line-height: 1.95;
+  color: var(--paper-ink-soft);
+}
+
+/* ---- 天气 / 地点 胶囊：极细描边、无图标 ---- */
+.cdh-card-chips{
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 12px;
+}
+.cdh-card-chip{
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--meta-ink);
+  padding: 3.5px 9px;
+  border-radius: 20px;
+  border: 1px solid var(--hair);
+  background: rgba(255,255,255,0.6);
+}
+.cdh-card-chip--place{
+  border-color: color-mix(in srgb, var(--cdh-accent) 26%, transparent);
+  color: color-mix(in srgb, var(--cdh-accent-deep) 78%, var(--meta-ink));
+}
+
+/* ---- 落款：手写体，右对齐，像真的签在纸角 ---- */
+.cdh-card-sign{
+  align-self: flex-end;
+  margin-top: 12px;
+  font-family: 'Zhi Mang Xing', 'Ma Shan Zheng', 'Cormorant Garamond', cursive;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--cdh-accent-deep) 62%, var(--paper-ink-soft));
+  opacity: 0.9;
+}
+
+.cdh-card-footline{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+.cdh-card-wc{
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  color: var(--meta-ink);
+  letter-spacing: 0.06em;
+}
+.cdh-card-tap{
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10.5px;
+  color: var(--tap-ink);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 10px 4px 12px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--tap-ink) 8%, transparent);
+}
+.cdh-card-tap i{
+  width: 4.5px; height: 4.5px;
+  border-top: 1.3px solid currentColor;
+  border-right: 1.3px solid currentColor;
+  transform: rotate(45deg);
+  display: inline-block;
+  transition: transform 0.3s var(--ease-silk);
+}
+.cdh-card:active .cdh-card-tap i{ transform: rotate(45deg) translate(1.5px, -1.5px); }
+
+/* ----------------------------------------------------------------
+   版式一 · 拍立得
+   相纸窗（.cdh-card-plate）独立在文字层之上：16/10 的柔光窗口，
+   窗内只有一层丁香—玫瑰的极淡光晕与一枚花徽刻线，没有任何文字。
+   窗下是拍立得标志性的宽白边，标题用衬线斜体手写感落在这里。
+---------------------------------------------------------------- */
+.cdh-card--polaroid{
+  padding: 13px 13px 20px;
+  border-radius: 3px;
+  background: linear-gradient(168deg, #ffffff 0%, #fcfbff 62%, #f8f6fd 100%);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.95) inset,
+    0 1px 0 rgba(255,255,255,0.9) inset;
+}
+.cdh-card--polaroid .cdh-card-plate{
+  position: relative;
+  z-index: 2;
+  display: block;
+  aspect-ratio: 16 / 10;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background:
+    radial-gradient(ellipse 80% 90% at 22% 12%, rgba(255,255,255,0.92), transparent 58%),
+    linear-gradient(152deg, #f2eefa 0%, #eae3f3 38%, #f4e5ea 72%, #ecebf4 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(120,108,145,0.08),
+    inset 0 -20px 34px -18px rgba(120,105,150,0.28);
+}
+.cdh-card--polaroid .ccp-light{
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 76% 78%, rgba(255,255,255,0.72), transparent 44%),
+    radial-gradient(circle at 12% 92%, rgba(227,201,209,0.42), transparent 46%);
+}
+.cdh-card--polaroid .ccp-grain{
+  position: absolute; inset: 0;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.05'/%3E%3C/svg%3E");
+}
+.cdh-card--polaroid .ccp-mark{
+  position: absolute;
+  right: 12px; bottom: 10px;
+  width: 26px; height: 26px;
+  color: rgba(120, 105, 150, 0.42);
+}
+.cdh-card--polaroid .ccp-mark svg{ width: 100%; height: 100%; display: block; }
+.cdh-card--polaroid .cdh-card-title{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 20px;
+  margin: 10px 0 9px;
+}
+.cdh-card--polaroid .cdh-card-excerpt{
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 13.5px;
+  line-height: 1.8;
+  -webkit-line-clamp: 2;
+}
+
+/* ----------------------------------------------------------------
+   版式二 · 便签纸条
+   纯白纸 + 顶部一条丁香色题头带 + 左上角胶带 + 右下角卷起的折角。
+   横向的极淡格线只出现在正文区，密度很低，只作为纸的"纹理"存在。
+---------------------------------------------------------------- */
+.cdh-card--notestrip{
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 27px, rgba(120,108,145,0.05) 27px 28px),
+    linear-gradient(175deg, #ffffff 0%, #fdfcff 100%);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.9) inset;
+}
+.cdh-card--notestrip .cdh-card-head{
+  position: relative;
+  z-index: 2;
+  display: block;
+  height: 7px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--cdh-accent-deep) 72%, white),
+    color-mix(in srgb, var(--cdh-accent) 55%, white) 55%,
+    color-mix(in srgb, var(--rose-mist, #e3c9d1) 70%, white));
+}
+.cdh-card--notestrip .cdh-card-inner{ padding: 20px 22px 22px; }
+.cdh-card--notestrip .cdh-card-title{
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 600;
+  font-size: 18px;
+  margin-top: 15px;
+}
+.cdh-card--notestrip .cdh-card-footline{
+  padding-top: 14px;
+  border-top: 1px solid var(--hair);
+}
+.cdh-card--notestrip::after{
+  content: '';
+  position: absolute; right: 0; bottom: 0;
+  z-index: 3;
+  width: 30px; height: 30px;
+  background:
+    linear-gradient(135deg, transparent 49.5%, #f4f1fa 50%),
+    linear-gradient(315deg, rgba(120,105,150,0.16), transparent 60%);
+  border-radius: 0 0 4px 0;
+  box-shadow: -2px -2px 5px rgba(120,105,150,0.09);
+}
+
+/* ----------------------------------------------------------------
+   版式三 · 稿纸（原 typewriter）
+   冷白纸、等宽字、左侧一列极淡的骑缝孔与一条细红线，
+   与其余版式的暖白形成材质对照，但依旧是浅白系。
+---------------------------------------------------------------- */
+.cdh-card--typewriter{
+  --paper-ink: #34333c;
+  --paper-ink-soft: #797885;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #fdfdff 0%, #f8f8fc 100%);
+  box-shadow: 0 0 0 1px rgba(120,108,145,0.1) inset;
+}
+.cdh-card--typewriter .cdh-card-inner{
+  padding: 18px 18px 18px 34px;
+}
+.cdh-card--typewriter .cdh-card-inner::before{
+  content: '';
+  position: absolute; left: -16px; top: 2px; bottom: 2px;
+  width: 7px;
+  background:
+    radial-gradient(circle, rgba(120,108,145,0.16) 2.7px, transparent 2.8px) 50% 0 / 100% 25% repeat-y;
+}
+.cdh-card--typewriter .cdh-card-inner::after{
+  content: '';
+  position: absolute; left: -4px; top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--rose-deep, #c99aab) 46%, transparent) 18%, color-mix(in srgb, var(--rose-deep, #c99aab) 46%, transparent) 82%, transparent);
+}
+.cdh-card--typewriter .cdh-card-title,
+.cdh-card--typewriter .cdh-card-time,
+.cdh-card--typewriter .cdh-card-wc{ font-family: 'Space Mono', 'Noto Serif SC', monospace; }
+.cdh-card--typewriter .cdh-card-title{
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1.6;
+}
+.cdh-card--typewriter .cdh-card-excerpt{ font-size: 12px; line-height: 1.95; }
+.cdh-card--typewriter .cdh-card-footline{
+  padding-top: 13px;
+  border-top: 1px dashed rgba(120,108,145,0.2);
+}
+
+/* ----------------------------------------------------------------
+   版式四 · 信笺（原 wax-letter）
+   去掉旧版的米黄底：改为雾白信笺纸 + 双线细边框 + 顶部一枚
+   丁香—玫瑰渐层的蜡封。华丽感来自边框的双线与蜡封的立体，
+   而不是把纸染黄。
+---------------------------------------------------------------- */
+.cdh-card--wax-letter{
+  border-radius: 3px;
+  padding: 5px;
+  background: linear-gradient(158deg, #ffffff 0%, #fcfaff 55%, #f9f5fb 100%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cdh-accent) 26%, transparent) inset;
+}
+.cdh-card--wax-letter .cdh-card-plate--letter{
+  position: absolute;
+  z-index: 1;
+  inset: 5px;
+  border: 1px solid color-mix(in srgb, var(--cdh-accent) 30%, transparent);
+  border-radius: 2px;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 0%, color-mix(in srgb, var(--cdh-accent) 9%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.cdh-card--wax-letter .cdh-card-inner{ padding: 22px 20px 18px; }
+.cdh-card--wax-letter .cdh-card-title{
+  font-family: 'Fraunces', 'Noto Serif SC', serif;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+}
+.cdh-card--wax-letter .cdh-card-footline{
+  padding-top: 13px;
+  border-top: 1px solid color-mix(in srgb, var(--cdh-accent) 24%, transparent);
+}
+.cdh-card--wax-letter .wax-seal{
+  position: absolute; top: -12px; right: 22px;
+  z-index: 4;
+  width: 30px; height: 30px;
+  border-radius: 52% 48% 50% 6px;
+  background:
+    radial-gradient(circle at 34% 28%, #efe3f2 0%, #d6c6e6 40%, #b9a6d3 78%, #a08cc0 100%);
+  box-shadow:
+    0 6px 12px rgba(120,105,150,0.32),
+    inset 0 -3px 6px rgba(110,92,140,0.3),
+    inset 0 2px 4px rgba(255,255,255,0.65);
+  transform: rotate(-7deg);
+}
+.cdh-card--wax-letter .wax-seal i{
+  position: absolute; inset: 7px;
+  border: 1px solid rgba(255,255,255,0.62);
+  border-radius: 50%;
+}
+.cdh-card--wax-letter .wax-seal i::after{
+  content: '';
+  position: absolute; inset: 4px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.34);
+}
+
+/* ----------------------------------------------------------------
+   版式五 · 票根
+   横向卡片：左联是内容，右联是竖排的票根副券，中间一条骑缝虚线
+   与上下两个半圆缺口（用 mask 挖出），比旧版更像真实票据。
+---------------------------------------------------------------- */
+.cdh-card--ticket{
+  border-radius: 7px;
+  background: linear-gradient(160deg, #ffffff 0%, #fbfaff 100%);
+  box-shadow: 0 0 0 1px rgba(120,108,145,0.1) inset;
+  -webkit-mask-image:
+    radial-gradient(circle 6px at calc(100% - 82px) 0, transparent 6px, #000 6.5px),
+    radial-gradient(circle 6px at calc(100% - 82px) 100%, transparent 6px, #000 6.5px);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle 6px at calc(100% - 82px) 0, transparent 6px, #000 6.5px),
+    radial-gradient(circle 6px at calc(100% - 82px) 100%, transparent 6px, #000 6.5px);
+  mask-composite: intersect;
+}
+.cdh-card--ticket .cdh-card-inner{
+  display: grid;
+  grid-template-columns: 1fr 82px;
+  align-items: center;
+  padding: 18px 0 18px 20px;
+}
+.cdh-card--ticket .cdh-card-topline{ grid-column: 1; }
+.cdh-card--ticket .cdh-card-title{ grid-column: 1; font-size: 16.5px; margin: 12px 0 8px; line-height: 1.5; }
+.cdh-card--ticket .cdh-card-excerpt{ grid-column: 1; -webkit-line-clamp: 2; padding-right: 6px; }
+.cdh-card--ticket .cdh-card-chips{ grid-column: 1; }
+.cdh-card--ticket .cdh-card-sign{ grid-column: 1; align-self: flex-start; }
+.cdh-card--ticket .cdh-card-footline{
+  grid-column: 2;
+  grid-row: 1 / -1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 0;
+  align-self: stretch;
+  border-left: 1px dashed color-mix(in srgb, var(--cdh-accent) 42%, transparent);
+}
+.cdh-card--ticket .cdh-card-wc{ writing-mode: vertical-rl; letter-spacing: 0.16em; }
+.cdh-card--ticket .cdh-card-tap{
+  writing-mode: vertical-rl;
+  letter-spacing: 0.14em;
+  padding: 12px 4px;
+  border-radius: 20px;
+}
+.cdh-card--ticket .cdh-card-tap i{ transform: rotate(135deg); }
+.cdh-card--ticket:active .cdh-card-tap i{ transform: rotate(135deg) translate(1.5px, -1.5px); }
+
+/* ---- 情绪色只驱动那一枚圆点 ---- */
+.cdh-card[data-mood="calm"]   .cdh-card-mood{ color: var(--cdh-accent-deep); }
+.cdh-card[data-mood="joy"]    .cdh-card-mood{ color: #c9a86f; }
+.cdh-card[data-mood="tender"] .cdh-card-mood{ color: var(--cdh-accent); }
+.cdh-card[data-mood="blue"]   .cdh-card-mood{ color: #8b95ad; }
+.cdh-card[data-mood="storm"]  .cdh-card-mood{ color: #b97e91; }
+
+/* ---- 深色皮肤（skin-e / 自定义深色背景）下的纸面反相处理 ---- */
+.cdh-page.is-dark-bg .cdh-card,
+.cdh-page.skin-e .cdh-card{
+  --paper-ink: #efedf5;
+  --paper-ink-soft: #b3aec2;
+  --meta-ink: #8e88a1;
+  --hair: rgba(255,255,255,0.12);
+}
+.cdh-page.is-dark-bg .cdh-card--polaroid,
+.cdh-page.skin-e .cdh-card--polaroid,
+.cdh-page.is-dark-bg .cdh-card--notestrip,
+.cdh-page.skin-e .cdh-card--notestrip,
+.cdh-page.is-dark-bg .cdh-card--typewriter,
+.cdh-page.skin-e .cdh-card--typewriter,
+.cdh-page.is-dark-bg .cdh-card--wax-letter,
+.cdh-page.skin-e .cdh-card--wax-letter,
+.cdh-page.is-dark-bg .cdh-card--ticket,
+.cdh-page.skin-e .cdh-card--ticket{
+  background: linear-gradient(168deg, #33303f 0%, #2b2836 100%);
+}
+.cdh-page.is-dark-bg .cdh-card-stack,
+.cdh-page.skin-e .cdh-card-stack{ background: linear-gradient(170deg, #2a2735 0%, #232030 100%); }
+
+
+/* ---- 时间轴末端标记 ---- */
+.cdh-timeline-end{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 10px 4px 20px 28px;
+  font-size: 10.5px;
+  color: var(--cdh-ink-soft);
+  opacity: 0.6;
+  font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+}
+.cte-line{ flex: 1; height: 1px; background: linear-gradient(90deg, var(--cdh-accent-soft), transparent); }
+.cte-line:last-child{ background: linear-gradient(90deg, transparent, var(--cdh-accent-soft)); }
+
+/* ---- 窄屏微调 ---- */
+@media (max-width: 360px){
+  .cdh-hero-name{ font-size: 21px; }
+  .cdh-cal-cell{ min-height: 36px; }
+  .cdh-hero-stats{ gap: 16px; padding: 11px 18px; }
 }
