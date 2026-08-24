@@ -1,0 +1,503 @@
+/* ==========================================================================
+   Chat Setting — chatsetting.css
+   聊天设置页 · LUNA 月鉴 —— 沿用 chatroom.css 的墨玉 / 月光纸面语汇，
+   本页只有一组设置：聊天背景（本地上传 / 网络链接，支持全局与
+   专属角色两种作用域，图片与视频均可作为背景，实时预览 + 存档）。
+   —— 配色严格延续黑白灰体系，不引入任何新色相，不使用 emoji。
+========================================================================== */
+
+:root{
+  --cst-line: rgba(18,18,26,0.09);
+  --cst-line-strong: rgba(18,18,26,0.16);
+}
+
+/* ==========================================================================
+   顶栏：返回键 · 中央印玺题名（聊天设置 / CHAT SETTING + 副行显示范围）
+========================================================================== */
+.cst-top-bar{
+  justify-content:space-between;
+}
+.cst-top-spacer{ width:37px; height:37px; flex-shrink:0; }
+
+.cst-title-seal{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  min-width:0;
+}
+.cst-title-row{
+  display:flex; align-items:center; gap:8px;
+}
+.cst-title-cn{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:16.5px; font-weight:700;
+  color: var(--ink);
+  letter-spacing:0.02em;
+}
+.cst-title-en{
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.26em;
+  color: var(--grey-3);
+  text-transform:uppercase;
+  padding-top:2px;
+}
+.cst-title-peer{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; letter-spacing:0.05em;
+  color: var(--grey-2);
+  max-width:220px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* ==========================================================================
+   内容滚动区
+========================================================================== */
+.cst-scroll{
+  position:absolute;
+  top: calc(var(--status-h) + var(--topbar-h) + 6px);
+  bottom:0; left:0; right:0;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y: contain;
+  z-index:10;
+}
+.cst-scroll::-webkit-scrollbar{ display:none; }
+.cst-scroll-inner{
+  padding: 20px 18px 8px;
+  display:flex; flex-direction:column;
+}
+.cst-bottom-pad{ height: 28px; }
+
+/* ---- 分组题额：与顶栏印玺呼应的小型异形印记 + 衬线标题 + 英文小标 ---- */
+.cst-section-head{
+  display:flex; align-items:center; gap:9px;
+  margin: 4px 2px 14px;
+}
+.cst-section-head-tight{ margin-top: 26px; }
+.cst-section-seal{
+  position:relative;
+  width:26px; height:26px;
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink-soft);
+  clip-path: polygon(50% 0%, 93% 22%, 93% 78%, 50% 100%, 7% 78%, 7% 22%);
+  background: linear-gradient(160deg, #ffffff 0%, #eeeef2 60%, #e4e4e9 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 6px 12px -8px rgba(18,18,26,0.3);
+}
+.cst-section-title-cn{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:14px; font-weight:700;
+  color: var(--ink);
+  letter-spacing:0.03em;
+}
+.cst-section-title-en{
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.22em;
+  color: var(--grey-3);
+  text-transform:uppercase;
+  margin-left:2px;
+}
+
+/* ==========================================================================
+   预览牌：完整还原聊天室的漆面/纸面气泡，压在候选背景之上，
+   让「设置」与「效果」在同一枚卡片内所见即所得
+========================================================================== */
+.cst-preview-card{
+  border-radius:22px;
+  padding:12px;
+  background: linear-gradient(178deg, #ffffff 0%, #f6f6f9 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 20px 40px -24px rgba(18,18,26,0.28),
+    0 0 0 1px rgba(18,18,26,0.06);
+}
+.cst-preview-frame{
+  position:relative;
+  height:172px;
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow: 0 0 0 1px var(--cst-line-strong);
+}
+.cst-preview-bg{
+  position:absolute; inset:0;
+  background:
+    radial-gradient(130% 60% at 50% 0%, rgba(150,160,190,0.10), transparent 58%),
+    var(--sheet);
+}
+.cst-preview-empty{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:8px;
+  opacity:0.7;
+}
+.cst-preview-empty-seal{
+  width:34px; height:34px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-3);
+  background: linear-gradient(180deg, #ffffff, #f1f1f4);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 8px 16px -10px rgba(18,18,26,0.24);
+}
+.cst-preview-empty-text{
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.16em;
+  color: var(--grey-3);
+}
+.cst-preview-media{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit: cover;
+}
+.cst-preview-media.is-contain{ object-fit: contain; background: #0a0a0c; }
+.cst-preview-scrim{
+  position:absolute; inset:0;
+  background: rgba(10,10,12, 0.3);
+  pointer-events:none;
+  transition: background-color 0.2s ease;
+}
+.cst-preview-mock{
+  position:absolute;
+  left:14px; right:14px; bottom:12px;
+  display:flex; flex-direction:column; gap:7px;
+}
+.cst-preview-bubble{
+  display:flex; flex-direction:column; gap:5px;
+  width:fit-content;
+  max-width:72%;
+  padding:9px 12px;
+  border-radius:14px;
+}
+.cst-preview-bubble.is-peer{
+  align-self:flex-start;
+  background: var(--crm-bubble-peer);
+  box-shadow: 0 10px 20px -14px rgba(18,18,26,0.4), 0 0 0 1px var(--crm-bubble-peer-edge);
+  border-bottom-left-radius:4px;
+}
+.cst-preview-bubble.is-me{
+  align-self:flex-end;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 10px 20px -14px rgba(10,10,12,0.5), 0 0 0 1px var(--crm-lacquer-rim);
+  border-bottom-right-radius:4px;
+}
+.cst-preview-bubble-line{
+  display:block;
+  height:6px; width:78px;
+  border-radius:3px;
+  background: rgba(18,18,26,0.16);
+}
+.cst-preview-bubble.is-me .cst-preview-bubble-line{ background: rgba(255,255,255,0.22); }
+.cst-preview-bubble-line.short{ width:44px; }
+
+.cst-preview-caption{
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 12px 4px 2px;
+}
+.cst-preview-caption-cn{
+  font-size:11.5px; font-weight:600; color: var(--grey-1);
+  max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-preview-caption-en{
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.22em;
+  color: var(--grey-3);
+}
+
+/* ==========================================================================
+   作用范围切换：全局 / 专属此角色 —— 两枚並排「牙牌」按钮
+========================================================================== */
+.cst-scope-row{
+  display:flex; gap:10px;
+  margin: 18px 0 8px;
+}
+.cst-scope-btn{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding: 11px 8px 10px;
+  border:none;
+  border-radius:14px;
+  font-family:inherit;
+  cursor:pointer;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease, background 0.22s ease;
+}
+.cst-scope-btn:active{ transform: scale(0.97); }
+.cst-scope-label-cn{ font-size:12.5px; font-weight:700; color: var(--grey-2); letter-spacing:0.02em; }
+.cst-scope-label-en{ font-family:'Space Mono', monospace; font-size:7.5px; letter-spacing:0.2em; color: var(--grey-3); }
+.cst-scope-btn.is-active{
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 14px 26px -16px rgba(10,10,12,0.5), 0 0 0 1px var(--crm-lacquer-rim);
+}
+.cst-scope-btn.is-active .cst-scope-label-cn{ color:#f4f4f6; }
+.cst-scope-btn.is-active .cst-scope-label-en{ color: rgba(244,244,246,0.55); }
+
+.cst-scope-hint{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; letter-spacing:0.04em;
+  color: var(--grey-3);
+  text-align:center;
+  margin-bottom: 22px;
+}
+
+/* ==========================================================================
+   来源选择：本地上传 / 网络链接 —— 两枚并排选择卡
+========================================================================== */
+.cst-source-grid{
+  display:flex; gap:10px;
+  margin-bottom: 10px;
+}
+.cst-source-card{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+  padding: 18px 8px 14px;
+  border:none;
+  border-radius:16px;
+  font-family:inherit;
+  cursor:pointer;
+  color: inherit;
+  background: linear-gradient(178deg, #ffffff 0%, #f5f5f8 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 14px 26px -18px rgba(18,18,26,0.24),
+    0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+}
+.cst-source-card:active{ transform: scale(0.96); }
+.cst-source-card.is-active{
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 14px 26px -18px rgba(18,18,26,0.3),
+    0 0 0 1.5px rgba(18,18,26,0.4);
+}
+.cst-source-icon{
+  width:38px; height:38px;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink-soft);
+  border-radius:50%;
+  background: linear-gradient(160deg, #ffffff, #ececf0 70%, #e2e2e7);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 8px 16px -10px rgba(18,18,26,0.3);
+}
+.cst-source-title{ font-size:12.5px; font-weight:700; color: var(--ink); }
+.cst-source-sub{
+  font-family:'Space Mono', monospace;
+  font-size:7.5px; letter-spacing:0.14em;
+  color: var(--grey-3);
+}
+
+/* ---- URL 输入展开区 ---- */
+.cst-url-panel{
+  max-height:0;
+  opacity:0;
+  overflow:hidden;
+  transition: max-height 0.32s cubic-bezier(.22,1,.36,1), opacity 0.28s ease, margin 0.32s ease;
+  margin-bottom:0;
+}
+.cst-url-panel.is-open{
+  max-height:120px;
+  opacity:1;
+  margin-bottom:16px;
+}
+.cst-url-field{
+  display:flex; align-items:center; gap:8px;
+  padding: 4px 4px 4px 16px;
+  border-radius:16px;
+  background: linear-gradient(178deg, #ffffff 0%, #f4f4f7 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  margin-top:10px;
+}
+.cst-url-input{
+  flex:1;
+  border:none; outline:none;
+  background:none;
+  font-family:'Space Mono', monospace;
+  font-size:11px;
+  color: var(--ink);
+  padding: 12px 0;
+  min-width:0;
+}
+.cst-url-input::placeholder{ color: var(--grey-3); font-family:inherit; }
+.cst-url-go{
+  flex-shrink:0;
+  border:none;
+  padding: 9px 16px;
+  border-radius:12px;
+  font-size:11.5px; font-weight:700;
+  color:#fff;
+  cursor:pointer;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 8px 16px -10px rgba(10,10,12,0.5), 0 0 0 1px var(--crm-lacquer-rim) inset;
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1);
+}
+.cst-url-go:active{ transform: scale(0.94); }
+.cst-url-msg{
+  min-height:14px;
+  padding: 8px 6px 0;
+  font-family:'Space Mono', monospace;
+  font-size:9px; letter-spacing:0.02em;
+  color: var(--grey-2);
+}
+.cst-url-msg.is-error{ color:#3a3a3e; font-weight:700; }
+.cst-url-msg.is-ok{ color: var(--grey-1); }
+
+/* ==========================================================================
+   显示方式：铺满 / 完整 二择一 + 遮罩强度滑杆
+========================================================================== */
+.cst-fit-row{
+  display:flex; gap:10px;
+  margin-bottom:18px;
+}
+.cst-fit-btn{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding: 10px 8px;
+  border:none; border-radius:13px;
+  font-family:inherit;
+  cursor:pointer;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease, background 0.22s ease;
+}
+.cst-fit-btn:active{ transform: scale(0.97); }
+.cst-fit-cn{ display:block; font-size:12px; font-weight:700; color: var(--grey-2); }
+.cst-fit-en{ display:block; font-family:'Space Mono', monospace; font-size:7.5px; letter-spacing:0.2em; color: var(--grey-3); margin-top:2px; }
+.cst-fit-btn.is-active{
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 12px 22px -14px rgba(10,10,12,0.48), 0 0 0 1px var(--crm-lacquer-rim);
+}
+.cst-fit-btn.is-active .cst-fit-cn{ color:#f4f4f6; }
+.cst-fit-btn.is-active .cst-fit-en{ color: rgba(244,244,246,0.55); }
+
+.cst-dim-row{
+  display:flex; align-items:center; gap:14px;
+  padding: 14px 16px;
+  border-radius:16px;
+  background: linear-gradient(178deg, #ffffff 0%, #f5f5f8 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  margin-bottom: 4px;
+}
+.cst-dim-label{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; width:74px; }
+.cst-dim-label-cn{ font-size:11.5px; font-weight:700; color: var(--ink); }
+.cst-dim-label-en{ font-family:'Space Mono', monospace; font-size:7px; letter-spacing:0.18em; color: var(--grey-3); }
+
+.cst-dim-slider{
+  flex:1;
+  -webkit-appearance:none;
+  appearance:none;
+  height:3px;
+  border-radius:2px;
+  background: linear-gradient(90deg, rgba(18,18,26,0.5), rgba(18,18,26,0.5));
+  background-size: 30% 100%;
+  background-repeat: no-repeat;
+  background-color: rgba(18,18,26,0.1);
+  cursor:pointer;
+}
+.cst-dim-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:17px; height:17px;
+  border-radius:50%;
+  background: linear-gradient(180deg,#ffffff,#f0f0f4);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 6px 12px -6px rgba(18,18,26,0.5), 0 0 0 1px rgba(18,18,26,0.1);
+  margin-top:-7px;
+}
+.cst-dim-slider::-moz-range-thumb{
+  width:17px; height:17px; border:none; border-radius:50%;
+  background: linear-gradient(180deg,#ffffff,#f0f0f4);
+  box-shadow: 0 6px 12px -6px rgba(18,18,26,0.5), 0 0 0 1px rgba(18,18,26,0.1);
+}
+.cst-dim-slider::-webkit-slider-runnable-track{ height:3px; border-radius:2px; background:transparent; }
+.cst-dim-slider::-moz-range-track{ height:3px; border-radius:2px; background: rgba(18,18,26,0.1); }
+.cst-dim-slider::-moz-range-progress{ height:3px; border-radius:2px; background: rgba(18,18,26,0.5); }
+
+/* ==========================================================================
+   底部操作：恢复默认（素净文本键）+ 保存（漆面主键）
+========================================================================== */
+.cst-action-row{
+  display:flex; gap:10px;
+  margin-top: 26px;
+}
+.cst-reset-btn{
+  flex-shrink:0;
+  padding: 0 18px;
+  height:48px;
+  border:none; border-radius:16px;
+  font-size:12.5px; font-weight:600;
+  color: var(--grey-2);
+  cursor:pointer;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1);
+}
+.cst-reset-btn:active{ transform: scale(0.96); }
+
+.cst-save-btn{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  height:48px;
+  border:none; border-radius:16px;
+  cursor:pointer;
+  background: var(--crm-bubble-me);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.14) inset,
+    0 18px 30px -16px rgba(10,10,12,0.55),
+    0 0 0 1px var(--crm-lacquer-rim);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+}
+.cst-save-btn:active{ transform: scale(0.97); }
+.cst-save-btn-cn{ font-size:13.5px; font-weight:700; color:#f8f8fa; letter-spacing:0.03em; }
+.cst-save-btn-en{ font-family:'Space Mono', monospace; font-size:7px; letter-spacing:0.28em; color: rgba(244,244,246,0.5); }
+
+/* ==========================================================================
+   保存回执：轻量印记浮层，居中短暂浮现，非通用 toast 长条
+========================================================================== */
+.cst-toast{
+  position:absolute;
+  left:50%; top: calc(var(--status-h) + var(--topbar-h) + 20px);
+  transform: translate(-50%, -10px);
+  z-index:400;
+  display:flex; align-items:center; gap:7px;
+  padding: 10px 18px 10px 14px;
+  border-radius:20px;
+  opacity:0;
+  pointer-events:none;
+  background: var(--crm-bubble-me);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.16) inset,
+    0 18px 32px -16px rgba(6,6,8,0.6),
+    0 0 0 1px var(--crm-lacquer-rim);
+  transition: opacity 0.3s ease, transform 0.34s cubic-bezier(.22,1,.36,1);
+}
+.cst-toast.is-open{ opacity:1; transform: translate(-50%, 0); }
+.cst-toast-seal{
+  width:18px; height:18px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:#f4f4f6;
+  background: rgba(255,255,255,0.14);
+}
+.cst-toast-text{
+  font-size:11.5px; font-weight:700;
+  color:#f6f6f8;
+  white-space:nowrap;
+}
+
+/* ==========================================================================
+   聊天室内实际的背景层（注入 chatroom.html）：置于顶栏与消息区之下，
+   由 chatroom.js 读取设置后应用；此处一并定义，保证两页视觉语言统一
+========================================================================== */
+.crm-bg-layer{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+.crm-bg-media{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit: cover;
+}
+.crm-bg-media.is-contain{ object-fit: contain; background: #0a0a0c; }
+.crm-bg-scrim{
+  position:absolute; inset:0;
+  background: rgba(10,10,12, 0.3);
+}

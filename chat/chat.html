@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Chat</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="chat.css" />
+<link rel="stylesheet" href="chat-conversation.css" />
+<link rel="stylesheet" href="friend-profile.css" />
+</head>
+<body>
+
+<div class="phone-wrap">
+<div class="phone-frame">
+
+  <!-- 背景光晕层 -->
+  <div class="bg-glow"></div>
+
+  <!-- 动态页专属：封面图片真正铺到状态栏/顶栏之下的统一背景层，
+       与页面内滚动的封面块是同一张图（由 JS 同步内容），不再是
+       一块和封面对不上的纯色遮罩——状态栏与顶栏在此层之上完全透明，
+       视觉上状态栏/顶栏/封面融为一整张画布，而非拼接的两截 -->
+  <div class="moments-cover-veil" id="momentsCoverVeil" aria-hidden="true">
+    <div class="mcv-frame" id="momentsCoverVeilFrame">
+      <span class="mcv-texture" aria-hidden="true"></span>
+    </div>
+    <span class="mcv-scrim" aria-hidden="true"></span>
+  </div>
+
+  <!-- ============ 状态栏：完全透明，融入统一纸面 ============ -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island">
+      <div class="si-capsule si-minimal-capsule"></div>
+    </div>
+    <div class="status-right">
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 顶栏：左·返回占位（仅消息页） · 中·徽记化标题 · 右·头像昵称/加好友 ============ -->
+  <div class="top-back-bar" id="topBackBar">
+
+    <!-- 左侧：返回按钮，仅消息页显示；其余三个一级页面之间是并列 tab，
+         不存在"返回上一级"语义，故隐藏。样式走纸面厚度 + 细描边，
+         禁止常见的纯圆形扁平返回箭头，靠不对称的斜切轮廓建立识别度 -->
+    <button class="top-back-btn" id="topBackBtn" aria-label="返回">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <!-- 标题层：absolute 居中，不受左右两侧宽度影响，真正相对屏幕水平居中。
+         升级为徽记化胶囊容器——衬线数字页码 + 主标题 + 英文小标注，
+         三层信息错落排布，呼应全站"刻痕/印记"语言，而非孤零零一行居中小字 -->
+    <div class="top-page-title-wrap">
+      <div class="top-title-seal" id="topPageTitleSeal">
+        <span class="tts-num" id="topPageNum">01</span>
+        <span class="tts-divider"></span>
+        <span class="tts-text-col">
+          <span class="top-page-title" id="topPageTitle">消息</span>
+          <span class="tts-en" id="topPageEn">MESSAGES</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- 右侧·好友页专属：两枚独立石印徽记，彻底脱离"胶囊里并排图标"的常见范式——
+         搜索是一枚偏椭圆的磨砂石印，加好友是一枚旋转45°的菱形徽章，
+         高度错落、角度各异，靠不对称构图与雕刻感描边建立识别度 -->
+    <div class="friend-mark-group top-identity-slot" id="friendAddSeal">
+      <button class="friend-mark-btn friend-mark-btn--search" id="friendSearchBtn" aria-label="搜索好友">
+        <span class="fmb-facet" aria-hidden="true"></span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.6" stroke="currentColor" stroke-width="1.6"/><path d="M19.5 19.5L15.9 15.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="friend-mark-btn friend-mark-btn--add" id="friendAddBtn" aria-label="添加好友">
+        <span class="fmb-facet" aria-hidden="true"></span>
+        <svg class="fmb-add-icon" width="13" height="13" viewBox="0 0 24 24" fill="none">
+          <circle cx="9.6" cy="8" r="3.3" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M4 19C4.7 15.5 6.9 13.6 9.6 13.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M17 12.2V18.2M14 15.2H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 右侧·动态页专属：彻底摆脱"胶囊+图标"按钮范式，改为两枚
+         高低错落、形态迥异的錾刻印记——左为旋转刻度环（刷新/更新），
+         右为斜切墨滴印（发布动态），二者以不同的几何语言并置，
+         而非同款按钮的重复排列 -->
+    <div class="mo-dual-seals top-identity-slot" id="momentsSealGroup">
+      <button class="mo-dial-seal" id="momentsRefreshBtn" aria-label="刷新动态">
+        <span class="mds-ring-outer" aria-hidden="true"></span>
+        <span class="mds-ring-ticks" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </span>
+        <span class="mds-core" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4.5 12A7.5 7.5 0 0 1 17.8 6.7M19.5 12A7.5 7.5 0 0 1 6.2 17.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M17.2 3.6L18.1 7.3L14.3 7.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.8 20.4L5.9 16.7L9.7 16.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+
+      <button class="mo-drop-seal" id="momentsComposeBtn" aria-label="发布动态">
+        <span class="mds2-facet" aria-hidden="true"></span>
+        <span class="mds2-glyph" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 4V20M5 12H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </span>
+      </button>
+    </div>
+
+    <!-- 右侧：头像 + 昵称，可点击上传。胶囊材质加厚，头像加双层描边环，
+         呼应好友环 / 照片堆叠的多层描边语言，避免只是孤零零一个小圆点 -->
+    <button class="top-identity top-identity-slot" id="topIdentityBtn" aria-label="更换头像与昵称">
+      <span class="top-identity-name" id="topIdentityName">用户昵称</span>
+      <div class="top-identity-avatar" id="topIdentityAvatar">
+        <span class="top-identity-avatar-ring" aria-hidden="true"></span>
+        <span class="top-identity-avatar-plus" aria-hidden="true">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+    </button>
+    <input type="file" id="topIdentityFileInput" accept="image/*" style="display:none" />
+  </div>
+
+  <!-- 昵称编辑弹窗（点击头像触发，先改昵称，再选头像） -->
+  <div class="identity-modal" id="identityModal">
+    <div class="identity-modal-scrim" id="identityScrim"></div>
+    <div class="identity-modal-sheet">
+      <div class="upload-modal-grip"></div>
+      <div class="upload-modal-title">设置头像与昵称</div>
+      <button class="identity-modal-avatar-btn" id="identityAvatarBtn">
+        <div class="identity-modal-avatar" id="identityModalAvatar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 16.5L8.5 12L11.5 15L16 9L20 14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg>
+        </div>
+        <span class="identity-modal-avatar-label">点击更换头像</span>
+      </button>
+      <input type="text" class="identity-modal-input" id="identityNameInput" placeholder="输入昵称" maxlength="12" />
+      <button class="upload-modal-close" id="identitySave">保存</button>
+    </div>
+  </div>
+
+  <!-- 添加弹窗（点击顶栏"加好友"菱形徽章触发）：华丽徽章式选单，
+       四枚錾刻卡片——单聊 / 群聊 / 分组 / 加好友，均为占位交互，
+       后续接入真实创建流程。黑白灰浅色纸面，多层描边+柔和投影
+       营造勋章质感，禁止 emoji，禁止额外色相。 -->
+  <div class="add-modal" id="addModal">
+    <div class="add-modal-scrim" id="addModalScrim"></div>
+    <div class="add-modal-sheet">
+      <div class="upload-modal-grip"></div>
+
+      <div class="add-modal-head">
+        <span class="add-modal-head-num">03</span>
+        <span class="add-modal-head-col">
+          <span class="add-modal-head-cn">新的连接</span>
+          <span class="add-modal-head-en">NEW&nbsp;CONNECTION</span>
+        </span>
+      </div>
+
+      <div class="add-modal-grid">
+        <button class="add-tile" data-add="single">
+          <span class="add-tile-sheen" aria-hidden="true"></span>
+          <span class="add-tile-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.5" r="3.6" stroke="currentColor" stroke-width="1.4"/><path d="M5 20C5.9 15.8 8.5 13.6 12 13.6C15.5 13.6 18.1 15.8 19 20" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </span>
+          <span class="add-tile-col">
+            <span class="add-tile-cn">单聊</span>
+            <span class="add-tile-en">DIRECT&nbsp;MESSAGE</span>
+          </span>
+          <span class="add-tile-corner" aria-hidden="true"></span>
+        </button>
+
+        <button class="add-tile" data-add="group">
+          <span class="add-tile-sheen" aria-hidden="true"></span>
+          <span class="add-tile-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="8.6" cy="9" r="3.1" stroke="currentColor" stroke-width="1.4"/><circle cx="16.2" cy="9" r="2.6" stroke="currentColor" stroke-width="1.3"/><path d="M3.4 19.4C4.2 15.9 6.1 14 8.6 14C11.1 14 13 15.9 13.8 19.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M14.6 14.4C16.7 14.6 18.2 16.1 18.9 19" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </span>
+          <span class="add-tile-col">
+            <span class="add-tile-cn">群聊</span>
+            <span class="add-tile-en">GROUP&nbsp;CHAT</span>
+          </span>
+          <span class="add-tile-corner" aria-hidden="true"></span>
+        </button>
+
+        <button class="add-tile" data-add="category">
+          <span class="add-tile-sheen" aria-hidden="true"></span>
+          <span class="add-tile-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6.4H10L11.6 8.4H20V18.4H4V6.4Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="add-tile-col">
+            <span class="add-tile-cn">分组</span>
+            <span class="add-tile-en">NEW&nbsp;CATEGORY</span>
+          </span>
+          <span class="add-tile-corner" aria-hidden="true"></span>
+        </button>
+
+        <button class="add-tile" data-add="friend">
+          <span class="add-tile-sheen" aria-hidden="true"></span>
+          <span class="add-tile-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="9.6" cy="8" r="3.3" stroke="currentColor" stroke-width="1.4"/><path d="M4 19C4.7 15.5 6.9 13.6 9.6 13.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M17 12.2V18.2M14 15.2H20" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </span>
+          <span class="add-tile-col">
+            <span class="add-tile-cn">加好友</span>
+            <span class="add-tile-en">ADD&nbsp;FRIEND</span>
+          </span>
+          <span class="add-tile-corner" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <div class="add-modal-foot">敬请期待 · 各功能陆续开放</div>
+    </div>
+  </div>
+
+  <!-- ============ 四个页面容器 ============ -->
+  <div class="pages-root">
+
+    <!-- ---------------- 页面一：消息列表 ---------------- -->
+    <section class="page page-messages-immersive" id="page-messages" data-page="messages">
+
+      <!-- 搜索框：斜切矩形，独立于胶囊语言 -->
+      <div class="mh-search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span>搜索会话、联系人</span>
+        <span class="mh-search-deco" aria-hidden="true"></span>
+      </div>
+
+      <!-- 装饰组件：完全透明，融入统一纸面 —— 左照片堆叠（3:4，占主导）
+           + 右侧窄列头像语录，靠自身描边与排版建立层次，绝无背景色块 -->
+      <div class="deco-panel">
+
+        <!-- 左：3:4 竖版照片堆叠，可左右滑动切换，点击弹出上传弹窗 -->
+        <div class="photo-stack-wrap">
+          <div class="photo-stack" id="photoStack">
+            <button class="stack-card" data-depth="2" data-slot="2" aria-label="查看照片 3">
+              <span class="stack-card-fill"></span>
+              <svg class="stack-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 16.5L8.5 12L11.5 15L16 9L20 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg>
+            </button>
+            <button class="stack-card" data-depth="1" data-slot="1" aria-label="查看照片 2">
+              <span class="stack-card-fill"></span>
+              <svg class="stack-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 16.5L8.5 12L11.5 15L16 9L20 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg>
+            </button>
+            <button class="stack-card" data-depth="0" data-slot="0" aria-label="查看照片 1，点击更换">
+              <span class="stack-card-fill"></span>
+              <span class="stack-card-corner"></span>
+              <svg class="stack-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 16.5L8.5 12L11.5 15L16 9L20 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg>
+            </button>
+            <span class="stack-ring"></span>
+          </div>
+          <div class="stack-hint" id="stackHint">
+            <span class="stack-hint-dot active"></span>
+            <span class="stack-hint-dot"></span>
+            <span class="stack-hint-dot"></span>
+          </div>
+        </div>
+
+        <!-- 右：头像昵称横向紧凑排列 + 语录卡，材质呼应左侧照片堆叠的圆角/层次语言 -->
+        <div class="quote-panel">
+          <div class="quote-avatar-row">
+            <div class="quote-avatar" id="quoteAvatar"></div>
+            <div class="quote-meta">
+              <div class="quote-name" id="quoteName">用户昵称</div>
+              <div class="quote-tag">TODAY&nbsp;·&nbsp;个性签名</div>
+            </div>
+          </div>
+          <div class="quote-body">
+            <span class="quote-mark" aria-hidden="true">“</span>
+            <p class="quote-text" id="quoteText" contenteditable="true" spellcheck="false">此处展示一句语录内容，先占位，可随时替换。</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 好友环：在线好友精选展示，纯好友头像（无"我的"），
+           融入统一纸面无独立背景块，靠头像自身多层描边建立层次；
+           标题采用大字号衬线数字 + 竖排小字的错位排版，呼应全站字体语言。
+           初始状态：无好友数据，展示空态占位，结构保留以便后续填充。 -->
+      <div class="story-ring-wrap">
+        <div class="story-ring-label">
+          <span class="srl-num">00</span>
+          <span class="srl-text-col">
+            <span class="srl-text">好友动态</span>
+            <span class="srl-sub">FRIENDS&nbsp;ONLINE</span>
+          </span>
+          <span class="srl-count">暂无在线</span>
+        </div>
+        <div class="story-ring story-ring-empty" id="storyRing">
+          <div class="story-empty">
+            <span class="story-empty-ring">
+              <span class="story-empty-dot"></span>
+            </span>
+            <span class="story-empty-text">还没有好友动态</span>
+          </div>
+        </div>
+      </div>
+      <!-- 筛选标签：伸缩式主辅结构 —— 选中项膨胀为墨黑主胶囊主导整排，
+           未选中的收缩为极简小圆点+文字，形成强烈的"一大三小"视觉重心，
+           而非四个等宽按钮的平均分布，纯黑白灰阶，切换时用弹簧动画伸缩 -->
+      <div class="filter-deck" id="filterTabs">
+        <button class="filter-chip filter-chip-active" data-filter="all">
+          <span class="fc-dot" aria-hidden="true"></span>
+          <span class="fc-label">全部消息</span>
+        </button>
+        <button class="filter-chip" data-filter="unread">
+          <span class="fc-dot" aria-hidden="true"></span>
+          <span class="fc-label">未读</span>
+          <span class="filter-chip-count">0</span>
+        </button>
+        <button class="filter-chip" data-filter="read">
+          <span class="fc-dot" aria-hidden="true"></span>
+          <span class="fc-label">已读</span>
+        </button>
+        <button class="filter-chip" data-filter="group">
+          <span class="fc-dot" aria-hidden="true"></span>
+          <span class="fc-label">群聊</span>
+        </button>
+      </div>
+
+      <div class="section-label section-label-spaced">
+        <span>全部消息</span>
+        <span class="section-count" id="msgAllCount">0 位</span>
+      </div>
+
+      <!-- 会话列表：初始化为空。真实数据接入后，每一条会话应遵循如下结构：
+           .msg-row（外层，overflow 裁切，data-id / data-pinned）
+             > .msg-actions（左滑后露出的置顶/删除按钮）
+             + .msg-surface（可拖拽表层卡片，内含头像/昵称/预览/时间等） -->
+      <div class="msg-list" id="msgList"></div>
+      <div class="msg-list" id="msgListMain"></div>
+
+      <!-- 消息页空态：尚无任何会话时展示，结构独立于列表本身 -->
+      <div class="msg-blank" id="msgBlank">
+        <div class="msg-blank-mark">
+          <span class="msg-blank-ring"></span>
+          <span class="msg-blank-ring msg-blank-ring-2"></span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 4.6H15.4L19.4 8.6V19.4H5V4.6Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M15.4 4.6V8.6H19.4" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8.4 12.4H16M8.4 15.6H13" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+        </div>
+        <div class="msg-blank-cn">暂无会话</div>
+        <div class="msg-blank-en">NO&nbsp;CONVERSATIONS&nbsp;YET</div>
+        <div class="msg-blank-desc">和好友开始聊天后，会话会显示在这里</div>
+      </div>
+
+      <div class="msg-empty-hint" id="msgEmptyHint" style="display:none">
+        <span class="meh-line"></span>
+        <span>左滑会话可置顶或删除</span>
+        <span class="meh-line"></span>
+      </div>
+
+    </section>
+
+    <!-- ---------------- 页面二：好友列表 ---------------- -->
+    <section class="page" id="page-friends" data-page="friends">
+
+      <!-- 页头已移除：顶栏已统一显示"好友 / FRIENDS"页面标签，
+           本页不再重复一次同名标题，避免信息冗余。 -->
+
+      <!-- 好友页专属搜索面板：点击顶栏石印搜索按钮后由顶部展开/收起。
+           刻意与消息页的圆润磨砂胶囊拉开距离——采用斜切矩形石碑造型 +
+           錾刻描边 + 顶部小型石印标签，呼应本页"臻藏徽章"的雕刻语言，
+           而非消息页的内凹胶囊语言。默认收起，通体黑白灰浅色系。 -->
+      <div class="friend-search-panel" id="friendSearchPanel">
+        <div class="fsp-tablet">
+          <span class="fsp-tablet-facet" aria-hidden="true"></span>
+          <div class="fsp-label-row">
+            <span class="fsp-label-num">02</span>
+            <span class="fsp-label-col">
+              <span class="fsp-label-cn">寻访</span>
+              <span class="fsp-label-en">SEEK&nbsp;A&nbsp;FRIEND</span>
+            </span>
+          </div>
+          <div class="fsp-input-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.6" stroke="currentColor" stroke-width="1.6"/><path d="M19.5 19.5L15.9 15.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <input type="text" class="fsp-input" id="friendSearchInput" placeholder="输入昵称或备注" autocomplete="off" />
+            <button class="fsp-clear" id="friendSearchClear" aria-label="清空">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M5 5L19 19M19 5L5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <span class="fsp-tablet-corner fsp-tablet-corner-tl" aria-hidden="true"></span>
+          <span class="fsp-tablet-corner fsp-tablet-corner-br" aria-hidden="true"></span>
+        </div>
+      </div>
+
+      <!-- 好友页装饰组件：臻藏徽章卡 Emblem Card —— 完整覆盖式肖像背景（可点击更换），
+           顶部错落双行徽标铭刻站名，底部悬浮留白信息层承载昵称/寄语，
+           四角錾刻角标 + 双层描边框 + 顶部高光扫层，营造画框/勋章般的厚重质感，
+           通体黑白灰浅色纸面，唯一彩色取自全站既有三枚低饱和描边色，
+           无emoji、无新增色相，替代原先过于简约的票根/机票式布局 -->
+      <div class="emblem-card" id="friendPortraitMark">
+
+        <!-- 全幅肖像层：深色渐变底 + 点击更换 -->
+        <button class="ec-photo" id="ticketPhotoBtn" aria-label="点击更换照片">
+          <div class="ec-photo-frame" id="ticketPhotoFrame">
+            <span class="ec-photo-placeholder" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 16.5L8.5 12L11.5 15L16 9L20 14.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg>
+              <span class="ec-photo-placeholder-text">点击更换肖像</span>
+            </span>
+          </div>
+          <span class="ec-photo-scrim" aria-hidden="true"></span>
+          <span class="ec-photo-sheen" aria-hidden="true"></span>
+        </button>
+
+        <!-- 双层描边框，营造画框/勋章边界 -->
+        <span class="ec-frame-outer" aria-hidden="true"></span>
+        <span class="ec-frame-inner" aria-hidden="true"></span>
+
+        <!-- 四角錾刻角标 -->
+        <span class="ec-corner ec-corner-tl" aria-hidden="true"></span>
+        <span class="ec-corner ec-corner-tr" aria-hidden="true"></span>
+        <span class="ec-corner ec-corner-bl" aria-hidden="true"></span>
+        <span class="ec-corner ec-corner-br" aria-hidden="true"></span>
+
+        <!-- 顶部：错落双行徽标铭刻 -->
+        <div class="ec-crest-mark" aria-hidden="true">
+          <span class="ec-crest-ring">
+            <span class="ec-crest-ring-in"></span>
+            <span class="ec-crest-dot"></span>
+          </span>
+          <span class="ec-crest-text-col">
+            <span class="ec-crest-cn">臻藏</span>
+            <span class="ec-crest-en">PERSONAL&nbsp;CREST</span>
+          </span>
+        </div>
+
+        <!-- 底部：悬浮留白信息层，昵称/寄语/落款 -->
+        <div class="ec-info">
+          <div class="ec-info-glass" aria-hidden="true"></div>
+          <div class="ec-name-row">
+            <span class="ec-name" id="ticketName" contenteditable="true" spellcheck="false">用户昵称</span>
+            <svg class="ec-edit-glyph" width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M15.5 4.5L19.5 8.5L8 20H4V16L15.5 4.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="ec-quote-row">
+            <span class="ec-quote-mark" aria-hidden="true">“</span>
+            <span class="ec-quote" id="ticketQuote" contenteditable="true" spellcheck="false">写一句只属于我的寄语</span>
+          </div>
+          <div class="ec-foot">
+            <span class="ec-foot-line" aria-hidden="true"></span>
+            <span class="ec-date" id="ticketDate">08 · 21</span>
+            <span class="ec-foot-line ec-foot-line-r" aria-hidden="true"></span>
+          </div>
+        </div>
+
+        <input type="file" id="ticketFileInput" accept="image/*" style="display:none" />
+      </div>
+
+      <!-- 好友清单区：分组折叠式列表（QQ 式分组逻辑，非微信平铺），
+           每组=一枚"卷宗"，组头为可点击的雕刻石碑条，
+           内含罗马数字序号 + 中英双行组名 + 组内人数 + 展开箭头，
+           组与组之间以极细分隔线 + 留白区隔，而非卡片堆叠。
+           总数徽记独立悬浮于区头，呼应全站"印记/勋章"语言。
+           好友条目由 chat.js 依据分组数据动态渲染到各组容器内。 -->
+      <div class="flist-section" id="flistSection">
+
+        <div class="flist-head">
+          <span class="flist-eyebrow">好友档案<span class="flist-eyebrow-en">FRIEND ARCHIVE</span></span>
+          <span class="flist-count">
+            <span class="flist-count-num" id="friendsTotalCount">0</span>
+            <span class="flist-count-label">位好友</span>
+          </span>
+        </div>
+
+        <div class="fgroup-list" id="friendsList"><!-- 分组由 chat.js 动态渲染 --></div>
+
+        <div class="flist-empty" id="friendsEmpty">
+          <div class="flist-empty-mark" aria-hidden="true">
+            <span class="flist-empty-ring"></span>
+            <span class="flist-empty-dot"></span>
+          </div>
+          <div class="flist-empty-cn">还没有添加好友</div>
+          <div class="flist-empty-en">ADD&nbsp;YOUR&nbsp;FIRST&nbsp;FRIEND</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ---------------- 页面三：动态 ---------------- -->
+    <section class="page page-moments-social" id="page-moments" data-page="moments">
+
+      <!-- 顶部封面区：真正的封面图片已上移到 .moments-cover-veil，
+           从状态栏顶部一路铺到这里，二者是同一张图，浑然一体。
+           此处是透明占位块（撑开滚动区域高度），整块本身就是可
+           点击热区——点击封面任意位置直接触发上传，不再需要额外
+           的"更换封面"小圆按钮 -->
+      <div class="mo-cover" id="momentsCoverBtn" role="button" tabindex="0" aria-label="点击更换封面"></div>
+      <input type="file" id="momentsCoverFileInput" accept="image/*" style="display:none" />
+
+      <!-- 身份卡：头像以对角线姿态"破界"压穿封面斜切下沿——
+           融合 QQ空间徽章式头像框 + 微信身份行的排布逻辑，
+           昵称走大号衬线斜体，签名条下方悬浮一条细刻度尺装饰 -->
+      <div class="mo-identity-row">
+        <div class="mo-identity-avatar" id="momentsAvatar">
+          <span class="mo-identity-avatar-ring" aria-hidden="true"></span>
+          <span class="mo-identity-avatar-notch" aria-hidden="true"></span>
+        </div>
+        <div class="mo-identity-col">
+          <span class="mo-identity-name" id="momentsName">用户昵称</span>
+          <span class="mo-identity-sub" id="momentsSub">敬请期待 · 静候第一条动态</span>
+          <span class="mo-identity-ruler" aria-hidden="true"></span>
+        </div>
+      </div>
+
+      <!-- 精选动态圆环带：圆形头像横排。顺序固定为
+           "我的动态"占位位 → 好友占位项（来自好友页 LunaFriends
+           数据，默认展示为单圈灰环的"暂无动态"状态，随好友页
+           增删好友实时同步）→ 用户自己历史发布的动态。
+           "我的动态"头像会跟随主页身份数据同步，未设置头像前
+           展示纯灰底占位环，即默认样式而非同步失败。 -->
+      <div class="mo-story-band">
+        <div class="mo-story-band-head">
+          <div class="mo-story-band-title-col">
+            <span class="mo-story-band-cn">动态精选</span>
+            <span class="mo-story-band-meta"><span class="mo-story-band-new" id="momentsStoryNewCount">0 new</span></span>
+          </div>
+          <button type="button" class="mo-story-band-seeall" id="momentsStorySeeAll">See all</button>
+        </div>
+        <div class="mo-story-row" id="momentsStoryRow">
+          <div class="mo-story-item mo-story-item-mine">
+            <div class="mo-story-item-ring mo-story-item-ring-mine">
+              <div class="mo-story-item-ring-mask">
+                <div class="mo-story-item-avatar" id="momentsStoryMineAvatar"></div>
+              </div>
+              <span class="mo-story-item-plus" aria-hidden="true">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+              </span>
+            </div>
+            <span class="mo-story-item-name">My Story</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 动态信息流：微博式时间线标题，改为错位徽记——大号页码
+           斜切嵌入圆角方框，与右侧竖排双语标题构成不对称组合，
+           而非居中或简单左右并排的标题行 -->
+      <div class="mo-feed-head">
+        <span class="mo-feed-head-badge" aria-hidden="true">
+          <span class="mo-feed-head-badge-num">01</span>
+        </span>
+        <span class="mo-feed-head-col">
+          <span class="mo-feed-head-cn">全部动态</span>
+          <span class="mo-feed-head-en">TIMELINE</span>
+        </span>
+      </div>
+
+      <div class="mo-feed" id="momentsFeed">
+        <div class="mo-feed-empty" id="momentsFeedEmpty">
+          <div class="mo-feed-empty-mark" aria-hidden="true">
+            <span class="mo-feed-empty-ring"></span>
+            <span class="mo-feed-empty-ring mo-feed-empty-ring-2"></span>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 16.5L8.5 12L11.5 15L16 9L20 14.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg>
+          </div>
+          <div class="mo-feed-empty-cn">还没有动态</div>
+          <div class="mo-feed-empty-en">NOTHING&nbsp;SHARED&nbsp;YET</div>
+          <div class="mo-feed-empty-desc">点击右上角"动态"印记，记录下第一段时光</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ---------------- 页面四：我的 ---------------- -->
+    <section class="page" id="page-profile" data-page="profile">
+
+      <!-- ============ 资料页 · IG式大封面叠层设计 ============
+           大幅封面（支持图片或视频动态背景）+ 头像压边叠加 +
+           姓名/ID/签名多层信息，配合柔光徽标与漂浮装饰点，
+           用真实的内容层次而非空卡片堆出"眼前一亮"的丰富感。 -->
+      <div class="pf-hero">
+
+        <!-- 封面层：可点击更换，支持图片或视频（视频自动静音循环播放） -->
+        <button class="pf-cover" id="profileCoverBtn" aria-label="更换封面图片或视频">
+          <span class="pf-cover-media" id="profileCoverMedia">
+            <span class="pf-cover-noise" aria-hidden="true"></span>
+            <span class="pf-cover-orb pf-cover-orb-a" aria-hidden="true"></span>
+            <span class="pf-cover-orb pf-cover-orb-b" aria-hidden="true"></span>
+            <span class="pf-cover-lines" aria-hidden="true"></span>
+          </span>
+          <span class="pf-cover-scrim" aria-hidden="true"></span>
+          <span class="pf-cover-corner" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3L14.1 9.1L20.5 9.5L15.5 13.5L17.2 19.8L12 16.2L6.8 19.8L8.5 13.5L3.5 9.5L9.9 9.1L12 3Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+        <input type="file" id="profileCoverFileInput" accept="image/*,video/*" style="display:none" />
+
+        <!-- 徽标漂浮层：呼应全站"刻痕/印记"语汇的小型装饰徽记，纯点缀 -->
+        <div class="pf-badge pf-badge-status" aria-hidden="true">
+          <span class="pf-badge-dot"></span>
+          <span>ONLINE</span>
+        </div>
+        <div class="pf-badge pf-badge-ring" aria-hidden="true">01</div>
+
+        <!-- 头像：半压在封面下沿，白边+柔光，点击单独更换头像 -->
+        <button class="pf-avatar" id="profileCardAvatar" aria-label="更换头像">
+          <span class="ica-plate" aria-hidden="true"></span>
+          <span class="ica-halo" aria-hidden="true"></span>
+          <span class="ica-ticks" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </span>
+          <span class="ica-glyph" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 16.5L8.5 12L11.5 15L16 9L20 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg>
+          </span>
+          <span class="pf-avatar-plus" aria-hidden="true">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+          </span>
+        </button>
+        <input type="file" id="profileAvatarFileInput" accept="image/*" style="display:none" />
+
+        <!-- 信息区：姓名 + ID 徽标 + 可点击签名 -->
+        <div class="pf-info">
+          <span class="pf-info-star pf-info-star-l" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L13.8 9.2L21 12L13.8 14.8L12 22L10.2 14.8L3 12L10.2 9.2L12 2Z" fill="currentColor"/></svg>
+          </span>
+          <span class="pf-info-star pf-info-star-r" aria-hidden="true">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M12 2L13.8 9.2L21 12L13.8 14.8L12 22L10.2 14.8L3 12L10.2 9.2L12 2Z" fill="currentColor"/></svg>
+          </span>
+
+          <div class="pf-name-row">
+            <span class="pf-name" id="profileCardName">敬请期待</span>
+            <span class="pf-verified" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2.4L14.6 4.6L17.9 4.1L18.9 7.3L21.7 9.1L20.5 12.2L21.7 15.3L18.9 17.1L17.9 20.3L14.6 19.8L12 22L9.4 19.8L6.1 20.3L5.1 17.1L2.3 15.3L3.5 12.2L2.3 9.1L5.1 7.3L6.1 4.1L9.4 4.6L12 2.4Z" fill="currentColor"/><path d="M8.8 12.3L10.8 14.3L15.3 9.7" stroke="var(--paper-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+
+          <button class="pf-id" id="profileIdCard" aria-label="编辑我的资料">
+            <span class="idc-id-tag">ID</span>
+            <span class="idc-id-dots" id="profileCardId">— — — — — —</span>
+          </button>
+
+          <button class="pf-bio" id="profileBioBtn" aria-label="编辑个性签名">
+            <span class="pf-bio-quote" aria-hidden="true">"</span>
+            <span class="pf-bio-text" id="profileBioText">点一下，写句想被记住的话</span>
+          </button>
+
+          <!-- 印章式刻度点缀：纯几何圆点+分隔线，不含任何写死的身份文案 -->
+          <div class="pf-tag-wall" aria-hidden="true">
+            <span class="pf-tag-dot">·</span>
+            <span class="pf-tag-line"></span>
+            <span class="pf-tag-diamond"></span>
+            <span class="pf-tag-line"></span>
+            <span class="pf-tag-dot">·</span>
+          </div>
+
+          <!-- 漂浮小圆点分隔装饰，纯视觉点缀，呼应 IG story 圆环语言 -->
+          <div class="pf-chip-row" aria-hidden="true">
+            <span class="pf-chip"></span>
+            <span class="pf-chip pf-chip-mid"></span>
+            <span class="pf-chip"></span>
+          </div>
+        </div>
+
+        <!-- 卡片外圈四角刻度，纯点缀，呼应"印鉴/勋章"边缘工艺细节 -->
+        <span class="pf-corner-mark pf-corner-mark-tl" aria-hidden="true"></span>
+        <span class="pf-corner-mark pf-corner-mark-br" aria-hidden="true"></span>
+      </div>
+
+      <!-- ============ 数据胶囊条：三枚圆角珠光胶囊，横向排布 ============ -->
+      <div class="pf-stat-strip" aria-hidden="true">
+        <div class="pf-stat-pill">
+          <span class="pf-stat-num" id="profileStatMoments">0</span>
+          <span class="pf-stat-label">动态</span>
+        </div>
+        <span class="pf-stat-sep"></span>
+        <div class="pf-stat-pill">
+          <span class="pf-stat-num" id="profileStatFriends">0</span>
+          <span class="pf-stat-label">好友</span>
+        </div>
+        <span class="pf-stat-sep"></span>
+        <div class="pf-stat-pill">
+          <span class="pf-stat-num" id="profileStatDays">01</span>
+          <span class="pf-stat-label">在场天数</span>
+        </div>
+      </div>
+
+      <!-- ============ 功能入口 · 非对称卡片矩阵（占位，暂不设计点击后内容） ============
+           彻底放弃"三行等高列表"的菜单感——改为一枚横跨全宽的主推大卡
+           （美化设置，带真实的调色板可视化预览）+ 下方两枚并排方卡
+           （收藏 / 表情包，各自独立插画感底纹）。大小、比例、材质
+           三者皆不同，靠版式本身制造节奏，而非靠色块硬凑差异。 -->
+      <div class="pf-entry-list">
+
+        <div class="pf-entry-list-head">
+          <span class="pf-entry-list-head-num">02</span>
+          <span class="pf-entry-list-head-col">
+            <span class="pf-entry-list-head-cn">我的空间</span>
+            <span class="pf-entry-list-head-en">MY&nbsp;SPACE</span>
+          </span>
+        </div>
+
+        <!-- 主推大卡：美化设置。横跨全宽，内含四色调色板可视化预览，
+             不是符号图标而是"这个功能长什么样"的真实缩影，标题走衬线体 -->
+        <button class="pf-feature-card" id="profileEntryTheme" aria-label="美化设置">
+          <span class="pf-feature-sheen" aria-hidden="true"></span>
+          <span class="pf-feature-top">
+            <span class="pf-feature-eyebrow">01 · APPEARANCE</span>
+            <span class="pf-feature-arrow-wrap" aria-hidden="true">
+              <svg class="pf-feature-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </span>
+          <span class="pf-feature-body">
+            <span class="pf-feature-title">美化设置</span>
+            <span class="pf-feature-swatches" aria-hidden="true">
+              <span class="pf-swatch pf-swatch-1"></span>
+              <span class="pf-swatch pf-swatch-2"></span>
+              <span class="pf-swatch pf-swatch-3"></span>
+              <span class="pf-swatch pf-swatch-4"></span>
+            </span>
+          </span>
+        </button>
+
+        <!-- 双方卡行：收藏 / 表情包，正方比例并排，标题下沉到卡片底部
+             走"海报式"排版——图形符号在上，文字压在底部渐深遮罩上 -->
+        <div class="pf-tile-row">
+
+          <button class="pf-tile pf-tile-ink" id="profileEntryFavorites" aria-label="我的收藏">
+            <span class="pf-tile-glow" aria-hidden="true"></span>
+            <span class="pf-tile-sheen" aria-hidden="true"></span>
+            <span class="pf-tile-badge">12</span>
+            <span class="pf-tile-mark" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 4.4L14.5 9.6L20.2 10.4L16.1 14.4L17.1 20.1L12 17.4L6.9 20.1L7.9 14.4L3.8 10.4L9.5 9.6L12 4.4Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="pf-tile-foot">
+              <span class="pf-tile-title">我的收藏</span>
+              <span class="pf-tile-sub">FAVORITES</span>
+            </span>
+          </button>
+
+          <button class="pf-tile pf-tile-pearl" id="profileEntryStickers" aria-label="表情包">
+            <span class="pf-tile-sheen" aria-hidden="true"></span>
+            <span class="pf-tile-badge pf-tile-badge-dark">6</span>
+            <span class="pf-tile-peek" aria-hidden="true">
+              <span class="pfe-peek pfe-peek-1"></span>
+              <span class="pfe-peek pfe-peek-2"></span>
+              <span class="pfe-peek pfe-peek-3"></span>
+            </span>
+            <span class="pf-tile-mark pf-tile-mark-dark" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="4.4" y="4.4" width="7.4" height="7.4" rx="2.2" stroke="currentColor" stroke-width="1.3"/><circle cx="16.4" cy="8.1" r="3.7" stroke="currentColor" stroke-width="1.3"/><path d="M5.4 20L9.4 14.5L12.6 17.8L15.6 13.6L19.6 19" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="pf-tile-foot">
+              <span class="pf-tile-title pf-tile-title-dark">表情包</span>
+              <span class="pf-tile-sub pf-tile-sub-dark">STICKERS</span>
+            </span>
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- ============ 底部收尾：居中錾刻印章 + 细刻度线，填满留白 ============
+           不含任何昵称/签名文字——纯几何装饰，避免写死任何与身份绑定的文案。 -->
+      <div class="pf-foot-mark" aria-hidden="true">
+        <span class="pf-foot-line"></span>
+        <span class="pf-foot-seal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L13.8 9.2L21 12L13.8 14.8L12 22L10.2 14.8L3 12L10.2 9.2L12 2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="pf-foot-line"></span>
+      </div>
+
+      <!-- 签名编辑弹窗（点击签名区触发） -->
+      <div class="bio-modal" id="bioModal">
+        <div class="bio-modal-scrim" id="bioModalScrim"></div>
+        <div class="bio-modal-sheet">
+          <div class="upload-modal-grip"></div>
+          <div class="upload-modal-title">编辑个性签名</div>
+          <textarea class="bio-modal-textarea" id="bioModalTextarea" placeholder="写句想被记住的话……" maxlength="40" rows="2"></textarea>
+          <button class="upload-modal-close" id="bioModalSave">保存</button>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- ============================================================================
+       好友资料展示页 · Friend Profile Overlay
+       独立全屏覆盖层，与 .pages-root 平级，共用同一套状态栏/顶栏视觉语言
+       （见 friend-profile.css 内对 --status-h / --topbar-h 的复用），
+       仅在好友页点击好友条目后由 friend-profile.js 呼出。
+       人设/性格类隐私字段一律不读取、不展示；仅呈现好友已公开的
+       昵称、关系标签、头像、寄语等好友页原本就存在的信息。
+  ============================================================================ -->
+  <div class="fp-overlay" id="fpOverlay" aria-hidden="true">
+
+    <!-- 覆盖层专属状态栏：与主状态栏样式完全一致，深色纸面之上反白 -->
+    <div class="fp-status-bar">
+      <div class="fp-status-time" id="fpStatusTime">9:41</div>
+      <div class="fp-status-island">
+        <div class="fp-si-capsule"></div>
+      </div>
+      <div class="fp-status-right">
+        <div class="fp-signal"><i></i><i></i><i></i><i></i></div>
+        <div class="fp-battery">
+          <span class="fp-bat-pct" id="fpBatPct">76</span>
+          <div class="fp-bat-shell"><div class="fp-bat-inner" id="fpBatInner"></div><div class="fp-bat-nub"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 覆盖层专属顶栏：左·返回 · 中·徽记化页码标题 · 右·更多印记（占位） -->
+    <div class="fp-top-bar">
+      <button class="fp-back-btn" id="fpBackBtn" aria-label="返回好友列表">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="fp-title-seal">
+        <span class="fp-title-num">05</span>
+        <span class="fp-title-divider"></span>
+        <span class="fp-title-col">
+          <span class="fp-title-cn">档案</span>
+          <span class="fp-title-en">ARCHIVE</span>
+        </span>
+      </div>
+      <button class="fp-more-btn" id="fpMoreBtn" aria-label="更多">
+        <span class="fp-more-dot"></span><span class="fp-more-dot"></span><span class="fp-more-dot"></span>
+      </button>
+    </div>
+
+    <!-- 滚动内容区 -->
+    <div class="fp-scroll" id="fpScroll">
+
+      <!-- 顶部肖像区：全幅深色渐变肖像 + 悬浮身份铭牌，斜切底边呼应
+           动态页封面语言，避免与消息页/好友页产生生硬分界线 -->
+      <div class="fp-hero">
+        <div class="fp-hero-photo" id="fpHeroPhoto">
+          <span class="fp-hero-photo-fallback" id="fpHeroPhotoFallback"></span>
+        </div>
+        <span class="fp-hero-scrim" aria-hidden="true"></span>
+        <span class="fp-hero-texture" aria-hidden="true"></span>
+
+        <!-- 四角錾刻角标，呼应臻藏徽章卡语言 -->
+        <span class="fp-hero-corner fp-hero-corner-tl" aria-hidden="true"></span>
+        <span class="fp-hero-corner fp-hero-corner-tr" aria-hidden="true"></span>
+
+        <div class="fp-hero-identity">
+          <div class="fp-hero-avatar" id="fpHeroAvatar">
+            <span class="fp-hero-avatar-glyph" id="fpHeroAvatarGlyph"></span>
+          </div>
+          <div class="fp-hero-name-col">
+            <div class="fp-hero-name-row">
+              <span class="fp-hero-name" id="fpHeroName">好友昵称</span>
+              <span class="fp-hero-badge" id="fpHeroBadge"></span>
+            </div>
+            <div class="fp-hero-sub-row">
+              <span class="fp-hero-status-dot" id="fpHeroStatusDot" aria-hidden="true"></span>
+              <span class="fp-hero-status-text" id="fpHeroStatusText">离线</span>
+              <span class="fp-hero-sub-dot" id="fpHeroRelDot" aria-hidden="true"></span>
+              <span class="fp-hero-relation" id="fpHeroRelation"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作条：进入聊天（占位）+ 更多操作（占位），
+           以雕刻石碑质感的双分区按钮呈现，避免常见的纯色圆角按钮 -->
+      <div class="fp-action-bar">
+        <button class="fp-action-primary" id="fpChatBtn">
+          <span class="fp-action-primary-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4.5 5.5H19.5V16.2H10.8L6.3 19.6V16.2H4.5V5.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9.8H16M8 12.6H13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </span>
+          <span class="fp-action-primary-col">
+            <span class="fp-action-primary-cn">进入聊天</span>
+            <span class="fp-action-primary-en">OPEN CHAT</span>
+          </span>
+        </button>
+        <button class="fp-action-more" id="fpMoreActionBtn" aria-label="更多">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg>
+        </button>
+      </div>
+
+      <!-- 寄语卡：若好友设置过一句签名/寄语则展示，样式呼应臻藏徽章卡
+           的引号排版语言 -->
+      <div class="fp-quote-card" id="fpQuoteCard">
+        <span class="fp-quote-mark" aria-hidden="true">&ldquo;</span>
+        <span class="fp-quote-text" id="fpQuoteText"></span>
+      </div>
+
+      <!-- 动态板块：呼应动态页故事环语言的横向缩略网格 + 全部动态占位入口 -->
+      <div class="fp-section" id="fpMomentsSection">
+        <div class="fp-section-head">
+          <span class="fp-section-eyebrow">
+            <span class="fp-section-num">01</span>
+            <span class="fp-section-col">
+              <span class="fp-section-cn">动态足迹</span>
+              <span class="fp-section-en">MOMENTS TRACE</span>
+            </span>
+          </span>
+          <button class="fp-section-more" id="fpMomentsAllBtn">
+            <span>全部动态</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <div class="fp-moments-grid" id="fpMomentsGrid">
+          <div class="fp-moment-tile fp-moment-tile-empty" aria-hidden="true"><span></span></div>
+          <div class="fp-moment-tile fp-moment-tile-empty" aria-hidden="true"><span></span></div>
+          <div class="fp-moment-tile fp-moment-tile-empty" aria-hidden="true"><span></span></div>
+        </div>
+        <div class="fp-moments-empty-note">还没有动态记录，一起等待第一条足迹</div>
+      </div>
+
+      <!-- 密友圈卡片：全站最高等级的礼遇质感卡片——深色底 + 金属描边
+           光泽 + 錾刻纹理，与浅色纸面主体形成唯一一处克制的深浅反差，
+           用以标注"密友圈"这一特殊身份层级 -->
+      <div class="fp-section">
+        <div class="fp-section-head">
+          <span class="fp-section-eyebrow">
+            <span class="fp-section-num">02</span>
+            <span class="fp-section-col">
+              <span class="fp-section-cn">密友圈</span>
+              <span class="fp-section-en">INNER CIRCLE</span>
+            </span>
+          </span>
+        </div>
+
+        <button class="fp-circle-card" id="fpCircleCard">
+          <span class="fp-circle-texture" aria-hidden="true"></span>
+          <span class="fp-circle-sheen" aria-hidden="true"></span>
+          <span class="fp-circle-corner fp-circle-corner-tl" aria-hidden="true"></span>
+          <span class="fp-circle-corner fp-circle-corner-br" aria-hidden="true"></span>
+
+          <span class="fp-circle-crest" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2.6L20.4 7.4V16.8L12 21.6L3.6 16.8V7.4L12 2.6Z" stroke="currentColor" stroke-width="1.15" stroke-linejoin="round"/><path d="M12 6.2L17 9.1V15L12 17.9L7 15V9.1L12 6.2Z" stroke="currentColor" stroke-width="0.9" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>
+          </span>
+
+          <span class="fp-circle-col">
+            <span class="fp-circle-title">进入密友圈</span>
+            <span class="fp-circle-desc">只此一方，专属你们的私密领地</span>
+          </span>
+
+          <span class="fp-circle-arrow" aria-hidden="true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+      </div>
+
+      <!-- 双卡并列：匿名提问 / Ta 眼中的我 —— 两枚等宽石印卡片，
+           以不同的几何符号与配色克制区分，禁止使用 emoji -->
+      <div class="fp-section">
+        <div class="fp-dual-row">
+
+          <button class="fp-glyph-card" id="fpAskBtn">
+            <span class="fp-glyph-card-mark" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 9.2C8 6.9 9.9 5 12.2 5C14.5 5 16.3 6.7 16.3 8.9C16.3 11.6 12.6 11.7 12.4 14.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12.3" cy="18" r="1" fill="currentColor"/></svg>
+            </span>
+            <span class="fp-glyph-card-cn">匿名提问</span>
+            <span class="fp-glyph-card-en">ANONYMOUS ASK</span>
+          </button>
+
+          <button class="fp-glyph-card" id="fpMirrorBtn">
+            <span class="fp-glyph-card-mark" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3.5L19.5 7.6V16.4L12 20.5L4.5 16.4V7.6L12 3.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 12C9 10.3 10.3 9 12 9C13.7 9 15 10.3 15 12C15 13.7 13.7 15 12 15C10.3 15 9 13.7 9 12Z" stroke="currentColor" stroke-width="1.2"/></svg>
+            </span>
+            <span class="fp-glyph-card-cn">Ta 眼中的我</span>
+            <span class="fp-glyph-card-en">THROUGH THEIR EYES</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- 底部收尾錾刻印章，呼应好友页末尾装饰语言 -->
+      <div class="fp-foot-mark" aria-hidden="true">
+        <span class="fp-foot-line"></span>
+        <span class="fp-foot-seal">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L13.8 9.2L21 12L13.8 14.8L12 22L10.2 14.8L3 12L10.2 9.2L12 2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="fp-foot-line"></span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ============ 底部导航栏 ============ -->
+  <nav class="tabbar" id="tabbar">
+    <div class="tab-dock-wrap">
+      <!-- 墨玺随选中项横移，位于台面之外的独立层，可自由溢出台面顶部 -->
+      <div class="tab-rail" id="tabRail" aria-hidden="true">
+        <span class="rail-plinth" aria-hidden="true"></span>
+        <span class="rail-chip">
+          <span class="rail-halo" aria-hidden="true"></span>
+        </span>
+      </div>
+
+    <div class="tab-dock" id="tabDock">
+
+      <button class="tab-item tab-active" data-tab="messages">
+        <span class="tab-glyph-wrap">
+          <svg class="tab-glyph" width="23" height="23" viewBox="0 0 24 24" fill="none">
+            <path class="glyph-fill" d="M5 4.6H15.4L19.4 8.6V19.4H5V4.6Z" fill="currentColor" fill-opacity="0.4"/>
+            <path class="glyph-stroke" d="M5 4.6H15.4L19.4 8.6V19.4H5V4.6Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+            <path class="glyph-stroke" d="M15.4 4.6V8.6H19.4" stroke="currentColor" stroke-width="1.15" stroke-linejoin="round"/>
+            <path class="glyph-accent" d="M8 12.2H16.4M8 15.6H13.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="tab-caption">消息</span>
+      </button>
+
+      <button class="tab-item" data-tab="friends">
+        <span class="tab-glyph-wrap">
+          <svg class="tab-glyph" width="23" height="23" viewBox="0 0 24 24" fill="none">
+            <path class="glyph-fill" d="M8.3 4L13.4 6.9V12.7L8.3 15.6L3.2 12.7V6.9L8.3 4Z" fill="currentColor" fill-opacity="0.38"/>
+            <path class="glyph-stroke" d="M8.3 4L13.4 6.9V12.7L8.3 15.6L3.2 12.7V6.9L8.3 4Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+            <path class="glyph-fill" d="M15.7 8.4L20.8 11.3V17.1L15.7 20L10.6 17.1V11.3L15.7 8.4Z" fill="currentColor" fill-opacity="0.38"/>
+            <path class="glyph-stroke" d="M15.7 8.4L20.8 11.3V17.1L15.7 20L10.6 17.1V11.3L15.7 8.4Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+            <path class="glyph-accent" d="M11.2 10.9L13 11.9" stroke="currentColor" stroke-width="1.05" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="tab-caption">好友</span>
+      </button>
+
+      <button class="tab-item" data-tab="moments">
+        <span class="tab-glyph-wrap">
+          <svg class="tab-glyph" width="23" height="23" viewBox="0 0 24 24" fill="none">
+            <path class="glyph-fill" d="M12 2.6L20.6 7.6V17.6L12 22.6L3.4 17.6V7.6L12 2.6Z" fill="currentColor" fill-opacity="0.34"/>
+            <path class="glyph-stroke" d="M12 2.6L20.6 7.6V17.6L12 22.6L3.4 17.6V7.6L12 2.6Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+            <path class="glyph-stroke" d="M6.8 15.4L10 10.6L12.6 13.4L14.6 10L17.4 14.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle class="glyph-accent" cx="15.2" cy="8.4" r="1.15" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="tab-caption">动态</span>
+      </button>
+
+      <button class="tab-item" data-tab="profile">
+        <span class="tab-glyph-wrap">
+          <svg class="tab-glyph" width="23" height="23" viewBox="0 0 24 24" fill="none">
+            <path class="glyph-fill" d="M12 2L20.4 6.8V16.4L12 21.2L3.6 16.4V6.8L12 2Z" fill="currentColor" fill-opacity="0.4"/>
+            <path class="glyph-stroke" d="M12 2L20.4 6.8V16.4L12 21.2L3.6 16.4V6.8L12 2Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+            <path class="glyph-accent" d="M8.6 8.6H15.4M8.6 11.6H15.4M8.6 14.6H12.6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="tab-caption">我的</span>
+      </button>
+    </div>
+    </div>
+  </nav>
+
+  <!-- ============ 发布动态弹窗（点击顶栏"落笔"或身份行"+"触发） ============
+       浅色纸面底部弹层：文字输入区 + 图片九宫格选择 + 发布按钮，
+       提交后写入 LunaDB 并实时渲染进故事环与信息流，而非占位动画 -->
+  <div class="compose-modal" id="composeModal">
+    <div class="compose-modal-scrim" id="composeScrim"></div>
+    <div class="compose-modal-sheet">
+      <div class="upload-modal-grip"></div>
+
+      <div class="compose-head">
+        <span class="compose-head-num">04</span>
+        <span class="compose-head-col">
+          <span class="compose-head-cn">落笔</span>
+          <span class="compose-head-en">NEW&nbsp;MOMENT</span>
+        </span>
+      </div>
+
+      <div class="compose-author-row">
+        <div class="compose-author-avatar" id="composeAuthorAvatar"></div>
+        <span class="compose-author-name" id="composeAuthorName">用户昵称</span>
+      </div>
+
+      <textarea class="compose-textarea" id="composeTextarea" placeholder="此刻的想法……" maxlength="500" rows="4"></textarea>
+
+      <div class="compose-photo-grid" id="composePhotoGrid">
+        <button class="compose-photo-add" id="composePhotoAdd" aria-label="添加图片">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>添加图片</span>
+        </button>
+      </div>
+      <input type="file" id="composePhotoInput" accept="image/*" multiple style="display:none" />
+
+      <div class="compose-foot-row">
+        <span class="compose-foot-hint">最多 9 张图片 · 仅自己可见的草稿将被丢弃</span>
+      </div>
+
+      <button class="compose-submit" id="composeSubmit">发布动态</button>
+    </div>
+  </div>
+
+  <!-- ============ 照片上传弹窗（点击照片堆叠触发） ============ -->
+  <div class="upload-modal" id="uploadModal">
+    <div class="upload-modal-scrim" id="uploadScrim"></div>
+    <div class="upload-modal-sheet">
+      <div class="upload-modal-grip"></div>
+      <div class="upload-modal-title">替换照片</div>
+      <div class="upload-modal-desc">选择一个位置上传新照片，最多三张</div>
+      <div class="upload-modal-grid" id="uploadGrid">
+        <button class="upload-slot" data-slot="0"><span class="upload-slot-num">01</span></button>
+        <button class="upload-slot" data-slot="1"><span class="upload-slot-num">02</span></button>
+        <button class="upload-slot" data-slot="2"><span class="upload-slot-num">03</span></button>
+      </div>
+      <button class="upload-modal-close" id="uploadClose">完成</button>
+      <input type="file" id="uploadFileInput" accept="image/*" style="display:none" />
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="chat.js"></script>
+<script src="chat-conversation.js"></script>
+<script src="chat-picker.js"></script>
+<script src="friend-profile.js"></script>
+</body>
+</html>

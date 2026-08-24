@@ -1,0 +1,298 @@
+/* ==========================================================================
+   chat-conversation.css
+   单聊创建 · 角色书选择页 + 单聊会话详情页
+   延续 chat.css 的"一纸到底"黑白灰浅色系语言：不新增任何色相，
+   不使用 emoji / 米色，所有卡片质感（多层描边、软投影、衬线数字徽记）
+   均与好友页 / 消息页保持同一套视觉词汇，确保拼接处零缝隙。
+========================================================================== */
+
+/* ============================================================
+   通用：子页面容器 —— 与 .page 共享同一套滑入/滑出动效语言，
+   但作为"次级页"独立于 tab 切换体系之外，靠 is-open 类控制，
+   叠加在 .pages-root 之上，权当第五张纸面，颜色/字体/间距
+   与其余四页完全同源，切换时不露出任何拼接痕迹。
+============================================================ */
+.subpage{
+  position:absolute;
+  /* 从真实状态栏下沿开始铺开，而不是从0开始盖住整个屏幕——
+     这样系统状态栏（时钟/信号/电量，z-index:200）始终露在
+     最上层，子页永远与主系统时间保持同步，不会出现"子页里
+     状态栏空白/不同步"的问题 */
+  top: var(--status-h); left:0; right:0; bottom:0;
+  z-index:120;
+  background: var(--sheet);
+  opacity:0;
+  transform: translateY(14px);
+  pointer-events:none;
+  transition: opacity 0.4s cubic-bezier(.4,0,.2,1), transform 0.4s cubic-bezier(.4,0,.2,1);
+  display:flex;
+  flex-direction:column;
+}
+.subpage.is-open{
+  opacity:1;
+  transform: translateY(0);
+  pointer-events:auto;
+}
+
+/* 子页顶部：子页容器本身已从状态栏下沿起排（见 .subpage），
+   故这里只需再让出一个顶栏高度即可，与真实顶栏在视觉上无缝衔接 */
+.subpage-top{
+  flex-shrink:0;
+  height: var(--topbar-h);
+  position:relative;
+  display:flex; align-items:flex-end;
+}
+.subpage-topbar{
+  width:100%;
+  height: var(--topbar-h);
+  display:flex; align-items:center;
+  padding: 0 20px;
+  position:relative;
+}
+.subpage-back{
+  width:32px; height:32px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color: var(--ink-soft);
+  background: rgba(255,255,255,0.5);
+  border:1px solid var(--hair);
+  flex-shrink:0;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.subpage-back:active{ transform: scale(0.88); background: rgba(20,20,26,0.06); }
+
+.subpage-title-wrap{
+  position:absolute; left:0; right:0; top:0; bottom:0;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+.subpage-title-seal{
+  display:flex; align-items:center; gap:9px;
+  padding:6px 14px 6px 6px;
+  border-radius:999px;
+  background: linear-gradient(165deg, #ffffff, #f2f2f5);
+  border:1px solid var(--hair);
+  box-shadow: 0 6px 16px -12px rgba(20,20,26,0.3), 0 1px 0 0 rgba(255,255,255,0.8) inset;
+}
+.sts-num{
+  width:22px; height:22px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Space Mono', monospace;
+  font-size:9.5px;
+  color: var(--paper-2);
+  background: linear-gradient(150deg, var(--ink-soft), var(--ink));
+}
+.sts-col{ display:flex; flex-direction:column; gap:1px; }
+.sts-cn{ font-size:12.5px; font-weight:700; color: var(--ink); letter-spacing:0.02em; }
+.sts-en{ font-family:'Space Mono', monospace; font-size:7.5px; letter-spacing:0.18em; color: var(--grey-3); }
+
+.subpage-body{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding: 4px 22px 40px;
+}
+.subpage-body::-webkit-scrollbar{ display:none; }
+
+/* ============================================================
+   角色选择页（角色书 → 单聊）
+   卡片语言呼应 characters.js 中 .ch-card 的横幅+头像结构，
+   但压缩为紧凑列表行，适配"选择后即创建"的一步式流程
+============================================================ */
+.cp-hint{
+  padding: 10px 2px 18px;
+  font-size:12px;
+  line-height:1.6;
+  color: var(--grey-1);
+  letter-spacing:0.01em;
+}
+.cp-hint b{ color: var(--ink-soft); font-weight:600; }
+
+.cp-search{
+  display:flex; align-items:center; gap:9px;
+  padding: 12px 15px;
+  border-radius:16px;
+  background: var(--paper-2);
+  border:1px solid var(--hair);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.8) inset;
+  margin-bottom:18px;
+  color: var(--grey-2);
+}
+.cp-search input{
+  flex:1; min-width:0;
+  border:none; outline:none; background:none;
+  font-size:13px; color: var(--ink);
+  font-family:inherit;
+}
+.cp-search input::placeholder{ color: var(--grey-3); }
+
+.cp-section-label{
+  display:flex; align-items:baseline; justify-content:space-between;
+  margin: 4px 2px 12px;
+}
+.cp-section-cn{ font-size:12.5px; font-weight:700; color: var(--ink-soft); letter-spacing:0.03em; }
+.cp-section-count{ font-family:'Space Mono', monospace; font-size:9.5px; color: var(--grey-3); }
+
+.cp-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.cp-card{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding: 14px 16px;
+  border-radius:20px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
+  border:1px solid var(--hair);
+  box-shadow: 0 10px 24px -18px rgba(20,20,26,0.24), 0 1px 0 0 rgba(255,255,255,0.8) inset;
+  cursor:pointer;
+  transition: transform 0.22s cubic-bezier(.34,1.4,.64,1), box-shadow 0.22s ease, border-color 0.22s ease;
+  text-align:left;
+  width:100%;
+}
+.cp-card:active{ transform: scale(0.97); }
+.cp-card.is-picked{
+  border-color: rgba(20,20,26,0.28);
+  box-shadow: 0 14px 28px -18px rgba(20,20,26,0.32), 0 0 0 1.5px var(--ink-soft) inset;
+}
+
+.cp-avatar{
+  position:relative;
+  flex-shrink:0;
+  width:52px; height:52px;
+  border-radius:17px;
+  overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(150deg, #6c6c74, #232327);
+  box-shadow: 0 6px 14px -8px rgba(20,20,28,0.34), 0 0 0 1px rgba(255,255,255,0.6);
+}
+.cp-avatar img{ width:100%; height:100%; object-fit:cover; }
+.cp-avatar-letter{
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:19px;
+  color:#f4f4f6;
+}
+
+.cp-body{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.cp-name-row{ display:flex; align-items:center; gap:7px; }
+.cp-name{
+  font-size:15px; font-weight:600; color: var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  letter-spacing:0.01em;
+}
+.cp-role-tag{
+  flex-shrink:0;
+  padding:1.5px 7px;
+  border-radius:6px;
+  background: rgba(20,20,26,0.06);
+  color: var(--grey-1);
+  font-size:9px; font-weight:600; letter-spacing:0.04em;
+}
+.cp-desc{
+  font-size:12px; color: var(--grey-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  letter-spacing:0.01em;
+}
+.cp-traits{
+  display:flex; gap:5px; flex-wrap:wrap;
+  margin-top:1px;
+}
+.cp-trait{
+  font-size:9.5px;
+  padding:2px 7px;
+  border-radius:999px;
+  background: var(--grey-5);
+  color: var(--grey-1);
+  letter-spacing:0.02em;
+}
+
+.cp-arrow{
+  flex-shrink:0;
+  width:26px; height:26px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-3);
+  background: var(--grey-5);
+  transition: background 0.22s ease, color 0.22s ease, transform 0.22s ease;
+}
+.cp-card.is-picked .cp-arrow{
+  background: linear-gradient(150deg, var(--ink-soft), var(--ink));
+  color:#fff;
+  transform: scale(1.06);
+}
+
+/* 空态：角色书里一个角色都没有时 */
+.cp-empty{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center;
+  padding: 60px 20px 30px;
+  color: var(--grey-2);
+}
+.cp-empty-ring{
+  position:relative;
+  width:58px; height:58px;
+  border-radius:50%;
+  border:1.4px dashed rgba(20,20,26,0.18);
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:16px;
+}
+.cp-empty-dot{ width:7px; height:7px; border-radius:50%; background: var(--grey-3); }
+.cp-empty-cn{ font-size:14px; font-weight:600; color: var(--ink-soft); margin-bottom:6px; }
+.cp-empty-desc{ font-size:12px; color: var(--grey-3); line-height:1.6; max-width:220px; }
+
+/* 底部确认条：吸底浮起，仅在选中角色后出现 */
+.cp-confirm-bar{
+  flex-shrink:0;
+  padding: 12px 22px calc(18px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, rgba(246,246,248,0) 0%, #f6f6f8 32%);
+}
+.cp-confirm-btn{
+  width:100%;
+  padding: 15px;
+  border-radius:18px;
+  background: linear-gradient(165deg, #2c2c30, #101012);
+  color:#f4f4f6;
+  font-size:14.5px;
+  font-weight:600;
+  letter-spacing:0.03em;
+  display:flex; align-items:center; justify-content:center;
+  gap:8px;
+  box-shadow: 0 16px 30px -16px rgba(16,16,18,0.5);
+  opacity:0.4;
+  pointer-events:none;
+  transform: translateY(6px);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+.cp-confirm-bar.is-ready .cp-confirm-btn{
+  opacity:1;
+  pointer-events:auto;
+  transform: translateY(0);
+}
+.cp-confirm-btn:active{ transform: scale(0.97); }
+
+/* ============================================================
+   注：单聊会话详情页（聊天室 UI）样式已整体移除。
+   聊天室是需要单独设计的独立模块，暂不与"角色书 → 单聊"
+   这一步的创建流程绑定，避免半成品聊天界面抢先上线。
+   待聊天室页面正式设计完成后，再在此处重新接入对应样式。
+============================================================ */
+
+/* ============================================================
+   好友页：全部好友（内置分类标签）——复用 .fgroup 卡片语言，
+   与"星标挚友""我的好友"完全同源，仅在组头追加一枚小圆点徽标
+   区分"聚合视图"身份，不引入新色相
+============================================================ */
+.fgroup[data-group="__all__"] .fgroup-numeral-glyph{ font-style:normal; }

@@ -1,0 +1,794 @@
+/* ================================================================
+   糖罐 TANGGUAN — tangguan.css
+   黑白灰 · 偏白浅色 · 韩系高级华丽
+   全部命名以 tg- 前缀，避免与 Luna 原有样式冲突
+================================================================ */
+
+:root {
+  --tg-status-h: 52px;
+  --tg-nav-h: 74px;
+  --tg-nav-bottom: 18px;
+  --tg-nav-pad: calc(var(--tg-nav-h) + var(--tg-nav-bottom) + 14px);
+
+  --tg-ink:    #16161a;
+  --tg-ink-2:  #2c2c33;
+  --tg-ink-3:  #4a4a54;
+  --tg-mist:   #74747f;
+  --tg-mist-2: #9a9aa4;
+  --tg-line:   rgba(22,22,26,0.085);
+  --tg-line-2: rgba(22,22,26,0.16);
+  --tg-paper:  #f2f2f4;
+  --tg-snow:   #ffffff;
+
+  --tg-glass:  rgba(255,255,255,0.74);
+  --tg-glass-2:rgba(255,255,255,0.52);
+
+  --tg-shadow-s: 0 2px 10px rgba(22,22,30,0.06);
+  --tg-shadow-m: 0 10px 30px -12px rgba(22,22,30,0.20), 0 2px 8px rgba(22,22,30,0.05);
+  --tg-shadow-l: 0 26px 60px -22px rgba(22,22,30,0.34), 0 6px 18px rgba(22,22,30,0.07);
+
+  --tg-ease:   cubic-bezier(0.32, 0.72, 0.28, 1);
+  --tg-spring: cubic-bezier(0.34, 1.56, 0.44, 1);
+
+  --tg-serif: 'Noto Serif SC', 'Songti SC', 'Times New Roman', serif;
+  --tg-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --tg-mono:  'Space Mono', 'SF Mono', Menlo, monospace;
+}
+
+@media (max-height: 750px) { :root { --tg-nav-h: 68px; --tg-nav-bottom: 12px; } }
+@media (max-height: 660px) { :root { --tg-nav-h: 62px; --tg-nav-bottom: 8px; } }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  min-height: 100vh;
+  background: #e8eaf0;
+  font-family: var(--tg-sans);
+  overscroll-behavior: none;
+  color: var(--tg-ink);
+}
+
+/* ================================================================
+   外框 + 底纹
+================================================================ */
+.tg-wrap { display: flex; width: 100vw; height: 100vh; overflow: hidden; }
+
+.tg-frame {
+  position: relative;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 78% 58% at 14% 4%,  #ffffff 0%, transparent 60%),
+    radial-gradient(ellipse 70% 55% at 92% 98%, #c6c7cd 0%, transparent 58%),
+    linear-gradient(163deg, #fafafb 0%, #eeeef1 46%, #dededf 100%);
+}
+
+/* 缓慢漂移的珍珠光 —— 只动 background-position，GPU 合成，不发烫 */
+.tg-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.tg-fx::before, .tg-fx::after { content: ''; position: absolute; inset: -25%; will-change: background-position; }
+.tg-fx::before {
+  background:
+    radial-gradient(ellipse 40% 32% at 22% 24%, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.3) 46%, transparent 68%),
+    radial-gradient(ellipse 44% 36% at 76% 72%, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.2) 45%, transparent 66%);
+  background-size: 150% 150%, 160% 160%;
+  filter: blur(10px);
+  animation: tgDriftA 32s ease-in-out infinite alternate;
+}
+.tg-fx::after {
+  background:
+    radial-gradient(ellipse 46% 38% at 86% 14%, rgba(126,128,138,0.42) 0%, transparent 62%),
+    radial-gradient(ellipse 42% 34% at 8% 86%,  rgba(104,106,118,0.36) 0%, transparent 60%);
+  background-size: 155% 155%, 165% 165%;
+  filter: blur(15px);
+  animation: tgDriftB 40s ease-in-out infinite alternate;
+}
+@keyframes tgDriftA { 0%{background-position:0% 10%,100% 90%} 50%{background-position:35% 45%,65% 55%} 100%{background-position:70% 15%,30% 85%} }
+@keyframes tgDriftB { 0%{background-position:100% 0%,0% 100%} 50%{background-position:55% 40%,45% 60%} 100%{background-position:5% 85%,95% 15%} }
+
+/* 细颗粒纸感（去线条化的关键：用噪点而非描边制造质感） */
+.tg-grain {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0.5;
+  background-image:
+    radial-gradient(rgba(30,30,40,0.055) 0.5px, transparent 0.5px),
+    radial-gradient(rgba(255,255,255,0.5) 0.5px, transparent 0.5px);
+  background-size: 3px 3px, 3px 3px;
+  background-position: 0 0, 1.5px 1.5px;
+}
+
+/* ================================================================
+   状态栏 —— 与 Luna style.css 完全同步的规格（52px / 15px 时间 /
+   四格信号 / 电池外壳+绿芯），仅改名前缀避免冲突。
+   每一页共用这一个，且背景直接透出，绝不出现分割线。
+================================================================ */
+.tg-status-bar {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: var(--tg-status-h);
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 0 22px 9px;
+  z-index: 90;
+  pointer-events: none;
+  background: transparent;
+}
+.tg-status-time { font-size: 15px; font-weight: 600; color: #2a2a40; letter-spacing: 0.2px; }
+.tg-status-right { display: flex; align-items: center; gap: 7px; }
+.tg-signal { display: flex; align-items: flex-end; gap: 2px; height: 13px; }
+.tg-signal i { display: block; width: 2.5px; border-radius: 1px; background: #3a3a55; opacity: 0.85; }
+.tg-signal i:nth-child(1) { height: 4px; }
+.tg-signal i:nth-child(2) { height: 7px; }
+.tg-signal i:nth-child(3) { height: 10px; }
+.tg-signal i:nth-child(4) { height: 13px; }
+.tg-battery { display: flex; align-items: center; gap: 3px; }
+.tg-bat-pct { font-size: 14px; font-weight: 600; color: #3a3a55; opacity: 0.85; }
+.tg-bat-shell { width: 24px; height: 12px; border: 1.5px solid rgba(55,55,80,0.5); border-radius: 3.5px; padding: 1.5px; position: relative; }
+.tg-bat-inner { width: 76%; height: 100%; border-radius: 1.5px; background: linear-gradient(90deg,#6ee7b7,#34d399); }
+.tg-bat-nub { position: absolute; right: -4px; top: 50%; transform: translateY(-50%); width: 2.5px; height: 5px; background: rgba(55,55,80,0.4); border-radius: 0 2px 2px 0; }
+
+/* 状态栏在深色背景页上的反色 */
+.tg-frame.on-dark .tg-status-time,
+.tg-frame.on-dark .tg-bat-pct { color: #fff; }
+.tg-frame.on-dark .tg-signal i { background: #fff; }
+.tg-frame.on-dark .tg-bat-shell { border-color: rgba(255,255,255,0.6); }
+.tg-frame.on-dark .tg-bat-nub { background: rgba(255,255,255,0.5); }
+
+/* ================================================================
+   屏幕容器与路由动画
+================================================================ */
+.tg-viewport { position: absolute; inset: 0; z-index: 5; overflow: hidden; }
+
+.tg-screen {
+  position: absolute; inset: 0;
+  padding-top: var(--tg-status-h);
+  overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  opacity: 0; visibility: hidden;
+  transform: translateX(26px) scale(0.985);
+  transition: opacity .34s var(--tg-ease), transform .42s var(--tg-ease), visibility .34s;
+}
+.tg-screen.active { opacity: 1; visibility: visible; transform: none; }
+.tg-screen.leaving-left { transform: translateX(-22px) scale(0.985); }
+.tg-screen.has-nav { padding-bottom: var(--tg-nav-pad); }
+.tg-screen::-webkit-scrollbar { width: 0; }
+
+.tg-inner { padding: 6px 20px 30px; position: relative; z-index: 2; }
+
+/* 逐项浮现 */
+.tg-rise { opacity: 0; transform: translateY(16px); animation: tgRise .62s var(--tg-ease) forwards; }
+@keyframes tgRise { to { opacity: 1; transform: none; } }
+.tg-d1{animation-delay:.04s}.tg-d2{animation-delay:.10s}.tg-d3{animation-delay:.16s}
+.tg-d4{animation-delay:.22s}.tg-d5{animation-delay:.28s}.tg-d6{animation-delay:.34s}
+.tg-d7{animation-delay:.40s}.tg-d8{animation-delay:.46s}
+
+/* ================================================================
+   页头（华丽版：衬线大标题 + 编号水印 + 弧线装饰）
+================================================================ */
+.tg-head { position: relative; padding: 18px 0 20px; }
+.tg-head-eyebrow {
+  font-family: var(--tg-mono); font-size: 9px; letter-spacing: 0.34em;
+  text-transform: uppercase; color: var(--tg-mist-2);
+}
+.tg-head-title {
+  font-family: var(--tg-serif); font-weight: 600;
+  font-size: 30px; line-height: 1.14; letter-spacing: 0.02em;
+  color: var(--tg-ink); margin-top: 8px;
+  background: linear-gradient(122deg, #101014 0%, #3d3d46 44%, #16161a 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.tg-head-sub { margin-top: 9px; font-size: 12px; line-height: 1.75; color: var(--tg-mist); letter-spacing: 0.03em; max-width: 84%; }
+.tg-head-num {
+  position: absolute; top: 4px; right: -4px;
+  font-family: var(--tg-serif); font-size: 68px; font-style: italic; font-weight: 600;
+  color: rgba(22,22,30,0.045); letter-spacing: -0.04em; pointer-events: none; user-select: none;
+}
+.tg-head-arc { position: absolute; top: -30px; right: -46px; width: 150px; height: 150px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 32% 34%, rgba(255,255,255,0.95), rgba(255,255,255,0) 62%); }
+
+/* 返回条 */
+.tg-topbar {
+  position: sticky; top: calc(-1 * var(--tg-status-h)); z-index: 40;
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(var(--tg-status-h) + 10px) 20px 12px;
+  margin: calc(-1 * var(--tg-status-h)) -20px 4px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4) 55%, rgba(255,255,255,0) 100%);
+  backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%);
+}
+.tg-back {
+  width: 38px; height: 38px; flex: 0 0 38px; border-radius: 13px; border: none;
+  background: linear-gradient(158deg, #ffffff, #eeeef1);
+  box-shadow: var(--tg-shadow-s), inset 0 1px 0 rgba(255,255,255,0.9);
+  display: grid; place-items: center; cursor: pointer;
+  transition: transform .3s var(--tg-spring), box-shadow .3s;
+}
+.tg-back:active { transform: scale(0.9) translateX(-2px); }
+.tg-back svg { width: 16px; height: 16px; }
+.tg-topbar-title { font-family: var(--tg-serif); font-size: 16px; font-weight: 600; letter-spacing: 0.06em; }
+.tg-topbar-step { margin-left: auto; font-family: var(--tg-mono); font-size: 10px; letter-spacing: 0.18em; color: var(--tg-mist-2); }
+
+/* ================================================================
+   底部导航栏 —— 主角
+   浮空胶囊 / 液态形变指示块 / 糖粒迸发 / 图标升起 / 光泽扫过
+================================================================ */
+.tg-nav {
+  position: absolute; left: 16px; right: 16px; bottom: var(--tg-nav-bottom);
+  height: var(--tg-nav-h);
+  z-index: 80;
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.66) 46%, rgba(243,243,246,0.86) 100%);
+  backdrop-filter: blur(26px) saturate(180%); -webkit-backdrop-filter: blur(26px) saturate(180%);
+  box-shadow:
+    0 22px 46px -20px rgba(20,20,28,0.42),
+    0 4px 14px rgba(20,20,28,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.98),
+    inset 0 -1px 0 rgba(255,255,255,0.5);
+  overflow: hidden;
+  transform: translateY(0);
+  transition: transform .46s var(--tg-ease), opacity .34s;
+}
+.tg-nav.hidden { transform: translateY(calc(100% + 26px)); opacity: 0; pointer-events: none; }
+
+/* 顶部一层珠光扫过 */
+.tg-nav::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(104deg, transparent 30%, rgba(255,255,255,0.85) 47%, transparent 64%);
+  background-size: 260% 100%;
+  animation: tgSheen 9s ease-in-out infinite;
+}
+@keyframes tgSheen { 0%,100% { background-position: 168% 0; } 55% { background-position: -68% 0; } }
+
+/* 导航噪点，避免"纯净简约" */
+.tg-nav::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.42;
+  background-image: radial-gradient(rgba(30,30,40,0.07) 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
+}
+
+.tg-nav-items { position: relative; z-index: 3; height: 100%; display: flex; }
+
+/* 液态指示块：在切换时被拉伸挤压，落位回弹 */
+.tg-nav-blob {
+  position: absolute; z-index: 1; top: 8px; height: calc(100% - 16px);
+  border-radius: 20px;
+  background: linear-gradient(168deg, #21212a 0%, #3c3c47 52%, #191920 100%);
+  box-shadow: 0 10px 22px -10px rgba(20,20,28,0.72), inset 0 1px 0 rgba(255,255,255,0.22);
+  transition: left .56s var(--tg-spring), width .56s var(--tg-spring), transform .5s var(--tg-ease);
+}
+.tg-nav-blob::after {
+  content: ''; position: absolute; inset: 1px; border-radius: 19px; pointer-events: none;
+  background: radial-gradient(ellipse 70% 46% at 50% 0%, rgba(255,255,255,0.24), transparent 66%);
+}
+.tg-nav-blob.travel { transform: scaleX(1.16) scaleY(0.9); }
+
+.tg-tab {
+  position: relative; z-index: 2; flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; border: none; background: transparent; cursor: pointer; padding: 0;
+}
+.tg-tab-ico {
+  width: 23px; height: 23px; display: block; color: var(--tg-ink-3);
+  transition: transform .5s var(--tg-spring), color .34s var(--tg-ease), opacity .3s;
+}
+.tg-tab-txt {
+  font-size: 9.5px; letter-spacing: 0.2em; font-weight: 600;
+  color: var(--tg-mist-2); text-indent: 0.2em;
+  transition: color .34s, transform .46s var(--tg-spring), opacity .3s;
+}
+.tg-tab:active .tg-tab-ico { transform: scale(0.82); }
+
+.tg-tab.on .tg-tab-ico { color: #fff; transform: translateY(-2px) scale(1.1); }
+.tg-tab.on .tg-tab-txt { color: rgba(255,255,255,0.94); transform: translateY(-1px); }
+
+/* 选中时糖粒迸发 */
+.tg-spark { position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; border-radius: 50%;
+  background: #fff; pointer-events: none; opacity: 0; }
+.tg-tab.burst .tg-spark { animation: tgBurst .72s var(--tg-ease) forwards; }
+.tg-tab.burst .tg-spark:nth-child(1) { --bx: -20px; --by: -16px; animation-delay: .02s; }
+.tg-tab.burst .tg-spark:nth-child(2) { --bx:  19px; --by: -18px; animation-delay: .05s; }
+.tg-tab.burst .tg-spark:nth-child(3) { --bx: -24px; --by:  12px; animation-delay: .00s; }
+.tg-tab.burst .tg-spark:nth-child(4) { --bx:  23px; --by:  13px; animation-delay: .07s; }
+.tg-tab.burst .tg-spark:nth-child(5) { --bx:   0px; --by: -25px; animation-delay: .04s; }
+.tg-tab.burst .tg-spark:nth-child(6) { --bx:  -6px; --by:  22px; animation-delay: .09s; }
+@keyframes tgBurst {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.2); }
+  22%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--bx)), calc(-50% + var(--by))) scale(0.34); }
+}
+
+/* 选中图标外的柔光晕 */
+.tg-tab-halo {
+  position: absolute; left: 50%; top: 44%; width: 46px; height: 46px; margin: -23px 0 0 -23px;
+  border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.34) 0%, transparent 68%);
+  transition: opacity .5s;
+}
+.tg-tab.on .tg-tab-halo { opacity: 1; }
+
+/* ================================================================
+   通用卡片 / 按钮 / 表单
+================================================================ */
+.tg-card {
+  position: relative; border-radius: 22px; overflow: hidden;
+  background: linear-gradient(160deg, rgba(255,255,255,0.95) 0%, rgba(249,249,251,0.82) 52%, rgba(238,238,242,0.9) 100%);
+  box-shadow: var(--tg-shadow-m), inset 0 1px 0 rgba(255,255,255,0.96);
+  transition: transform .42s var(--tg-ease), box-shadow .42s var(--tg-ease);
+}
+.tg-card::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.4;
+  background-image: radial-gradient(rgba(30,30,40,0.06) 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
+}
+.tg-card:active { transform: scale(0.985); }
+
+/* 卡片角落装饰（对抗"线条感简约"） */
+.tg-corner { position: absolute; width: 74px; height: 74px; pointer-events: none; opacity: .55; }
+.tg-corner.tr { top: -26px; right: -26px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 66%, rgba(255,255,255,0.98), rgba(255,255,255,0) 66%); }
+.tg-corner.bl { bottom: -30px; left: -30px; border-radius: 50%;
+  background: radial-gradient(circle at 66% 30%, rgba(150,152,166,0.24), rgba(255,255,255,0) 68%); }
+.tg-dots { position: absolute; top: 14px; right: 14px; display: grid; grid-template-columns: repeat(3,1fr); gap: 3.5px; pointer-events: none; }
+.tg-dots span { width: 3px; height: 3px; border-radius: 50%; background: rgba(60,60,80,0.15); }
+
+.tg-btn {
+  border: none; cursor: pointer; border-radius: 16px;
+  font-family: var(--tg-sans); font-size: 13px; font-weight: 600; letter-spacing: 0.12em;
+  padding: 15px 22px; width: 100%;
+  transition: transform .34s var(--tg-spring), box-shadow .34s, opacity .3s;
+}
+.tg-btn-dark {
+  color: #fff;
+  background: linear-gradient(168deg, #23232c 0%, #3d3d48 50%, #1a1a21 100%);
+  box-shadow: 0 14px 28px -14px rgba(20,20,28,0.8), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.tg-btn-light {
+  color: var(--tg-ink);
+  background: linear-gradient(160deg, #ffffff, #ececf0);
+  box-shadow: var(--tg-shadow-s), inset 0 1px 0 rgba(255,255,255,0.95);
+}
+.tg-btn:active { transform: scale(0.965); }
+.tg-btn:disabled { opacity: 0.36; pointer-events: none; }
+.tg-btn-row { display: flex; gap: 10px; }
+
+.tg-field { margin-top: 16px; }
+.tg-label {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.16em; color: var(--tg-ink-2);
+  margin-bottom: 4px;
+}
+.tg-label small { font-family: var(--tg-mono); font-size: 8.5px; letter-spacing: 0.2em; color: var(--tg-mist-2); text-transform: uppercase; }
+.tg-hint { font-size: 10.5px; line-height: 1.7; color: var(--tg-mist); margin-bottom: 10px; }
+
+.tg-input, .tg-textarea {
+  width: 100%; border: none; outline: none;
+  font-family: var(--tg-sans); font-size: 13px; color: var(--tg-ink);
+  padding: 14px 16px; border-radius: 15px;
+  background: linear-gradient(160deg, #ffffff, #f2f2f5);
+  box-shadow: inset 0 2px 6px rgba(20,20,30,0.06), inset 0 0 0 1px rgba(20,20,30,0.05);
+  transition: box-shadow .34s;
+}
+.tg-textarea { min-height: 92px; resize: vertical; line-height: 1.75; }
+.tg-input:focus, .tg-textarea:focus {
+  box-shadow: inset 0 2px 6px rgba(20,20,30,0.05), inset 0 0 0 1.6px rgba(30,30,40,0.42), 0 0 0 4px rgba(30,30,40,0.05);
+}
+.tg-input::placeholder, .tg-textarea::placeholder { color: var(--tg-mist-2); }
+
+/* 选项胶囊（预设 + 自定义） */
+.tg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.tg-chip {
+  border: none; cursor: pointer; border-radius: 13px;
+  padding: 10px 14px; font-size: 12px; font-weight: 500; letter-spacing: 0.06em;
+  color: var(--tg-ink-3);
+  background: linear-gradient(160deg, #ffffff, #eeeef2);
+  box-shadow: var(--tg-shadow-s), inset 0 1px 0 rgba(255,255,255,0.95);
+  transition: all .34s var(--tg-ease);
+  position: relative; overflow: hidden;
+}
+.tg-chip:active { transform: scale(0.94); }
+.tg-chip.on {
+  color: #fff;
+  background: linear-gradient(168deg, #22222b 0%, #3c3c48 55%, #1a1a20 100%);
+  box-shadow: 0 10px 20px -10px rgba(20,20,28,0.72), inset 0 1px 0 rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+.tg-chip.add { color: var(--tg-mist); font-family: var(--tg-mono); letter-spacing: 0.14em; font-size: 11px; }
+
+/* 折叠区块 */
+.tg-sec { margin-top: 14px; border-radius: 20px; overflow: hidden; background: linear-gradient(160deg, rgba(255,255,255,0.92), rgba(240,240,244,0.86));
+  box-shadow: var(--tg-shadow-s), inset 0 1px 0 rgba(255,255,255,0.94); }
+.tg-sec-head { display: flex; align-items: center; gap: 10px; padding: 16px 18px; cursor: pointer; }
+.tg-sec-idx { font-family: var(--tg-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--tg-mist-2); }
+.tg-sec-name { font-size: 13px; font-weight: 600; letter-spacing: 0.1em; }
+.tg-sec-val { margin-left: auto; font-size: 10.5px; color: var(--tg-mist); max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tg-sec-caret { width: 14px; height: 14px; color: var(--tg-mist-2); transition: transform .4s var(--tg-ease); flex: 0 0 14px; }
+.tg-sec.open .tg-sec-caret { transform: rotate(90deg); }
+.tg-sec-body { max-height: 0; overflow: hidden; transition: max-height .5s var(--tg-ease), opacity .4s; opacity: 0; }
+.tg-sec.open .tg-sec-body { max-height: 1600px; opacity: 1; }
+.tg-sec-inner { padding: 0 18px 18px; }
+
+/* ================================================================
+   笔坊 — 工作台
+================================================================ */
+.tg-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 18px; }
+.tg-stat { position: relative; border-radius: 17px; padding: 15px 8px 13px; text-align: center; overflow: hidden;
+  background: linear-gradient(162deg, rgba(255,255,255,0.96), rgba(238,238,243,0.9));
+  box-shadow: var(--tg-shadow-s), inset 0 1px 0 rgba(255,255,255,0.95); }
+.tg-stat b { display: block; font-family: var(--tg-serif); font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+  background: linear-gradient(140deg,#16161c,#4d4d58); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.tg-stat span { display: block; margin-top: 5px; font-size: 9px; letter-spacing: 0.14em; color: var(--tg-mist); }
+
+.tg-entry {
+  position: relative; display: flex; align-items: center; gap: 15px;
+  padding: 20px 18px; margin-top: 12px; border-radius: 22px; cursor: pointer; overflow: hidden;
+  background: linear-gradient(158deg, rgba(255,255,255,0.96) 0%, rgba(246,246,249,0.86) 55%, rgba(234,234,239,0.92) 100%);
+  box-shadow: var(--tg-shadow-m), inset 0 1px 0 rgba(255,255,255,0.96);
+  transition: transform .42s var(--tg-ease), box-shadow .42s;
+}
+.tg-entry:active { transform: scale(0.982); box-shadow: var(--tg-shadow-s); }
+.tg-entry-ico {
+  width: 52px; height: 52px; flex: 0 0 52px; border-radius: 18px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(166deg, #24242e 0%, #3f3f4b 52%, #191920 100%);
+  box-shadow: 0 12px 22px -12px rgba(20,20,28,0.8), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+.tg-entry-ico svg { width: 24px; height: 24px; }
+.tg-entry-main h4 { font-family: var(--tg-serif); font-size: 16px; font-weight: 600; letter-spacing: 0.06em; }
+.tg-entry-main p { margin-top: 5px; font-size: 10.5px; line-height: 1.7; color: var(--tg-mist); }
+.tg-entry-go { margin-left: auto; width: 15px; height: 15px; color: var(--tg-mist-2); transition: transform .4s var(--tg-spring); }
+.tg-entry:active .tg-entry-go { transform: translateX(4px); }
+.tg-entry-tag { position: absolute; top: 14px; right: 14px; font-family: var(--tg-mono); font-size: 8px; letter-spacing: 0.2em; color: var(--tg-mist-2); }
+
+/* ================================================================
+   角色 / 身份 选择卡（人设一律不外露）
+================================================================ */
+.tg-seg { display: flex; gap: 6px; padding: 5px; border-radius: 17px; margin-top: 16px;
+  background: linear-gradient(160deg, rgba(238,238,243,0.94), rgba(228,228,235,0.9));
+  box-shadow: inset 0 2px 6px rgba(20,20,30,0.07); }
+.tg-seg button { flex: 1; border: none; background: transparent; cursor: pointer; padding: 11px 0; border-radius: 13px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--tg-mist);
+  transition: all .38s var(--tg-ease); }
+.tg-seg button.on { color: #fff; background: linear-gradient(168deg,#23232c,#3b3b46);
+  box-shadow: 0 8px 18px -9px rgba(20,20,28,0.7), inset 0 1px 0 rgba(255,255,255,0.2); }
+
+.tg-grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; margin-top: 14px; }
+
+.tg-pcard {
+  position: relative; border-radius: 20px; overflow: hidden; cursor: pointer; padding: 15px 14px 14px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.97) 0%, rgba(244,244,248,0.88) 60%, rgba(232,232,238,0.94) 100%);
+  box-shadow: var(--tg-shadow-m), inset 0 1px 0 rgba(255,255,255,0.96);
+  transition: transform .42s var(--tg-ease), box-shadow .42s;
+}
+.tg-pcard::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .35;
+  background-image: radial-gradient(rgba(30,30,40,0.07) 0.5px, transparent 0.5px); background-size: 3px 3px; }
+.tg-pcard:active { transform: scale(0.968); }
+.tg-pcard.picked {
+  box-shadow: 0 20px 40px -18px rgba(20,20,28,0.5), inset 0 0 0 1.8px rgba(26,26,34,0.86);
+  transform: translateY(-3px);
+}
+.tg-pcard-av {
+  width: 100%; aspect-ratio: 1/1; border-radius: 15px; overflow: hidden; position: relative;
+  background: linear-gradient(158deg, #2a2a33, #4c4c58);
+  display: grid; place-items: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.tg-pcard-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tg-pcard-letter { font-family: var(--tg-serif); font-size: 32px; font-weight: 600; color: rgba(255,255,255,0.9); }
+.tg-pcard-name { margin-top: 11px; font-family: var(--tg-serif); font-size: 15px; font-weight: 600; letter-spacing: 0.04em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tg-pcard-meta { margin-top: 4px; font-size: 10px; color: var(--tg-mist); letter-spacing: 0.06em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tg-pcard-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 9px; }
+.tg-pcard-tags i { font-style: normal; font-size: 9px; letter-spacing: 0.06em; color: var(--tg-ink-3);
+  padding: 4px 8px; border-radius: 8px; background: rgba(30,30,42,0.055); }
+.tg-lock {
+  display: inline-flex; align-items: center; gap: 4px; margin-top: 9px;
+  font-family: var(--tg-mono); font-size: 8px; letter-spacing: 0.16em; color: var(--tg-mist-2);
+}
+.tg-lock svg { width: 9px; height: 9px; }
+.tg-pcard-seat {
+  position: absolute; top: 11px; left: 11px; width: 24px; height: 24px; border-radius: 9px;
+  display: grid; place-items: center; font-family: var(--tg-mono); font-size: 10px; color: #fff;
+  background: linear-gradient(160deg,#22222b,#3d3d49); box-shadow: 0 6px 14px -6px rgba(20,20,28,0.8);
+  opacity: 0; transform: scale(0.4); transition: all .4s var(--tg-spring);
+}
+.tg-pcard.picked .tg-pcard-seat { opacity: 1; transform: none; }
+.tg-pcard-kind { position: absolute; top: 11px; right: 11px; font-family: var(--tg-mono); font-size: 7.5px;
+  letter-spacing: 0.18em; color: var(--tg-mist-2); }
+
+/* 配对预览托盘 —— 直接挂在 .tg-frame 下，与 .tg-screen 平级，
+   绝不在任何滚动容器内部，因此永远贴底、不会被滚动带走 */
+.tg-tray {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 70;
+  padding: 16px 20px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  background: linear-gradient(180deg, rgba(246,246,249,0) 0%, rgba(246,246,249,0.94) 26%, rgba(246,246,249,0.98) 100%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  opacity: 0; visibility: hidden; transform: translateY(14px);
+  transition: opacity .3s var(--tg-ease), transform .34s var(--tg-ease), visibility .3s;
+  pointer-events: none;
+}
+.tg-tray.show { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
+/* 有托盘的页面：内容区滚动范围要给托盘留出空间 */
+#scr-pick .tg-inner { padding-bottom: 132px; }
+.tg-pair { display: flex; align-items: center; gap: 12px; }
+.tg-pair-slot {
+  flex: 1; height: 64px; border-radius: 18px; display: flex; align-items: center; gap: 10px; padding: 0 12px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.96), rgba(236,236,241,0.9));
+  box-shadow: inset 0 2px 6px rgba(20,20,30,0.06), inset 0 0 0 1px rgba(20,20,30,0.05);
+  transition: all .4s var(--tg-ease);
+}
+.tg-pair-slot.filled { box-shadow: var(--tg-shadow-m), inset 0 1px 0 rgba(255,255,255,0.96); }
+.tg-pair-av { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 13px; overflow: hidden;
+  background: linear-gradient(158deg,#2a2a33,#4c4c58); display: grid; place-items: center; }
+.tg-pair-av img { width: 100%; height: 100%; object-fit: cover; }
+.tg-pair-av span { font-family: var(--tg-serif); color: #fff; font-size: 16px; }
+.tg-pair-txt b { display: block; font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; }
+.tg-pair-txt i { display: block; font-style: normal; font-size: 9px; color: var(--tg-mist-2); letter-spacing: 0.14em; margin-top: 3px; }
+.tg-pair-empty { font-family: var(--tg-mono); font-size: 9.5px; letter-spacing: 0.18em; color: var(--tg-mist-2); }
+.tg-pair-x {
+  flex: 0 0 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--tg-serif); font-style: italic; font-size: 15px; color: #fff;
+  background: linear-gradient(160deg,#23232c,#3d3d49);
+  box-shadow: 0 10px 20px -10px rgba(20,20,28,0.8);
+  animation: tgPulse 3.4s ease-in-out infinite;
+}
+@keyframes tgPulse { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.09); } }
+
+/* ================================================================
+   AI 共创结果卡
+================================================================ */
+.tg-ai-card { position: relative; border-radius: 24px; overflow: hidden; margin-top: 14px;
+  background: linear-gradient(158deg, rgba(255,255,255,0.97) 0%, rgba(245,245,249,0.9) 48%, rgba(231,231,238,0.94) 100%);
+  box-shadow: var(--tg-shadow-l), inset 0 1px 0 rgba(255,255,255,0.96); }
+.tg-ai-top { position: relative; padding: 20px 18px 16px; }
+.tg-ai-idx { font-family: var(--tg-serif); font-style: italic; font-size: 46px; font-weight: 600;
+  position: absolute; top: 6px; right: 14px; color: rgba(22,22,30,0.055); }
+.tg-ai-hook {
+  font-family: var(--tg-serif); font-size: 19px; font-weight: 600; line-height: 1.45; letter-spacing: 0.02em;
+  background: linear-gradient(122deg,#101014,#43434e);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.tg-ai-hook em { font-style: italic; opacity: .55; padding: 0 2px; }
+.tg-ai-sub { margin-top: 8px; font-size: 11px; line-height: 1.8; color: var(--tg-mist); }
+.tg-ai-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 18px; }
+.tg-ai-role { border-radius: 16px; padding: 13px 12px; background: rgba(255,255,255,0.72);
+  box-shadow: inset 0 0 0 1px rgba(20,20,30,0.05); }
+.tg-ai-role b { display: block; font-family: var(--tg-serif); font-size: 14px; }
+.tg-ai-role i { display: block; font-style: normal; font-size: 9.5px; color: var(--tg-mist-2); margin-top: 3px; letter-spacing: 0.08em; }
+.tg-ai-role p { margin-top: 8px; font-size: 10.5px; line-height: 1.75; color: var(--tg-ink-3); }
+.tg-ai-body { padding: 14px 18px 18px; }
+.tg-ai-row { margin-top: 12px; }
+.tg-ai-row h6 { font-family: var(--tg-mono); font-size: 8.5px; letter-spacing: 0.24em; color: var(--tg-mist-2); text-transform: uppercase; }
+.tg-ai-row p { margin-top: 6px; font-size: 11.5px; line-height: 1.85; color: var(--tg-ink-2); }
+.tg-ai-scene { margin-top: 7px; padding: 11px 13px; border-radius: 13px; background: rgba(30,30,42,0.045);
+  font-size: 11px; line-height: 1.8; color: var(--tg-ink-2); }
+.tg-ai-quote { font-family: var(--tg-serif); font-size: 12.5px; line-height: 1.85; font-style: italic; color: var(--tg-ink-2);
+  padding-left: 12px; box-shadow: inset 2px 0 0 rgba(30,30,42,0.28); margin-top: 7px; }
+.tg-ai-kw { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tg-ai-kw i { font-style: normal; font-size: 9.5px; padding: 5px 9px; border-radius: 9px; letter-spacing: 0.08em;
+  background: rgba(30,30,42,0.06); color: var(--tg-ink-3); }
+.tg-ai-foot { display: flex; gap: 9px; padding: 0 18px 18px; }
+
+/* 生成中 */
+.tg-loading { padding: 46px 0; text-align: center; }
+.tg-orbit { width: 62px; height: 62px; margin: 0 auto; position: relative; }
+.tg-orbit i { position: absolute; inset: 0; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.4px rgba(30,30,42,0.14); }
+.tg-orbit i:nth-child(1) { animation: tgSpin 2.6s linear infinite; transform: rotateX(62deg); }
+.tg-orbit i:nth-child(2) { animation: tgSpin 3.4s linear infinite reverse; transform: rotateY(62deg); }
+.tg-orbit i:nth-child(3) { inset: 22px; background: linear-gradient(160deg,#22222b,#41414d); box-shadow: 0 8px 18px -8px rgba(20,20,28,0.8);
+  animation: tgPulse 1.8s ease-in-out infinite; }
+@keyframes tgSpin { to { transform: rotate(360deg); } }
+.tg-loading p { margin-top: 18px; font-family: var(--tg-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--tg-mist); }
+
+/* ================================================================
+   上传封面
+================================================================ */
+.tg-up-bg {
+  position: relative; height: 168px; border-radius: 22px; overflow: hidden; cursor: pointer;
+  background: linear-gradient(158deg, #e9e9ee, #d8d8df);
+  box-shadow: var(--tg-shadow-m), inset 0 1px 0 rgba(255,255,255,0.9);
+  display: grid; place-items: center;
+}
+.tg-up-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tg-up-tip { position: relative; z-index: 2; text-align: center; }
+.tg-up-tip svg { width: 26px; height: 26px; color: var(--tg-ink-3); }
+.tg-up-tip span { display: block; margin-top: 8px; font-family: var(--tg-mono); font-size: 9px; letter-spacing: 0.22em; color: var(--tg-mist); }
+.tg-up-av {
+  width: 84px; height: 84px; border-radius: 28px; overflow: hidden; cursor: pointer; position: relative;
+  margin: -42px auto 0; z-index: 3;
+  background: linear-gradient(158deg, #2c2c36, #4e4e5b);
+  box-shadow: 0 18px 34px -16px rgba(20,20,28,0.7), 0 0 0 5px rgba(250,250,252,0.96);
+  display: grid; place-items: center;
+}
+.tg-up-av img { width: 100%; height: 100%; object-fit: cover; }
+.tg-up-av svg { width: 24px; height: 24px; color: rgba(255,255,255,0.8); }
+
+/* ================================================================
+   存档 / 记录列表
+================================================================ */
+.tg-rec { display: flex; align-items: center; gap: 13px; padding: 14px; border-radius: 19px; margin-top: 10px; cursor: pointer;
+  background: linear-gradient(160deg, rgba(255,255,255,0.95), rgba(238,238,243,0.88));
+  box-shadow: var(--tg-shadow-s), inset 0 1px 0 rgba(255,255,255,0.95);
+  transition: transform .38s var(--tg-ease); }
+.tg-rec:active { transform: scale(0.98); }
+.tg-rec-av { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 15px; overflow: hidden;
+  background: linear-gradient(158deg,#2a2a33,#4c4c58); display: grid; place-items: center; }
+.tg-rec-av img { width: 100%; height: 100%; object-fit: cover; }
+.tg-rec-av span { font-family: var(--tg-serif); color: #fff; font-size: 17px; }
+.tg-rec-main b { display: block; font-family: var(--tg-serif); font-size: 14px; letter-spacing: 0.04em; }
+.tg-rec-main p { margin-top: 4px; font-size: 10px; color: var(--tg-mist); letter-spacing: 0.04em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px; }
+.tg-rec-side { margin-left: auto; text-align: right; }
+.tg-rec-side i { display: block; font-style: normal; font-family: var(--tg-mono); font-size: 8.5px; letter-spacing: 0.16em; color: var(--tg-mist-2); }
+.tg-rec-del { border: none; background: transparent; color: var(--tg-mist-2); cursor: pointer; padding: 6px; }
+.tg-rec-del svg { width: 14px; height: 14px; }
+
+.tg-empty { padding: 56px 20px; text-align: center; }
+.tg-empty-mark { width: 66px; height: 66px; margin: 0 auto; border-radius: 24px; display: grid; place-items: center;
+  background: linear-gradient(158deg, rgba(255,255,255,0.96), rgba(232,232,238,0.9));
+  box-shadow: var(--tg-shadow-m), inset 0 1px 0 rgba(255,255,255,0.96); }
+.tg-empty-mark svg { width: 26px; height: 26px; color: var(--tg-mist-2); }
+.tg-empty p { margin-top: 16px; font-size: 11.5px; line-height: 1.9; color: var(--tg-mist); letter-spacing: 0.06em; }
+
+/* ================================================================
+   个人中心 —— IG / X / 微博 式资料卡
+================================================================ */
+.tg-profile-hero { position: relative; margin: calc(-1 * var(--tg-status-h)) -20px 0; }
+.tg-profile-bg {
+  position: relative; height: 244px; overflow: hidden; cursor: pointer;
+  background: linear-gradient(158deg, #34343f 0%, #56565f 46%, #232329 100%);
+}
+.tg-profile-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* 顶栏与状态栏共用背景：只做渐隐，绝不出现分割线 */
+.tg-profile-bg::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(16,16,22,0.42) 0%, rgba(16,16,22,0.06) 34%, rgba(246,246,249,0.0) 62%, rgba(246,246,249,0.94) 100%);
+}
+.tg-profile-bgtip { position: absolute; right: 14px; bottom: 74px; z-index: 3;
+  font-family: var(--tg-mono); font-size: 8.5px; letter-spacing: 0.2em; color: rgba(255,255,255,0.72);
+  padding: 7px 11px; border-radius: 10px; background: rgba(20,20,28,0.3); backdrop-filter: blur(10px); }
+
+.tg-profile-body { position: relative; padding: 0 20px; margin-top: -54px; z-index: 4; }
+.tg-profile-top { display: flex; align-items: flex-end; gap: 14px; }
+.tg-avatar-big {
+  width: 96px; height: 96px; flex: 0 0 96px; border-radius: 32px; overflow: hidden; cursor: pointer; position: relative;
+  background: linear-gradient(158deg, #2c2c36, #50505d);
+  box-shadow: 0 20px 40px -18px rgba(20,20,28,0.66), 0 0 0 5px rgba(248,248,251,0.97);
+  display: grid; place-items: center;
+}
+.tg-avatar-big img { width: 100%; height: 100%; object-fit: cover; }
+.tg-avatar-big span { font-family: var(--tg-serif); font-size: 34px; color: rgba(255,255,255,0.92); }
+.tg-profile-acts { margin-left: auto; display: flex; gap: 8px; padding-bottom: 6px; }
+.tg-icon-btn {
+  width: 40px; height: 40px; border-radius: 14px; border: none; cursor: pointer; display: grid; place-items: center;
+  background: linear-gradient(158deg, #ffffff, #ececf1);
+  box-shadow: var(--tg-shadow-s), inset 0 1px 0 rgba(255,255,255,0.96);
+  transition: transform .34s var(--tg-spring);
+}
+.tg-icon-btn:active { transform: scale(0.9); }
+.tg-icon-btn svg { width: 17px; height: 17px; color: var(--tg-ink-2); }
+
+.tg-profile-name { margin-top: 15px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.tg-profile-name h2 { font-family: var(--tg-serif); font-size: 24px; font-weight: 600; letter-spacing: 0.03em; }
+.tg-lv-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px 6px 6px; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(166deg, #23232c, #3e3e4a);
+  box-shadow: 0 10px 20px -10px rgba(20,20,28,0.78), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.tg-lv-chip svg { width: 19px; height: 19px; }
+.tg-lv-chip b { font-family: var(--tg-mono); font-size: 9.5px; letter-spacing: 0.14em; color: #fff; }
+.tg-handle { font-family: var(--tg-mono); font-size: 10.5px; letter-spacing: 0.1em; color: var(--tg-mist); margin-top: 7px; }
+.tg-bio { margin-top: 11px; font-size: 12px; line-height: 1.85; color: var(--tg-ink-2); }
+.tg-meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.tg-meta-row i { font-style: normal; font-size: 10px; letter-spacing: 0.08em; color: var(--tg-ink-3);
+  padding: 6px 10px; border-radius: 10px; background: rgba(30,30,42,0.055); }
+
+.tg-num-row { display: flex; gap: 22px; margin-top: 16px; }
+.tg-num b { font-family: var(--tg-serif); font-size: 17px; font-weight: 600; }
+.tg-num span { font-size: 10.5px; color: var(--tg-mist); margin-left: 5px; letter-spacing: 0.06em; }
+
+/* 甜蜜值进度 */
+.tg-sweet { position: relative; margin-top: 18px; padding: 18px; border-radius: 22px; overflow: hidden; cursor: pointer;
+  background: linear-gradient(158deg, rgba(255,255,255,0.96) 0%, rgba(243,243,248,0.88) 55%, rgba(230,230,237,0.94) 100%);
+  box-shadow: var(--tg-shadow-m), inset 0 1px 0 rgba(255,255,255,0.96); }
+.tg-sweet-head { display: flex; align-items: center; gap: 12px; }
+.tg-sweet-badge { width: 54px; height: 54px; flex: 0 0 54px; }
+.tg-sweet-txt b { font-family: var(--tg-serif); font-size: 16px; letter-spacing: 0.04em; }
+.tg-sweet-txt p { margin-top: 4px; font-size: 10px; color: var(--tg-mist); letter-spacing: 0.06em; }
+.tg-sweet-val { margin-left: auto; text-align: right; font-family: var(--tg-mono); }
+.tg-sweet-val b { font-size: 15px; letter-spacing: 0.04em; }
+.tg-sweet-val i { display: block; font-style: normal; font-size: 8.5px; letter-spacing: 0.18em; color: var(--tg-mist-2); margin-top: 3px; }
+.tg-bar { position: relative; height: 8px; border-radius: 5px; margin-top: 15px; overflow: hidden;
+  background: rgba(30,30,42,0.08); box-shadow: inset 0 1px 3px rgba(20,20,30,0.1); }
+.tg-bar-fill { position: absolute; inset: 0 auto 0 0; border-radius: 5px; width: 0;
+  background: linear-gradient(90deg, #3d3d49, #1b1b22);
+  transition: width 1.4s var(--tg-ease); }
+.tg-bar-fill::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.5) 48%, transparent 66%);
+  background-size: 250% 100%; animation: tgSheen 3.2s ease-in-out infinite; }
+.tg-sweet-foot { display: flex; justify-content: space-between; margin-top: 9px; font-family: var(--tg-mono); font-size: 8.5px; letter-spacing: 0.14em; color: var(--tg-mist-2); }
+
+/* 等级殿堂 */
+.tg-lv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+.tg-lv-cell { position: relative; border-radius: 19px; padding: 14px 8px 12px; text-align: center; overflow: hidden; cursor: pointer;
+  background: linear-gradient(160deg, rgba(255,255,255,0.95), rgba(237,237,243,0.88));
+  box-shadow: var(--tg-shadow-s), inset 0 1px 0 rgba(255,255,255,0.95);
+  transition: transform .4s var(--tg-ease); }
+.tg-lv-cell:active { transform: scale(0.955); }
+.tg-lv-cell.locked { opacity: 0.44; filter: grayscale(1) contrast(0.86); }
+.tg-lv-cell.cur { box-shadow: 0 18px 36px -16px rgba(20,20,28,0.48), inset 0 0 0 1.8px rgba(26,26,34,0.86); transform: translateY(-2px); }
+.tg-lv-cell svg.tg-badge-svg { width: 44px; height: 44px; }
+.tg-lv-cell b { display: block; margin-top: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; }
+.tg-lv-cell i { display: block; margin-top: 4px; font-style: normal; font-family: var(--tg-mono); font-size: 8px; letter-spacing: 0.14em; color: var(--tg-mist-2); }
+
+/* 徽章配色（六个层级，全部黑白灰，明度与质感各不相同） */
+.tg-badge-svg .bd-a { fill: #1c1c23; }
+.tg-badge-svg .bd-b { fill: #6d6d78; }
+.tg-badge-svg .bd-c { fill: #d5d5dc; }
+.tg-badge-svg .bd-l { fill: none; stroke: #2a2a33; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.tg-badge-svg.t1 .bd-a{fill:#9a9aa5}.tg-badge-svg.t1 .bd-b{fill:#c3c3cc}.tg-badge-svg.t1 .bd-c{fill:#eeeef2}.tg-badge-svg.t1 .bd-l{stroke:#9a9aa5}
+.tg-badge-svg.t2 .bd-a{fill:#77777f}.tg-badge-svg.t2 .bd-b{fill:#a9a9b3}.tg-badge-svg.t2 .bd-c{fill:#e6e6ec}.tg-badge-svg.t2 .bd-l{stroke:#77777f}
+.tg-badge-svg.t3 .bd-a{fill:#55555e}.tg-badge-svg.t3 .bd-b{fill:#8b8b96}.tg-badge-svg.t3 .bd-c{fill:#dedee5}.tg-badge-svg.t3 .bd-l{stroke:#55555e}
+.tg-badge-svg.t4 .bd-a{fill:#3a3a43}.tg-badge-svg.t4 .bd-b{fill:#71717c}.tg-badge-svg.t4 .bd-c{fill:#d3d3db}.tg-badge-svg.t4 .bd-l{stroke:#3a3a43}
+.tg-badge-svg.t5 .bd-a{fill:#26262e}.tg-badge-svg.t5 .bd-b{fill:#5b5b66}.tg-badge-svg.t5 .bd-c{fill:#c9c9d2}.tg-badge-svg.t5 .bd-l{stroke:#26262e}
+.tg-badge-svg.t6 .bd-a{fill:#131319}.tg-badge-svg.t6 .bd-b{fill:#454550}.tg-badge-svg.t6 .bd-c{fill:#bfbfc9}.tg-badge-svg.t6 .bd-l{stroke:#131319}
+
+/* 规则条目 */
+.tg-rule { padding: 15px 16px; border-radius: 17px; margin-top: 9px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.94), rgba(238,238,243,0.88));
+  box-shadow: var(--tg-shadow-s), inset 0 1px 0 rgba(255,255,255,0.94); }
+.tg-rule b { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; }
+.tg-rule p { margin-top: 6px; font-size: 10.5px; line-height: 1.85; color: var(--tg-mist); }
+.tg-rule-list { display: flex; justify-content: space-between; align-items: center; padding: 12px 2px; }
+.tg-rule-list span { font-size: 11.5px; color: var(--tg-ink-2); }
+.tg-rule-list b { font-family: var(--tg-mono); font-size: 11px; letter-spacing: 0.08em; }
+
+/* 占位页 */
+.tg-soon { padding: 60px 0; text-align: center; }
+.tg-soon-ring { width: 108px; height: 108px; margin: 0 auto; position: relative; }
+.tg-soon-ring i { position: absolute; border-radius: 50%; }
+.tg-soon-ring i:nth-child(1){ inset: 0; box-shadow: inset 0 0 0 1.4px rgba(30,30,42,0.1); animation: tgSpin 22s linear infinite; }
+.tg-soon-ring i:nth-child(2){ inset: 16px; box-shadow: inset 0 0 0 1.4px rgba(30,30,42,0.14); animation: tgSpin 16s linear infinite reverse; }
+.tg-soon-ring i:nth-child(3){ inset: 36px; background: linear-gradient(158deg,#23232c,#43434f); box-shadow: 0 12px 24px -10px rgba(20,20,28,0.7); animation: tgPulse 3.6s ease-in-out infinite; }
+.tg-soon h3 { margin-top: 22px; font-family: var(--tg-serif); font-size: 18px; letter-spacing: 0.1em; }
+.tg-soon p { margin-top: 9px; font-size: 11px; line-height: 1.9; color: var(--tg-mist); }
+
+/* ================================================================
+   浮层 / 提示
+================================================================ */
+.tg-sheet-mask {
+  position: absolute; inset: 0; z-index: 200; background: rgba(22,22,30,0.28);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  opacity: 0; visibility: hidden; transition: opacity .36s var(--tg-ease), visibility .36s;
+}
+.tg-sheet-mask.on { opacity: 1; visibility: visible; }
+.tg-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; max-height: 82%; overflow-y: auto;
+  border-radius: 30px 30px 0 0; padding: 10px 20px 30px;
+  background: linear-gradient(180deg, #fbfbfd 0%, #f1f1f5 100%);
+  box-shadow: 0 -20px 50px -18px rgba(20,20,28,0.4);
+  transform: translateY(100%); transition: transform .48s var(--tg-ease);
+}
+.tg-sheet-mask.on .tg-sheet { transform: none; }
+.tg-sheet-grip { width: 40px; height: 4px; border-radius: 3px; background: rgba(30,30,42,0.16); margin: 6px auto 16px; }
+.tg-sheet h4 { font-family: var(--tg-serif); font-size: 17px; letter-spacing: 0.06em; }
+.tg-sheet-sub { margin-top: 7px; font-size: 10.5px; line-height: 1.8; color: var(--tg-mist); }
+
+.tg-toast {
+  position: absolute; left: 50%; bottom: calc(var(--tg-nav-pad) + 12px); z-index: 300;
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  padding: 13px 22px; border-radius: 16px; font-size: 12px; letter-spacing: 0.1em; color: #fff;
+  background: linear-gradient(160deg, rgba(28,28,36,0.95), rgba(46,46,56,0.95));
+  backdrop-filter: blur(14px); box-shadow: 0 18px 36px -14px rgba(20,20,28,0.6);
+  transition: all .42s var(--tg-spring); white-space: nowrap;
+}
+.tg-toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* 成功建圈庆祝 */
+.tg-done { text-align: center; padding: 40px 0 10px; }
+.tg-done-seal { width: 118px; height: 118px; margin: 0 auto; position: relative; }
+.tg-done-seal i { position: absolute; border-radius: 50%; }
+.tg-done-seal i:nth-child(1){ inset: 0; box-shadow: inset 0 0 0 1.4px rgba(30,30,42,0.12); animation: tgRipple 2.6s ease-out infinite; }
+.tg-done-seal i:nth-child(2){ inset: 0; box-shadow: inset 0 0 0 1.4px rgba(30,30,42,0.12); animation: tgRipple 2.6s ease-out infinite 1.3s; }
+.tg-done-seal i:nth-child(3){ inset: 30px; background: linear-gradient(158deg,#22222b,#43434f); box-shadow: 0 16px 30px -12px rgba(20,20,28,0.72); }
+@keyframes tgRipple { 0%{ transform: scale(0.7); opacity: 1; } 100%{ transform: scale(1.18); opacity: 0; } }
+.tg-done h3 { margin-top: 24px; font-family: var(--tg-serif); font-size: 22px; letter-spacing: 0.08em; }
+.tg-done p { margin-top: 10px; font-size: 11.5px; line-height: 1.9; color: var(--tg-mist); }
+
+.tg-divider { height: 26px; }

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>糖罐</title>
+<link rel="stylesheet" href="tangguan.css">
+<link rel="stylesheet" href="tg-plaza.css">
+</head>
+<body>
+
+<div class="tg-wrap">
+<div class="tg-frame" id="tgFrame">
+
+  <div class="tg-fx"></div>
+  <div class="tg-grain"></div>
+
+  <!-- ============ 状态栏（全局唯一，所有页面共用；与 Luna 规格同步） ============ -->
+  <div class="tg-status-bar">
+    <div class="tg-status-time" id="tgTime">9:41</div>
+    <div class="tg-status-right">
+      <div class="tg-signal"><i></i><i></i><i></i><i></i></div>
+      <div class="tg-battery">
+        <span class="tg-bat-pct" id="tgBatPct">76</span>
+        <div class="tg-bat-shell"><div class="tg-bat-inner" id="tgBatInner"></div><div class="tg-bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tg-viewport" id="tgViewport">
+
+    <!-- ===================== 广场 ===================== -->
+    <section class="tg-screen has-nav" id="scr-plaza">
+      <div class="tg-inner">
+        <div class="tg-head">
+          <div class="tg-head-arc"></div>
+          <div class="tg-head-num">01</div>
+          <div class="tg-head-eyebrow">Tangguan / Plaza</div>
+          <h1 class="tg-head-title">广场</h1>
+          <p class="tg-head-sub">所有人的糖，在这里流动。随笔、日记、便签、问答、论坛体、推特体、微博体、捡到的手机——全部现写现排成长图。</p>
+        </div>
+        <div class="tg-plaza-bar" id="tgPlazaBar"></div>
+        <div id="tgFeed"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 圈子 ===================== -->
+    <section class="tg-screen has-nav" id="scr-circle">
+      <div class="tg-inner">
+        <div class="tg-head">
+          <div class="tg-head-arc"></div>
+          <div class="tg-head-num">02</div>
+          <div class="tg-head-eyebrow">Tangguan / Circles</div>
+          <h1 class="tg-head-title">圈子</h1>
+          <p class="tg-head-sub">你在笔坊建立的每一个 CP 圈，都会栖息在此。</p>
+        </div>
+        <div id="tgCircleList"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 私信 ===================== -->
+    <section class="tg-screen has-nav" id="scr-dm">
+      <div class="tg-inner">
+        <div class="tg-head">
+          <div class="tg-head-arc"></div>
+          <div class="tg-head-num">03</div>
+          <div class="tg-head-eyebrow">Tangguan / Messages</div>
+          <h1 class="tg-head-title">私信</h1>
+          <p class="tg-head-sub">角色库里的人自动在列。也可以让糖罐替你收一封陌生人的来信——同担、唯粉、考据党、对家，随机。</p>
+        </div>
+        <div id="tgDMList"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 私信 · 聊天 ===================== -->
+    <section class="tg-screen" id="scr-chat">
+      <div class="tg-chat-head">
+        <button class="tg-chat-back" data-ico="back" onclick="tgBack()"></button>
+        <div class="tg-chat-id">
+          <b id="tgChatName">—</b>
+          <i id="tgChatSub">—</i>
+        </div>
+        <div class="tg-chat-orb"></div>
+      </div>
+      <div class="tg-chat-body" id="tgChatBody"></div>
+      <div class="tg-composer">
+        <button class="tg-cbtn" data-ico="plus" onclick="tgChatPlus()"></button>
+        <textarea class="tg-cinput" id="tgChatInput" rows="1" placeholder="说点什么…"></textarea>
+        <button class="tg-cbtn ai" id="tgAiBtn" data-ico="robot" onclick="tgAIReply()" title="AI 回复"></button>
+        <button class="tg-cbtn send" data-ico="send" onclick="tgSendMsg()"></button>
+      </div>
+    </section>
+
+    <!-- ===================== 笔坊 · 工作台 ===================== -->
+    <section class="tg-screen has-nav" id="scr-bifang">
+      <div class="tg-inner">
+        <div class="tg-head">
+          <div class="tg-head-arc"></div>
+          <div class="tg-head-num">04</div>
+          <div class="tg-head-eyebrow">Tangguan / Atelier</div>
+          <h1 class="tg-head-title">笔坊</h1>
+          <p class="tg-head-sub">一切 CP 圈的起点。挑人、择风、命名、封面，四步成圈。</p>
+        </div>
+
+        <div class="tg-stats tg-rise tg-d1">
+          <div class="tg-stat"><b id="tgStatCircle">0</b><span>已建圈</span></div>
+          <div class="tg-stat"><b id="tgStatDraft">0</b><span>草稿</span></div>
+          <div class="tg-stat"><b id="tgStatStyle">0</b><span>文风档</span></div>
+          <div class="tg-stat"><b id="tgStatAi">0</b><span>共创次</span></div>
+        </div>
+
+        <div class="tg-entry tg-rise tg-d2" onclick="tgStartFromLibrary()">
+          <span class="tg-entry-tag">STEP 01 · A</span>
+          <div class="tg-entry-ico" data-ico="pair"></div>
+          <div class="tg-entry-main">
+            <h4>从角色库配对</h4>
+            <p>同步角色书与身份档案，自由绑定 char × char、char × user、user × user</p>
+          </div>
+          <div class="tg-entry-go" data-ico="go"></div>
+        </div>
+
+        <div class="tg-entry tg-rise tg-d3" onclick="tgGo('scr-ai')">
+          <span class="tg-entry-tag">STEP 01 · B</span>
+          <div class="tg-entry-ico" data-ico="spark"></div>
+          <div class="tg-entry-main">
+            <h4>AI 共创新 CP</h4>
+            <p>说出你想磕的点，一次生成三对，附完整钩子与设定，可带不满意点重开</p>
+          </div>
+          <div class="tg-entry-go" data-ico="go"></div>
+        </div>
+
+        <div class="tg-entry tg-rise tg-d4" onclick="tgGo('scr-style')">
+          <span class="tg-entry-tag">STEP 02</span>
+          <div class="tg-entry-ico" data-ico="nib"></div>
+          <div class="tg-entry-main">
+            <h4>文风工坊</h4>
+            <p>视角、流派、节奏、修辞、五感、禁忌词…十一个维度，可存档随时调用</p>
+          </div>
+          <div class="tg-entry-go" data-ico="go"></div>
+        </div>
+
+        <div class="tg-entry tg-rise tg-d5" onclick="tgGo('scr-archive')">
+          <span class="tg-entry-tag">RECORDS</span>
+          <div class="tg-entry-ico" data-ico="box"></div>
+          <div class="tg-entry-main">
+            <h4>存档室</h4>
+            <p>已建圈子、未完成草稿、文风预设、AI 共创历史，全部留存可复用</p>
+          </div>
+          <div class="tg-entry-go" data-ico="go"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 笔坊 · 01 角色配对 ===================== -->
+    <section class="tg-screen" id="scr-pick">
+      <div class="tg-inner">
+        <div class="tg-topbar">
+          <button class="tg-back" data-ico="back" onclick="tgBack()"></button>
+          <div class="tg-topbar-title">配对席位</div>
+          <div class="tg-topbar-step">STEP 01 / 04</div>
+        </div>
+        <p class="tg-hint">卡片仅展示公开信息。人设、提示词、背景故事等核心内容已加密，不会在此暴露。任意两位皆可绑定，顺序即左右位。</p>
+
+        <div class="tg-seg" id="tgPickSeg">
+          <button class="on" onclick="tgPickTab('char',this)">角色书</button>
+          <button onclick="tgPickTab('user',this)">我的身份</button>
+          <button onclick="tgPickTab('all',this)">全部</button>
+        </div>
+
+        <div class="tg-grid2" id="tgPickGrid"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 笔坊 · AI 共创 ===================== -->
+    <section class="tg-screen" id="scr-ai">
+      <div class="tg-inner">
+        <div class="tg-topbar">
+          <button class="tg-back" data-ico="back" onclick="tgBack()"></button>
+          <div class="tg-topbar-title">AI 共创</div>
+          <div class="tg-topbar-step">STEP 01 / 04</div>
+        </div>
+        <p class="tg-hint">每一栏都可以只选预设、只写自定义，或两者混用。写得越具体，生成越贴脸。全部留白也能生成，但会偏通用。</p>
+        <div id="tgAiForm"></div>
+        <div class="tg-divider"></div>
+        <button class="tg-btn tg-btn-dark" onclick="tgAiGenerate(false)">生成三对 CP</button>
+        <div class="tg-divider"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 笔坊 · AI 结果 ===================== -->
+    <section class="tg-screen" id="scr-airesult">
+      <div class="tg-inner">
+        <div class="tg-topbar">
+          <button class="tg-back" data-ico="back" onclick="tgBack()"></button>
+          <div class="tg-topbar-title">共创结果</div>
+          <div class="tg-topbar-step" id="tgAiRound">ROUND 1</div>
+        </div>
+        <div id="tgAiOut"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 笔坊 · 02 文风工坊 ===================== -->
+    <section class="tg-screen" id="scr-style">
+      <div class="tg-inner">
+        <div class="tg-topbar">
+          <button class="tg-back" data-ico="back" onclick="tgBack()"></button>
+          <div class="tg-topbar-title">文风工坊</div>
+          <div class="tg-topbar-step">STEP 02 / 04</div>
+        </div>
+        <p class="tg-hint">十一个维度，每个都有完整释义的预设，也都能自己写。设定会随圈子一起存档，之后写文时自动调用。</p>
+
+        <div class="tg-field">
+          <div class="tg-label">已存文风档 <small>presets</small></div>
+          <div class="tg-chips" id="tgStylePresets"></div>
+        </div>
+
+        <div id="tgStyleForm"></div>
+        <div class="tg-divider"></div>
+        <div class="tg-btn-row">
+          <button class="tg-btn tg-btn-light" style="flex:0 0 40%" onclick="tgSaveStylePreset()">存为文风档</button>
+          <button class="tg-btn tg-btn-dark" onclick="tgStyleConfirm()">下一步 · 命名</button>
+        </div>
+        <div class="tg-divider"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 笔坊 · 03 命名 ===================== -->
+    <section class="tg-screen" id="scr-name">
+      <div class="tg-inner">
+        <div class="tg-topbar">
+          <button class="tg-back" data-ico="back" onclick="tgBack()"></button>
+          <div class="tg-topbar-title">为这一对命名</div>
+          <div class="tg-topbar-step">STEP 03 / 04</div>
+        </div>
+
+        <div class="tg-card" style="padding:20px 18px;margin-top:6px">
+          <div class="tg-corner tr"></div><div class="tg-dots"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="tg-head-eyebrow">CURRENT PAIR</div>
+          <div class="tg-ai-hook" style="margin-top:9px;font-size:17px" id="tgNamePair">—</div>
+        </div>
+
+        <div class="tg-field">
+          <div class="tg-label">自己取 <small>custom</small></div>
+          <input class="tg-input" id="tgCpName" placeholder="例：霜漆、二十七夜、Sugar Rot…">
+        </div>
+
+        <div class="tg-field">
+          <div class="tg-label">让 AI 结合两人的名字生成 <small>ai naming</small></div>
+          <div class="tg-hint">可多选风格，一次出一批备选，点选即填入上方。</div>
+          <div class="tg-chips" id="tgNameStyles"></div>
+          <div style="height:10px"></div>
+          <button class="tg-btn tg-btn-light" onclick="tgGenNames()">生成候选名</button>
+          <div class="tg-chips" id="tgNameOut" style="margin-top:12px"></div>
+        </div>
+
+        <div class="tg-divider"></div>
+        <button class="tg-btn tg-btn-dark" onclick="tgNameConfirm()">下一步 · 封面</button>
+        <div class="tg-divider"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 笔坊 · 04 封面 ===================== -->
+    <section class="tg-screen" id="scr-cover">
+      <div class="tg-inner">
+        <div class="tg-topbar">
+          <button class="tg-back" data-ico="back" onclick="tgBack()"></button>
+          <div class="tg-topbar-title">圈子封面</div>
+          <div class="tg-topbar-step">STEP 04 / 04</div>
+        </div>
+        <p class="tg-hint">头像与背景均由你上传，圈子建立后仍可在圈内替换。</p>
+
+        <div class="tg-up-bg" id="tgCoverBg" onclick="tgPickImg('bg')">
+          <div class="tg-up-tip" data-ico="image"><span>UPLOAD BACKGROUND</span></div>
+        </div>
+        <div class="tg-up-av" id="tgCoverAv" onclick="tgPickImg('av')" data-ico="plus"></div>
+
+        <div class="tg-field">
+          <div class="tg-label">圈子简介 <small>intro</small></div>
+          <textarea class="tg-textarea" id="tgCircleIntro" placeholder="用一句话说清这个圈的气质，比如：一场以沉默为语言的对峙。"></textarea>
+        </div>
+        <div class="tg-field">
+          <div class="tg-label">圈子标签 <small>tags</small></div>
+          <div class="tg-chips" id="tgCircleTags"></div>
+        </div>
+        <div class="tg-field">
+          <div class="tg-label">加入权限 <small>access</small></div>
+          <div class="tg-chips" id="tgCircleAccess"></div>
+        </div>
+
+        <div class="tg-divider"></div>
+        <div class="tg-btn-row">
+          <button class="tg-btn tg-btn-light" style="flex:0 0 34%" onclick="tgSaveDraft()">存为草稿</button>
+          <button class="tg-btn tg-btn-dark" onclick="tgCreateCircle()">建立圈子</button>
+        </div>
+        <div class="tg-divider"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 笔坊 · 建成 ===================== -->
+    <section class="tg-screen" id="scr-done">
+      <div class="tg-inner">
+        <div class="tg-done">
+          <div class="tg-done-seal"><i></i><i></i><i></i></div>
+          <h3 id="tgDoneName">圈子已建立</h3>
+          <p id="tgDoneDesc"></p>
+        </div>
+        <div class="tg-divider"></div>
+        <div class="tg-btn-row">
+          <button class="tg-btn tg-btn-light" onclick="tgGo('scr-archive')">查看存档</button>
+          <button class="tg-btn tg-btn-dark" onclick="tgTab(1)">进入圈子</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 笔坊 · 存档室 ===================== -->
+    <section class="tg-screen" id="scr-archive">
+      <div class="tg-inner">
+        <div class="tg-topbar">
+          <button class="tg-back" data-ico="back" onclick="tgBack()"></button>
+          <div class="tg-topbar-title">存档室</div>
+          <div class="tg-topbar-step">RECORDS</div>
+        </div>
+        <div class="tg-seg" id="tgArcSeg">
+          <button class="on" onclick="tgArcTab('circle',this)">圈子</button>
+          <button onclick="tgArcTab('draft',this)">草稿</button>
+          <button onclick="tgArcTab('style',this)">文风档</button>
+          <button onclick="tgArcTab('ai',this)">共创史</button>
+        </div>
+        <div id="tgArcList"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 个人中心 ===================== -->
+    <section class="tg-screen has-nav" id="scr-profile">
+      <div class="tg-profile-hero">
+        <div class="tg-profile-bg" id="tgMeBg" onclick="tgPickImg('mebg')">
+          <div class="tg-profile-bgtip">轻触更换背景</div>
+        </div>
+      </div>
+      <div class="tg-profile-body">
+        <div class="tg-profile-top">
+          <div class="tg-avatar-big" id="tgMeAv" onclick="tgPickImg('meav')"></div>
+          <div class="tg-profile-acts">
+            <button class="tg-icon-btn" data-ico="edit" onclick="tgOpenEdit()"></button>
+            <button class="tg-icon-btn" data-ico="share" onclick="tgToast('资料卡链接已复制')"></button>
+          </div>
+        </div>
+
+        <div class="tg-profile-name">
+          <h2 id="tgMeName">未命名</h2>
+          <div class="tg-lv-chip" id="tgMeLvChip" onclick="tgGo('scr-level')"></div>
+        </div>
+        <div class="tg-handle" id="tgMeHandle">@tangguan</div>
+        <div class="tg-bio" id="tgMeBio"></div>
+        <div class="tg-meta-row" id="tgMeMeta"></div>
+
+        <div class="tg-num-row" id="tgMeNums"></div>
+
+        <div class="tg-sweet" onclick="tgGo('scr-level')">
+          <div class="tg-corner tr"></div><div class="tg-corner bl"></div>
+          <div class="tg-sweet-head">
+            <div class="tg-sweet-badge" id="tgMeBadge"></div>
+            <div class="tg-sweet-txt">
+              <b id="tgMeLvName">—</b>
+              <p id="tgMeLvTier">—</p>
+            </div>
+            <div class="tg-sweet-val">
+              <b id="tgMeSweet">0</b>
+              <i>SWEETNESS</i>
+            </div>
+          </div>
+          <div class="tg-bar"><div class="tg-bar-fill" id="tgMeBar"></div></div>
+          <div class="tg-sweet-foot"><span id="tgMeCur">LV.1</span><span id="tgMeNext">还差 — 升级</span></div>
+        </div>
+
+        <div class="tg-field">
+          <div class="tg-label">我磕的圈 <small>my circles</small></div>
+        </div>
+        <div id="tgMeCircles"></div>
+        <div class="tg-divider"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 等级殿堂 ===================== -->
+    <section class="tg-screen" id="scr-level">
+      <div class="tg-inner">
+        <div class="tg-topbar">
+          <button class="tg-back" data-ico="back" onclick="tgBack()"></button>
+          <div class="tg-topbar-title">甜蜜殿堂</div>
+          <div class="tg-topbar-step">LV.1 — LV.30</div>
+        </div>
+        <div id="tgLevelTop"></div>
+        <div class="tg-field"><div class="tg-label">三十枚徽章 <small>badges</small></div>
+        <div class="tg-hint">每一枚形制、构成与明度层级都不相同，点击查看解锁条件与权益。</div></div>
+        <div class="tg-lv-grid" id="tgLevelGrid"></div>
+        <div class="tg-divider"></div>
+        <div class="tg-field"><div class="tg-label">甜蜜值规则 <small>rules</small></div></div>
+        <div id="tgRules"></div>
+        <div class="tg-divider"></div>
+      </div>
+    </section>
+
+  </div><!-- /viewport -->
+
+  <!-- ============ 配对席位固定托盘（挂在外框上，不随任何页面滚动） ============ -->
+  <div class="tg-tray" id="tgTray">
+    <div class="tg-pair">
+      <div class="tg-pair-slot" id="tgSlotA"><span class="tg-pair-empty">SEAT A</span></div>
+      <div class="tg-pair-x">×</div>
+      <div class="tg-pair-slot" id="tgSlotB"><span class="tg-pair-empty">SEAT B</span></div>
+    </div>
+    <div class="tg-btn-row" style="margin-top:12px">
+      <button class="tg-btn tg-btn-light" style="flex:0 0 34%" onclick="tgSwapSeat()">交换左右</button>
+      <button class="tg-btn tg-btn-dark" id="tgPickNext" disabled onclick="tgPickConfirm()">下一步 · 文风</button>
+    </div>
+  </div>
+
+  <!-- ============ 底部导航栏 ============ -->
+  <nav class="tg-nav" id="tgNav">
+    <div class="tg-nav-blob" id="tgBlob"></div>
+    <div class="tg-nav-items" id="tgNavItems"></div>
+  </nav>
+
+  <!-- ============ 浮层 ============ -->
+  <div class="tg-sheet-mask" id="tgSheetMask" onclick="tgCloseSheet(event)">
+    <div class="tg-sheet" id="tgSheet"></div>
+  </div>
+  <!-- 长图查看器 -->
+  <div class="tg-vw-mask" id="tgViewerMask" onclick="tgViewerClose(event)">
+    <div class="tg-vw-inner">
+      <div class="tg-vw-top">
+        <button class="tg-vw-x" data-ico="close" onclick="tgViewerClose()"></button>
+        <b id="tgVwTitle">—</b>
+        <i id="tgVwIdx">1 / 1</i>
+      </div>
+      <div class="tg-vw-stage" id="tgVwStage"><img id="tgVwImg" src="" alt=""></div>
+      <div class="tg-vw-dots" id="tgVwDots"></div>
+      <div class="tg-vw-bar">
+        <button class="l" onclick="tgVwNext(-1)">上一张</button>
+        <button class="d" onclick="tgSaveOne()"><span data-ico="save" style="display:grid"></span>存入相册</button>
+        <button class="l" onclick="tgVwNext(1)">下一张</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tg-toast" id="tgToast"></div>
+  <input type="file" id="tgFileInput" accept="image/*" style="display:none">
+
+</div>
+</div>
+
+<script src="tg-core.js"></script>
+<script src="tg-bifang.js"></script>
+<script src="tg-profile.js"></script>
+<script src="tg-cardkit.js"></script>
+<script src="tg-plaza.js"></script>
+<script src="tg-dm.js"></script>
+</body>
+</html>

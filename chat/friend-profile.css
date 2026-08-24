@@ -1,0 +1,561 @@
+/* ==========================================================================
+   Friend Profile Overlay — friend-profile.css
+   好友资料展示页 · 黑白灰浅色系 · 韩系高级华丽风格
+   独立覆盖层，与 chat.css 共用 :root 变量（--ink / --paper / --status-h 等），
+   仅在此文件内新增覆盖层专属类名，不侵入 chat.css 既有规则。
+   全站统一纸面：覆盖层自身也是一整张纸面，状态栏/顶栏/内容区之间
+   零遮罩零分割线；仅"密友圈"卡片使用深色底作为唯一一处克制反差，
+   用以标记特殊礼遇层级。禁止 emoji、禁止米色系、禁止新增色相。
+========================================================================== */
+
+.fp-overlay{
+  position:absolute;
+  inset:0;
+  z-index:500;
+  background: var(--sheet);
+  opacity:0;
+  transform: translateY(14px) scale(0.985);
+  pointer-events:none;
+  transition: opacity 0.42s cubic-bezier(.32,.9,.4,1), transform 0.46s cubic-bezier(.22,.68,.32,1);
+}
+.fp-overlay.fp-open{
+  opacity:1;
+  transform: translateY(0) scale(1);
+  pointer-events:auto;
+}
+
+/* ==========================================================================
+   覆盖层专属状态栏 —— 与主 .status-bar 视觉完全一致，透明融入纸面
+========================================================================== */
+.fp-status-bar{
+  position:absolute;
+  top:0; left:0; right:0;
+  height: var(--status-h);
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  padding: 0 24px 10px;
+  z-index:40;
+  background:transparent;
+  pointer-events:none;
+}
+.fp-status-time{
+  font-size:15px;
+  font-weight:600;
+  color: var(--ink);
+  letter-spacing:0.2px;
+}
+.fp-status-island{
+  position:absolute;
+  left:50%; transform:translateX(-50%);
+  bottom:6px;
+  display:flex; align-items:center; justify-content:center;
+}
+.fp-si-capsule{ width:110px; height:32px; background:#000; border-radius:24px; }
+.fp-status-right{ display:flex; align-items:center; gap:7px; }
+.fp-signal{ display:flex; align-items:flex-end; gap:2px; height:13px; }
+.fp-signal i{ display:block; width:2.5px; border-radius:1px; background: var(--ink-soft); opacity:0.85; }
+.fp-signal i:nth-child(1){ height:4px; }
+.fp-signal i:nth-child(2){ height:7px; }
+.fp-signal i:nth-child(3){ height:10px; }
+.fp-signal i:nth-child(4){ height:13px; }
+.fp-battery{ display:flex; align-items:center; gap:3px; }
+.fp-bat-pct{ font-size:14px; font-weight:600; color: var(--ink-soft); opacity:0.85; }
+.fp-bat-shell{ width:24px; height:12px; border:1.5px solid rgba(20,20,28,0.42); border-radius:3.5px; padding:1.5px; position:relative; }
+.fp-bat-inner{ width:76%; height:100%; border-radius:1.5px; background: linear-gradient(90deg, var(--ink-soft), var(--ink)); }
+.fp-bat-nub{ position:absolute; right:-4px; top:50%; transform:translateY(-50%); width:2.5px; height:5px; background:rgba(20,20,28,0.35); border-radius:0 2px 2px 0; }
+
+/* ==========================================================================
+   覆盖层专属顶栏 —— 左返回 · 中徽记标题 · 右更多印记
+========================================================================== */
+.fp-top-bar{
+  position:absolute;
+  top: var(--status-h); left:0; right:0;
+  height: var(--topbar-h);
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 0 16px;
+  z-index:41;
+  background:transparent;
+}
+.fp-back-btn{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px;
+  flex-shrink:0;
+  color: var(--ink-soft);
+  border-radius: 11px 16px 11px 16px;
+  background: linear-gradient(160deg, #ffffff 0%, #f6f6f8 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 7px 16px -10px rgba(20,20,28,0.22),
+    0 0 0 1px rgba(20,20,28,0.05);
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), color 0.2s ease;
+}
+.fp-back-btn::before{
+  content:'';
+  position:absolute;
+  left:6px; top:50%;
+  transform: translateY(-50%);
+  width:3px; height:3px;
+  border-radius:50%;
+  background: var(--ink-soft);
+  opacity:0.7;
+}
+.fp-back-btn:active{ transform: scale(0.9); color: var(--ink); }
+
+.fp-title-seal{
+  display:flex; align-items:center;
+  gap:10px;
+  padding: 6px 18px 6px 15px;
+  border-radius:18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f9 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 8px 18px -12px rgba(20,20,28,0.2),
+    0 0 0 1px rgba(20,20,28,0.045);
+}
+.fp-title-num{
+  font-family:'Playfair Display', serif;
+  font-weight:900;
+  font-size:15px;
+  color: var(--grey-3);
+  line-height:1;
+}
+.fp-title-divider{
+  width:1px; height:16px;
+  background: linear-gradient(180deg, transparent, var(--hair) 30%, var(--hair) 70%, transparent);
+  flex-shrink:0;
+}
+.fp-title-col{ display:flex; flex-direction:column; align-items:flex-start; gap:1px; }
+.fp-title-cn{ font-size:14px; font-weight:700; letter-spacing:0.08em; color: var(--ink); line-height:1.15; }
+.fp-title-en{ font-family:'Space Mono', monospace; font-size:8px; letter-spacing:0.22em; color: var(--grey-2); line-height:1; }
+
+.fp-more-btn{
+  display:flex; align-items:center; justify-content:center;
+  gap:2.5px;
+  width:34px; height:34px;
+  flex-shrink:0;
+  border-radius:14px;
+  background: linear-gradient(160deg, #ffffff 0%, #f6f6f8 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 7px 16px -10px rgba(20,20,28,0.22),
+    0 0 0 1px rgba(20,20,28,0.05);
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1);
+}
+.fp-more-btn:active{ transform: scale(0.9); }
+.fp-more-dot{ width:3px; height:3px; border-radius:50%; background: var(--ink-soft); opacity:0.8; }
+
+/* ==========================================================================
+   滚动内容区
+========================================================================== */
+.fp-scroll{
+  position:absolute;
+  top:0; left:0; right:0; bottom:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  /* 本页无底部导航栏（非一级 tab 页面，是好友详情的独立覆盖层），
+     不应预留 --tabbar-h 高度的空白——之前误套用了带 tabbar 页面的
+     底部留白逻辑，导致收尾印章下方多出一大块空白。这里只留安全
+     滚动余量，让内容贴近屏幕底部 */
+  padding-bottom: 18px;
+}
+.fp-scroll::-webkit-scrollbar{ display:none; }
+
+/* ---- 顶部肖像英雄区 ---- */
+.fp-hero{
+  position:relative;
+  height: calc(var(--status-h) + var(--topbar-h) + 214px);
+  overflow:hidden;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 90%, 58% 100%, 0% 95%);
+}
+.fp-hero-photo{
+  position:absolute; inset:0;
+  background: linear-gradient(150deg, #2c2c31 0%, #1a1a1d 52%, #0c0c0e 100%);
+}
+.fp-hero-photo.has-photo{ background:#101012; }
+.fp-hero-photo img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+}
+.fp-hero-photo-fallback{
+  position:absolute; inset:0;
+  background-image: radial-gradient(circle at 22% 18%, rgba(255,255,255,0.05) 0%, transparent 46%), radial-gradient(circle at 82% 78%, rgba(255,255,255,0.035) 0%, transparent 50%);
+}
+.fp-hero-photo.has-photo .fp-hero-photo-fallback{ display:none; }
+.fp-hero-scrim{
+  position:absolute; inset:0;
+  background:
+    linear-gradient(180deg, rgba(10,10,12,0.28) 0%, rgba(10,10,12,0.06) 30%, rgba(10,10,12,0.12) 62%, rgba(10,10,12,0.86) 100%);
+  pointer-events:none;
+}
+.fp-hero-texture{
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 30px 30px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 0%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 0%, transparent 100%);
+  pointer-events:none;
+}
+.fp-hero-corner{
+  position:absolute;
+  width:20px; height:20px;
+  border-color: rgba(255,255,255,0.4);
+  border-style:solid;
+  border-width:0;
+  pointer-events:none;
+}
+.fp-hero-corner-tl{ top: calc(var(--status-h) + 14px); left:22px; border-top-width:1.2px; border-left-width:1.2px; border-top-left-radius:5px; }
+.fp-hero-corner-tr{ top: calc(var(--status-h) + 14px); right:22px; border-top-width:1.2px; border-right-width:1.2px; border-top-right-radius:5px; }
+
+.fp-hero-identity{
+  position:absolute;
+  left:24px; right:24px; bottom:30px;
+  z-index:5;
+  display:flex; align-items:flex-end; gap:14px;
+}
+.fp-hero-avatar{
+  position:relative;
+  width:64px; height:64px;
+  flex-shrink:0;
+  border-radius:20px;
+  background: linear-gradient(165deg, #3a3a40 0%, #1c1c1f 62%, #0a0a0b 100%);
+  box-shadow:
+    0 10px 24px -12px rgba(0,0,0,0.55),
+    0 0 0 1.5px rgba(255,255,255,0.55),
+    0 0 0 3.5px rgba(0,0,0,0.28);
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+.fp-hero-avatar img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.fp-hero-avatar-glyph{
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:24px;
+  color: rgba(255,255,255,0.85);
+}
+.fp-hero-name-col{ display:flex; flex-direction:column; gap:6px; padding-bottom:4px; min-width:0; }
+.fp-hero-name-row{ display:flex; align-items:center; gap:8px; min-width:0; }
+.fp-hero-name{
+  font-family:'Noto Serif KR', 'Playfair Display', serif;
+  font-weight:700;
+  font-size:21px;
+  color:#fff;
+  letter-spacing:0.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.fp-hero-badge{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:8.5px;
+  letter-spacing:0.08em;
+  color: rgba(255,255,255,0.86);
+  background: rgba(255,255,255,0.14);
+  border:1px solid rgba(255,255,255,0.28);
+  border-radius:5px;
+  padding: 2px 7px;
+  display:none;
+}
+.fp-hero-badge.has-badge{ display:inline-block; }
+.fp-hero-sub-row{ display:flex; align-items:center; gap:6px; }
+.fp-hero-status-dot{
+  width:6px; height:6px;
+  border-radius:50%;
+  background: rgba(255,255,255,0.34);
+  flex-shrink:0;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
+}
+.fp-hero-status-dot.is-online{
+  background: radial-gradient(circle at 35% 30%, #f4f4f6, #d6d6da);
+  animation: fpPulse 2.6s ease-in-out infinite;
+}
+@keyframes fpPulse{
+  0%,100%{ box-shadow: 0 0 0 3px rgba(255,255,255,0.1); }
+  50%{ box-shadow: 0 0 0 5px rgba(255,255,255,0.16); }
+}
+.fp-hero-status-text{ font-size:12px; font-weight:500; color: rgba(255,255,255,0.72); letter-spacing:0.02em; }
+.fp-hero-sub-dot{ width:2px; height:2px; border-radius:50%; background: rgba(255,255,255,0.4); flex-shrink:0; display:none; }
+.fp-hero-sub-dot.show{ display:block; }
+.fp-hero-relation{ font-size:12px; color: rgba(255,255,255,0.72); letter-spacing:0.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ---- 操作条：进入聊天（占位）+ 更多 ---- */
+.fp-action-bar{
+  display:flex; align-items:stretch; gap:10px;
+  padding: 20px 24px 0;
+}
+.fp-action-primary{
+  flex:1;
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  padding: 14px 18px;
+  border-radius:18px;
+  background: linear-gradient(165deg, #232327 0%, #131316 60%, #0a0a0b 100%);
+  box-shadow:
+    0 16px 30px -16px rgba(20,20,30,0.4),
+    0 1px 0 0 rgba(255,255,255,0.06) inset,
+    0 0 0 1px rgba(20,20,28,0.06);
+  color:#fff;
+  transition: transform 0.24s cubic-bezier(.34,1.56,.64,1), box-shadow 0.24s ease;
+}
+.fp-action-primary:active{ transform: scale(0.98); }
+.fp-action-primary-icon{ display:flex; align-items:center; justify-content:center; color: rgba(255,255,255,0.92); flex-shrink:0; }
+.fp-action-primary-col{ display:flex; flex-direction:column; align-items:flex-start; gap:1px; }
+.fp-action-primary-cn{ font-size:14.5px; font-weight:700; letter-spacing:0.02em; }
+.fp-action-primary-en{ font-family:'Space Mono', monospace; font-size:7.5px; letter-spacing:0.2em; color: rgba(255,255,255,0.5); }
+.fp-action-more{
+  width:48px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:18px;
+  color: var(--ink-soft);
+  background: linear-gradient(158deg, #ffffff 0%, #fcfcfd 46%, #f5f5f8 100%);
+  border:1px solid var(--hair-soft);
+  box-shadow:
+    0 14px 26px -16px rgba(20,20,30,0.22),
+    0 1px 0 0 rgba(255,255,255,0.95) inset;
+  transition: transform 0.24s cubic-bezier(.34,1.56,.64,1);
+}
+.fp-action-more:active{ transform: scale(0.9); }
+
+/* ---- 寄语卡 ---- */
+.fp-quote-card{
+  display:none;
+  margin: 18px 24px 0;
+  padding: 16px 20px 16px 22px;
+  border-radius:18px;
+  background: linear-gradient(158deg, #ffffff 0%, #fcfcfd 46%, #f5f5f8 100%);
+  border:1px solid var(--hair-soft);
+  box-shadow:
+    0 18px 34px -22px rgba(20,20,30,0.22),
+    0 1px 0 0 rgba(255,255,255,0.95) inset;
+  position:relative;
+  gap:10px;
+  align-items:flex-start;
+}
+.fp-quote-card.has-quote{ display:flex; }
+.fp-quote-mark{
+  font-family:'Playfair Display', serif;
+  font-size:30px;
+  font-weight:900;
+  line-height:0.6;
+  color: var(--grey-3);
+  flex-shrink:0;
+  margin-top:8px;
+}
+.fp-quote-text{
+  font-family:'Cormorant Garamond', serif;
+  font-style:italic;
+  font-size:16px;
+  line-height:1.5;
+  color: var(--ink-soft);
+  padding-top:4px;
+}
+
+/* ==========================================================================
+   通用板块头
+========================================================================== */
+.fp-section{ padding: 26px 24px 0; }
+.fp-section-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.fp-section-eyebrow{ display:flex; align-items:center; gap:9px; }
+.fp-section-num{
+  font-family:'Playfair Display', serif;
+  font-weight:900;
+  font-size:13px;
+  color: var(--grey-3);
+}
+.fp-section-col{ display:flex; flex-direction:column; gap:1px; }
+.fp-section-cn{ font-size:14.5px; font-weight:700; color: var(--ink); letter-spacing:0.02em; }
+.fp-section-en{ font-family:'Space Mono', monospace; font-size:8px; letter-spacing:0.2em; color: var(--grey-2); }
+.fp-section-more{
+  display:flex; align-items:center; gap:4px;
+  padding: 6px 10px 6px 12px;
+  border-radius:12px;
+  background: var(--grey-5);
+  font-size:11px;
+  font-weight:500;
+  color: var(--grey-1);
+  letter-spacing:0.01em;
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), background 0.2s ease, color 0.2s ease;
+}
+.fp-section-more:active{ transform: scale(0.94); background: var(--grey-4); color: var(--ink); }
+
+/* ---- 动态足迹：三格缩略网格占位 ---- */
+.fp-moments-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:8px;
+}
+.fp-moment-tile{
+  position:relative;
+  aspect-ratio: 1 / 1.08;
+  border-radius:14px;
+  overflow:hidden;
+}
+.fp-moment-tile-empty{
+  background: linear-gradient(158deg, #f4f4f6 0%, #ebebee 100%);
+  border:1px solid var(--hair-soft);
+  display:flex; align-items:center; justify-content:center;
+}
+.fp-moment-tile-empty span{
+  width:16px; height:16px;
+  border-radius:5px;
+  border:1.3px dashed var(--grey-3);
+}
+.fp-moments-empty-note{
+  margin-top:12px;
+  text-align:center;
+  font-size:11.5px;
+  color: var(--grey-2);
+  letter-spacing:0.01em;
+}
+
+/* ==========================================================================
+   密友圈卡片 —— 全站唯一深色礼遇卡片，金属描边 + 錾刻纹理
+========================================================================== */
+.fp-circle-card{
+  position:relative;
+  width:100%;
+  display:flex; align-items:center; gap:14px;
+  padding: 20px 20px 20px 22px;
+  border-radius:22px;
+  background: linear-gradient(155deg, #26262b 0%, #151517 55%, #060607 100%);
+  box-shadow:
+    0 24px 44px -22px rgba(10,10,14,0.55),
+    0 1px 0 0 rgba(255,255,255,0.08) inset,
+    0 0 0 1px rgba(0,0,0,0.3);
+  overflow:hidden;
+  transition: transform 0.26s cubic-bezier(.34,1.56,.64,1), box-shadow 0.26s ease;
+}
+.fp-circle-card:active{ transform: scale(0.982); }
+.fp-circle-texture{
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 100% at 20% 30%, #000 0%, transparent 75%);
+  mask-image: radial-gradient(ellipse 90% 100% at 20% 30%, #000 0%, transparent 75%);
+  pointer-events:none;
+}
+.fp-circle-sheen{
+  position:absolute;
+  top:-40%; left:-20%;
+  width:70%; height:180%;
+  background: linear-gradient(100deg, transparent 40%, rgba(255,255,255,0.07) 50%, transparent 60%);
+  transform: rotate(12deg);
+  pointer-events:none;
+}
+.fp-circle-corner{
+  position:absolute;
+  width:16px; height:16px;
+  border-color: rgba(255,255,255,0.28);
+  border-style:solid;
+  border-width:0;
+  pointer-events:none;
+}
+.fp-circle-corner-tl{ top:12px; left:12px; border-top-width:1.1px; border-left-width:1.1px; border-top-left-radius:4px; }
+.fp-circle-corner-br{ bottom:12px; right:12px; border-bottom-width:1.1px; border-right-width:1.1px; border-bottom-right-radius:4px; }
+.fp-circle-crest{
+  position:relative;
+  z-index:2;
+  flex-shrink:0;
+  width:48px; height:48px;
+  border-radius:16px;
+  display:flex; align-items:center; justify-content:center;
+  color: rgba(255,255,255,0.9);
+  background: linear-gradient(160deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.14) inset;
+}
+.fp-circle-col{ position:relative; z-index:2; display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; }
+.fp-circle-title{
+  font-family:'Noto Serif KR', 'Playfair Display', serif;
+  font-weight:700;
+  font-size:16px;
+  color:#fff;
+  letter-spacing:0.01em;
+}
+.fp-circle-desc{
+  font-size:11.5px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing:0.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.fp-circle-arrow{
+  position:relative; z-index:2;
+  flex-shrink:0;
+  width:30px; height:30px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.12) inset;
+}
+
+/* ==========================================================================
+   匿名提问 / Ta 眼中的我 —— 双卡并列
+========================================================================== */
+.fp-dual-row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+.fp-glyph-card{
+  position:relative;
+  display:flex; flex-direction:column; align-items:flex-start; gap:12px;
+  padding: 18px 16px 16px;
+  border-radius:20px;
+  background: linear-gradient(158deg, #ffffff 0%, #fcfcfd 46%, #f5f5f8 100%);
+  border:1px solid var(--hair-soft);
+  box-shadow:
+    0 18px 34px -22px rgba(20,20,30,0.22),
+    0 1px 0 0 rgba(255,255,255,0.95) inset;
+  overflow:hidden;
+  transition: transform 0.24s cubic-bezier(.34,1.56,.64,1), box-shadow 0.24s ease;
+}
+.fp-glyph-card::before{
+  content:'';
+  position:absolute; left:14px; right:14px; top:0;
+  height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0.9) 60%, transparent);
+}
+.fp-glyph-card:active{ transform: scale(0.975); }
+.fp-glyph-card-mark{
+  width:38px; height:38px;
+  border-radius:13px;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink);
+  background: linear-gradient(165deg, #2a2a2e 0%, #17171a 62%, #0b0b0d 100%);
+  box-shadow: 0 8px 18px -10px rgba(20,20,30,0.4), 0 0 0 1px rgba(255,255,255,0.9);
+}
+.fp-glyph-card-mark svg{ color:#fff; }
+.fp-glyph-card-cn{ font-size:13.5px; font-weight:700; color: var(--ink); letter-spacing:0.01em; }
+.fp-glyph-card-en{ font-family:'Space Mono', monospace; font-size:7.5px; letter-spacing:0.16em; color: var(--grey-2); margin-top:-8px; }
+
+/* ---- 底部收尾印章 ---- */
+.fp-foot-mark{
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  padding: 34px 24px 10px;
+}
+.fp-foot-line{ width:34px; height:1px; background: linear-gradient(90deg, transparent, var(--hair) 60%, transparent); }
+.fp-foot-seal{ color: var(--grey-3); display:flex; align-items:center; justify-content:center; }
+
+/* ==========================================================================
+   响应式收边：小屏下减少内边距，避免拥挤
+========================================================================== */
+@media (max-width: 360px){
+  .fp-section{ padding-left:18px; padding-right:18px; }
+  .fp-action-bar{ padding-left:18px; padding-right:18px; }
+  .fp-quote-card{ margin-left:18px; margin-right:18px; }
+  .fp-hero-identity{ left:18px; right:18px; }
+}
+
+/* ---- 占位交互的轻触反馈：所有尚未接入真实功能的入口共用此瞬时闪烁，
+   让人清楚感知到"点击已被响应"，同时不假装完成了跳转 ---- */
+.fp-tap-flash{ animation: fpTapFlash 0.22s ease; }
+@keyframes fpTapFlash{
+  0%{ filter: brightness(1); }
+  40%{ filter: brightness(0.92); }
+  100%{ filter: brightness(1); }
+}

@@ -1,0 +1,1446 @@
+/* ==========================================================================
+   Chatroom — chatroom.css
+   聊天室页面 · LUNA 月鉴 —— 墨玉 × 月光漆面
+   —— 复用 chat.css 的 --ink / --paper / --sheet 等变量与状态栏样式，
+      新增聊天室专属的顶栏 / 气泡 / 输入栏。
+   —— 设计语言：以「Luna」为轴心的月相意象贯穿全篇——顶栏头像外圈是
+      一枚随在线状态呈现盈缺的月环，气泡采用「墨玉／月光漆面」两种质感
+      对照，日期徽记、留白态、拦截层共享同一枚月形符号，
+      取代任何通用的盾牌/圆点图标，让"这是 Luna 的聊天室"一眼可辨。
+========================================================================== */
+
+:root{
+  /* ---- 墨玉（我方气泡）：比主状态栏更深一阶的暗面漆料，压出微弱冷光 ---- */
+  --crm-lacquer-900: #0a0a0c;
+  --crm-lacquer-800: #16161a;
+  --crm-lacquer-700: #232329;
+  --crm-lacquer-rim: rgba(255,255,255,0.09);
+  --crm-bubble-me: linear-gradient(155deg, var(--crm-lacquer-700) 0%, var(--crm-lacquer-800) 62%, var(--crm-lacquer-900) 100%);
+  --crm-bubble-me-edge: var(--crm-lacquer-rim);
+
+  /* ---- 月光纸面（对方气泡）：偏冷白，非暖米色 ---- */
+  --crm-paper-050: #ffffff;
+  --crm-paper-100: #f7f7f9;
+  --crm-paper-200: #eeeef1;
+  --crm-bubble-peer: linear-gradient(165deg, var(--crm-paper-050) 0%, var(--crm-paper-100) 100%);
+  --crm-bubble-peer-edge: rgba(18,18,26,0.08);
+
+  /* ---- 贯穿式渐变（气泡串专用素材）：一整幅纵向长图，颜色走
+     "亮 → 暗 → 亮"的呼吸式多段渐变；串内每条气泡按自己在整条串中
+     的像素位置截取这幅长图的一段，让相邻气泡的颜色恰好首尾相接。
+     —— 关键修正：色阶间距收紧、明暗反差拉满，这样即使单条气泡
+     只截到长图中很短的一段，也能看见明显的亮->暗过渡，而不会像
+     之前那样，短消息串整体只落在中段一片灰里、读不出渐变 ---- */
+  --crm-bubble-peer-stream: linear-gradient(180deg,
+    #ffffff 0%,
+    #f6f6f7 8%,
+    #e7e7e9 20%,
+    #cfcfd3 36%,
+    #bcbcc1 50%,
+    #cfcfd3 64%,
+    #e8e8ea 80%,
+    #f7f7f8 92%,
+    #ffffff 100%);
+  --crm-bubble-me-stream: linear-gradient(180deg,
+    #58585e 0%,
+    #3e3e43 8%,
+    #29292d 20%,
+    #17171a 36%,
+    #0a0a0c 50%,
+    #17171a 64%,
+    #29292d 80%,
+    #403f45 92%,
+    #58585e 100%);
+
+  /* ---- 月环签名色：极克制的银蓝微光，只用于「相位」相关的一枚元素 ---- */
+  --crm-moon-core: #e9eaee;
+  --crm-moon-glow: rgba(150,160,190,0.35);
+  --crm-moon-glow-soft: rgba(150,160,190,0.16);
+  --crm-moon-line: rgba(150,160,190,0.5);
+
+  --crm-hair-line: linear-gradient(90deg, transparent, rgba(18,18,26,0.14) 45%, rgba(18,18,26,0.14) 55%, transparent);
+  --crm-gold-line: var(--crm-hair-line); /* 兼容旧引用 */
+}
+
+/* ==========================================================================
+   拦截层 —— 仅当未携带合法会话令牌（sessionStorage: luna_chat_session）时
+   显示，配合 chatroom.js 的守卫逻辑，杜绝直接以 URL 跳入。
+   以「月相封印」为视觉主体，而非通用盾牌图标。
+========================================================================== */
+.crm-guard{
+  position:absolute; inset:0;
+  z-index:500;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  padding:0 40px;
+  text-align:center;
+  background:
+    radial-gradient(120% 70% at 50% 18%, rgba(150,160,190,0.10), transparent 60%),
+    var(--sheet);
+}
+body[data-crm-guard="blocked"] .crm-guard{ display:flex; }
+body[data-crm-guard="blocked"] .crm-top-bar,
+body[data-crm-guard="blocked"] .crm-scroll,
+body[data-crm-guard="blocked"] .crm-input-bar{ display:none; }
+
+.crm-guard-seal{
+  position:relative;
+  width:64px; height:64px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-1);
+  background: linear-gradient(180deg, #ffffff, #f0f0f4);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 16px 34px -18px rgba(18,18,26,0.32),
+    0 0 0 1px rgba(18,18,26,0.05);
+}
+.crm-guard-seal::after{
+  content:'';
+  position:absolute; inset:-7px;
+  border-radius:50%;
+  border:1px solid var(--crm-moon-line);
+  opacity:0.55;
+}
+.crm-guard-cn{ font-size:15px; font-weight:700; color: var(--ink); letter-spacing:0.02em; }
+.crm-guard-en{ font-family:'Space Mono', monospace; font-size:9.5px; letter-spacing:0.28em; color: var(--grey-2); }
+.crm-guard-btn{
+  margin-top:8px;
+  padding:12px 28px;
+  border-radius:20px;
+  font-size:12.5px; font-weight:700;
+  color:#fff; text-decoration:none;
+  letter-spacing:0.03em;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 16px 30px -16px rgba(18,18,26,0.55), 0 0 0 1px var(--crm-lacquer-rim) inset;
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1);
+}
+.crm-guard-btn:active{ transform: scale(0.96); }
+
+/* ==========================================================================
+   顶栏 —— 与消息区共用同一张背景（画在 .crm-frame 上），零分割线；
+   返回键 / 更多键均为柔和实心圆底图标按钮，参考 iMessage / IG / Line
+   的克制处理，不做线框刻痕；
+   对方肖像徽记：头像右下角挂独立「月相徽章」，姓名旁叠一枚随在线
+   状态点亮的月相小圆牌，让身份区兼具信息量与细节感。
+========================================================================== */
+/* ---- 统一背景：整枚月光晕染画在 .crm-frame 这一层，
+   顶栏与消息区都不再各自定义背景，透出同一张底，杜绝任何断层/分割线 ---- */
+.crm-frame{
+  background:
+    radial-gradient(130% 46% at 50% 0%, rgba(150,160,190,0.08), transparent 58%),
+    var(--sheet);
+}
+
+.crm-top-bar{
+  position:absolute;
+  top: var(--status-h); left:0; right:0;
+  height: calc(var(--topbar-h) + 6px);
+  display:flex; align-items:center;
+  gap:8px;
+  padding: 0 14px;
+  z-index:70;
+}
+/* 顶栏下缘：极细的双线收口——一条实一条虚光，呼应徽记的錾刻语言，
+   仅在顶栏底部压一条线，不叠加任何整层色块，避免与状态栏共用的
+   .crm-frame 底色产生断层色差 ---- */
+.crm-top-bar::after{
+  content:'';
+  position:absolute;
+  left:16px; right:16px; bottom:-1px;
+  height:1px;
+  background: linear-gradient(90deg, transparent, rgba(18,18,26,0.13) 18%, rgba(18,18,26,0.13) 82%, transparent);
+  pointer-events:none;
+}
+
+/* ---- 返回键：墨玉切角印——四角不对称切角，深色漆面材质，
+   外圈叠一枚极细银线描边，做出"錾刻戒面"的厚度感，
+   不做线框錾刻——克制才耐看 ---- */
+.crm-back-btn{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  width:37px; height:37px;
+  flex-shrink:0;
+  color: rgba(244,244,246,0.94);
+  border-radius:12px 50% 50% 50%;
+  background: var(--crm-bubble-me);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.12) inset,
+    0 0 0 1px rgba(255,255,255,0.06) inset,
+    0 9px 18px -10px rgba(10,10,12,0.48),
+    0 0 0 1px rgba(18,18,26,0.04);
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+}
+.crm-back-btn:active{ transform: scale(0.88); box-shadow: 0 1px 0 0 rgba(255,255,255,0.12) inset, 0 4px 10px -6px rgba(10,10,12,0.42); }
+
+/* ---- 对方身份区：主角位——以极浅的錾刻卡面承托，
+   靠头像体量（48px + 双层月环 + 独立徽章）、姓名字重、
+   衬线徽标字与一道月光签名线共同压住整条顶栏的视觉重心 ---- */
+.crm-peer-seal{
+  position:relative;
+  flex:1;
+  display:flex; align-items:center; gap:14px;
+  min-width:0;
+  padding: 5px 10px 5px 6px;
+  border-radius:18px;
+  background:none;
+  box-shadow:none;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.crm-peer-seal:active{
+  background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(18,18,26,0.03));
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.05);
+}
+
+/* 头像容器留出右下角空间，让徽章有明确的悬挂位置，
+   不与头像内容发生裁切重叠 */
+.crm-peer-avatar-wrap{
+  position:relative;
+  width:48px; height:48px;
+  flex-shrink:0;
+}
+.crm-peer-avatar{
+  position:relative;
+  width:48px; height:48px;
+  border-radius:50%;
+  overflow:hidden;
+  background: linear-gradient(155deg, var(--grey-4), var(--grey-5));
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.45) inset,
+    0 9px 20px -12px rgba(18,18,26,0.36),
+    0 0 0 1px rgba(18,18,26,0.06);
+}
+.crm-peer-avatar img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.crm-peer-avatar-glyph{ font-family:'Playfair Display', serif; font-weight:900; font-size:18px; color: var(--grey-2); }
+/* ---- 双层月环：内层细亮线 + 外层极淡光晕描边，
+   随在线状态呈现"盈"与"缺"两种相位，比单线更具厚度与仪式感 ---- */
+.crm-peer-avatar-ring{
+  position:absolute; inset:-4px;
+  border-radius:50%;
+  border:1.3px solid var(--hair);
+  pointer-events:none;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+}
+.crm-peer-avatar-ring::after{
+  content:'';
+  position:absolute; inset:-3px;
+  border-radius:50%;
+  border:1px solid rgba(18,18,26,0.06);
+  opacity:0.7;
+}
+
+/* ---- 月相徽章：真正独立于头像之上的一层——白色基座先把它从头像
+   照片内容里"切"出来，再用径向渐变刻出满月（在线）/新月（离线），
+   底部叠加投影让它看起来是"挂"在头像边缘，而非嵌进头像纹理 ---- */
+.crm-peer-badge{
+  position:absolute;
+  right:-3px; bottom:-3px;
+  width:18px; height:18px;
+  border-radius:50%;
+  z-index:5;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(165deg, #ffffff, #f3f3f6);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 3px 8px -1px rgba(18,18,26,0.38),
+    0 0 0 2.5px var(--sheet, #f6f6f8);
+  transition: box-shadow 0.35s ease;
+}
+.crm-peer-badge-phase{
+  width:10px; height:10px;
+  border-radius:50%;
+  background: var(--grey-4);
+  box-shadow: inset 3px -1px 0 0 var(--sheet, #f6f6f8);
+  transition: background 0.35s ease, box-shadow 0.35s ease, filter 0.35s ease;
+}
+/* 在线：满月——纯净银白圆面 + 外发光；离线：新月——灰面缺角 */
+.crm-peer-badge.is-online{
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 3px 9px -1px rgba(18,18,26,0.34),
+    0 0 0 2.5px var(--sheet, #f6f6f8),
+    0 0 10px 2px var(--crm-moon-glow);
+}
+.crm-peer-badge.is-online .crm-peer-badge-phase{
+  background: radial-gradient(circle at 35% 32%, #ffffff, #d7dae2 68%, #b7bcc8);
+  box-shadow: inset 3px -1px 0 0 transparent;
+}
+
+.crm-peer-col{ position:relative; display:flex; flex-direction:column; align-items:flex-start; min-width:0; gap:5px; }
+.crm-peer-name-row{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  max-width:100%;
+}
+.crm-peer-name{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:17.5px; font-weight:700; color: var(--ink);
+  letter-spacing:0.01em;
+  max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* 姓名旁的月相徽标——柔和实心小圆牌，参考高定认证徽标处理，
+   在线时点亮为满月银面，外加细描边强化"戒面"质感 */
+.crm-peer-name-row::after{
+  content:'';
+  flex-shrink:0;
+  width:13px; height:13px;
+  border-radius:50%;
+  background: linear-gradient(155deg, var(--grey-4), var(--grey-5));
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.45) inset, 0 0 0 1px rgba(18,18,26,0.06);
+  transition: background 0.35s ease, box-shadow 0.35s ease;
+}
+.crm-peer-name-row.is-online::after{
+  background: radial-gradient(circle at 35% 30%, #ffffff, #d7dae2 65%, #b7bcc8);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.65) inset, 0 0 8px 1.5px var(--crm-moon-glow);
+}
+/* ---- 身份签名线：姓名下方一道极细渐隐分隔，压住整条顶栏的重心，
+   让身份区读起来像一枚被精心排版的名片，而非随手一行文字 ---- */
+.crm-peer-col::after{
+  content:'';
+  width:100%; max-width:118px;
+  height:1px;
+  margin-top:1px;
+  background: linear-gradient(90deg, rgba(18,18,26,0.16), rgba(18,18,26,0.03) 70%, transparent);
+}
+.crm-peer-status{
+  display:flex; align-items:center; gap:6px;
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; letter-spacing:0.2em;
+  color: var(--grey-2);
+  text-transform:uppercase;
+}
+.crm-peer-status::before{
+  content:'';
+  width:5px; height:5px;
+  border-radius:50%;
+  background: var(--grey-3);
+  flex-shrink:0;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+.crm-peer-status.is-online::before{
+  background: radial-gradient(circle at 35% 32%, #ffffff, #cfd2da 70%, #aeb3c0);
+  box-shadow: 0 0 6px 1px var(--crm-moon-glow);
+}
+
+/* ---- 更多键：与返回键呼应的"錾刻戒面"实心圆底 + 三枚渐隐圆点，
+   参考高定腕表表冠的处理，而非通用线框图标 ---- */
+.crm-more-btn{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  gap:3.5px;
+  width:37px; height:37px;
+  flex-shrink:0;
+  border-radius:50% 12px 50% 50%;
+  background: linear-gradient(180deg, #ffffff 0%, #f2f2f6 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 0 0 1px rgba(255,255,255,0.6) inset,
+    0 8px 17px -10px rgba(18,18,26,0.26),
+    0 0 0 1px rgba(18,18,26,0.06);
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), background 0.2s ease;
+}
+.crm-more-btn:active{ transform: scale(0.88); background: linear-gradient(180deg, #f6f6f9, #ebebef); }
+.crm-more-mark{
+  width:3.5px; height:3.5px;
+  border-radius:50%;
+  background: var(--ink-soft);
+}
+.crm-more-mark:nth-child(1){ opacity:0.88; }
+.crm-more-mark:nth-child(2){ opacity:0.6; }
+.crm-more-mark:nth-child(3){ opacity:0.36; }
+
+/* ---- 设置錾玺：更多键改绑「聊天设置」入口后的图形——细描边齿轮印，
+   与返回键的墨玉切角呼应，同色阶不引入新色相 ---- */
+.crm-more-seal{
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink-soft);
+  transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+}
+.crm-more-btn:active .crm-more-seal{ transform: rotate(24deg); }
+
+/* ==========================================================================
+   消息滚动区
+========================================================================== */
+.crm-scroll{
+  position:absolute;
+  top: calc(var(--status-h) + var(--topbar-h));
+  bottom: 0;
+  left:0; right:0;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y: contain;
+  z-index:10;
+}
+.crm-scroll::-webkit-scrollbar{ display:none; }
+.crm-scroll-inner{
+  min-height:100%;
+  padding: 18px 16px calc(var(--crm-input-min-h, 92px) + 2px);
+  display:flex; flex-direction:column;
+}
+
+/* ---- 留白态：以「新月」为核心符号——一枚薄描边的弯月，
+   而非通用的盾牌/信封图标，直接对应"还没有消息"的空 ---- */
+.crm-empty-hint{
+  margin:auto;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+  padding:34px 0;
+  opacity:0.82;
+}
+.crm-empty-seal{
+  position:relative;
+  width:50px; height:50px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-3);
+  background: linear-gradient(180deg, #ffffff, #f1f1f4);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 12px 26px -16px rgba(18,18,26,0.24);
+}
+.crm-empty-seal::after{
+  content:'';
+  position:absolute; inset:-6px;
+  border-radius:50%;
+  border:1px dashed var(--crm-moon-line);
+  opacity:0.4;
+}
+.crm-empty-cn{ font-size:12.5px; font-weight:600; color: var(--grey-1); }
+.crm-empty-en{ font-family:'Space Mono', monospace; font-size:8px; letter-spacing:0.24em; color: var(--grey-3); }
+
+/* ---- 居中日期徽记：完整日期，衬线数字 + 细分隔线，呼应顶栏 title-seal 语言 ---- */
+.crm-date-seal-row{
+  display:flex; align-items:center; justify-content:center;
+  margin: 22px 0 18px;
+}
+.crm-date-seal-row:first-child{ margin-top:2px; }
+.crm-date-seal{
+  display:flex; align-items:center; gap:9px;
+  padding: 7px 18px 7px 14px;
+  border-radius:17px;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f4f7 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 9px 18px -13px rgba(18,18,26,0.18),
+    0 0 0 1px rgba(18,18,26,0.05);
+}
+.crm-date-seal-num{
+  font-family:'Playfair Display', serif;
+  font-weight:900; font-size:13.5px;
+  color: var(--grey-3);
+}
+.crm-date-seal-divider{ width:1px; height:13px; background: var(--crm-hair-line); }
+.crm-date-seal-text{
+  font-size:10.5px; font-weight:700;
+  letter-spacing:0.06em;
+  color: var(--grey-1);
+}
+.crm-date-seal-sub{
+  font-family:'Space Mono', monospace;
+  font-size:7.5px; letter-spacing:0.2em;
+  color: var(--grey-3);
+  margin-left:2px;
+}
+
+/* ---- 单条消息组：连续同发送方消息归并为一组，
+   共享一枚头像与一条贯穿式渐变气泡串 ---- */
+.crm-msg-group{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  margin-bottom:20px;
+  max-width:100%;
+  animation: crmMsgIn 0.4s cubic-bezier(.22,1,.36,1) both;
+}
+.crm-msg-group:last-child{ margin-bottom:0; }
+@keyframes crmMsgIn{
+  from{ opacity:0; transform: translateY(11px) scale(0.97); }
+  to{ opacity:1; transform: translateY(0) scale(1); }
+}
+.crm-msg-group.is-me{ flex-direction:row-reverse; }
+
+/* ---- 头像：环 + 右下角一枚够大的新月徽章合并成"同一个"装饰——
+   之前分别做了「环上小新月」和「另一个状态圆点」两个独立元素，
+   两个都很小、离得又近，糊在一起反而看不清任何一个。
+   这次去掉多余的状态圆点，新月徽章本身直接兼任在线状态标记，
+   放大到肉眼能看清"这是个月牙"的尺寸，只留一个装饰焦点 ---- */
+.crm-msg-avatar-wrap{
+  position:relative;
+  width:46px; height:46px;
+  flex-shrink:0;
+  margin:0 2px;
+}
+.crm-msg-avatar{
+  position:relative;
+  width:46px; height:46px;
+  border-radius:50%;
+  overflow:hidden;
+  background: linear-gradient(155deg, var(--grey-4), var(--grey-5));
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.4) inset,
+    0 8px 16px -10px rgba(18,18,26,0.32),
+    0 0 0 2.5px var(--sheet, #f6f6f8);
+}
+.crm-msg-avatar img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.crm-msg-avatar-glyph{ font-family:'Playfair Display', serif; font-weight:900; font-size:17px; color: var(--grey-2); }
+.crm-msg-group.is-me .crm-msg-avatar{
+  background: linear-gradient(155deg, var(--crm-lacquer-700), var(--crm-lacquer-900));
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.15) inset,
+    0 8px 16px -10px rgba(8,8,11,0.42),
+    0 0 0 2.5px var(--sheet, #f6f6f8);
+}
+.crm-msg-group.is-me .crm-msg-avatar-glyph{ color: rgba(255,255,255,0.7); }
+
+/* 月环徽记容器：细描边底环 + 右下角一枚放大到 18px 实际尺寸的
+   新月徽章——这枚新月本身就是在线状态标记，不再额外画圆点 */
+.crm-msg-avatar-ring{
+  position:absolute; inset:-8px;
+  pointer-events:none;
+  z-index:3;
+  filter: drop-shadow(0 2px 5px rgba(18,18,26,0.32));
+}
+.crm-avatar-moon-svg{ width:100%; height:100%; overflow:visible; }
+/* 外层细环：磨砂银灰描边，只是一条安静的底环 */
+.crm-avatar-moon-track{
+  fill:none;
+  stroke: rgba(18,18,26,0.26);
+  stroke-width:1.6;
+}
+/* 新月徽章：实色填充 + 白边描边 + 独立底盘，尺寸放大到
+   在 36px 头像上也能被看清是"一弯月牙"，而不是一个模糊小点 */
+.crm-avatar-moon-badge-plate{
+  fill: var(--sheet, #f6f6f8);
+}
+.crm-avatar-moon-crescent{
+  fill: var(--ink, #16161a);
+  stroke: var(--sheet, #f6f6f8);
+  stroke-width:1.2;
+  stroke-linejoin:round;
+}
+.crm-msg-group.is-me .crm-avatar-moon-track{
+  stroke: rgba(255,255,255,0.3);
+}
+.crm-msg-group.is-me .crm-avatar-moon-crescent{
+  fill:#f2f2f5;
+  stroke: var(--crm-lacquer-900);
+}
+
+
+
+.crm-msg-col{
+  display:flex; flex-direction:column;
+  max-width: 74%;
+  min-width:0;
+}
+.crm-msg-group.is-me .crm-msg-col{ align-items:flex-end; }
+.crm-msg-group:not(.is-me) .crm-msg-col{ align-items:flex-start; }
+
+/* ---- 气泡串外壳：托底投影 + 一条贯穿全串的装饰导轨（细线 + 珠点），
+   真正的「贯穿渐变」画在内部每条气泡的 background 上——用同一张
+   远大于单条气泡的渐变图（--crm-stream-img），配合每条气泡各自
+   不同的 background-position-y（由 JS 按其在串中的像素偏移写成
+   内联样式），让相邻气泡截取的其实是同一整幅渐变画布上下相接的
+   两段，拼起来读出"一条渐变贯穿数条气泡"的效果 ---- */
+.crm-bubble-stream{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  padding: 2px 11px;
+}
+/* 装饰导轨：紧贴气泡串外侧的一条竖线，串起每条消息，
+   末端缀一枚錾刻菱点——像一条把珠子串起来的丝线 */
+.crm-bubble-stream::before{
+  content:'';
+  position:absolute;
+  top:6px; bottom:6px;
+  width:1.5px;
+  pointer-events:none;
+  z-index:1;
+  background: linear-gradient(180deg, rgba(18,18,26,0.02), rgba(18,18,26,0.22) 15%, rgba(18,18,26,0.22) 85%, rgba(18,18,26,0.02));
+}
+.crm-msg-group:not(.is-me) .crm-bubble-stream::before{ left:2px; }
+.crm-msg-group.is-me .crm-bubble-stream::before{ right:2px; background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.28) 15%, rgba(255,255,255,0.28) 85%, rgba(255,255,255,0.03)); }
+
+.crm-bubble-wrap{ position:relative; display:flex; flex-direction:column; }
+.crm-msg-group.is-me .crm-bubble-wrap{ align-items:flex-end; }
+.crm-msg-group:not(.is-me) .crm-bubble-wrap{ align-items:flex-start; }
+
+/* ---- 气泡：四角统一「很远的」大圆角（32px，且串内所有气泡——不论
+   首尾还是中段——一律共享同一圆角值，不再出现"串中间被夹扁"的
+   不一致观感）+ 明显分段的贯穿渐变。
+   —— 透明/毛玻璃效果暂时移除（背景未定，白底下看不出效果），
+   待背景设计确定后再加回来 ---- */
+.crm-bubble{
+  position:relative;
+  overflow:hidden;
+  padding:13px 18px 14px;
+  border-radius:26px;
+  font-size:14px;
+  line-height:1.55;
+  letter-spacing:0.01em;
+  word-break:break-word;
+  overflow-wrap:break-word;
+  white-space:pre-wrap;
+  /* 三层背景叠加：①斜向漆面反光（固定，不随渐变滚动）
+     ②贯穿渐变（随 --crm-stream-y 在长图上滑动取色）
+     用逗号分隔的多重 background，从上到下依次绘制 */
+  background-image:
+    linear-gradient(115deg,
+      rgba(255,255,255,0.6) 0%,
+      rgba(255,255,255,0.22) 16%,
+      rgba(255,255,255,0) 36%,
+      rgba(255,255,255,0) 74%,
+      rgba(255,255,255,0.16) 100%),
+    var(--crm-stream-img);
+  background-repeat: no-repeat, no-repeat;
+  background-size: 100% 100%, 100% var(--crm-stream-h, 400px);
+  background-position: 0 0, 0 var(--crm-stream-y, 0px);
+  background-blend-mode: overlay, normal;
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.75) inset,
+    0 -1.5px 0 0 rgba(18,18,26,0.06) inset,
+    0 14px 28px -16px rgba(18,18,26,0.26),
+    0 0 0 1px var(--crm-bubble-peer-edge);
+}
+.crm-msg-group:not(.is-me) .crm-bubble{
+  color: var(--ink);
+  --crm-stream-img: var(--crm-bubble-peer-stream);
+}
+.crm-msg-group.is-me .crm-bubble{
+  color:#f5f5f7;
+  --crm-stream-img: var(--crm-bubble-me-stream);
+  background-image:
+    linear-gradient(115deg,
+      rgba(255,255,255,0.32) 0%,
+      rgba(255,255,255,0.12) 16%,
+      rgba(255,255,255,0) 36%,
+      rgba(255,255,255,0) 74%,
+      rgba(255,255,255,0.08) 100%),
+    var(--crm-stream-img);
+  background-repeat: no-repeat, no-repeat;
+  background-size: 100% 100%, 100% var(--crm-stream-h, 400px);
+  background-position: 0 0, 0 var(--crm-stream-y, 0px);
+  background-blend-mode: overlay, normal;
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.22) inset,
+    0 -1.5px 0 0 rgba(0,0,0,0.35) inset,
+    0 18px 32px -16px rgba(10,10,12,0.55),
+    0 0 0 1px var(--crm-bubble-me-edge);
+}
+/* 顶部内嵌高光条：叠一层更醒目的白色渐隐，给气泡一条清晰可见的
+   "漆面反光边"，与背景层的斜向反光呼应 */
+.crm-bubble-inner{ position:relative; }
+.crm-bubble::before{
+  content:'';
+  position:absolute;
+  left:20px; right:20px; top:1.5px;
+  height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+  pointer-events:none;
+}
+.crm-msg-group.is-me .crm-bubble::before{
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+}
+
+
+/* 串内相邻气泡：不再收窄任何一角——所有气泡，不论处于串的首、中、
+   尾，圆角值完全一致（继承 .crm-bubble 的 32px），这样连续发送的
+   多条气泡读起来是"同一种很远的大圆角"反复出现，而不会出现之前
+   中间气泡被夹扁成小圆角的不一致感 */
+/* 相邻气泡之间的贯穿"缝线"——细亮线 + 细暗线各一条叠出立体缝合感，
+   补足视觉上"这是一条连续色带被自然分节"的暗示 */
+.crm-bubble-wrap:not(:last-child) .crm-bubble::after{
+  content:'';
+  position:absolute;
+  left:20px; right:20px; bottom:-3px;
+  height:1px;
+  background: rgba(255,255,255,0.35);
+}
+.crm-msg-group.is-me .crm-bubble-wrap:not(:last-child) .crm-bubble::after{
+  background: rgba(255,255,255,0.12);
+}
+
+/* 装饰元素：气泡串顶端挂一枚小巧的錾刻菱形吊坠，作为
+   「这一串消息」的信号性标记，与导轨呼应但不喧宾夺主 */
+.crm-bubble-stream::after{
+  content:'';
+  position:absolute;
+  top:1px;
+  width:6px; height:6px;
+  transform: rotate(45deg);
+  pointer-events:none;
+  border-radius:1.5px;
+  z-index:2;
+}
+.crm-msg-group:not(.is-me) .crm-bubble-stream::after{
+  left:-0.75px;
+  background: linear-gradient(155deg, #ffffff, #dcdee1);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 2px 6px -1px rgba(18,18,26,0.32),
+    0 0 0 2px rgba(18,18,26,0.04);
+}
+.crm-msg-group.is-me .crm-bubble-stream::after{
+  right:-0.75px;
+  background: linear-gradient(155deg, #45454c, var(--crm-lacquer-900));
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.2) inset,
+    0 2px 7px -1px rgba(8,8,11,0.55),
+    0 0 0 2px rgba(255,255,255,0.04);
+}
+
+/* 文本消息内的微光分隔线（长消息可读性装饰，短消息不出现） */
+.crm-bubble.has-divider .crm-bubble-inner::after{
+  content:'';
+  display:block;
+  height:1px;
+  margin-top:9px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+}
+.crm-msg-group:not(.is-me) .crm-bubble.has-divider .crm-bubble-inner::after{
+  background: linear-gradient(90deg, transparent, rgba(18,18,26,0.14), transparent);
+}
+
+
+
+/* ---- 时间戳：气泡下方，AM/PM 格式，随发送方左右对齐 ---- */
+.crm-msg-time{
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  letter-spacing:0.07em;
+  color: var(--grey-3);
+  margin-top:5px;
+  padding:0 3px;
+}
+
+/* ---- 撤回/系统提示行（居中小字，呼应日期徽记但更轻） ---- */
+.crm-sys-row{
+  display:flex; justify-content:center;
+  margin: 10px 0;
+}
+.crm-sys-text{
+  font-size:10.5px;
+  color: var(--grey-2);
+  background: rgba(18,18,26,0.045);
+  padding:5px 13px;
+  border-radius:12px;
+}
+
+/* ==========================================================================
+   底部输入栏 —— 左·功能加号 · 中·输入胶囊 · 右·AI建议 + 发送
+========================================================================== */
+.crm-input-bar{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  z-index:80;
+  padding: 10px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: none;
+}
+
+/* ==========================================================================
+   附加功能面板 —— 「月鉴 · 十三簿」全局虚化扇形卡阵
+   —— 不做常规底部弹窗／网格抽屉。点击加号后，全局（顶栏、消息区、
+      输入栏本体）整层压暗虚化，唯独一列「扇形」排布的功能卡从
+      屏幕中低处升起——每张卡各有专属图形印记（非 emoji，线性 SVG
+      + 錾刻底盘，与气泡头像的月环同一套语汇），横向滑动浏览，
+      居中卡「立」起，两侧卡随扇面角度侧卧退远，形成像展开一叠
+      印鉴牌那样的仪式感，而非一个方形弹窗 ---- */
+.crm-panel-veil{
+  position:absolute;
+  inset:0;
+  z-index:300;
+  opacity:0;
+  pointer-events:none;
+  background:
+    radial-gradient(120% 60% at 50% 82%, rgba(18,18,26,0.08), transparent 60%),
+    rgba(6,6,8,0.46);
+  backdrop-filter: blur(26px) saturate(1.12);
+  -webkit-backdrop-filter: blur(26px) saturate(1.12);
+  transition: opacity 0.36s cubic-bezier(.22,1,.36,1);
+}
+.crm-panel-veil.is-open{ opacity:1; pointer-events:auto; }
+
+.crm-panel{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  z-index:301;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:22px;
+  padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+  opacity:0;
+  transform: translateY(26px);
+  pointer-events:none;
+  transition: opacity 0.34s cubic-bezier(.22,1,.36,1), transform 0.42s cubic-bezier(.22,1,.36,1);
+}
+.crm-panel.is-open{
+  opacity:1;
+  transform: translateY(0);
+  pointer-events:auto;
+}
+
+/* 面板顶部签名行：一枚錾刻月徽 + 衬线标题 + 英文小标——\n
+   宣告这是「十三簿」而非无名的功能格子 */
+.crm-panel-heading{
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+}
+.crm-panel-seal{
+  position:relative;
+  width:34px; height:34px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: rgba(244,244,246,0.95);
+  background: var(--crm-bubble-me);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.16) inset,
+    0 12px 24px -12px rgba(8,8,11,0.55),
+    0 0 0 1px var(--crm-lacquer-rim);
+}
+.crm-panel-seal::after{
+  content:'';
+  position:absolute; inset:-6px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.4);
+  opacity:0.5;
+}
+.crm-panel-title-row{ display:flex; flex-direction:column; align-items:center; gap:2px; }
+.crm-panel-title-cn{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:14.5px; font-weight:700;
+  color:#f4f4f6;
+  letter-spacing:0.05em;
+}
+.crm-panel-title-en{
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.32em;
+  color: rgba(244,244,246,0.5);
+  text-transform:uppercase;
+}
+
+/* ---- 扇形横滑卡阵：flex 行 + 横向 scroll-snap，\n
+   每张卡的 rotate / translateY 由 JS 按其与「当前锚点」的偏移量\n
+   实时计算写入内联变量，读出手持一叠印鉴牌向两侧自然摊开的弧度。\n
+   —— 两侧留白拉宽到接近半个卡位，让扇面真正有空间摊开，\n
+   不再顶着面板边缘显得局促 ---- */
+.crm-fan-viewport{
+  width:100%;
+  overflow-x:auto;
+  overflow-y:visible;
+  -webkit-overflow-scrolling:touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width:none;
+  padding: 46px 0 14px;
+}
+.crm-fan-viewport::-webkit-scrollbar{ display:none; }
+.crm-fan-track{
+  display:flex;
+  align-items:center;
+  gap:22px;
+  padding: 0 calc(50% - 62px);
+  will-change: transform;
+}
+
+/* ---- 每一簿：不再是通用圆角矩形卡片，而是一枚「牙牌」——\n
+   顶部一角切角挂耳（呼应返回键 12px 50% 50% 50% 的切角语汇），\n
+   牌面內側再嵌一圈细描边留白框，四角压极小的錾刻直角托，\n
+   框内上段一枚异形印玺（非正圆，六角磨面），中段图形印记，\n
+   下段牌铭 + 分级细线 + 罗马字号，读起来像随身携带的一枚\n
+   雕工牙牌，而非扁平 UI 卡片 ---- */
+.crm-fan-card{
+  --fan-rot: 0deg;
+  --fan-y: 0px;
+  --fan-scale: 1;
+  --fan-op: 1;
+  position:relative;
+  flex-shrink:0;
+  width:132px;
+  height:186px;
+  border-radius:8px 26px 26px 26px;
+  border:none;
+  cursor:pointer;
+  font-family:inherit;
+  scroll-snap-align:center;
+  padding: 14px;
+  color: var(--ink);
+  background-image:
+    linear-gradient(128deg,
+      rgba(255,255,255,0.95) 0%,
+      rgba(255,255,255,0.4) 20%,
+      rgba(255,255,255,0) 42%,
+      rgba(255,255,255,0) 78%,
+      rgba(255,255,255,0.28) 100%),
+    linear-gradient(178deg, #ffffff 0%, #f5f5f8 55%, #e8e8ed 100%);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.95) inset,
+    0 -1.5px 0 0 rgba(18,18,26,0.06) inset,
+    0 26px 46px -20px rgba(8,8,11,0.52),
+    0 0 0 1px rgba(18,18,26,0.07);
+  transform: rotate(var(--fan-rot)) translateY(var(--fan-y)) scale(var(--fan-scale));
+  opacity: var(--fan-op);
+  transition: transform 0.14s linear, opacity 0.14s linear, box-shadow 0.22s ease;
+}
+/* 牌面内嵌留白框：细描边 + 四角錾刻直角托，把牌铭与图形\n
+   从卡片边缘"框"出独立的一层，做出真正的牙牌纵深 */
+.crm-fan-card-frame{
+  position:relative;
+  width:100%; height:100%;
+  border-radius:5px 20px 20px 20px;
+  border:1px solid rgba(18,18,26,0.1);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+  padding: 16px 6px 12px;
+}
+.crm-fan-card-frame::before,
+.crm-fan-card-frame::after,
+.crm-fan-corner-a,
+.crm-fan-corner-b{
+  content:'';
+  position:absolute;
+  width:9px; height:9px;
+  pointer-events:none;
+}
+.crm-fan-card-frame::before{ top:-1px; left:-1px; border-top:1.4px solid rgba(18,18,26,0.34); border-left:1.4px solid rgba(18,18,26,0.34); }
+.crm-fan-card-frame::after{ bottom:-1px; right:-1px; border-bottom:1.4px solid rgba(18,18,26,0.34); border-right:1.4px solid rgba(18,18,26,0.34); }
+.crm-fan-corner-a{ top:-1px; right:-1px; border-top:1.4px solid rgba(18,18,26,0.34); border-right:1.4px solid rgba(18,18,26,0.34); }
+.crm-fan-corner-b{ bottom:-1px; left:-1px; border-bottom:1.4px solid rgba(18,18,26,0.34); border-left:1.4px solid rgba(18,18,26,0.34); }
+
+/* 挂耳切角：牌的左上角像被削去一角挂上一枚吊牌孔 */
+.crm-fan-card::before{
+  content:'';
+  position:absolute;
+  top:9px; left:9px;
+  width:5px; height:5px;
+  border-radius:50%;
+  background: rgba(18,18,26,0.16);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.5);
+  z-index:2;
+}
+/* 卡面顶端一道细高光缝线，呼应气泡的漆面反光边 */
+.crm-fan-card::after{
+  content:'';
+  position:absolute;
+  left:20px; right:20px; top:2px;
+  height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+  pointer-events:none;
+}
+/* 「私密」一卡改走墨玉漆面（唯一深色卡），与其余月光纸面卡形成\n
+   仅此一处的明暗对照，暗示"这一簿不同于其它" —— 仍守灰白黑体系 */
+.crm-fan-card.is-lacquer{
+  color: rgba(244,244,246,0.94);
+  background-image:
+    linear-gradient(128deg,
+      rgba(255,255,255,0.3) 0%,
+      rgba(255,255,255,0.1) 20%,
+      rgba(255,255,255,0) 42%),
+    var(--crm-bubble-me);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.22) inset,
+    0 -1.5px 0 0 rgba(0,0,0,0.38) inset,
+    0 28px 50px -20px rgba(6,6,8,0.65),
+    0 0 0 1px var(--crm-lacquer-rim);
+}
+.crm-fan-card.is-lacquer::before{ background: rgba(255,255,255,0.22); box-shadow: inset 0 1px 1px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.14); }
+.crm-fan-card.is-lacquer::after{ background: linear-gradient(90deg, transparent, rgba(255,255,255,0.32), transparent); }
+.crm-fan-card.is-lacquer .crm-fan-card-frame{ border-color: rgba(255,255,255,0.16); }
+.crm-fan-card.is-lacquer .crm-fan-card-frame::before,
+.crm-fan-card.is-lacquer .crm-fan-card-frame::after,
+.crm-fan-card.is-lacquer .crm-fan-corner-a,
+.crm-fan-card.is-lacquer .crm-fan-corner-b{ border-color: rgba(255,255,255,0.4) !important; }
+
+.crm-fan-card:active{ transform: rotate(var(--fan-rot)) translateY(var(--fan-y)) scale(calc(var(--fan-scale) * 0.94)); }
+
+/* 印玺牌铭上段：一枚异形（非正圆）印面——上方钝角削平的六角磨面，\n
+   外圈缠一道细描边光晕，图形印记居中，取代通用的纯圆图标底 */
+.crm-fan-icon-plate{
+  position:relative;
+  width:52px; height:52px;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink-soft);
+  clip-path: polygon(50% 0%, 93% 22%, 93% 78%, 50% 100%, 7% 78%, 7% 22%);
+  background: linear-gradient(160deg, #ffffff 0%, #ececf0 60%, #e2e2e7 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 9px 18px -10px rgba(18,18,26,0.3);
+}
+.crm-fan-icon-plate::after{
+  content:'';
+  position:absolute; inset:-5px;
+  clip-path: polygon(50% 0%, 93% 22%, 93% 78%, 50% 100%, 7% 78%, 7% 22%);
+  border:1px solid rgba(18,18,26,0.14);
+  opacity:0.85;
+  pointer-events:none;
+}
+.crm-fan-card.is-lacquer .crm-fan-icon-plate{
+  color: rgba(244,244,246,0.94);
+  background: linear-gradient(160deg, rgba(255,255,255,0.16), rgba(255,255,255,0.03) 60%, rgba(0,0,0,0.18) 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.2) inset,
+    0 9px 18px -10px rgba(0,0,0,0.55);
+}
+.crm-fan-card.is-lacquer .crm-fan-icon-plate::after{ border-color: rgba(255,255,255,0.28); }
+
+/* 牌铭区：居中标签 + 一道两端收窄的分级线 + 等宽罗马字号，\n
+   分级线取代普通留白间距，读出"牌面下段刻字"的层次 */
+.crm-fan-label-block{
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+}
+.crm-fan-label{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:14px; font-weight:700;
+  letter-spacing:0.04em;
+  color: var(--ink);
+}
+.crm-fan-card.is-lacquer .crm-fan-label{ color:#f5f5f7; }
+.crm-fan-divider{
+  width:26px; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(18,18,26,0.28), transparent);
+}
+.crm-fan-card.is-lacquer .crm-fan-divider{ background: linear-gradient(90deg, transparent, rgba(255,255,255,0.32), transparent); }
+.crm-fan-sub{
+  font-family:'Space Mono', monospace;
+  font-size:7px; letter-spacing:0.24em;
+  color: var(--grey-3);
+  text-transform:uppercase;
+}
+.crm-fan-card.is-lacquer .crm-fan-sub{ color: rgba(244,244,246,0.42); }
+
+/* 面板底部一枚极简的收起提示——细线 + 小字，替代粗暴的关闭按钮 */
+.crm-panel-dismiss{
+  display:flex; align-items:center; gap:7px;
+  padding:9px 4px;
+  border:none;
+  background:none;
+  cursor:pointer;
+  color: rgba(244,244,246,0.55);
+}
+.crm-panel-dismiss-bar{
+  width:30px; height:1px;
+  background: rgba(244,244,246,0.35);
+}
+.crm-panel-dismiss-text{
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.22em;
+  text-transform:uppercase;
+}
+
+.crm-input-row{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+}
+
+/* ---- 加号按钮：不再是通用的纯白圆底 + 十字，改成呼应头像
+   月环的「印玺」质感——外圈细描边环，中心一枚菱形錾刻加号，
+   与消息串装饰的菱点、头像的月环同一套视觉语汇 ---- */
+.crm-fn-btn{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  width:40px; height:40px;
+  flex-shrink:0;
+  border-radius:50%;
+  color: var(--ink-soft);
+  background-image:
+    linear-gradient(125deg,
+      rgba(255,255,255,0.75) 0%,
+      rgba(255,255,255,0.2) 30%,
+      rgba(255,255,255,0) 55%),
+    linear-gradient(160deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 10px 20px -13px rgba(18,18,26,0.24),
+    0 0 0 1px rgba(18,18,26,0.06);
+  transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.crm-fn-btn::after{
+  content:'';
+  position:absolute;
+  inset:3px;
+  border-radius:50%;
+  border:1px solid rgba(18,18,26,0.08);
+  pointer-events:none;
+}
+.crm-fn-plus{ display:flex; transition: transform 0.32s cubic-bezier(.4,0,.2,1); }
+.crm-fn-btn.is-active{
+  background-image: none;
+  background: var(--crm-bubble-me);
+  color:#fff;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.2) inset,
+    0 12px 22px -12px rgba(10,10,12,0.5),
+    0 0 0 1px var(--crm-lacquer-rim);
+}
+.crm-fn-btn.is-active::after{ border-color: rgba(255,255,255,0.16); }
+.crm-fn-btn.is-active .crm-fn-plus{ transform: rotate(45deg); }
+.crm-fn-btn:active{ transform: scale(0.9); }
+
+/* ---- 输入胶囊：不再是单薄的纯白色块，叠了三层——
+   ①斜向漆面高光（呼应气泡的漆面反光）②纵向纸面渐变
+   （顶部略亮、底部略灰，读出一点凹陷的容器感）③内嵌描边，
+   让它在透明背景上依然有清晰的层次和"这是一个容器"的实体感 ---- */
+.crm-field{
+  position:relative;
+  flex:1;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  border-radius:24px;
+  padding: 2px 6px;
+  overflow:hidden;
+  background-image:
+    linear-gradient(115deg,
+      rgba(255,255,255,0.85) 0%,
+      rgba(255,255,255,0.3) 18%,
+      rgba(255,255,255,0) 40%,
+      rgba(255,255,255,0) 72%,
+      rgba(255,255,255,0.25) 100%),
+    linear-gradient(180deg, #ffffff 0%, #f9f9fb 55%, #f1f1f4 100%);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.9) inset,
+    0 -1px 0 0 rgba(18,18,26,0.05) inset,
+    0 14px 26px -16px rgba(18,18,26,0.24),
+    0 0 0 1px rgba(18,18,26,0.055);
+  transition: box-shadow 0.2s ease;
+}
+.crm-field::before{
+  content:'';
+  position:absolute;
+  left:16px; right:16px; top:1.5px;
+  height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent);
+  pointer-events:none;
+}
+.crm-field:focus-within{
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.9) inset,
+    0 -1px 0 0 rgba(18,18,26,0.05) inset,
+    0 14px 26px -16px rgba(18,18,26,0.28),
+    0 0 0 1.5px rgba(18,18,26,0.16);
+}
+.crm-textarea{
+  width:100%;
+  max-height:112px;
+  padding:9px 11px;
+  border:none; outline:none; background:transparent;
+  resize:none;
+  font-family:'Inter', 'PingFang SC', sans-serif;
+  font-size:14px;
+  line-height:1.4;
+  color: var(--ink);
+}
+.crm-textarea::placeholder{ color: var(--grey-3); }
+
+/* ---- AI 回复按钮：把通用的四角星换成「Luna」自己的新月符号——
+   与顶栏头像、消息气泡头像上反复出现的月环元素前后呼应，
+   这枚按钮本身就该让人一眼认出"这是月鉴的 AI"，而不是随便
+   哪个产品都在用的星芒图标 ---- */
+.crm-ai-btn{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  width:40px; height:40px;
+  flex-shrink:0;
+  border-radius:50%;
+  color: var(--grey-1);
+  background-image:
+    linear-gradient(125deg,
+      rgba(255,255,255,0.75) 0%,
+      rgba(255,255,255,0.2) 30%,
+      rgba(255,255,255,0) 55%),
+    linear-gradient(160deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 10px 20px -13px rgba(18,18,26,0.22),
+    0 0 0 1px rgba(18,18,26,0.06);
+  transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), color 0.2s ease, box-shadow 0.25s ease;
+}
+.crm-ai-btn::after{
+  content:'';
+  position:absolute;
+  inset:3px;
+  border-radius:50%;
+  border:1px solid rgba(18,18,26,0.08);
+  pointer-events:none;
+}
+.crm-ai-btn:active{ transform: scale(0.9) rotate(-8deg); }
+.crm-ai-btn.is-thinking{ box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 3px var(--crm-moon-glow-soft), 0 10px 20px -13px rgba(18,18,26,0.22), 0 0 0 1px rgba(18,18,26,0.06); }
+.crm-ai-btn.is-thinking .crm-ai-glyph{ animation: crmAiSpin 0.9s linear infinite; color: var(--crm-moon-line); }
+@keyframes crmAiSpin{ from{ transform: rotate(0); } to{ transform: rotate(360deg); } }
+
+/* ---- 发送按钮：未激活时是磨砂玉环底盘（与加号/AI按钮同一质感），
+   有文字时才"点漆"——换上墨玉漆面渐变 + 錾刻箭头，
+   像盖下一枚私印，而不是通用的纸飞机/箭头图标配色切换 ---- */
+.crm-send-btn{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  width:40px; height:40px;
+  flex-shrink:0;
+  border-radius:50%;
+  color: var(--grey-3);
+  background-image:
+    linear-gradient(125deg,
+      rgba(255,255,255,0.65) 0%,
+      rgba(255,255,255,0.15) 30%,
+      rgba(255,255,255,0) 55%),
+    linear-gradient(160deg, #f1f1f4 0%, #e7e7eb 100%);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.05);
+  transition: all 0.28s cubic-bezier(.34,1.56,.64,1);
+}
+.crm-send-btn::after{
+  content:'';
+  position:absolute;
+  inset:3px;
+  border-radius:50%;
+  border:1px solid rgba(18,18,26,0.06);
+  pointer-events:none;
+}
+.crm-send-btn svg path{ transition: stroke 0.2s ease; }
+.crm-send-btn:not(:disabled){
+  color:#fff;
+  background-image:
+    linear-gradient(125deg,
+      rgba(255,255,255,0.3) 0%,
+      rgba(255,255,255,0.08) 30%,
+      rgba(255,255,255,0) 55%),
+    var(--crm-bubble-me);
+  box-shadow: 0 13px 24px -13px rgba(18,18,26,0.5), 0 0 0 1px var(--crm-lacquer-rim) inset;
+}
+.crm-send-btn:not(:disabled)::after{ border-color: rgba(255,255,255,0.14); }
+.crm-send-btn:not(:disabled):active{ transform: scale(0.88); }
+.crm-send-btn:disabled{ cursor:default; }
+
+/* ==========================================================================
+   AI 建议条：AI 按钮点击后，在输入行上方弹出候选回复卡片
+========================================================================== */
+.crm-ai-suggest{
+  max-height:0;
+  overflow:hidden;
+  opacity:0;
+  transition: max-height 0.3s cubic-bezier(.4,0,.2,1), opacity 0.24s ease, margin 0.3s ease;
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+}
+.crm-ai-suggest.is-open{
+  max-height:220px;
+  opacity:1;
+  margin-bottom:10px;
+}
+.crm-ai-suggest-item{
+  text-align:left;
+  padding:10.5px 14px;
+  border-radius:15px;
+  font-size:12.5px;
+  line-height:1.45;
+  color: var(--ink-soft);
+  background: linear-gradient(180deg, #ffffff 0%, #f4f4f7 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 9px 18px -13px rgba(18,18,26,0.18),
+    0 0 0 1px rgba(18,18,26,0.045);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease;
+}
+.crm-ai-suggest-item:active{ transform: scale(0.98); }
+
+/* ==========================================================================
+   响应式微调 —— 更窄屏幕下收紧气泡最大宽度与内边距
+========================================================================== */
+@media (max-width:360px){
+  .crm-msg-col{ max-width:76%; }
+  .crm-peer-name{ max-width:110px; }
+}
+
+/* ==========================================================================
+   气泡长按操作面板 —— 点击气泡时弹出，iOS 风格上下文菜单
+   —— 设计语言延续「墨玉×月光漆面」：背景整体虚化压暗，被选中的
+      那一条气泡从消息流中"浮"出来，保持原位、原色、原渐变不变，
+      只是叠一层清晰的选中描边 + 阴影，其余气泡连同顶栏/输入栏一起
+      失焦虚化，形成唯一的视觉焦点。菜单本身是一枚磨砂白玉卡片，
+      纵向堆叠的功能行，与气泡串同一套描边/投影语汇，
+      不使用任何 emoji，图标全部为线性 SVG 描边 ---- */
+
+.crm-select-mask{
+  position:fixed;
+  inset:0;
+  z-index:200;
+  opacity:0;
+  pointer-events:none;
+  background: rgba(10,10,12,0.22);
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  transition: opacity 0.26s cubic-bezier(.4,0,.2,1);
+}
+.crm-select-mask.is-open{
+  opacity:1;
+  pointer-events:auto;
+}
+
+/* 被选中的气泡拷贝：定位在原气泡的屏幕坐标上，脱离虚化层单独置顶，
+   与背后的虚化蒙层形成"这一条被点亮、其余全部退远"的层次 */
+.crm-select-clone{
+  position:fixed;
+  z-index:201;
+  pointer-events:none;
+  transform-origin: center center;
+  opacity:0;
+  transform: scale(0.96);
+  transition: opacity 0.24s cubic-bezier(.22,1,.36,1), transform 0.3s cubic-bezier(.22,1,.36,1);
+}
+.crm-select-clone.is-open{
+  opacity:1;
+  transform: scale(1);
+}
+.crm-select-clone .crm-bubble{
+  cursor:default;
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.8) inset,
+    0 -1.5px 0 0 rgba(18,18,26,0.06) inset,
+    0 30px 54px -20px rgba(10,10,12,0.4),
+    0 0 0 1.5px rgba(255,255,255,0.55),
+    0 0 0 2.5px rgba(18,18,26,0.14);
+}
+.crm-select-clone.is-me .crm-bubble{
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.22) inset,
+    0 -1.5px 0 0 rgba(0,0,0,0.35) inset,
+    0 30px 54px -18px rgba(6,6,8,0.62),
+    0 0 0 1.5px rgba(255,255,255,0.22),
+    0 0 0 2.5px rgba(10,10,12,0.5);
+}
+
+/* 操作面板：磨砂白玉卡片，纵向排列的功能行，行与行之间用发丝级
+   描边分隔而不是块状阴影，读起来像一枚精工雕出的印章清单 */
+.crm-select-menu{
+  position:fixed;
+  z-index:202;
+  width:210px;
+  border-radius:20px;
+  padding:6px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,247,249,0.98) 100%);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.9) inset,
+    0 26px 48px -18px rgba(10,10,12,0.4),
+    0 0 0 1px rgba(18,18,26,0.07);
+  opacity:0;
+  transform-origin: top center;
+  transform: translateY(-6px) scale(0.92);
+  transition: opacity 0.22s cubic-bezier(.4,0,.2,1), transform 0.26s cubic-bezier(.22,1,.36,1);
+}
+.crm-select-menu.is-open{
+  opacity:1;
+  transform: translateY(0) scale(1);
+}
+.crm-select-menu.is-below{ transform-origin: bottom center; }
+
+.crm-select-menu-row{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:11.5px 14px;
+  border-radius:14px;
+  background:none;
+  text-align:left;
+  color: var(--ink);
+  transition: background 0.15s ease;
+}
+.crm-select-menu-row:active{ background: rgba(18,18,26,0.055); }
+.crm-select-menu-row + .crm-select-menu-row{
+  position:relative;
+}
+.crm-select-menu-row + .crm-select-menu-row::before{
+  content:'';
+  position:absolute;
+  top:0; left:14px; right:14px;
+  height:1px;
+  background: rgba(18,18,26,0.07);
+}
+.crm-select-menu-label{
+  font-size:14.5px;
+  font-weight:500;
+  letter-spacing:0.005em;
+}
+.crm-select-menu-icon{
+  display:flex; flex-shrink:0;
+  color: var(--grey-2);
+}
+
+/* 「撤回」「删除」两条属于破坏性操作，与其余功能行分组隔开，
+   文字与图标统一使用漆黑色系里最深的墨色，靠"位置独立成组"而
+   不是靠红色来传达"这里要谨慎"——保持全局黑白灰不引入警示色 */
+.crm-select-menu-group + .crm-select-menu-group{
+  margin-top:6px;
+  padding-top:6px;
+  position:relative;
+}
+.crm-select-menu-group + .crm-select-menu-group::before{
+  content:'';
+  position:absolute;
+  top:0; left:8px; right:8px;
+  height:6px;
+  border-top:1px solid rgba(18,18,26,0.09);
+}
+.crm-select-menu-row.is-danger{ color: var(--ink); font-weight:600; }
+.crm-select-menu-row.is-danger .crm-select-menu-icon{ color: var(--ink-soft, var(--ink)); }
+
+@media (max-width:360px){
+  .crm-fan-card{ width:120px; height:172px; }
+  .crm-fan-track{ padding: 0 calc(50% - 56px); gap:18px; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .crm-select-mask, .crm-select-clone, .crm-select-menu{ transition:none; }
+  .crm-msg-group{ animation:none; }
+  .crm-ai-btn.is-thinking .crm-ai-glyph{ animation:none; }
+  .crm-panel, .crm-panel-veil, .crm-fan-card{ transition:none; }
+}
+
+/* ==========================================================================
+   文字防护阴影 —— 自定义聊天背景（图片/视频）铺满整个手机壳后，
+   状态栏与顶栏的深色文字/线条图标直接压在背景照片上，浅底假设不再
+   成立，必须补一层柔和投影兜底，确保任何背景亮度下都能看清。
+   只加阴影，不改变颜色/字重，不影响无自定义背景时的原有观感
+   （投影在纯色底上几乎不可见，只在有对比强烈的背景图/视频时才会
+   被看出来）。
+========================================================================== */
+.status-time,
+.bat-pct{
+  text-shadow:
+    0 0 4px rgba(255,255,255,0.9),
+    0 0 10px rgba(255,255,255,0.55),
+    0 1px 3px rgba(0,0,0,0.45);
+}
+.signal i{
+  filter:
+    drop-shadow(0 0 3px rgba(255,255,255,0.9))
+    drop-shadow(0 0 7px rgba(255,255,255,0.5))
+    drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+}
+.bat-shell{
+  filter:
+    drop-shadow(0 0 3px rgba(255,255,255,0.9))
+    drop-shadow(0 0 7px rgba(255,255,255,0.5))
+    drop-shadow(0 1px 2px rgba(0,0,0,0.35));
+}
+.crm-peer-name{
+  text-shadow:
+    0 0 5px rgba(255,255,255,0.85),
+    0 0 14px rgba(255,255,255,0.45),
+    0 1px 4px rgba(0,0,0,0.4);
+}
+.crm-peer-status{
+  text-shadow:
+    0 0 4px rgba(255,255,255,0.85),
+    0 0 10px rgba(255,255,255,0.45),
+    0 1px 3px rgba(0,0,0,0.4);
+}

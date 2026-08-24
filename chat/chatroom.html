@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Chatroom</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="chat.css" />
+<link rel="stylesheet" href="chatroom.css" />
+<link rel="stylesheet" href="chatsetting.css" />
+</head>
+<body data-crm-guard="pending">
+
+<div class="phone-wrap">
+<div class="phone-frame crm-frame">
+
+  <div class="bg-glow"></div>
+
+  <!-- ============ 聊天背景层：由 chatsetting.html 保存的设置在此渲染，
+       置于顶栏/消息区/输入栏之下，随全局或专属角色配置实时切换 ============ -->
+  <div class="crm-bg-layer" id="crmBgLayer" aria-hidden="true">
+    <img class="crm-bg-media" id="crmBgImg" alt="" hidden />
+    <video class="crm-bg-media" id="crmBgVideo" muted loop autoplay playsinline hidden></video>
+    <div class="crm-bg-scrim" id="crmBgScrim"></div>
+  </div>
+
+  <!-- ============ 拦截层：只允许经由好友详情页跳转进入 ============
+       未携带合法会话令牌时展示，杜绝直接以 URL 方式访问本页 -->
+  <div class="crm-guard" id="crmGuard" aria-hidden="true">
+    <div class="crm-guard-seal" aria-hidden="true">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15.5 3.2C11.4 4.4 8.5 8.2 8.5 12.5C8.5 16.8 11.4 20.6 15.5 21.8C13.9 22.4 12.2 22.7 10.5 22.4C5.6 21.6 2 17.4 2 12.5C2 7.6 5.6 3.4 10.5 2.6C12.2 2.3 13.9 2.6 15.5 3.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="crm-guard-cn">需从好友详情页进入</div>
+    <div class="crm-guard-en">ACCESS&nbsp;VIA&nbsp;FRIEND&nbsp;PROFILE&nbsp;ONLY</div>
+    <a class="crm-guard-btn" href="chat.html">返回好友列表</a>
+  </div>
+
+  <!-- ============ 状态栏：与 chat.js 主状态栏完全同源同步 ============ -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island">
+      <div class="si-capsule si-minimal-capsule"></div>
+    </div>
+    <div class="status-right">
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 聊天室顶栏：返回 · 对方肖像徽记 · 更多 ============ -->
+  <div class="crm-top-bar" id="crmTopBar">
+    <button class="crm-back-btn" id="crmBackBtn" aria-label="返回资料页">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <button class="crm-peer-seal" id="crmPeerSeal">
+      <span class="crm-peer-avatar-wrap">
+        <span class="crm-peer-avatar" id="crmPeerAvatar">
+          <span class="crm-peer-avatar-glyph" id="crmPeerAvatarGlyph"></span>
+          <span class="crm-peer-avatar-ring" aria-hidden="true"></span>
+        </span>
+        <span class="crm-peer-badge" id="crmPeerBadge" aria-hidden="true">
+          <span class="crm-peer-badge-phase"></span>
+        </span>
+      </span>
+      <span class="crm-peer-col">
+        <span class="crm-peer-name-row" id="crmPeerNameRow">
+          <span class="crm-peer-name" id="crmPeerName">好友昵称</span>
+        </span>
+        <span class="crm-peer-status" id="crmPeerStatus">在线 · ONLINE</span>
+      </span>
+    </button>
+
+    <button class="crm-more-btn" id="crmMoreBtn" aria-label="聊天设置">
+      <span class="crm-more-seal" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 8.6C10.1 8.6 8.6 10.1 8.6 12C8.6 13.9 10.1 15.4 12 15.4C13.9 15.4 15.4 13.9 15.4 12C15.4 10.1 13.9 8.6 12 8.6Z" stroke="currentColor" stroke-width="1.5"/><path d="M12 2.8V5.2M12 18.8V21.2M21.2 12H18.8M5.2 12H2.8M18.1 5.9L16.4 7.6M7.6 16.4L5.9 18.1M18.1 18.1L16.4 16.4M7.6 7.6L5.9 5.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </span>
+    </button>
+  </div>
+
+  <!-- ============ 消息滚动区 ============ -->
+  <div class="crm-scroll" id="crmScroll">
+    <div class="crm-scroll-inner" id="crmScrollInner">
+      <!-- 消息由 chatroom.js 动态渲染注入，含居中日期徽记 + 左右气泡 -->
+      <div class="crm-empty-hint" id="crmEmptyHint" aria-hidden="true">
+        <span class="crm-empty-seal">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M15.5 3.2C11.4 4.4 8.5 8.2 8.5 12.5C8.5 16.8 11.4 20.6 15.5 21.8C13.9 22.4 12.2 22.7 10.5 22.4C5.6 21.6 2 17.4 2 12.5C2 7.6 5.6 3.4 10.5 2.6C12.2 2.3 13.9 2.6 15.5 3.2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="crm-empty-cn">还没有消息，写下第一句话吧</span>
+        <span class="crm-empty-en">NO MESSAGES YET</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 底部输入栏 ============
+       左·功能按钮（加号，唤出附加面板占位）
+       中·输入胶囊（自适应多行）
+       右·AI回复按钮 + 发送按钮（有文字时发送键被点亮） -->
+  <div class="crm-input-bar" id="crmInputBar">
+
+    <div class="crm-input-row">
+      <button class="crm-fn-btn" id="crmFnBtn" aria-label="更多功能">
+        <span class="crm-fn-plus" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </span>
+      </button>
+
+      <div class="crm-field">
+        <textarea class="crm-textarea" id="crmTextarea" placeholder="写点什么……" rows="1" maxlength="2000"></textarea>
+      </div>
+
+      <button class="crm-ai-btn" id="crmAiBtn" aria-label="AI 回复建议">
+        <span class="crm-ai-glyph" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15.5 3.2C11.4 4.4 8.5 8.2 8.5 12.5C8.5 16.8 11.4 20.6 15.5 21.8C13.9 22.4 12.2 22.7 10.5 22.4C5.6 21.6 2 17.4 2 12.5C2 7.6 5.6 3.4 10.5 2.6C12.2 2.3 13.9 2.6 15.5 3.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="17.4" cy="6.3" r="1.15" fill="currentColor"/></svg>
+        </span>
+      </button>
+
+      <button class="crm-send-btn" id="crmSendBtn" aria-label="发送" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4.5 19.5L19.5 12L4.5 4.5L7 12L4.5 19.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 12H14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ 附加功能面板：「十三簿」全局虚化扇形卡阵 ============
+       置于 .phone-frame 内、绝对定位铺满整个手机壳（顶栏/消息区/
+       输入栏之上），而非 fixed 到浏览器视口——手机壳自身带独立的
+       定位包含块，用 fixed 会逃出壳体裁切范围，故沿用壳内 absolute
+       铺满的写法，与 .crm-guard / .crm-select 系列保持同一约定 -->
+  <div class="crm-panel-veil" id="crmPanelVeil" aria-hidden="true"></div>
+  <div class="crm-panel" id="crmPanel" aria-hidden="true">
+    <div class="crm-panel-heading">
+      <span class="crm-panel-seal" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15.5 3.2C11.4 4.4 8.5 8.2 8.5 12.5C8.5 16.8 11.4 20.6 15.5 21.8C13.9 22.4 12.2 22.7 10.5 22.4C5.6 21.6 2 17.4 2 12.5C2 7.6 5.6 3.4 10.5 2.6C12.2 2.3 13.9 2.6 15.5 3.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="crm-panel-title-row">
+        <span class="crm-panel-title-cn">十三簿</span>
+        <span class="crm-panel-title-en">THIRTEEN&nbsp;FOLIOS</span>
+      </span>
+    </div>
+
+    <div class="crm-fan-viewport" id="crmFanViewport">
+      <div class="crm-fan-track" id="crmFanTrack">
+        <!-- 十三张功能卡由 chatroom.js 动态生成并计算扇形角度 -->
+      </div>
+    </div>
+
+    <button class="crm-panel-dismiss" id="crmPanelDismiss" type="button">
+      <span class="crm-panel-dismiss-bar" aria-hidden="true"></span>
+      <span class="crm-panel-dismiss-text">收起</span>
+      <span class="crm-panel-dismiss-bar" aria-hidden="true"></span>
+    </button>
+  </div>
+
+</div>
+</div>
+
+<script src="chat.js"></script>
+<script src="chatroom.js"></script>
+</body>
+</html>

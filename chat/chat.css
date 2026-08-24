@@ -1,0 +1,4388 @@
+/* ==========================================================================
+   Chat App — chat.css
+   一纸到底 · Single Paper System
+   黑白灰浅色系 · 状态栏/顶栏/内容区/底栏共用同一张纸面，零遮罩零分割线
+========================================================================== */
+
+:root{
+  --ink:        #17171b;
+  --ink-soft:   #3c3c43;
+  --grey-1:     #6f6f78;
+  --grey-2:     #9b9ba3;
+  --grey-3:     #c6c6cc;
+  --grey-4:     #e2e2e6;
+  --grey-5:     #edeef0;
+  --paper:      #f6f6f8;
+  --paper-2:    #ffffff;
+  --hair:       rgba(20,20,26,0.09);
+  --hair-soft:  rgba(20,20,26,0.055);
+
+  /* 统一纸面渐变——状态栏/顶栏/内容/底栏全部使用此变量，杜绝色块断层 */
+  --sheet: linear-gradient(180deg, #fbfbfc 0%, #f5f5f7 38%, #eeeef1 100%);
+
+  --status-h: 52px;
+  --topbar-h: 54px;
+  --tabbar-h: 64px;
+
+  --shadow-soft: 0 18px 40px -20px rgba(20,20,30,0.18);
+}
+
+*,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+
+html,body{
+  height:100%;
+  background:#0c0c0e;
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;
+}
+
+button{ font-family:inherit; border:none; background:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+
+/* ============ 手机外框 ============ */
+.phone-wrap{
+  width:100vw; height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+.phone-frame{
+  position:relative;
+  width:100vw; height:100vh;
+  overflow:hidden;
+  background: var(--sheet);
+}
+
+.bg-glow{
+  position:absolute; inset:-20%;
+  z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 40% 30% at 20% 8%, rgba(255,255,255,0.85) 0%, transparent 62%),
+    radial-gradient(ellipse 46% 36% at 82% 92%, rgba(180,180,190,0.28) 0%, transparent 62%);
+  filter: blur(30px);
+  animation: glowDrift 26s ease-in-out infinite alternate;
+}
+@keyframes glowDrift{
+  0%{ background-position: 0% 0%, 100% 100%; }
+  100%{ background-position: 30% 20%, 60% 70%; }
+}
+
+/* ==========================================================================
+   动态页专属：封面图片真正铺到状态栏/顶栏之下的统一背景层。
+   与页面内容流里的 .mo-cover 占位块共用同一张图（由 JS 同步），
+   高度从屏幕最顶部一路延伸到封面视觉底边，状态栏/顶栏在其上完全
+   透明，三者叠在一起就是同一张画布，杜绝"深色遮罩 vs 封面渐变"
+   两截对不上的生硬分层。
+========================================================================== */
+.moments-cover-veil{
+  position:absolute;
+  top:0; left:0; right:0;
+  /* 完整 188px 封面高度，和 .mo-cover 占位块一致——不能为了不挡住
+     身份卡而砍矮封面本身，那样会把"头像压穿封面"的层次感也一起
+     削没了。真正要对齐的是 .mo-identity-row 的负 margin（见下方），
+     让头像刚好卡在这条线上探出，而不是缩短封面来迁就它 */
+  height: calc(var(--status-h) + var(--topbar-h) + 188px);
+  z-index:60;
+  overflow:hidden;
+  /* 找回最初设计里封面底边的不对称斜切造型——这是原方案的视觉
+     语言之一，之前重做背景层时漏掉了，导致底边变成一条生硬直线 */
+  clip-path: polygon(0% 0%, 100% 0%, 100% 88%, 62% 100%, 0% 94%);
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.4s ease;
+}
+.mcv-frame{
+  position:absolute; inset:0;
+  background: linear-gradient(150deg, #fbfbfc 0%, #f2f2f5 48%, #e8e8ec 100%);
+}
+.mcv-frame.has-photo{ background:#e8e8ec; }
+.mcv-frame.has-photo .mcv-texture{ display:none; }
+.mcv-frame img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+}
+.mcv-texture{
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(20,20,26,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20,20,26,0.05) 1px, transparent 1px);
+  background-size: 34px 34px;
+  background-position: center;
+  -webkit-mask-image: radial-gradient(ellipse 65% 85% at 50% 50%, #000 0%, transparent 100%);
+  mask-image: radial-gradient(ellipse 65% 85% at 50% 50%, #000 0%, transparent 100%);
+}
+/* 顶部轻微压暗，确保状态栏时间/电量等反白文字在浅色封面（未设照片
+   或明亮照片）下依然可辨；底部自然融回纸面基色，与内容区无缝衔接 */
+.mcv-scrim{
+  position:absolute; inset:0;
+  background:
+    linear-gradient(180deg, rgba(20,20,24,0.34) 0%, rgba(20,20,24,0.14) 22%, rgba(20,20,24,0) 42%),
+    linear-gradient(180deg, rgba(255,255,255,0) 62%, rgba(246,246,248,0.94) 100%);
+  pointer-events:none;
+}
+.phone-frame.is-moments-chrome .moments-cover-veil{ opacity:1; }
+/* 动态页激活时，把内容容器整体的层级提到背景层之上，让身份卡
+   （头像+昵称，靠负 margin 探出封面）能正常盖在背景层前面显示，
+   不再被压住只露出下半截。只改层级顺序，.pages-root 内部所有
+   页面的位置、尺寸、滚动行为完全不变 —— 这是纯粹的 z-index 问题，
+   跟视觉样式无关 */
+.phone-frame.is-moments-chrome .pages-root{ z-index:65; }
+.phone-frame.is-moments-chrome .si-minimal-capsule{ background:#000; box-shadow: 0 0 0 1px rgba(255,255,255,0.08); }
+/* 动态页顶栏文字/图标在深色横幅上需要反白，覆盖默认墨色 */
+.phone-frame.is-moments-chrome #statusTime,
+.phone-frame.is-moments-chrome .bat-pct{ color:#fff; opacity:0.92; }
+.phone-frame.is-moments-chrome .signal i{ background:#fff; opacity:0.92; }
+.phone-frame.is-moments-chrome .bat-inner{ background: linear-gradient(90deg, rgba(255,255,255,0.8), #fff); }
+.phone-frame.is-moments-chrome .bat-shell{ border-color: rgba(255,255,255,0.55); }
+.phone-frame.is-moments-chrome .bat-nub{ background: rgba(255,255,255,0.5); }
+/* 标题胶囊在动态页保持和右上角圆形印记按钮同款的不透明白色材质，
+   不做透明化处理——深色封面背景上如果胶囊本身也透明，会显得和
+   其余按钮风格不统一、悬浮感突兀，故这里不再覆写背景，直接沿用
+   .top-title-seal 的默认白色胶囊样式，只覆写文字颜色为深色墨色
+   （见下方 .top-page-title 等选择器，此处删除背景覆写） */
+.phone-frame.is-moments-chrome .tts-num{ color: var(--grey-3); }
+.phone-frame.is-moments-chrome .top-page-title{ color: var(--ink); }
+.phone-frame.is-moments-chrome .tts-en{ color: var(--grey-2); }
+.phone-frame.is-moments-chrome .tts-divider{ background: linear-gradient(180deg, transparent, var(--hair) 30%, var(--hair) 70%, transparent); }
+
+/* ==========================================================================
+   状态栏 —— 完全透明，融入统一纸面，不再自带背景色
+========================================================================== */
+.status-bar{
+  position:absolute;
+  top:0; left:0; right:0;
+  height: var(--status-h);
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  padding: 0 24px 10px;
+  z-index:200;
+  background:transparent;
+  pointer-events:none;
+}
+.status-time{
+  font-size:15px;
+  font-weight:600;
+  color: var(--ink);
+  letter-spacing:0.2px;
+}
+.status-island{
+  position:absolute;
+  left:50%; transform:translateX(-50%);
+  bottom:6px;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+.si-minimal-capsule{
+  width:110px; height:32px;
+  background:#000;
+  border-radius:24px;
+}
+.status-right{ display:flex; align-items:center; gap:7px; }
+.signal{ display:flex; align-items:flex-end; gap:2px; height:13px; }
+.signal i{ display:block; width:2.5px; border-radius:1px; background: var(--ink-soft); opacity:0.85; }
+.signal i:nth-child(1){ height:4px; }
+.signal i:nth-child(2){ height:7px; }
+.signal i:nth-child(3){ height:10px; }
+.signal i:nth-child(4){ height:13px; }
+.battery{ display:flex; align-items:center; gap:3px; }
+.bat-pct{ font-size:14px; font-weight:600; color: var(--ink-soft); opacity:0.85; }
+.bat-shell{ width:24px; height:12px; border:1.5px solid rgba(20,20,28,0.42); border-radius:3.5px; padding:1.5px; position:relative; }
+.bat-inner{ width:76%; height:100%; border-radius:1.5px; background: linear-gradient(90deg, var(--ink-soft), var(--ink)); }
+.bat-nub{ position:absolute; right:-4px; top:50%; transform:translateY(-50%); width:2.5px; height:5px; background:rgba(20,20,28,0.35); border-radius:0 2px 2px 0; }
+
+/* ==========================================================================
+   顶栏 —— 黑白灰浅色系 · Q弹圆润 · 标题绝对居中于整个屏幕
+   一律走浅色纸面材质：白色胶囊 + 柔和投影，靠"厚度"和"弹性"
+   而非硬线条或深色对比来建立层次
+========================================================================== */
+.top-back-bar{
+  position:absolute;
+  top: var(--status-h); left:0; right:0;
+  height: var(--topbar-h);
+  display:flex; align-items:center;
+  padding: 0 16px;
+  z-index:70;
+  background:transparent;
+  pointer-events:none;
+}
+.top-back-bar > *{ pointer-events:auto; }
+
+/* ============ 左侧：返回按钮（仅消息页显示） ============
+   斜切轮廓 + 纸面厚度，禁止常见的纯圆形扁平返回箭头。
+   默认隐藏，JS 通过 body[data-active-page="messages"] 控制显隐，
+   先占位不绑定跳转逻辑，样式已按最终形态就位 */
+.top-back-btn{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px;
+  flex-shrink:0;
+  color: var(--ink-soft);
+  border-radius: 11px 16px 11px 16px;
+  background: linear-gradient(160deg, #ffffff 0%, #f6f6f8 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 7px 16px -10px rgba(20,20,28,0.22),
+    0 0 0 1px rgba(20,20,28,0.05);
+  opacity:0;
+  transform: scale(0.86);
+  pointer-events:none;
+  transition: opacity 0.3s ease, transform 0.32s cubic-bezier(.34,1.56,.64,1), color 0.2s ease;
+}
+.top-back-btn::before{
+  content:'';
+  position:absolute;
+  left:6px; top:50%;
+  transform: translateY(-50%);
+  width:3px; height:3px;
+  border-radius:50%;
+  background: var(--ink-soft);
+  opacity:0.7;
+}
+.top-back-btn.top-back-visible{
+  opacity:1;
+  transform: scale(1);
+  pointer-events:auto;
+}
+.top-back-btn:active{ transform: scale(0.9); color: var(--ink); }
+
+/* 标题层：脱离左右两侧的 flex 布局，absolute 相对整条顶栏水平居中，
+   不再受返回按钮 / 头像昵称宽度不对称的影响 */
+.top-page-title-wrap{
+  position:absolute;
+  left:0; right:0; top:0; bottom:0;
+  display:flex; align-items:center; justify-content:center;
+  gap:7px;
+  pointer-events:none;
+}
+.top-page-title{
+  text-align:center;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:0.08em;
+  color: var(--ink);
+  line-height:1.15;
+}
+.top-title-dot{
+  width:4px; height:4px;
+  border-radius:50%;
+  background: var(--ink-soft);
+  opacity:0.75;
+  flex-shrink:0;
+}
+
+/* ============ 标题徽记胶囊 ============
+   把孤零零一行居中小字升级为：衬线数字页码 + 细分隔线 + 主标题/英文小标注
+   两行错落，材质呼应 .top-identity 的纸面厚度语言，让顶栏中段不再单薄 */
+.top-title-seal{
+  display:flex; align-items:center;
+  gap:10px;
+  padding: 6px 18px 6px 15px;
+  border-radius:18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f9 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 8px 18px -12px rgba(20,20,28,0.2),
+    0 0 0 1px rgba(20,20,28,0.045);
+}
+.tts-num{
+  font-family:'Playfair Display', serif;
+  font-weight:900;
+  font-size:15px;
+  color: var(--grey-3);
+  line-height:1;
+  letter-spacing:0;
+}
+.tts-divider{
+  width:1px; height:16px;
+  background: linear-gradient(180deg, transparent, var(--hair) 30%, var(--hair) 70%, transparent);
+  flex-shrink:0;
+}
+.tts-text-col{
+  display:flex; flex-direction:column;
+  align-items:flex-start;
+  gap:1px;
+}
+.tts-en{
+  font-family:'Space Mono', monospace;
+  font-size:8px;
+  font-weight:400;
+  letter-spacing:0.22em;
+  color: var(--grey-2);
+  line-height:1;
+}
+
+/* 右侧：头像 + 昵称——可点击上传，Q弹白色胶囊容器 */
+.top-identity{
+  display:flex; align-items:center; gap:8px;
+  flex-shrink:0;
+  padding: 5px 6px 5px 13px;
+  border-radius:20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f9 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 6px 14px -9px rgba(20,20,28,0.16),
+    0 0 0 1px rgba(20,20,28,0.045);
+  transition: transform 0.28s cubic-bezier(.34,1.56,.64,1);
+}
+.top-identity:active{ transform: translateY(-50%) scale(0.94); }
+.top-identity-name{
+  font-size:11.5px;
+  font-weight:600;
+  color: var(--grey-1);
+  letter-spacing:0.02em;
+  max-width:52px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.top-identity-avatar{
+  position:relative;
+  width:30px; height:30px;
+  border-radius:50%;
+  flex-shrink:0;
+  overflow:hidden;
+  background: linear-gradient(155deg, var(--grey-4), var(--grey-5));
+  box-shadow: 0 0 0 1px rgba(20,20,28,0.06) inset;
+  display:flex; align-items:center; justify-content:center;
+}
+.top-identity-avatar-ring{
+  position:absolute;
+  inset:-3px;
+  border-radius:50%;
+  border:1px solid var(--hair);
+  pointer-events:none;
+}
+.top-identity-avatar img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+}
+.top-identity-avatar-plus{
+  color: var(--grey-2);
+  display:flex; align-items:center; justify-content:center;
+}
+.top-identity-avatar.has-photo .top-identity-avatar-plus{ display:none; }
+
+.top-back-bar-hidden{ opacity:0; pointer-events:none; }
+
+/* ============ 头像/昵称编辑弹窗 ============ */
+.identity-modal{
+  position:absolute; inset:0;
+  z-index:210;
+  display:flex; align-items:flex-end;
+  opacity:0; pointer-events:none;
+  transition: opacity 0.3s ease;
+}
+.identity-modal.open{ opacity:1; pointer-events:auto; }
+.identity-modal-scrim{
+  position:absolute; inset:0;
+  background: rgba(20,20,24,0.32);
+}
+.identity-modal-sheet{
+  position:relative;
+  width:100%;
+  background: var(--paper-2);
+  border-radius:26px 26px 0 0;
+  padding: 10px 24px 30px;
+  transform: translateY(100%);
+  transition: transform 0.36s cubic-bezier(.32,.9,.4,1);
+  box-shadow: 0 -18px 40px -20px rgba(20,20,30,0.24);
+}
+.identity-modal.open .identity-modal-sheet{ transform: translateY(0); }
+.identity-modal-avatar-btn{
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  width:100%;
+  padding: 18px 0 6px;
+}
+.identity-modal-avatar{
+  position:relative;
+  width:72px; height:72px;
+  border-radius:50%;
+  overflow:hidden;
+  background: linear-gradient(155deg, var(--grey-4), var(--grey-5));
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-2);
+  box-shadow: 0 6px 16px -10px rgba(20,20,28,0.2), 0 0 0 1px rgba(20,20,28,0.05) inset;
+}
+.identity-modal-avatar img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+}
+.identity-modal-avatar-label{
+  font-size:12px;
+  color: var(--grey-2);
+  font-weight:500;
+}
+.identity-modal-input{
+  width:100%;
+  height:46px;
+  margin-top:16px;
+  padding: 0 16px;
+  border-radius:16px;
+  background: var(--grey-5);
+  border:none;
+  font-size:14px;
+  font-weight:500;
+  color: var(--ink);
+  outline:none;
+  text-align:center;
+}
+.identity-modal-input::placeholder{ color: var(--grey-3); }
+
+/* ==========================================================================
+   页面容器
+========================================================================== */
+.pages-root{
+  position:absolute;
+  top: calc(var(--status-h) + var(--topbar-h));
+  left:0; right:0;
+  bottom: var(--tabbar-h);
+  z-index:10;
+  overflow:hidden;
+}
+.page{
+  position:absolute; inset:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding: 6px 24px 40px;
+  opacity:0;
+  transform: translateY(10px);
+  pointer-events:none;
+  transition: opacity 0.38s cubic-bezier(.4,0,.2,1), transform 0.38s cubic-bezier(.4,0,.2,1);
+  -webkit-overflow-scrolling:touch;
+  background:transparent;
+}
+.page::-webkit-scrollbar{ display:none; }
+.page.page-active{
+  opacity:1;
+  transform: translateY(0);
+  pointer-events:auto;
+}
+
+/* ============ 页面头部（好友/动态/我的三页通用） ============ */
+.page-header{ padding: 14px 2px 22px; }
+.ph-eyebrow{
+  font-family:'Space Mono', monospace;
+  font-size:10px;
+  letter-spacing:0.32em;
+  color: var(--grey-2);
+  margin-bottom:6px;
+}
+.ph-title{
+  font-family:'Playfair Display', serif;
+  font-weight:900;
+  font-size:34px;
+  color: var(--ink);
+  letter-spacing:-0.01em;
+  line-height:1.1;
+}
+.ph-hairline{
+  margin-top:16px;
+  height:1px;
+  background: linear-gradient(90deg, rgba(20,20,26,0.18), transparent 80%);
+}
+
+.section-label{
+  position:relative;
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+  padding: 8px 12px 8px 10px;
+  border-radius:12px;
+  isolation:isolate;
+}
+.section-label::before{
+  content:"";
+  position:absolute; inset:0;
+  z-index:-1;
+  border-radius:inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(20,20,26,0.028));
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.6) inset;
+}
+.section-label span:first-child{
+  display:flex; align-items:center; gap:8px;
+  font-size:11.5px;
+  font-weight:700;
+  letter-spacing:0.16em;
+  color: var(--ink-soft);
+}
+.sl-mark{
+  position:relative;
+  width:13px; height:13px;
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.sl-mark::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius:4px;
+  border:1.4px solid var(--ink-soft);
+  transform: rotate(45deg);
+}
+.sl-mark::after{
+  content:"";
+  width:4px; height:4px;
+  border-radius:50%;
+  background: var(--ink-soft);
+}
+.section-count{
+  font-family:'Space Mono', monospace;
+  font-size:9.5px;
+  letter-spacing:0.14em;
+  color: var(--grey-2);
+  padding:3px 9px;
+  border-radius:20px;
+  background: rgba(20,20,26,0.045);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.5) inset;
+}
+.section-label-spaced{ margin-top:26px; }
+.section-label-spaced::before{
+  background: linear-gradient(180deg, rgba(255,255,255,0.3), transparent);
+  box-shadow:none;
+}
+.section-label-spaced span:first-child{
+  color: var(--grey-1);
+  font-weight:600;
+  text-transform:none;
+  letter-spacing:0.14em;
+}
+
+/* ==========================================================================
+   ★★★ 消息页 ★★★
+   全页与状态栏/顶栏/底栏共用同一张 --sheet 纸面渐变，靠内容自身的
+   描边与投影建立层次，不出现任何叠加色块、遮罩或分割硬线。
+========================================================================== */
+.page-messages-immersive{
+  padding: 4px 24px 40px !important;
+  background:transparent;
+}
+
+/* ---- 搜索框：圆润胶囊，呼应顶栏的 Q 弹语言，纯黑白灰材质分层，
+   靠"内凹磨砂"质感而非彩色元素建立精致感 ---- */
+.mh-search{
+  position:relative;
+  display:flex; align-items:center; gap:9px;
+  height:44px;
+  padding:0 16px;
+  margin-bottom:20px;
+  border-radius:16px;
+  background: linear-gradient(180deg, #eeeef1 0%, #f5f5f7 55%, #f8f8fa 100%);
+  color: var(--grey-1);
+  font-size:12.5px;
+  letter-spacing:0.02em;
+  box-shadow:
+    0 1px 2px 0 rgba(20,20,28,0.05) inset,
+    0 -1px 0 0 rgba(255,255,255,0.7) inset,
+    0 0 0 1px rgba(20,20,28,0.04);
+  transition: box-shadow 0.25s ease, transform 0.25s cubic-bezier(.34,1.56,.64,1);
+}
+.mh-search:active{ transform: scale(0.985); }
+.mh-search svg{ flex-shrink:0; color: var(--grey-2); }
+.mh-search-deco{
+  margin-left:auto;
+  width:26px; height:26px;
+  border-radius:9px;
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f4f6 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 3px 8px -5px rgba(20,20,28,0.16),
+    0 0 0 1px rgba(20,20,28,0.045);
+}
+.mh-search-deco::after{
+  content:'';
+  width:11px; height:1.6px;
+  border-radius:1px;
+  background: var(--grey-2);
+  box-shadow: 0 -4px 0 0 var(--grey-3), 0 4px 0 0 var(--grey-3);
+}
+
+/* ==========================================================================
+   ★ 装饰组件：完全透明，融入统一纸面，零背景色块、零外壳卡片
+   左：3:4 竖版照片堆叠，是整个组件的视觉主角，占据主要宽度与高度
+   右：窄列头像 + 竖排语录，靠自身描边/留白/字体建立层次，不叠加卡片背景
+========================================================================== */
+.deco-panel{
+  display:flex; align-items:flex-start; gap:18px;
+  margin-bottom:24px;
+}
+
+/* ---- 左：3:4 竖版照片堆叠，主角尺寸 ---- */
+.photo-stack-wrap{
+  position:relative;
+  width:150px; height:200px; /* 3:4 竖版比例，卡片本体尺寸 */
+  margin-right:34px; /* 为右侧扇形展开的第二、三张预留空间，不被裁切 */
+  flex-shrink:0;
+}
+.photo-stack{
+  position:relative;
+  width:100%; height:100%;
+  touch-action: pan-y;
+}
+.stack-card{
+  position:absolute;
+  inset:0;
+  border-radius:20px;
+  overflow:hidden;
+  cursor:pointer;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.75) inset,
+    0 20px 36px -20px rgba(20,20,28,0.34),
+    0 0 0 1px rgba(20,20,28,0.07);
+  transition: transform 0.42s cubic-bezier(.22,.9,.3,1), opacity 0.42s ease;
+}
+/* 三张堆叠的错位角度与位移，营造随手一叠的自然高级感 */
+.stack-card[data-depth="0"]{ transform: translate(0,0) rotate(0deg) scale(1); z-index:3; }
+.stack-card[data-depth="1"]{ transform: translate(16px,10px) rotate(11deg) scale(0.94); z-index:2; opacity:0.85; }
+.stack-card[data-depth="2"]{ transform: translate(30px,20px) rotate(20deg) scale(0.88); z-index:1; opacity:0.62; }
+.stack-card.dragging{ transition:none; }
+
+/* 中性黑白灰阶梯，前后层次靠明暗区分，不用彩色/棕色跳色 */
+.stack-card-fill{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(165deg, #46464e 0%, #202024 100%);
+}
+.stack-card[data-depth="1"] .stack-card-fill{ background: linear-gradient(165deg, var(--grey-2), var(--grey-1)); }
+.stack-card[data-depth="2"] .stack-card-fill{ background: linear-gradient(165deg, var(--grey-3), var(--grey-2)); }
+.stack-card-fill::before{
+  content:'';
+  position:absolute; inset:0;
+  background: radial-gradient(ellipse 65% 42% at 28% 16%, rgba(255,255,255,0.24), transparent 60%);
+}
+/* 最上层照片右上角一枚细描边直角标，呼应"精致组件"而非空白留白 */
+.stack-card-corner{
+  position:absolute; top:14px; right:14px;
+  width:14px; height:14px;
+  border-top:1.3px solid rgba(255,255,255,0.55);
+  border-right:1.3px solid rgba(255,255,255,0.55);
+  z-index:2;
+}
+.stack-card-icon{
+  position:relative;
+  color: rgba(255,255,255,0.55);
+}
+.stack-ring{
+  position:absolute; inset:-3px;
+  border-radius:23px;
+  border:1px solid rgba(20,20,28,0.07);
+  pointer-events:none;
+  z-index:4;
+}
+.stack-hint{
+  position:absolute;
+  left:50%; bottom:-15px;
+  transform:translateX(-50%);
+  display:flex; gap:5px;
+  z-index:5;
+}
+.stack-hint-dot{
+  width:4px; height:4px;
+  border-radius:50%;
+  background: var(--grey-3);
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+.stack-hint-dot.active{
+  background: var(--ink-soft);
+  transform: scale(1.25);
+}
+
+/* ---- 右：头像昵称横向排列 + 语录材质卡
+   语录卡采用浅灰渐变圆角块，与左侧深色照片堆叠形成"深/浅"呼应，
+   让两侧在同一套"卡片+圆角+光泽"的语言体系里，气质统一而非割裂 ---- */
+.quote-panel{
+  flex:1;
+  min-width:0;
+  max-width:150px;
+  display:flex; flex-direction:column;
+  height:200px;
+}
+.quote-avatar-row{
+  display:flex; align-items:center; gap:9px;
+  flex-shrink:0;
+  margin-bottom:14px;
+}
+.quote-avatar{
+  position:relative;
+  width:36px; height:36px;
+  border-radius:50%;
+  flex-shrink:0;
+  background: radial-gradient(circle at 32% 26%, #6a6a72 0%, #3a3a40 52%, #232326 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.3) inset,
+    0 8px 16px -9px rgba(20,20,28,0.4),
+    0 0 0 3px var(--paper-2);
+}
+.quote-meta{ min-width:0; }
+.quote-name{
+  font-size:13.5px;
+  font-weight:700;
+  color: var(--ink);
+  letter-spacing:0.01em;
+}
+.quote-tag{
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  letter-spacing:0.08em;
+  color: var(--grey-2);
+  margin-top:3px;
+}
+
+/* 语录材质卡：浅灰渐变 + 圆角 + 柔和阴影，与左侧深色照片
+   同属一套"块状卡片"语言，颜色深浅相反形成呼应而非割裂 */
+.quote-body{
+  flex:1;
+  min-height:0;
+  display:flex; flex-direction:column; justify-content:center;
+  position:relative;
+  padding: 18px 16px;
+  border-radius:20px;
+  background: linear-gradient(165deg, #f0f0f3 0%, #e7e7eb 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.7) inset,
+    0 1px 3px 0 rgba(20,20,28,0.05) inset;
+}
+.quote-mark{
+  display:block;
+  font-family:'Playfair Display', serif;
+  font-size:26px;
+  line-height:0.4;
+  color: var(--grey-3);
+  margin-bottom:8px;
+}
+.quote-text{
+  font-family:'Cormorant Garamond', serif;
+  font-style:italic;
+  font-weight:500;
+  font-size:14.5px;
+  line-height:1.5;
+  color: var(--ink-soft);
+  letter-spacing:0.01em;
+}
+
+/* ==========================================================================
+   ★ 好友环：好友动态精选展示（纯好友，无"我的"入口）
+   完全融入统一纸面，零背景色块、零矩形边界——与全站"一纸到底"原则一致，
+   仅靠头像自身的多层描边/投影建立层次。标题用大字号衬线数字 + 中文小标题
+   错位叠排，呼应页头 ph-eyebrow/ph-title 的字体对比语言，制造真正的视觉记忆点
+========================================================================== */
+.story-ring-wrap{
+  margin-bottom:26px;
+}
+.story-ring-label{
+  display:flex; align-items:flex-end;
+  gap:10px;
+  margin-bottom:16px;
+  padding:0 1px;
+}
+.srl-num{
+  font-family:'Playfair Display', serif;
+  font-weight:900;
+  font-size:30px;
+  line-height:0.8;
+  color: var(--ink);
+  letter-spacing:-0.01em;
+}
+.srl-text-col{
+  display:flex; flex-direction:column;
+  gap:2px;
+  padding-bottom:1px;
+}
+.srl-text{
+  font-size:13px;
+  font-weight:700;
+  color: var(--ink-soft);
+  letter-spacing:0.03em;
+}
+.srl-sub{
+  font-family:'Space Mono', monospace;
+  font-size:8px;
+  letter-spacing:0.2em;
+  color: var(--grey-3);
+}
+.srl-count{
+  margin-left:auto;
+  align-self:flex-end;
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  color: var(--grey-2);
+  letter-spacing:0.02em;
+  padding-bottom:4px;
+}
+.story-ring{
+  display:flex;
+  gap:18px;
+  width:100%;
+  max-width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  padding: 2px 2px 4px;
+}
+.story-ring::-webkit-scrollbar{ display:none; }
+
+/* ---- 好友环空态：无好友在线/发布动态时的占位，
+   一枚虚线呼吸环 + 提示文字，纯灰阶，安静不抢戏 ---- */
+.story-ring-empty{
+  overflow:visible;
+  padding: 6px 2px 8px;
+}
+.story-empty{
+  display:flex; align-items:center; gap:12px;
+  width:100%;
+  padding: 10px 4px;
+}
+.story-empty-ring{
+  position:relative;
+  flex-shrink:0;
+  width:46px; height:46px;
+  border-radius:50%;
+  border: 1.4px dashed rgba(20,20,26,0.16);
+  display:flex; align-items:center; justify-content:center;
+}
+.story-empty-dot{
+  width:7px; height:7px;
+  border-radius:50%;
+  background: var(--grey-3);
+}
+.story-empty-text{
+  font-size:12px;
+  color: var(--grey-2);
+  letter-spacing:0.03em;
+}
+
+.story-item{
+  display:flex; flex-direction:column; align-items:center;
+  gap:7px;
+  width:56px;
+  flex-shrink:0;
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1);
+}
+.story-item:active{ transform: scale(0.91); }
+/* 在线点需要相对"头像环"本身定位，而非相对整个 .story-item（含昵称），
+   否则圆点会贴着环体下沿悬空，视觉上离昵称过近，容易看起来像遮住了字。
+   改为挂在 .story-ring-halo 上，并收紧到环体边缘内侧，离昵称留出安全间距 */
+.story-ring-halo{ position:relative; }
+
+/* 未读故事环：多层结构 —— 外柔光晕(::after) + 渐变描边环体 + 内层高光缝线(::before)，
+   三层叠加做出磨砂金属般的精致质感，而非单薄的一根渐变线 */
+.story-ring-halo{
+  position:relative;
+  width:60px; height:60px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  padding:2.5px;
+  background: conic-gradient(from 220deg,
+    #101013 0%,
+    #55555c 18%,
+    #dcdce0 36%,
+    #ffffff 46%,
+    #dcdce0 56%,
+    #101013 74%,
+    #8c8c94 88%,
+    #101013 100%);
+}
+.story-ring-halo::before{
+  /* 内层高光缝线：环体内侧一圈极细白线，制造"双层描边"的精致断层 */
+  content:'';
+  position:absolute; inset:2.5px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.55);
+  z-index:2;
+  pointer-events:none;
+}
+/* 已读状态：环体退为哑光灰阶渐变，仍保留双层结构但去除彩虹感，做出明确降级 */
+.story-item-seen .story-ring-halo{
+  background: linear-gradient(150deg, #d6d6da, #c2c2c8);
+}
+
+.story-avatar{
+  position:relative;
+  width:100%; height:100%;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: var(--paper-2);
+  box-shadow:
+    0 0 0 3px var(--paper-2),
+    0 1px 2px 0 rgba(255,255,255,0.6) inset;
+  z-index:1;
+}
+.story-avatar i{
+  font-style:normal;
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:0.01em;
+}
+/* 明暗交替灰阶底色 + 细腻径向高光，纯黑白灰不引入彩色 */
+.story-item[data-tone="a"] .story-avatar{ background: radial-gradient(circle at 32% 26%, #4c4c54, #1a1a1e 78%); }
+.story-item[data-tone="a"] i{ color: rgba(255,255,255,0.92); }
+.story-item[data-tone="b"] .story-avatar{ background: radial-gradient(circle at 32% 26%, #ffffff, #e6e6ea 82%); }
+.story-item[data-tone="b"] i{ color: var(--ink-soft); }
+.story-item[data-tone="c"] .story-avatar{ background: radial-gradient(circle at 32% 26%, #7c7c84, #45454c 82%); }
+.story-item[data-tone="c"] i{ color: rgba(255,255,255,0.94); }
+.story-item[data-tone="d"] .story-avatar{ background: radial-gradient(circle at 32% 26%, #fafafb, #dcdce1 82%); }
+.story-item[data-tone="d"] i{ color: var(--ink-soft); }
+.story-item[data-tone="e"] .story-avatar{ background: radial-gradient(circle at 32% 26%, #64646c, #313136 82%); }
+.story-item[data-tone="e"] i{ color: rgba(255,255,255,0.94); }
+.story-item[data-tone="f"] .story-avatar{ background: radial-gradient(circle at 32% 26%, #ececef, #d2d2d8 82%); }
+.story-item[data-tone="f"] i{ color: var(--ink-soft); }
+
+/* 在线呼吸点：叠在头像环右下角，双层结构（描边环 + 实心核）配合呼吸动画。
+   收紧到环体边缘（负值更小），避免圆点探出太远、往昵称方向下坠，
+   与下方 .story-name 之间始终留出 gap:7px 的干净间距，不会遮字。 */
+.story-pulse{
+  position:absolute;
+  right:-1px; bottom:-1px;
+  width:12px; height:12px;
+  border-radius:50%;
+  background: var(--paper-2);
+  box-shadow: 0 0 0 2.5px var(--paper-2);
+  z-index:3;
+  display:flex; align-items:center; justify-content:center;
+}
+.story-pulse::before{
+  content:'';
+  width:7px; height:7px;
+  border-radius:50%;
+  background: var(--ink-soft);
+  box-shadow: 0 0 0 0 rgba(60,60,67,0.5);
+  animation: storyPulseBreathe 2.4s ease-out infinite;
+}
+@keyframes storyPulseBreathe{
+  0%{ box-shadow: 0 0 0 0 rgba(60,60,67,0.45); }
+  70%{ box-shadow: 0 0 0 5px rgba(60,60,67,0); }
+  100%{ box-shadow: 0 0 0 0 rgba(60,60,67,0); }
+}
+
+.story-name{
+  font-size:10.5px;
+  font-weight:600;
+  color: var(--grey-1);
+  letter-spacing:0.01em;
+  max-width:56px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* 更多：虚线灰环 + 内嵌浅色底，弱化于其余头像，指向"查看全部好友" */
+.story-avatar-more{
+  width:100%; height:100%;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(160deg, #f6f6f8, #e9e9ed);
+  border:1.5px dashed var(--grey-3);
+  box-shadow: 0 0 0 3px var(--paper-2);
+}
+.story-avatar-more i{
+  font-style:normal;
+  font-family:'Space Mono', monospace;
+  font-size:10.5px;
+  font-weight:700;
+  color: var(--grey-2);
+}
+.story-item-more{ width:60px; }
+.story-item-more .story-avatar-more{ width:60px; height:60px; }
+
+/* ==========================================================================
+   ★ 筛选切换：伸缩式主辅结构 —— 强对比的全新形态
+   摒弃"四个等宽按钮"的常见逻辑：选中项膨胀为墨黑主胶囊，占据主导视觉重量
+   （深底白字 + 圆点变实心）；未选中的三项收缩为纤细的"圆点+文字"组合，
+   彼此间用极细分隔点串联，形似一串项链上凸起的一颗主珠，
+   一眼就能看出"谁被选中"，比任何等宽色块/描边方案都更有记忆点
+========================================================================== */
+.filter-deck{
+  display:flex;
+  align-items:center;
+  gap:0;
+  margin-bottom:22px;
+  padding: 3px;
+}
+.filter-chip{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  gap:6px;
+  height:38px;
+  padding: 0 8px;
+  border-radius:19px;
+  color: var(--grey-3);
+  background:transparent;
+  flex: 0 0 auto;
+  transition:
+    flex-grow 0.46s cubic-bezier(.19,1,.22,1),
+    padding 0.46s cubic-bezier(.19,1,.22,1),
+    background 0.4s cubic-bezier(.22,.9,.3,1),
+    color 0.3s ease,
+    transform 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+/* 未选中项之间用极细竖点分隔，串联成一条"项链"，强调整体是一个连续结构 */
+.filter-chip + .filter-chip::before{
+  content:'';
+  position:absolute;
+  left:-1px; top:50%;
+  width:2px; height:2px;
+  border-radius:50%;
+  background: var(--grey-4);
+  transform: translateY(-50%);
+  transition: opacity 0.3s ease;
+}
+.filter-chip-active + .filter-chip::before,
+.filter-chip-active::before{ opacity:0; }
+
+/* 圆点指示：未选中为空心细圈，选中态放大并填实为墨黑核心 */
+.fc-dot{
+  width:6px; height:6px;
+  border-radius:50%;
+  border:1.4px solid var(--grey-3);
+  flex-shrink:0;
+  transition: all 0.4s cubic-bezier(.34,1.56,.64,1);
+}
+.fc-label{
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:0.01em;
+  color: inherit;
+  white-space:nowrap;
+  transition: color 0.3s ease, font-size 0.4s ease;
+}
+.filter-chip-count{
+  min-width:15px; height:15px;
+  padding:0 4px;
+  border-radius:7.5px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Space Mono', monospace;
+  font-size:8.5px;
+  font-weight:700;
+  background: var(--grey-3);
+  color:#fff;
+  transition: background 0.3s ease;
+}
+
+/* 选中态：膨胀为墨黑主胶囊，独占多余空间，与其余三项形成强烈的"一大三小"对比 */
+.filter-chip-active{
+  flex: 1 1 auto;
+  padding: 0 18px;
+  background: linear-gradient(165deg, #2a2a2f 0%, #101013 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.12) inset,
+    0 10px 22px -10px rgba(16,16,19,0.5);
+}
+.filter-chip-active .fc-dot{
+  width:6px; height:6px;
+  border-color:#fff;
+  background:#fff;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.18);
+}
+.filter-chip-active .fc-label{
+  color:#fff;
+  font-size:12.5px;
+  font-weight:700;
+}
+.filter-chip-active .filter-chip-count{
+  background: rgba(255,255,255,0.9);
+  color: var(--ink);
+}
+.filter-chip:active{ transform: scale(0.93); }
+.filter-chip-active:active{ transform: scale(0.97); }
+
+/* ---- 上传弹窗 ---- */
+.upload-modal{
+  position:absolute; inset:0;
+  z-index:200;
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.28s ease;
+}
+.upload-modal.open{ opacity:1; pointer-events:auto; }
+.upload-modal-scrim{
+  position:absolute; inset:0;
+  background: rgba(15,15,18,0.42);
+  backdrop-filter: blur(2px);
+}
+.upload-modal-sheet{
+  position:relative;
+  width:100%;
+  padding: 10px 22px calc(26px + env(safe-area-inset-bottom, 0px));
+  border-radius: 26px 26px 0 0;
+  background: var(--sheet);
+  box-shadow: 0 -20px 46px -20px rgba(20,20,28,0.4);
+  transform: translateY(100%);
+  transition: transform 0.34s cubic-bezier(.22,.9,.3,1);
+}
+.upload-modal.open .upload-modal-sheet{ transform: translateY(0); }
+.upload-modal-grip{
+  width:36px; height:4px;
+  border-radius:3px;
+  background: var(--grey-4);
+  margin: 8px auto 16px;
+}
+.upload-modal-title{
+  font-size:15px;
+  font-weight:700;
+  color: var(--ink);
+  margin-bottom:4px;
+  letter-spacing:0.01em;
+}
+.upload-modal-desc{
+  font-size:11.5px;
+  color: var(--grey-2);
+  margin-bottom:18px;
+  letter-spacing:0.01em;
+}
+.upload-modal-grid{
+  display:flex; gap:12px;
+  margin-bottom:20px;
+}
+.upload-slot{
+  position:relative;
+  flex:1;
+  aspect-ratio: 3 / 4; /* 与照片堆叠保持一致的 3:4 比例 */
+  border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(155deg, #ffffff, #eeeef1);
+  border:1.5px dashed var(--grey-4);
+  color: var(--grey-2);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.upload-slot.filled{
+  border-style:solid;
+  border-color: var(--hair);
+}
+.upload-slot:active{ transform: scale(0.95); }
+.upload-slot-fill{
+  position:absolute; inset:0;
+  border-radius:12px;
+  background: linear-gradient(155deg, #6d7390, #2c2f3c);
+}
+.upload-slot-fill::after{
+  content:'';
+  position:absolute; inset:0;
+  border-radius:12px;
+  background: radial-gradient(circle at 30% 24%, rgba(255,255,255,0.22), transparent 55%);
+}
+.upload-slot-num{
+  position:absolute; top:7px; left:9px;
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  color: var(--grey-3);
+  z-index:2;
+}
+.upload-slot.filled .upload-slot-num{ color: rgba(255,255,255,0.7); }
+.upload-modal-close{
+  width:100%;
+  height:46px;
+  border-radius:16px;
+  background: var(--ink);
+  color:#fff;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:0.05em;
+}
+.upload-modal-close:active{ transform: scale(0.98); }
+
+/* ==========================================================================
+   添加弹窗 Add Modal —— 点击顶栏"加好友"菱形徽章触发
+   华丽勋章式底部弹层：徽记化标题 + 2x2 錾刻卡片网格（单聊/群聊/分组/
+   加好友），每张卡片自带高光扫层 + 四角切角描边，营造珠宝盒/请柬质感。
+   通体黑白灰浅色纸面，唯一层次来自渐变、投影与描边，禁止 emoji。
+========================================================================== */
+.add-modal{
+  position:absolute; inset:0;
+  z-index:210;
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.28s ease;
+}
+.add-modal.open{ opacity:1; pointer-events:auto; }
+.add-modal-scrim{
+  position:absolute; inset:0;
+  background: rgba(15,15,18,0.46);
+  backdrop-filter: blur(3px);
+}
+.add-modal-sheet{
+  position:relative;
+  width:100%;
+  padding: 10px 22px calc(30px + env(safe-area-inset-bottom, 0px));
+  border-radius: 30px 30px 0 0;
+  background: linear-gradient(178deg, #fdfdfe 0%, #f6f6f8 60%, #efeff2 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 -24px 52px -20px rgba(20,20,28,0.44);
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(.22,.9,.3,1);
+}
+.add-modal.open .add-modal-sheet{ transform: translateY(0); }
+.add-modal-sheet::before{
+  /* 顶部弧形高光，呼应"珠宝盒"开合质感 */
+  content:'';
+  position:absolute;
+  top:0; left:10%; right:10%;
+  height:80px;
+  border-radius:50%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.9), transparent 70%);
+  pointer-events:none;
+}
+
+.add-modal-head{
+  position:relative;
+  display:flex;
+  align-items:baseline;
+  gap:12px;
+  padding: 6px 2px 20px;
+}
+.add-modal-head-num{
+  font-family:'Space Mono', monospace;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:0.1em;
+  color: var(--grey-3);
+}
+.add-modal-head-col{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.add-modal-head-cn{
+  font-family:'Playfair Display', serif;
+  font-weight:800;
+  font-style:italic;
+  font-size:21px;
+  color: var(--ink);
+  letter-spacing:0.01em;
+}
+.add-modal-head-en{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px;
+  letter-spacing:0.32em;
+  color: var(--grey-3);
+}
+
+.add-modal-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  margin-bottom:18px;
+}
+
+.add-tile{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:14px;
+  padding: 18px 16px 16px;
+  border-radius:22px;
+  background: linear-gradient(160deg, #ffffff 0%, #fbfbfc 45%, #f2f2f5 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 16px 30px -20px rgba(20,20,30,0.26),
+    0 0 0 1px rgba(20,20,28,0.045);
+  overflow:hidden;
+  text-align:left;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.32s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.32s ease;
+}
+.add-tile:active{
+  transform: scale(0.955);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 8px 16px -14px rgba(20,20,30,0.3);
+}
+.add-tile.is-pressed{
+  transform: scale(0.955);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 8px 16px -14px rgba(20,20,30,0.3);
+}
+.add-tile-sheen{
+  position:absolute;
+  top:-40%; left:-10%;
+  width:70%; height:80%;
+  border-radius:50%;
+  background: radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.95), transparent 70%);
+  pointer-events:none;
+}
+.add-tile-corner{
+  position:absolute;
+  right:10px; bottom:10px;
+  width:9px; height:9px;
+  border-right:1.3px solid var(--hair);
+  border-bottom:1.3px solid var(--hair);
+  opacity:0.9;
+}
+.add-tile-icon{
+  position:relative;
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #eeeef1 60%, #e2e2e7 100%);
+  color: var(--ink-soft);
+  box-shadow:
+    0 2px 0 0 rgba(255,255,255,0.9) inset,
+    0 -2px 5px -1px rgba(20,20,30,0.1) inset,
+    0 8px 16px -9px rgba(20,20,30,0.4);
+}
+.add-tile-col{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.add-tile-cn{
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:15.5px;
+  color: var(--ink);
+  letter-spacing:0.01em;
+}
+.add-tile-en{
+  font-family:'Space Mono', monospace;
+  font-size:7.5px;
+  letter-spacing:0.24em;
+  color: var(--grey-3);
+}
+
+.add-modal-foot{
+  text-align:center;
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  letter-spacing:0.14em;
+  color: var(--grey-3);
+  padding-top:2px;
+}
+
+/* ==========================================================================
+   发布动态弹窗 Compose Modal —— 点击顶栏"落笔"印记或身份行"+"触发
+   浅色纸面底部弹层，延续 .upload-modal / .add-modal 的开合动效，
+   内含文字输入区与九宫格图片选择，提交后写入信息流，非占位交互
+========================================================================== */
+.compose-modal{
+  position:absolute; inset:0;
+  z-index:210;
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.28s ease;
+}
+.compose-modal.open{ opacity:1; pointer-events:auto; }
+.compose-modal-scrim{
+  position:absolute; inset:0;
+  background: rgba(15,15,18,0.42);
+  backdrop-filter: blur(2px);
+}
+.compose-modal-sheet{
+  position:relative;
+  width:100%;
+  max-height:82vh;
+  overflow-y:auto;
+  padding: 10px 22px calc(24px + env(safe-area-inset-bottom, 0px));
+  border-radius: 26px 26px 0 0;
+  background: var(--sheet);
+  box-shadow: 0 -20px 46px -20px rgba(20,20,28,0.4);
+  transform: translateY(100%);
+  transition: transform 0.34s cubic-bezier(.22,.9,.3,1);
+}
+.compose-modal.open .compose-modal-sheet{ transform: translateY(0); }
+.compose-head{
+  display:flex; align-items:center; gap:10px;
+  margin: 4px 0 16px;
+}
+.compose-head-num{
+  font-family:'Space Mono', monospace;
+  font-size:11px;
+  color: var(--grey-3);
+  letter-spacing:0.05em;
+}
+.compose-head-col{ display:flex; flex-direction:column; gap:1px; }
+.compose-head-cn{
+  font-family:'Playfair Display', serif;
+  font-weight:800;
+  font-style:italic;
+  font-size:17px;
+  color: var(--ink);
+}
+.compose-head-en{
+  font-family:'Space Mono', monospace;
+  font-size:8px;
+  letter-spacing:0.24em;
+  color: var(--grey-3);
+}
+.compose-author-row{
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:12px;
+}
+.compose-author-avatar{
+  width:34px; height:34px;
+  border-radius:50%;
+  flex-shrink:0;
+  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #eeeef1 55%, #e2e2e7 100%);
+  box-shadow: 0 0 0 1px var(--hair);
+  overflow:hidden;
+}
+.compose-author-avatar img{ width:100%; height:100%; object-fit:cover; }
+.compose-author-name{
+  font-size:13px;
+  font-weight:600;
+  color: var(--ink);
+}
+.compose-textarea{
+  width:100%;
+  min-height:92px;
+  padding:14px;
+  border-radius:18px;
+  border:1px solid var(--hair);
+  background: rgba(255,255,255,0.6);
+  color: var(--ink);
+  font-family:'Inter', 'PingFang SC', sans-serif;
+  font-size:13.5px;
+  line-height:1.6;
+  resize:none;
+  margin-bottom:14px;
+}
+.compose-textarea::placeholder{ color: var(--grey-3); }
+.compose-textarea:focus{ outline:none; border-color: var(--grey-3); background:#fff; }
+.compose-photo-grid{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:8px;
+  margin-bottom:8px;
+}
+.compose-photo-add{
+  aspect-ratio:1/1;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px;
+  border-radius:14px;
+  border:1.5px dashed var(--grey-4);
+  color: var(--grey-2);
+  background: linear-gradient(155deg, #ffffff, #f2f2f5);
+  font-size:9px;
+  letter-spacing:0.01em;
+  transition: transform 0.2s ease;
+}
+.compose-photo-add:active{ transform: scale(0.94); }
+.compose-photo-item{
+  position:relative;
+  aspect-ratio:1/1;
+  border-radius:14px;
+  overflow:hidden;
+  background: var(--grey-5);
+  box-shadow: 0 0 0 1px var(--hair);
+}
+.compose-photo-item img{ width:100%; height:100%; object-fit:cover; }
+.compose-photo-remove{
+  position:absolute; top:4px; right:4px;
+  width:18px; height:18px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: rgba(15,15,18,0.55);
+  color:#fff;
+  backdrop-filter: blur(3px);
+}
+.compose-foot-row{ margin: 8px 0 18px; }
+.compose-foot-hint{
+  font-size:10px;
+  color: var(--grey-3);
+  letter-spacing:0.01em;
+}
+.compose-submit{
+  width:100%;
+  height:48px;
+  border-radius:16px;
+  background: var(--ink);
+  color:#fff;
+  font-size:13.5px;
+  font-weight:600;
+  letter-spacing:0.04em;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.compose-submit:active{ transform: scale(0.98); }
+.compose-submit.is-disabled{ opacity:0.4; pointer-events:none; }
+
+/* ==========================================================================
+   ★ 会话条 · 重新设计 ★
+   —— 左滑只揭示操作，绝不触发任何自动删除；真正删除必须点击"删除"按钮。
+   —— 好友 / 群聊 / 置顶 三种外观独立设计，靠形状与描边区分，而非颜色。
+   —— 动作层采用"内嵌卡榫"结构：动作按钮本身就是圆角小方块阵列，
+      与外层容器留有相同的呼吸间距，收起时完全隐没在卡片纸面之下，
+      不会出现常见左滑组件收起时露出的直角"色块边"。
+========================================================================== */
+
+.msg-list{
+  display:flex; flex-direction:column;
+  gap:10px;
+  margin-bottom:6px;
+}
+
+/* ---- 单条会话：裁切容器，圆角与描边统一画在这里 ---- */
+.msg-row{
+  position:relative;
+  border-radius:20px;
+  overflow:hidden;
+  border:1px solid var(--hair);
+  box-shadow: 0 8px 18px -16px rgba(22,22,28,0.16);
+  /* 这层背景就是左滑后露出的"底色"，与动作按钮共用同一灰阶语言，
+     因此表层卡片滑开的瞬间，底色与动作按钮之间不会出现任何接缝 */
+  background: linear-gradient(180deg, #eeeef1 0%, #e7e7ea 100%);
+}
+
+/* ---- 底层动作层：不是通栏色块，而是与纸面同源的浅灰卡榫，
+   内嵌于容器背景之中，滑开前后都不会露出边界线。
+   注意：这里不设背景色——底色统一交给 .msg-row 处理，
+   避免"动作层矩形"与"行背景"两块颜色对不上而露出接缝。 ---- */
+.msg-actions{
+  position:absolute;
+  top:0; right:0; bottom:0; left:0;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  padding: 8px 10px 8px 6px;
+  z-index:1;
+}
+.msg-action{
+  width:56px;
+  height:calc(100% - 0px);
+  border-radius:14px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:5px;
+  font-size:9.5px;
+  letter-spacing:0.03em;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+.msg-action:active{ transform: scale(0.92); }
+.msg-action-pin{
+  background: linear-gradient(165deg, #4a4a52, #232327);
+  color:#f2f2f4;
+}
+.msg-action-delete{
+  background: linear-gradient(165deg, #2a2a2e, #101012);
+  color:#f2f2f4;
+}
+.msg-action svg{ opacity:0.92; }
+
+/* ---- 表层卡片：无独立圆角/边框，随手指位移的纯色实体 ---- */
+.msg-surface{
+  position:relative;
+  z-index:2;
+  display:flex; align-items:center; gap:13px;
+  padding:14px 16px;
+  background: var(--paper-2);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.75) inset;
+  transform: translate3d(0,0,0);
+  transition: transform 0.32s cubic-bezier(.22,.9,.3,1), box-shadow 0.32s ease;
+  touch-action: pan-y;
+  cursor:grab;
+  will-change: transform;
+}
+.msg-row.dragging .msg-surface{ transition:none; }
+.msg-row.swiped-full .msg-surface{
+  cursor:pointer;
+  box-shadow: -14px 0 22px -18px rgba(20,20,26,0.4) inset, 0 1px 0 0 rgba(255,255,255,0.75) inset;
+}
+
+/* ---- 置顶会话：独立外观 —— 双层描边 + 左侧竖向刻度，
+   不使用任何有彩色相，仅靠灰阶浓度与内阴影建立"更重要"的层级感。
+   注意：底色（.msg-row 的 background）与非置顶行保持一致的灰阶，
+   真正的"置顶更浅"视觉差异画在 .msg-surface 本身，这样左滑露出的
+   底层动作区背景不会因为置顶/非置顶而产生两种不同灰阶的接缝。 ---- */
+.msg-row[data-pinned="true"]{
+  border-color: rgba(20,20,26,0.14);
+  box-shadow:
+    0 10px 22px -16px rgba(20,20,26,0.22),
+    0 0 0 1px rgba(255,255,255,0.6) inset;
+}
+.msg-row[data-pinned="true"] .msg-surface{
+  background: linear-gradient(180deg, #fbfbfc, #f4f4f6);
+}
+.msg-row[data-pinned="true"] .msg-surface::before{
+  content:"";
+  position:absolute; left:0; top:10px; bottom:10px;
+  width:3px;
+  border-radius:3px;
+  background: linear-gradient(180deg, var(--ink-soft), var(--grey-3));
+}
+.msg-row[data-pinned="true"] .msg-surface{ padding-left:19px; }
+
+/* 置顶徽标：折角旗标造型，贴在头像左上角，不与右侧时间/未读角标争位，
+   更明确地区别于"未读"圆点角标 ---- */
+.msg-pin-flag{
+  position:absolute; left:10px; top:0;
+  width:13px; height:17px;
+  opacity:0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  transform: translateY(-4px);
+  z-index:3;
+}
+.msg-row[data-pinned="true"] .msg-pin-flag{ opacity:1; transform: translateY(0); }
+.msg-pin-flag::before{
+  content:"";
+  position:absolute; inset:0;
+  background: linear-gradient(165deg, var(--ink-soft), var(--ink));
+  clip-path: polygon(0 0, 100% 0, 100% 76%, 50% 100%, 0 76%);
+  box-shadow: 0 3px 7px -4px rgba(20,20,26,0.42);
+}
+
+/* ---- 头像：好友＝圆形，群聊＝圆角方形，形状本身即区分身份 ----
+   结构：.msg-avatar（不裁切，承载在线角标）
+       > .msg-avatar-clip（真正做圆形裁切，图片/字母都在这层内）
+       > .msg-online（在线角标，与裁切层平级，不会被圆形边缘咬掉） */
+.msg-avatar{
+  position:relative;
+  flex-shrink:0;
+  width:52px; height:52px;
+}
+.msg-avatar-clip{
+  width:100%; height:100%;
+  border-radius:50%;
+  overflow:hidden;
+  position:relative;
+  background: var(--paper-2);
+  box-shadow:
+    0 8px 18px -10px rgba(20,20,28,0.38),
+    0 0 0 2.5px var(--paper-2),
+    0 0 0 3.5px rgba(20,20,26,0.08);
+}
+.msg-avatar-clip img{
+  display:block;
+  width:100%; height:100%;
+  object-fit:cover;
+}
+.msg-avatar-group .msg-avatar-clip{ border-radius:16px; }
+/* 内嵌高光弧：模拟斜切打光的一角，呼应好友列表 .flist-avatar 的相框质感，
+   让头像不再是一块死板的纯色描边圆，而是有一点立体的光影层次 */
+.msg-avatar-clip::before{
+  content:"";
+  position:absolute;
+  left:0; top:0; right:0;
+  height:42%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.22), transparent);
+  pointer-events:none;
+  z-index:2;
+}
+.msg-ink{
+  position:absolute; inset:0;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:17px;
+  color:#f4f4f6;
+  letter-spacing:0.02em;
+}
+/* 头像底色统一收编为黑白灰阶渐变，不再使用彩色相 */
+.msg-ink[data-tone="a"]{ background: linear-gradient(150deg, #6c6c74, #232327); }
+.msg-ink[data-tone="b"]{ background: linear-gradient(150deg, #55555e, #1a1a1d); }
+.msg-ink[data-tone="c"]{ background: linear-gradient(150deg, #7a7a82, #2c2c30); }
+.msg-ink[data-tone="d"]{ background: linear-gradient(150deg, #626269, #202023); }
+.msg-ink[data-tone="e"]{ background: linear-gradient(150deg, #838389, #2a2a2e); }
+.msg-ink[data-tone="f"]{ background: linear-gradient(150deg, #4d4d54, #17171a); }
+
+/* 群聊头像：圆角方形容器 + 右下角叠影方块，暗示"多人"而非圆形单人头像 */
+.msg-avatar-group .msg-ink{
+  border-radius:16px;
+  z-index:2;
+}
+.msg-avatar-group::after{
+  content:"";
+  position:absolute;
+  right:-4px; bottom:-4px;
+  width:26px; height:26px;
+  border-radius:10px;
+  background: linear-gradient(150deg, #d8d8dc, #b9b9c0);
+  box-shadow: 0 0 0 3px var(--paper-2), 0 3px 8px -4px rgba(20,20,26,0.3);
+  z-index:1;
+}
+
+/* 在线角标：独立于圆形裁切层之外定位，因此不会被头像边缘"咬掉"一角
+   （此前挂在裁切容器内部时会被 overflow:hidden 削出一道难看的缺口）。
+   双层结构——外白圈留白 + 内实心核，确保在浅色卡片背景上依然清晰可辨，
+   不再是几乎看不见的一道细线 */
+.msg-online{
+  position:absolute; right:-1px; bottom:-1px;
+  width:14px; height:14px;
+  border-radius:50%;
+  background: var(--paper-2);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 0 0 2.5px var(--paper-2), 0 2px 6px -2px rgba(20,20,28,0.35);
+  z-index:4;
+}
+.msg-online::before{
+  content:"";
+  width:8px; height:8px;
+  border-radius:50%;
+  background: radial-gradient(circle at 34% 28%, #55555e, #1c1c1f);
+}
+
+.msg-body{
+  flex:1;
+  min-width:0;
+  display:flex; flex-direction:column; gap:4px;
+}
+.msg-top{
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:8px;
+}
+.msg-name{
+  font-size:14.5px;
+  font-weight:600;
+  color: var(--ink);
+  letter-spacing:0.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* 群聊名称附加小标签，与好友昵称区分 */
+.msg-name-tag{
+  display:inline-block;
+  margin-left:6px;
+  padding:1.5px 6px;
+  border-radius:6px;
+  background: rgba(20,20,26,0.06);
+  color: var(--grey-1);
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:0.06em;
+  vertical-align:1px;
+}
+.msg-time{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:9.5px;
+  letter-spacing:0.03em;
+  color: var(--grey-3);
+}
+.msg-bottom{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px;
+}
+.msg-preview{
+  font-size:12.5px;
+  color: var(--grey-1);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  letter-spacing:0.01em;
+}
+.msg-preview-typing{
+  color: var(--grey-2);
+  font-style:italic;
+}
+.msg-unread-badge{
+  flex-shrink:0;
+  min-width:18px; height:18px;
+  padding:0 5px;
+  border-radius:50%;
+  background: linear-gradient(150deg, var(--ink-soft), var(--ink));
+  color:#fff;
+  font-family:'Space Mono', monospace;
+  font-size:10px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ---- 消息页空态：暂无任何会话时的占位，视觉语言与全站
+   .coming-block 系列保持一致（双环呼吸标记 + 衬线中文 + 等宽英文小标） ---- */
+.msg-blank{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center;
+  padding: 44px 20px 36px;
+  border-radius:24px;
+  background: rgba(255,255,255,0.32);
+  border:1px solid var(--hair-soft);
+}
+.msg-blank-mark{
+  position:relative;
+  width:56px; height:56px;
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:18px;
+  color: var(--grey-1);
+}
+.msg-blank-ring{
+  position:absolute; inset:0;
+  border-radius:50%;
+  border:1px solid rgba(20,20,26,0.16);
+  animation: comingRotate 14s linear infinite;
+}
+.msg-blank-ring-2{
+  inset:10px;
+  border-color: rgba(20,20,26,0.09);
+  animation: comingRotate 10s linear infinite reverse;
+}
+.msg-blank-cn{
+  font-family:'Playfair Display', serif;
+  font-size:18px;
+  font-weight:700;
+  color: var(--ink);
+  letter-spacing:0.02em;
+  margin-bottom:7px;
+}
+.msg-blank-en{
+  font-family:'Space Mono', monospace;
+  font-size:9.5px;
+  letter-spacing:0.3em;
+  color: var(--grey-2);
+  margin-bottom:12px;
+}
+.msg-blank-desc{
+  font-size:12px;
+  color: var(--grey-1);
+  line-height:1.7;
+  max-width:220px;
+  letter-spacing:0.01em;
+}
+
+/* ---- 列表底部提示 ---- */.msg-empty-hint{
+  display:flex; align-items:center; justify-content:center;
+  gap:10px;
+  margin-top:22px;
+  padding-bottom:8px;
+  font-size:10.5px;
+  color: var(--grey-3);
+  letter-spacing:0.05em;
+}
+.meh-line{
+  width:26px; height:1px;
+  background: linear-gradient(90deg, transparent, var(--hair));
+}
+.meh-line + span + .meh-line{ background: linear-gradient(90deg, var(--hair), transparent); }
+
+
+/* ============ 顶栏右侧插槽：头像昵称 / 加好友标记，二选一显示 ============ */
+.top-identity-slot{
+  position:absolute;
+  right:18px; top:50%;
+  transform: translateY(-50%);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.top-identity-slot.slot-hidden{
+  opacity:0;
+  pointer-events:none;
+  transform: translateY(-50%) scale(0.9);
+}
+#topIdentityBtn.top-identity-slot{ margin-left:0; }
+
+/* 好友页功能刻记组：彻底摆脱"胶囊容器 + 并排线性图标"的常见范式。
+   两枚按钮各自独立成一枚"石印"，形态、角度、高度都不对称——
+   搜索是偏椭圆的磨砂石印，加好友是旋转45°的菱形徽章，
+   靠雕刻感的双层描边（外浅内深）与错落构图建立识别度，
+   不使用任何背景色块、纯圆形按钮等俗套形态 */
+.friend-mark-group{
+  display:flex; align-items:center;
+  flex-shrink:0;
+  gap:9px;
+  padding: 2px 2px 2px 0;
+}
+.friend-mark-btn{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink-soft);
+  background:
+    radial-gradient(120% 140% at 28% 22%, #ffffff 0%, #f9f9fb 46%, #efeff2 100%);
+  transition:
+    transform 0.32s cubic-bezier(.34,1.56,.64,1),
+    color 0.2s ease,
+    box-shadow 0.3s ease;
+}
+/* 搜索：偏椭圆磨砂石印，微微逆时针，比常见正圆更有雕刻质感 */
+.friend-mark-btn--search{
+  width:34px; height:29px;
+  border-radius: 52% 48% 46% 54% / 58% 54% 46% 42%;
+  transform: rotate(-4.5deg) translateY(1px);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 -1px 2px 0 rgba(20,20,28,0.05) inset,
+    0 5px 10px -6px rgba(20,20,28,0.28),
+    0 0 0 1px rgba(20,20,28,0.07);
+}
+.friend-mark-btn--search .fmb-facet{
+  position:absolute;
+  left:9%; top:11%;
+  width:38%; height:26%;
+  border-radius:50%;
+  background: linear-gradient(155deg, rgba(255,255,255,0.9), rgba(255,255,255,0));
+  pointer-events:none;
+}
+/* 加好友：旋转45°的菱形徽章，顺时针小角度，与搜索形成错落对话 */
+.friend-mark-btn--add{
+  width:27px; height:27px;
+  border-radius: 9px;
+  transform: rotate(45deg) translate(-1px, 2px);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 -1px 2px 0 rgba(20,20,28,0.05) inset,
+    0 5px 10px -6px rgba(20,20,28,0.3),
+    0 0 0 1px rgba(20,20,28,0.08);
+}
+.friend-mark-btn--add .fmb-add-icon{ transform: rotate(-45deg); }
+.friend-mark-btn--add .fmb-facet{
+  position:absolute;
+  left:12%; top:12%;
+  width:34%; height:22%;
+  border-radius:3px;
+  background: linear-gradient(155deg, rgba(255,255,255,0.85), rgba(255,255,255,0));
+  pointer-events:none;
+}
+.friend-mark-btn svg{ position:relative; z-index:1; }
+.friend-mark-btn:active{
+  box-shadow:
+    0 1px 3px 0 rgba(20,20,28,0.1) inset,
+    0 0 0 1px rgba(20,20,28,0.09);
+}
+.friend-mark-btn--search:active{ transform: rotate(-4.5deg) translateY(1px) scale(0.9); color: var(--ink); }
+.friend-mark-btn--add:active{ transform: rotate(45deg) translate(-1px, 2px) scale(0.88); color: var(--ink); }
+
+/* ============ 动态页专属：顶栏"更新 / 发布"双印记组 ============
+   彻底摆脱"圆角胶囊+图标"的常见按钮范式。两枚印记刻意采用
+   完全不同的几何逻辑，而非同一容器里的两个并排小图标：
+
+   左·刷新印——一枚微微仰角的旋转刻度环，外圈是錾刻齿状刻度
+   （像仪表盘/日晷的边缘），中心悬浮一枚小旋转箭头徽芯，
+   点按时整枚刻度环旋转一整圈，给"更新"一个仪式感的物理反馈；
+
+   右·发布印——不对称斜切平行四边形石印，左侧嵰入一枚水滴/墨滴
+   轮廓图腾（暗喻"落墨成滴"而非握笔的写字动作），右侧错落排布
+   中英文双行铭文，整体比刷新印更宽更"重"，形成主次分明的组合，
+   而非两个等重量的按钮机械并排。
+
+   二者高度不对齐、旋转角度不同、体块比例悬殊，靠这种不对称
+   构图本身建立记忆点，黑白灰浅色纸面，深色横幅背景下用白底
+   反衬出雕刻质感。 */
+.mo-dual-seals{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+/* ---------- 左：刷新刻度环 ---------- */
+.mo-dial-seal{
+  position:relative;
+  flex-shrink:0;
+  width:36px; height:36px;
+  display:flex; align-items:center; justify-content:center;
+  transform: rotate(-3deg) translateY(1px);
+  transition: transform 0.4s cubic-bezier(.34,1.56,.64,1);
+}
+.mds-ring-outer{
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  background: radial-gradient(120% 130% at 30% 24%, #ffffff 0%, #f7f7f9 50%, #ececef 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 -1px 2px 0 rgba(20,20,28,0.05) inset,
+    0 7px 14px -9px rgba(20,20,28,0.32),
+    0 0 0 1px rgba(20,20,28,0.08);
+  pointer-events:none;
+}
+.mds-ring-ticks{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.mds-ring-ticks i{
+  position:absolute;
+  left:50%; top:3px;
+  width:1.4px; height:4px;
+  border-radius:1px;
+  background: var(--grey-3);
+  transform-origin: 50% 15px;
+}
+.mds-ring-ticks i:nth-child(1){ transform: rotate(0deg); }
+.mds-ring-ticks i:nth-child(2){ transform: rotate(30deg); }
+.mds-ring-ticks i:nth-child(3){ transform: rotate(60deg); background: var(--ink-soft); }
+.mds-ring-ticks i:nth-child(4){ transform: rotate(90deg); }
+.mds-ring-ticks i:nth-child(5){ transform: rotate(120deg); }
+.mds-ring-ticks i:nth-child(6){ transform: rotate(150deg); background: var(--ink-soft); }
+.mds-ring-ticks i:nth-child(7){ transform: rotate(180deg); }
+.mds-ring-ticks i:nth-child(8){ transform: rotate(210deg); }
+.mds-ring-ticks i:nth-child(9){ transform: rotate(240deg); background: var(--ink-soft); }
+.mds-ring-ticks i:nth-child(10){ transform: rotate(270deg); }
+.mds-ring-ticks i:nth-child(11){ transform: rotate(300deg); }
+.mds-ring-ticks i:nth-child(12){ transform: rotate(330deg); background: var(--ink-soft); }
+.mds-core{
+  position:relative;
+  z-index:1;
+  display:flex; align-items:center; justify-content:center;
+  width:20px; height:20px;
+  border-radius:50%;
+  color: var(--ink);
+  background: rgba(20,20,26,0.05);
+  box-shadow: 0 0 0 1px rgba(20,20,28,0.06) inset;
+  transition: transform 0.55s cubic-bezier(.2,.9,.3,1.15);
+}
+.mo-dial-seal:active{ transform: rotate(-3deg) translateY(1px) scale(0.9); }
+.mo-dial-seal.is-spinning .mds-core{ transform: rotate(360deg); }
+
+/* ---------- 右：发布圆印（与左侧刷新印同源的圆形语言，
+   仅图腾与旋转角度不同，两者才真正像"一对"而非两种设计） ---------- */
+.mo-drop-seal{
+  position:relative;
+  flex-shrink:0;
+  width:36px; height:36px;
+  display:flex; align-items:center; justify-content:center;
+  transform: rotate(4deg) translateY(-1px);
+  transition: transform 0.32s cubic-bezier(.34,1.56,.64,1);
+}
+.mds2-facet{
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  background: radial-gradient(120% 130% at 32% 24%, #ffffff 0%, #f7f7f9 50%, #ececef 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 -1px 2px 0 rgba(20,20,28,0.05) inset,
+    0 7px 14px -9px rgba(20,20,28,0.32),
+    0 0 0 1px rgba(20,20,28,0.08);
+  pointer-events:none;
+}
+.mds2-glyph{
+  position:relative;
+  z-index:1;
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  width:20px; height:20px;
+  border-radius:50%;
+  color: var(--ink);
+  background: rgba(20,20,26,0.05);
+  box-shadow: 0 0 0 1px rgba(20,20,28,0.06) inset;
+  transform: rotate(-4deg);
+  transition: transform 0.5s cubic-bezier(.34,1.7,.5,1.1);
+}
+.mo-drop-seal:active{ transform: rotate(4deg) translateY(-1px) scale(0.9); }
+.mo-drop-seal:active .mds2-glyph{ transform: rotate(-4deg) scale(0.86); }
+.mo-drop-seal.is-pressed{ transform: rotate(4deg) translateY(-1px) scale(0.9); }
+
+/* ==========================================================================
+   好友页专属 —— 寻访搜索面板 Friend Search Panel
+   与消息页 .mh-search 的"圆润内凹胶囊、常驻页顶"刻意区分：
+   本组件默认高度收起为 0，由顶栏石印搜索按钮点击展开/收起；
+   造型走斜切石碑 + 錾刻描边 + 顶部石印标签的雕刻语言，
+   通体黑白灰浅色纸面，唯一彩色取自全站既有三枚低饱和描边色。
+========================================================================== */
+.friend-search-panel{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  margin-bottom:0;
+  transition: max-height 0.36s cubic-bezier(.4,0,.2,1), opacity 0.28s ease, margin-bottom 0.36s cubic-bezier(.4,0,.2,1);
+}
+.friend-search-panel.is-open{
+  max-height:120px;
+  opacity:1;
+  margin-bottom:18px;
+}
+.fsp-tablet{
+  position:relative;
+  padding:14px 18px 15px;
+  /* 左上角斜切改为小圆角过渡 + 主体大圆角矩形，保留石碑/铭牌的错位造型感，
+     但用弧线替代锐角折线，削弱直角硬线条，与消息页圆润胶囊语言更贴近 */
+  border-radius: 22px 22px 20px 20px;
+  clip-path: polygon(0 22px, 22px 0, 100% 0, 100% 100%, 0 100%);
+  background: linear-gradient(168deg, #ffffff 0%, #f6f6f8 55%, #eeeef1 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.85) inset,
+    0 16px 34px -22px rgba(20,20,30,0.28),
+    0 0 0 1px rgba(20,20,26,0.055);
+}
+.fsp-tablet-facet{
+  position:absolute; inset:0;
+  pointer-events:none;
+  border-radius: 22px 22px 20px 20px;
+  clip-path: polygon(0 22px, 22px 0, 100% 0, 100% 100%, 0 100%);
+  background: linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.5) 50%, transparent 58%);
+  mix-blend-mode: soft-light;
+}
+.fsp-tablet-corner{
+  position:absolute;
+  width:8px; height:8px;
+  border-color: rgba(20,20,26,0.22);
+  border-style:solid;
+  border-width:0;
+  border-radius:3px;
+  pointer-events:none;
+}
+.fsp-tablet-corner-tl{ top:6px; left:26px; border-top-width:1.1px; border-left-width:1.1px; }
+.fsp-tablet-corner-br{ bottom:6px; right:6px; border-bottom-width:1.1px; border-right-width:1.1px; }
+
+.fsp-label-row{
+  display:flex; align-items:baseline; gap:8px;
+  margin-bottom:9px;
+}
+.fsp-label-num{
+  font-family:'Space Mono', monospace;
+  font-size:10px;
+  letter-spacing:0.04em;
+  color: var(--grey-3);
+}
+.fsp-label-col{
+  display:flex; align-items:baseline; gap:6px;
+}
+.fsp-label-cn{
+  font-family:'Playfair Display', serif;
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:0.04em;
+  color: var(--ink);
+}
+.fsp-label-en{
+  font-family:'Space Mono', monospace;
+  font-size:7.5px;
+  letter-spacing:0.14em;
+  color: var(--grey-2);
+}
+
+.fsp-input-row{
+  display:flex; align-items:center; gap:9px;
+  height:34px;
+  padding:0 12px;
+  border-radius:17px;
+  background: linear-gradient(180deg, #eeeef1 0%, #f5f5f7 55%, #f8f8fa 100%);
+  box-shadow:
+    0 1px 2px 0 rgba(20,20,28,0.05) inset,
+    0 -1px 0 0 rgba(255,255,255,0.7) inset,
+    0 0 0 1px rgba(20,20,28,0.045);
+  transition: box-shadow 0.25s ease, transform 0.2s cubic-bezier(.34,1.56,.64,1);
+}
+.fsp-input-row:focus-within{
+  transform: scale(1.01);
+  box-shadow:
+    0 1px 2px 0 rgba(20,20,28,0.06) inset,
+    0 -1px 0 0 rgba(255,255,255,0.75) inset,
+    0 0 0 1px rgba(20,20,28,0.08);
+}
+.fsp-input-row svg{ flex-shrink:0; color: var(--grey-2); }
+.fsp-input{
+  flex:1;
+  min-width:0;
+  height:100%;
+  border:none;
+  outline:none;
+  background:transparent;
+  font-family:'Inter', sans-serif;
+  font-size:13.5px;
+  letter-spacing:0.01em;
+  color: var(--ink);
+}
+.fsp-input::placeholder{ color: var(--grey-3); }
+.fsp-clear{
+  flex-shrink:0;
+  width:18px; height:18px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-3);
+  background: #ffffff;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 2px 6px -3px rgba(20,20,28,0.2),
+    0 0 0 1px rgba(20,20,28,0.05);
+  opacity:0;
+  transform: scale(0.7);
+  pointer-events:none;
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(.34,1.56,.64,1), background 0.2s ease, color 0.2s ease;
+}
+.fsp-clear.is-visible{
+  opacity:1;
+  transform: scale(1);
+  pointer-events:auto;
+}
+.fsp-clear:active{ transform: scale(0.85); background: var(--grey-4); color: var(--ink-soft); }
+
+/* 顶栏搜索石印按钮激活态：面板展开时，按钮微微内陷并加一层描边高光，
+   给出明确的"已展开"反馈，同样不与消息页语言重复 */
+.friend-mark-btn--search.is-active{
+  color: var(--ink);
+  box-shadow:
+    0 1px 3px 0 rgba(20,20,28,0.12) inset,
+    0 0 0 1px rgba(20,20,28,0.14),
+    0 0 0 3px rgba(20,20,28,0.045);
+}
+
+/* ==========================================================================
+   好友页装饰组件 —— 臻藏徽章卡 Emblem Card（珍珠浅色 · 华丽版）
+   浅米白珍珠纸面 + 三层描边画框 + 四角錾刻角标 + 顶部错落徽标铭刻 +
+   底部珠光玻璃留白信息层 + 肖像四周珍珠留白衬底，
+   营造画廊展签 / 鎏银勋章般的厚重高级质感——
+   通体黑白灰偏白浅色系，唯一色彩取自全站既有三枚低饱和描边色，
+   无emoji、无新增色相，一切内容用户可自定义（肖像/昵称/寄语）。
+========================================================================== */
+.emblem-card{
+  position:relative;
+  min-height:252px;
+  margin-bottom:28px;
+  border-radius:28px;
+  overflow:hidden;
+  padding:9px;
+  background:
+    linear-gradient(155deg, #ffffff 0%, #f7f7f9 46%, #eeeef1 100%);
+  box-shadow:
+    0 34px 60px -28px rgba(30,30,40,0.22),
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 0 0 1px rgba(20,20,26,0.05);
+}
+/* 珍珠纸面上极细的浮雕纹理，避免大面积纯色显得单薄 */
+.emblem-card::before{
+  content:"";
+  position:absolute; inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse 140% 70% at 12% -10%, rgba(255,255,255,0.85) 0%, transparent 46%),
+    radial-gradient(ellipse 120% 60% at 100% 118%, rgba(20,20,26,0.045) 0%, transparent 50%);
+}
+
+/* ---- 全幅肖像层：四周留出珍珠纸面窄边，肖像本身独立成"画心" ---- */
+.ec-photo{
+  position:absolute; inset:9px;
+  display:block;
+  width:auto; height:auto;
+  z-index:1;
+  border-radius:21px;
+  overflow:hidden;
+}
+.ec-photo-frame{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:
+    radial-gradient(ellipse 120% 90% at 22% 6%, rgba(255,255,255,0.5) 0%, transparent 55%),
+    linear-gradient(168deg, #e4e4e8 0%, #d3d3d8 52%, #c3c3ca 100%);
+  transition: transform 0.3s ease;
+}
+.ec-photo-frame img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  filter: saturate(0.96) contrast(1.02) brightness(1.02);
+}
+.ec-photo-placeholder{
+  position:relative; z-index:1;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  color: rgba(23,23,27,0.4);
+}
+.ec-photo-placeholder-text{
+  font-family:'Inter', sans-serif;
+  font-size:10.5px;
+  letter-spacing:0.1em;
+  color: rgba(23,23,27,0.36);
+}
+.emblem-card .ec-photo-frame.has-photo .ec-photo-placeholder{ display:none; }
+.ec-photo:active .ec-photo-frame{ transform:scale(1.02); }
+
+/* 肖像上部极轻扫白，托住顶部徽标；底部渐暗，托住信息层可读性 */
+.ec-photo-scrim{
+  position:absolute; inset:0;
+  z-index:1;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg, rgba(10,10,12,0.16) 0%, rgba(10,10,12,0.02) 26%, rgba(10,10,12,0) 48%, rgba(10,10,12,0.14) 66%, rgba(10,10,12,0.62) 100%);
+}
+/* 一道极弱的斜向珠光高光扫过肖像，强化"鎏银/珍珠"质感，不引入新色相 */
+.ec-photo-sheen{
+  position:absolute; inset:0;
+  z-index:1;
+  pointer-events:none;
+  background: linear-gradient(115deg, transparent 36%, rgba(255,255,255,0.16) 47%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.16) 53%, transparent 64%);
+  mix-blend-mode: soft-light;
+}
+
+/* ---- 三层描边画框：外沿纸面细线 + 画心描边 + 内层高光描边，层次更厚重 ---- */
+.ec-frame-outer{
+  position:absolute; inset:0;
+  z-index:3;
+  pointer-events:none;
+  border-radius:28px;
+  border:1px solid rgba(20,20,26,0.07);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.7) inset;
+}
+.ec-frame-inner{
+  position:absolute; inset:9px;
+  z-index:3;
+  pointer-events:none;
+  border-radius:21px;
+  border:1px solid rgba(255,255,255,0.5);
+  box-shadow: 0 0 0 1px rgba(20,20,26,0.16) inset;
+}
+
+/* ---- 四角錾刻角标：金属感描边，取代常见圆角矩形卡片的边界表达 ---- */
+.ec-corner{
+  position:absolute;
+  z-index:3;
+  pointer-events:none;
+  width:14px; height:14px;
+  border-color: rgba(255,255,255,0.85);
+  border-style:solid;
+  border-width:0;
+  filter: drop-shadow(0 1px 1px rgba(20,20,26,0.28));
+}
+.ec-corner-tl{ top:22px; left:22px; border-top-width:1.3px; border-left-width:1.3px; border-top-left-radius:5px; }
+.ec-corner-tr{ top:22px; right:22px; border-top-width:1.3px; border-right-width:1.3px; border-top-right-radius:5px; }
+.ec-corner-bl{ bottom:22px; left:22px; border-bottom-width:1.3px; border-left-width:1.3px; border-bottom-left-radius:5px; }
+.ec-corner-br{ bottom:22px; right:22px; border-bottom-width:1.3px; border-right-width:1.3px; border-bottom-right-radius:5px; }
+
+/* ---- 顶部：错落双行徽标铭刻，浮于珍珠留白纸面之上 ---- */
+.ec-crest-mark{
+  position:absolute;
+  top:22px; left:23px;
+  z-index:4;
+  display:flex; align-items:center; gap:10px;
+  pointer-events:none;
+}
+.ec-crest-ring{
+  position:relative;
+  width:23px; height:23px;
+  flex-shrink:0;
+  border-radius:50%;
+  background: rgba(255,255,255,0.22);
+  border:1px solid rgba(255,255,255,0.85);
+  box-shadow: 0 1px 3px 0 rgba(20,20,26,0.22);
+  display:flex; align-items:center; justify-content:center;
+}
+.ec-crest-ring-in{
+  position:absolute; inset:3px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.5);
+}
+.ec-crest-dot{
+  width:3.2px; height:3.2px;
+  border-radius:50%;
+  background: #ffffff;
+  box-shadow: 0 0 4px 0 rgba(255,255,255,0.6);
+}
+.ec-crest-text-col{
+  display:flex; flex-direction:column; gap:1px;
+}
+.ec-crest-cn{
+  font-family:'Playfair Display', serif;
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:0.06em;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(20,20,26,0.42);
+}
+.ec-crest-en{
+  font-family:'Space Mono', monospace;
+  font-size:8px;
+  letter-spacing:0.16em;
+  color: rgba(255,255,255,0.82);
+  text-shadow: 0 1px 2px rgba(20,20,26,0.36);
+}
+
+/* 顶部徽标右侧一枚极小的悬浮石印，与四角錾刻角标呼应，
+   强化"多层描边 / 錾刻"的富丽语言，纯几何无emoji */
+.emblem-card::after{
+  content:"";
+  position:absolute;
+  top:26px; right:34px;
+  z-index:4;
+  width:15px; height:15px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.65);
+  background: rgba(255,255,255,0.1);
+  box-shadow: 0 1px 3px 0 rgba(20,20,26,0.24), 0 0 0 4px rgba(255,255,255,0.08);
+  pointer-events:none;
+}
+
+/* ---- 底部：珠光玻璃留白信息层 ---- */
+.ec-info{
+  position:absolute;
+  left:22px; right:22px; bottom:22px;
+  z-index:4;
+  border-radius:19px;
+  padding: 17px 19px 15px;
+  display:flex; flex-direction:column; gap:8px;
+  overflow:hidden;
+}
+.ec-info-glass{
+  position:absolute; inset:0;
+  z-index:-1;
+  border-radius:19px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 100%);
+  border:1px solid rgba(255,255,255,0.32);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.3) inset, 0 12px 24px -14px rgba(10,10,14,0.3);
+}
+.ec-name-row{
+  display:flex; align-items:baseline; gap:7px;
+}
+.ec-name{
+  font-family:'Playfair Display', serif;
+  font-size:21px;
+  font-weight:700;
+  color: #ffffff;
+  letter-spacing:0.01em;
+  outline:none;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  cursor:text;
+  text-shadow: 0 1px 4px rgba(15,15,18,0.4);
+}
+.ec-name:focus{
+  border-bottom:1px solid rgba(255,255,255,0.55);
+}
+.ec-edit-glyph{
+  color: rgba(255,255,255,0.7);
+  flex-shrink:0;
+}
+.ec-quote-row{
+  min-width:0;
+  display:flex; align-items:flex-start; gap:4px;
+}
+.ec-quote-mark{
+  font-family:'Playfair Display', serif;
+  font-size:16px;
+  line-height:1;
+  color: rgba(255,255,255,0.5);
+  flex-shrink:0;
+  transform: translateY(1px);
+}
+.ec-quote{
+  display:block;
+  font-family:'Cormorant Garamond', serif;
+  font-style:italic;
+  font-size:14px;
+  color: rgba(255,255,255,0.92);
+  line-height:1.45;
+  outline:none;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  cursor:text;
+  text-shadow: 0 1px 3px rgba(15,15,18,0.3);
+}
+.ec-quote:focus{
+  white-space:normal;
+  border-bottom:1px solid rgba(255,255,255,0.4);
+}
+.ec-foot{
+  display:flex; align-items:center; gap:10px;
+  margin-top:3px;
+}
+.ec-foot-line{
+  flex:1;
+  height:1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.5) 0%, transparent 100%);
+}
+.ec-foot-line-r{
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 100%);
+}
+.ec-date{
+  font-family:'Space Mono', monospace;
+  font-size:9.5px;
+  letter-spacing:0.14em;
+  color: rgba(255,255,255,0.82);
+  flex-shrink:0;
+  text-shadow: 0 1px 2px rgba(15,15,18,0.3);
+}
+
+/* ==========================================================================
+   好友清单区 Friend List —— 真实好友卡片列表，纸面浮雕质感，
+   分组小标注 + 计数联动，逐条错落淡入，黑白灰阶 + 全站既有三枚描边色
+========================================================================== */
+.flist-section{ margin-bottom:8px; }
+
+.flist-head{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 8px 6px 22px;
+  margin-bottom:4px;
+}
+.flist-eyebrow{
+  position:relative;
+  display:inline-flex;
+  align-items:baseline;
+  gap:8px;
+  font-family:'Playfair Display', serif;
+  font-weight:800;
+  font-style:italic;
+  font-size:19px;
+  letter-spacing:0.01em;
+  color: var(--ink);
+}
+.flist-eyebrow-en{
+  font-family:'Space Mono', monospace;
+  font-style:normal;
+  font-weight:600;
+  font-size:8px;
+  letter-spacing:0.28em;
+  color: var(--grey-3);
+}
+.flist-count{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding: 7px 14px 7px 8px;
+  border-radius:999px;
+  background: linear-gradient(160deg, #ffffff 0%, #f1f1f4 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 10px 20px -14px rgba(20,20,30,0.4),
+    0 0 0 1px rgba(20,20,28,0.04);
+}
+.flist-count-num{
+  display:flex; align-items:center; justify-content:center;
+  min-width:24px; height:24px;
+  border-radius:50%;
+  background: linear-gradient(155deg, var(--ink-soft), var(--ink));
+  font-family:'Playfair Display', serif;
+  font-weight:900;
+  font-style:italic;
+  font-size:13px;
+  color: #fdfdfd;
+  line-height:1;
+  box-shadow: 0 3px 8px -3px rgba(20,20,30,0.5);
+}
+.flist-count-label{
+  font-size:10.5px;
+  color: var(--grey-1);
+  letter-spacing:0.03em;
+}
+
+/* ================================================================
+   分组卷宗列表：告别"石碑/线条"语言，改为柔软饱满的胶囊卡片堆叠——
+   大圆角、多层柔和投影制造"充气感"，罗马数字装进一枚立体软珠里，
+   计数做成悬浮的珍珠圆牌，整体像揉起来QQ弹弹的软胶质卡片。
+================================================================ */
+.fgroup-list{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.fgroup{
+  position:relative;
+}
+
+.fgroup-head{
+  position:relative;
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding: 16px 18px 16px 16px;
+  background: linear-gradient(165deg, #ffffff 0%, #fbfbfc 45%, #f3f3f6 100%);
+  border:none;
+  border-radius:26px;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 -6px 14px -10px rgba(20,20,30,0.06) inset,
+    0 18px 34px -20px rgba(20,20,30,0.28),
+    0 3px 8px -4px rgba(20,20,30,0.12);
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-align:left;
+  font-family: inherit;
+  overflow:hidden;
+  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s ease;
+}
+.fgroup-head::before{
+  /* 顶部弧形高光，强化"软胶质"充气反光感 */
+  content:'';
+  position:absolute;
+  top:-30%; left:8%; right:8%;
+  height:60%;
+  border-radius:50%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.85), transparent 70%);
+  pointer-events:none;
+}
+.fgroup-head:active{
+  transform: scale(0.965);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 8px 18px -14px rgba(20,20,30,0.3);
+}
+
+.fgroup-numeral{
+  position:relative;
+  flex-shrink:0;
+  width:46px; height:46px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #eeeef1 60%, #e2e2e7 100%);
+  box-shadow:
+    0 2px 0 0 rgba(255,255,255,0.9) inset,
+    0 -3px 6px -2px rgba(20,20,30,0.1) inset,
+    0 8px 16px -8px rgba(20,20,30,0.4);
+}
+.fgroup-numeral-glyph{
+  position:relative;
+  font-family:'Cormorant Garamond', serif;
+  font-style:italic;
+  font-weight:600;
+  font-size:19px;
+  color: var(--ink-soft);
+}
+.fgroup-numeral::after{ content:none; }
+
+.fgroup-title-col{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.fgroup-cn{
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:17px;
+  color: var(--ink);
+  letter-spacing:0.01em;
+}
+.fgroup-en{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px;
+  letter-spacing:0.32em;
+  color: var(--grey-3);
+}
+
+.fgroup-meta{
+  flex-shrink:0;
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.fgroup-online{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  font-family:'Space Mono', monospace;
+  font-size:8px;
+  letter-spacing:0.03em;
+  color: var(--grey-2);
+  white-space:nowrap;
+}
+.fgroup-online-num{
+  font-family:'Cormorant Garamond', serif;
+  font-style:italic;
+  font-weight:600;
+  font-size:14px;
+  color: var(--grey-1);
+  line-height:1;
+}
+.fgroup-num{
+  position:relative;
+  min-width:32px;
+  height:32px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Playfair Display', serif;
+  font-style:italic;
+  font-weight:800;
+  font-size:16px;
+  color: var(--ink);
+  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #f4f4f6 60%, #ececef 100%);
+  border-radius:50%;
+  box-shadow:
+    0 2px 0 0 rgba(255,255,255,0.95) inset,
+    0 -2px 4px -1px rgba(20,20,30,0.08) inset,
+    0 7px 14px -8px rgba(20,20,30,0.4);
+}
+.fgroup-chevron{
+  flex-shrink:0;
+  color: var(--grey-3);
+  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.fgroup[data-collapsed="true"] .fgroup-chevron{ transform: rotate(-90deg); }
+
+/* ---- 组内容体：高度过渡折叠，内部再套一层承接 padding，
+        避免高度动画时因 padding 导致的跳动 ---- */
+.fgroup-body{
+  overflow:hidden;
+  transition: height 0.42s cubic-bezier(0.22,0.68,0.32,1);
+}
+.fgroup[data-collapsed="true"] .fgroup-body{ height:0px; }
+.fgroup-body-inner{
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  padding-bottom:2px;
+}
+
+/* ---- 单条好友卡片 · 重新设计：卡片本身分层出一枚"名片"质感——
+   顶部极细高光缝线 + 左侧錾刻竖线常驻显影（不再只在按压时出现），
+   头像升级为"徽章式相框"（双层描边 + 外置投影 + 内嵌高光弧），
+   在线角标改为独立叠加在相框缺口处的呼吸点，层级明确不再糊在
+   头像图层之下。整体比原来更有厚度与仪式感，替代原先偏平的卡片 ---- */
+.flist-item{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:15px;
+  padding: 15px 17px 15px 19px;
+  border-radius:20px;
+  background: linear-gradient(158deg, #ffffff 0%, #fcfcfd 46%, #f5f5f8 100%);
+  border:1px solid var(--hair-soft);
+  box-shadow:
+    0 20px 40px -24px rgba(20,20,30,0.26),
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 0 0 1px rgba(20,20,28,0.03);
+  opacity:0;
+  transform: translateY(8px);
+  animation: flistIn 0.5s cubic-bezier(0.22,0.68,0.32,1) forwards;
+  transition: transform 0.3s cubic-bezier(0.22,0.68,0.32,1), box-shadow 0.3s ease, border-color 0.3s ease;
+  overflow:hidden;
+}
+/* 顶部一缕极细高光缝线，令卡片像被压过一道折痕，而非纯色矩形 */
+.flist-item::after{
+  content:'';
+  position:absolute;
+  left:16px; right:16px; top:0;
+  height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0.9) 60%, transparent);
+  pointer-events:none;
+}
+.flist-item::before{
+  /* 左侧竖向錾刻线常驻显影，作为卡片的"装订边"，不再只在按压瞬间才出现 */
+  content:'';
+  position:absolute;
+  left:0; top:12px; bottom:12px;
+  width:2px;
+  border-radius:0 2px 2px 0;
+  background: linear-gradient(180deg, transparent, var(--ink-soft) 20%, var(--ink-soft) 80%, transparent);
+  opacity:0.16;
+  transition: opacity 0.3s ease;
+}
+.flist-item:active{
+  transform: scale(0.981);
+  box-shadow:
+    0 10px 20px -18px rgba(20,20,30,0.22),
+    0 1px 0 0 rgba(255,255,255,0.9) inset;
+}
+.flist-item:active::before{ opacity:0.42; }
+@keyframes flistIn{
+  to{ opacity:1; transform:translateY(0); }
+}
+
+/* ---- 头像：徽章式相框，比原先更立体 —— 外圈描边+投影，
+   内层留白缝隙，再嵌一枚圆角底盘承载图片/字母，层次分明 ---- */
+.flist-avatar{
+  position:relative;
+  width:52px; height:52px;
+  flex-shrink:0;
+  border-radius:17px;
+  background: linear-gradient(165deg, #2a2a2e 0%, #17171a 62%, #0b0b0d 100%);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:
+    0 8px 20px -10px rgba(20,20,30,0.4),
+    0 0 0 1px rgba(255,255,255,0.9),
+    0 0 0 2.5px rgba(20,20,28,0.06);
+}
+.flist-avatar::before{
+  /* 内嵌高光弧，模拟相框斜切打光的一角，增加实体质感 */
+  content:'';
+  position:absolute;
+  left:3px; top:3px; right:3px;
+  height:38%;
+  border-radius:13px 13px 40% 40% / 13px 13px 60% 60%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.16), transparent);
+  pointer-events:none;
+  z-index:2;
+}
+.flist-avatar img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  border-radius:inherit;
+}
+.flist-avatar-glyph{
+  position:relative;
+  z-index:1;
+  color: rgba(255,255,255,0.82);
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:18px;
+}
+/* 在线角标：独立层级叠在相框右下角缺口处，呼吸式双层描边，
+   不再是糊在头像上的一枚小圆点 —— 用外层留白环把它从相框里
+   "挖"出来，视觉上悬浮而非重叠 */
+.flist-status-dot{
+  position:absolute;
+  right:-3px; bottom:-3px;
+  width:16px; height:16px;
+  border-radius:50%;
+  background: var(--paper-2);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:
+    0 0 0 3px var(--paper-2),
+    0 3px 8px -2px rgba(20,20,30,0.32);
+  z-index:3;
+}
+.flist-status-dot::after{
+  content:'';
+  width:7px; height:7px;
+  border-radius:50%;
+  background: var(--grey-3);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+.flist-item[data-online="true"] .flist-status-dot::after{
+  background: radial-gradient(circle at 35% 30%, #4a4a52, #17171a);
+  box-shadow: 0 0 0 3px rgba(20,20,30,0.1);
+}
+.flist-item[data-online="true"] .flist-status-dot{
+  animation: flistPulse 2.6s ease-in-out infinite;
+}
+@keyframes flistPulse{
+  0%, 100%{ box-shadow: 0 0 0 3px var(--paper-2), 0 3px 8px -2px rgba(20,20,30,0.32); }
+  50%{ box-shadow: 0 0 0 3px var(--paper-2), 0 0 0 6px rgba(20,20,30,0.08), 0 3px 8px -2px rgba(20,20,30,0.32); }
+}
+
+.flist-body{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.flist-name-row{
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+.flist-name{
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:16.5px;
+  color: var(--ink);
+  letter-spacing:0.005em;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.flist-badge{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:8.5px;
+  letter-spacing:0.08em;
+  color: var(--ink-soft);
+  background: var(--grey-5);
+  border:1px solid var(--hair);
+  border-radius:5px;
+  padding: 1.5px 6px;
+}
+.flist-sub{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+.flist-sub-status{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:8px;
+  letter-spacing:0.06em;
+  color: var(--grey-3);
+}
+.flist-item[data-online="true"] .flist-sub-status{ color: var(--ink-soft); }
+.flist-sub-dot{
+  flex-shrink:0;
+  width:2px; height:2px;
+  border-radius:50%;
+  background: var(--grey-4);
+}
+.flist-sub-text{
+  font-size:12px;
+  color: var(--grey-2);
+  letter-spacing:0.01em;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
+}
+
+.flist-item-arrow{
+  flex-shrink:0;
+  width:26px; height:26px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-3);
+  background: var(--grey-5);
+  transition: transform 0.3s cubic-bezier(0.22,0.68,0.32,1), color 0.3s ease, background 0.3s ease;
+}
+.flist-item:active .flist-item-arrow{
+  transform: translateX(2px);
+  color:#fff;
+  background: linear-gradient(150deg, var(--ink-soft), var(--ink));
+}
+
+/* ---- 空态：与消息页空态语言统一，无emoji，纯描边徽记 ---- */
+.flist-empty{
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  padding: 34px 0 18px;
+}
+.flist-section[data-empty="true"] .flist-empty{ display:flex; }
+.flist-section[data-empty="true"] .fgroup-list{ display:none; }
+.flist-empty-mark{
+  position:relative;
+  width:34px; height:34px;
+}
+.flist-empty-ring{
+  position:absolute; inset:0;
+  border-radius:50%;
+  border:1px solid var(--hair);
+}
+.flist-empty-ring::after{
+  content:'';
+  position:absolute; inset:6px;
+  border-radius:50%;
+  border:1px solid var(--hair);
+}
+.flist-empty-dot{
+  position:absolute; top:50%; left:50%;
+  width:3px; height:3px;
+  border-radius:50%;
+  background: var(--grey-3);
+  transform: translate(-50%,-50%);
+}
+.flist-empty-cn{
+  font-size:13px;
+  color: var(--grey-1);
+}
+.flist-empty-en{
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  letter-spacing:0.24em;
+  color: var(--grey-3);
+}
+
+/* ============================================================
+   动态页 Moments —— 微信封面横幅 + IG 故事环 + 微博时间线的融合，
+   通体软胶质圆角、多层柔和投影，零直线边框，黑白灰浅色纸面。
+============================================================ */
+.page-moments-social{ padding-top:0; }
+
+/* ---- 封面区：不再是规整矩形横幅——底边改为不对称斜切造型
+   （像一张随手裁切的画布，而非标准 banner），点击可上传/更换
+   真实照片；未设置照片时以柔和纸面渐变 + 极细网格呈现留白质感，
+   设置后铺满真实照片并叠加轻柔渐隐。右下角嵌入一枚独立的圆形
+   钢印按钮承载"更换封面"，替代原先漂浮的胶囊提示条 ---- */
+/* 透明占位：真正的封面视觉已由 .moments-cover-veil 在更高层级绘制
+   （从状态栏顶部一路铺到此处），这里只负责撑开滚动区域高度、
+   自身即为点击热区（点击封面任意位置直接触发上传），不再绘制
+   任何背景/图片，也不再需要单独的"更换封面"小圆按钮 */
+.mo-cover{
+  position:relative;
+  display:block;
+  width: calc(100% + 48px);
+  height:188px;
+  margin: -6px -24px 0;
+  background:transparent;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ---- 身份卡：头像以对角线姿态"破界"压穿封面斜切下沿——
+   融合 QQ空间徽章头像框 + 微信身份行排布，昵称走大号衬线斜体，
+   下方悬浮一条极细刻度尺装饰替代常规下划线 ---- */
+.mo-identity-row{
+  position:relative;
+  display:flex;
+  align-items:flex-end;
+  gap:16px;
+  /* 头像高74px，-40px 让头像顶部从封面占位块（188px）底边往上40px
+     处开始画，头像因此有 74-40=34px 探出封面之外，形成"压穿"效果。
+     这部分探出区域落在188px线以下，背景层（现在同样是完整188px）
+     盖不到，能正常显示；只要背景层高度和 .mo-cover 占位块保持一致
+     （188px），这个原始数值就是对的，不需要跟着改 */
+  margin: -40px 2px 24px;
+  padding-left:6px;
+}
+.mo-identity-avatar{
+  position:relative;
+  flex-shrink:0;
+  width:74px; height:74px;
+  border-radius:50% 50% 50% 8px;
+  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #eeeef1 55%, #e2e2e7 100%);
+  transform: rotate(-6deg);
+  box-shadow:
+    0 3px 0 0 rgba(255,255,255,0.95) inset,
+    0 16px 28px -12px rgba(20,20,30,0.42),
+    0 0 0 4px var(--paper);
+}
+.mo-identity-avatar img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  border-radius:50% 50% 50% 8px;
+}
+.mo-identity-avatar-ring{
+  position:absolute; inset:-3px;
+  border-radius:50% 50% 50% 10px;
+  border:1.3px solid var(--hair);
+  pointer-events:none;
+}
+.mo-identity-avatar-notch{
+  position:absolute;
+  right:-3px; bottom:-3px;
+  width:16px; height:16px;
+  border-radius:50%;
+  background: linear-gradient(160deg, #ffffff 0%, #ececef 100%);
+  box-shadow:
+    0 3px 8px -3px rgba(20,20,30,0.35),
+    0 0 0 3px var(--paper);
+  pointer-events:none;
+}
+.mo-identity-col{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding-bottom:2px;
+}
+.mo-identity-name{
+  font-family:'Playfair Display', serif;
+  font-weight:800;
+  font-style:italic;
+  font-size:19px;
+  color: var(--ink);
+  letter-spacing:0.01em;
+  line-height:1.1;
+}
+.mo-identity-sub{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px;
+  letter-spacing:0.1em;
+  color: var(--grey-3);
+}
+.mo-identity-ruler{
+  display:block;
+  width:64px; height:5px;
+  margin-top:2px;
+  background-image: repeating-linear-gradient(90deg, var(--grey-4) 0px, var(--grey-4) 1px, transparent 1px, transparent 7px);
+  opacity:0.9;
+}
+
+/* ==========================================================================
+   动态精选圆环带 · Stories Row
+   改为圆形头像横排（对齐参考样式）：卡片化容器包裹整条横带，
+   顶部一行"动态精选 · N new"双语标签 + 右侧"See all"按钮，
+   下方一排圆形头像，首位固定为"我的动态"占位（叠加 + 角标，
+   因主页数据尚未接入，先只做静态占位展示，不写死更新状态）。
+   未读用双圈墨色描边，已读收成单圈浅灰，通体黑白灰零彩色。
+========================================================================== */
+.mo-story-band{
+  position:relative;
+  margin: 0 0 26px;
+  padding: 4px 2px 4px;
+  /* 融入统一纸面，不再单独起一张白色卡片——与好友环（消息页）
+     的处理方式保持一致，靠头像自身的多层描边环建立层次，
+     而不是靠卡片背景色块来分区 */
+  background:transparent;
+  border:none;
+  box-shadow:none;
+}
+.mo-story-band-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:14px;
+}
+.mo-story-band-title-col{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+}
+.mo-story-band-cn{
+  font-size:13.5px;
+  font-weight:700;
+  color: var(--ink-soft);
+  letter-spacing:0.02em;
+}
+.mo-story-band-meta{ display:flex; align-items:center; }
+.mo-story-band-new{
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  letter-spacing:0.04em;
+  color: var(--grey-2);
+}
+.mo-story-band-seeall{
+  flex-shrink:0;
+  padding: 5px 13px;
+  border-radius:999px;
+  border:1px solid var(--hair);
+  background: rgba(255,255,255,0.6);
+  color: var(--ink-soft);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:0.02em;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.mo-story-band-seeall:active{ transform: scale(0.94); background: rgba(20,20,26,0.06); }
+
+.mo-story-row{
+  position:relative;
+  display:flex;
+  align-items:flex-start;
+  gap:16px;
+  overflow-x:auto;
+  overflow-y:visible;
+  -webkit-overflow-scrolling:touch;
+  padding: 2px 2px 4px;
+}
+.mo-story-row::-webkit-scrollbar{ display:none; }
+
+.mo-story-empty{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  padding: 18px 20px;
+  border-radius:20px;
+  background: linear-gradient(165deg, #ffffff 0%, #fbfbfc 45%, #f3f3f6 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 14px 26px -20px rgba(20,20,30,0.22);
+}
+.mo-story-empty-ring{
+  position:relative;
+  flex-shrink:0;
+  width:44px; height:44px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: radial-gradient(circle at 32% 26%, #ffffff, #eeeef1 65%, #e4e4e9 100%);
+  box-shadow:
+    0 2px 0 0 rgba(255,255,255,0.9) inset,
+    0 6px 14px -8px rgba(20,20,30,0.32);
+}
+.mo-story-empty-dot{
+  width:5px; height:5px;
+  border-radius:50%;
+  background: var(--grey-3);
+}
+.mo-story-empty-text{
+  font-size:11.5px;
+  color: var(--grey-2);
+  letter-spacing:0.01em;
+}
+
+/* ---- 单个头像项：圆形头像 + 双层描边环，缺口传达未读/已读 ---- */
+.mo-story-item{
+  position:relative;
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  width:56px;
+  gap:8px;
+  transition: transform 0.22s cubic-bezier(.34,1.4,.64,1);
+}
+.mo-story-item:active{ transform: scale(0.94); }
+
+.mo-story-item-ring{
+  position:relative;
+  width:52px; height:52px;
+  border-radius:50%;
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.mo-story-item-ring::before{
+  /* 描边环本体：conic-gradient 画出一段缺口，未读态缺口开在右上角，
+     已读态缺口收窄到几乎闭合 */
+  content:'';
+  position:absolute;
+  inset:-4px;
+  border-radius:50%;
+  padding:1.6px;
+  background: conic-gradient(from 250deg,
+    var(--ink) 0deg,
+    var(--ink) 305deg,
+    transparent 305deg,
+    transparent 360deg);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: background 0.3s ease;
+}
+.mo-story-item.is-read .mo-story-item-ring::before{
+  background: conic-gradient(from 250deg,
+    var(--grey-4) 0deg,
+    var(--grey-4) 344deg,
+    transparent 344deg,
+    transparent 360deg);
+}
+/* "我的动态"占位环：固定单圈浅灰描边，不参与未读/已读逻辑，
+   因为主页动态数据尚未接入，这里只是占位而非真实状态 */
+.mo-story-item-ring-mine::before{
+  background: none;
+  border:1.6px solid var(--grey-4);
+  inset:-4px;
+  padding:0;
+  -webkit-mask:none;
+  mask:none;
+}
+.mo-story-item-ring-mask{
+  position:relative;
+  width:100%; height:100%;
+  border-radius:50%;
+  overflow:hidden;
+  background: radial-gradient(circle at 34% 28%, #f7f7f9 0%, #eeeef1 42%, #e4e4e9 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 0 0 1px var(--hair);
+}
+.mo-story-item-avatar{
+  width:100%; height:100%;
+  overflow:hidden;
+}
+.mo-story-item-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+.mo-story-item-letter{
+  display:flex;
+  width:100%; height:100%;
+  align-items:center; justify-content:center;
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:16px;
+  color: var(--grey-1);
+}
+/* "+" 角标：仅用于"我的动态"占位位，提示"点击发布"，
+   与好友项的圆环缺口逻辑区分开来 */
+.mo-story-item-plus{
+  position:absolute;
+  right:-2px; bottom:-2px;
+  width:19px; height:19px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(150deg, var(--ink-soft), var(--ink));
+  color:#fff;
+  box-shadow: 0 0 0 2.5px var(--paper-2), 0 3px 8px -2px rgba(20,20,30,0.4);
+  z-index:2;
+}
+.mo-story-item-name{
+  display:block;
+  font-size:11px;
+  font-weight:600;
+  color: var(--ink-soft);
+  max-width:60px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  text-align:center;
+}
+.mo-story-item.is-read .mo-story-item-name{ color: var(--grey-2); font-weight:500; }
+.mo-story-item-mine .mo-story-item-name{ color: var(--grey-1); }
+
+/* ---- 信息流分区标题：大号斜切页码徽记 + 竖排双语标题，
+   不对称组合，替代原先居中或简单并排的标题行 ---- */
+.mo-feed-head{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding: 0 4px 16px;
+}
+.mo-feed-head-badge{
+  position:relative;
+  flex-shrink:0;
+  width:34px; height:34px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:9px 15px 9px 15px;
+  background: linear-gradient(160deg, var(--ink) 0%, var(--ink-soft) 100%);
+  transform: rotate(-4deg);
+  box-shadow: 0 8px 16px -9px rgba(20,20,30,0.42);
+}
+.mo-feed-head-badge-num{
+  font-family:'Playfair Display', serif;
+  font-weight:900;
+  font-size:14px;
+  color: var(--paper);
+  transform: rotate(4deg);
+}
+.mo-feed-head-col{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.mo-feed-head-cn{
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:15.5px;
+  color: var(--ink);
+  line-height:1.1;
+}
+.mo-feed-head-en{
+  font-family:'Space Mono', monospace;
+  font-size:8px;
+  letter-spacing:0.28em;
+  color: var(--grey-3);
+}
+
+/* ---- 信息流容器：微博式紧凑卡片堆叠，卡片留待真实数据渲染 ---- */
+.mo-feed{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+/* ---- 动态卡片：真实发布内容渲染，浅色纸面卡片 + 作者行 + 正文
+   + 图片网格（IG 比例），时间落款走衬线小字，通体黑白灰 ---- */
+.mo-post{
+  padding:18px;
+  border-radius:24px;
+  background: linear-gradient(165deg, #ffffff 0%, #fbfbfc 45%, #f3f3f6 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 16px 32px -22px rgba(20,20,30,0.22);
+}
+.mo-post-head{
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:12px;
+}
+.mo-post-avatar{
+  width:36px; height:36px;
+  border-radius:50%;
+  flex-shrink:0;
+  overflow:hidden;
+  background: radial-gradient(circle at 32% 26%, #ffffff, #eeeef1 65%, #e4e4e9 100%);
+  box-shadow: 0 0 0 1px var(--hair);
+}
+.mo-post-avatar img{ width:100%; height:100%; object-fit:cover; }
+.mo-post-head-col{ display:flex; flex-direction:column; gap:1px; }
+.mo-post-name{ font-size:13px; font-weight:600; color: var(--ink); }
+.mo-post-time{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px;
+  letter-spacing:0.08em;
+  color: var(--grey-3);
+}
+.mo-post-text{
+  font-size:13px;
+  line-height:1.7;
+  color: var(--ink-soft);
+  margin-bottom:12px;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.mo-post-photos{
+  display:grid;
+  gap:5px;
+  border-radius:16px;
+  overflow:hidden;
+}
+.mo-post-photos[data-count="1"]{ grid-template-columns: 1fr; }
+.mo-post-photos[data-count="1"] .mo-post-photo{ aspect-ratio: 4/3; }
+.mo-post-photos[data-count="2"]{ grid-template-columns: 1fr 1fr; }
+.mo-post-photos[data-count="3"]{ grid-template-columns: 1fr 1fr 1fr; }
+.mo-post-photos:not([data-count="1"]):not([data-count="2"]):not([data-count="3"]){ grid-template-columns: 1fr 1fr 1fr; }
+.mo-post-photo{
+  aspect-ratio:1/1;
+  background: var(--grey-5);
+  overflow:hidden;
+}
+.mo-post-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+.mo-feed-empty{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  padding: 44px 20px 48px;
+  border-radius:28px;
+  background: linear-gradient(165deg, #ffffff 0%, #fbfbfc 45%, #f3f3f6 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 18px 34px -22px rgba(20,20,30,0.24);
+}
+.mo-feed-empty-mark{
+  position:relative;
+  width:52px; height:52px;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-2);
+  margin-bottom:6px;
+}
+.mo-feed-empty-ring{
+  position:absolute; inset:0;
+  border-radius:50%;
+  background: radial-gradient(circle at 32% 26%, #ffffff, #f1f1f4 65%, #e6e6ea 100%);
+  box-shadow:
+    0 2px 0 0 rgba(255,255,255,0.9) inset,
+    0 10px 20px -10px rgba(20,20,30,0.32);
+}
+.mo-feed-empty-ring-2{
+  position:absolute; inset:9px;
+  background:none;
+  box-shadow:none;
+  border:1px solid var(--hair);
+  border-radius:50%;
+}
+.mo-feed-empty-mark svg{ position:relative; }
+.mo-feed-empty-cn{
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:15.5px;
+  color: var(--ink);
+}
+.mo-feed-empty-en{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px;
+  letter-spacing:0.26em;
+  color: var(--grey-3);
+}
+.mo-feed-empty-desc{
+  font-size:11.5px;
+  color: var(--grey-2);
+  margin-top:2px;
+  text-align:center;
+  line-height:1.6;
+}
+
+/* ==========================================================================
+   我的页 · 资料页（IG式大封面叠层 / 韩系高级浅色 / Q弹质感）
+   设计语言：
+   - 大幅可编辑封面（支持图片或静音循环视频）铺满页面上方，
+     配合缓慢漂浮的柔光光斑做无图状态下的默认装饰，而非空白
+   - 头像半压封面下沿，白色厚描边 + 呼吸光晕，制造"叠层"景深
+   - 漂浮徽标（在线状态 / 编号印记）点缀封面右上角，纯视觉点缀
+   - 姓名旁配认证徽章，ID 与个性签名各自独立胶囊，层次分明
+   - 一切交互保留 Q 弹回弹反馈；颜色仍严格限制在黑白灰体系
+========================================================================== */
+.pf-hero{
+  position:relative;
+  margin: 14px 0 22px;
+}
+
+/* ---- 封面 ---- */
+.pf-cover{
+  position:relative;
+  display:block;
+  width:100%;
+  height:210px;
+  padding:0; margin:0; border:none;
+  border-radius:32px;
+  overflow:hidden;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(150deg, #d8d8dd 0%, #eceef0 45%, #f5f5f7 100%);
+  box-shadow:
+    0 26px 50px -26px rgba(20,20,30,0.32),
+    0 0 0 1px rgba(255,255,255,0.5) inset;
+  transition: transform 0.5s cubic-bezier(.34,1.56,.64,1);
+}
+.pf-cover:active{ transform: scale(0.98); }
+
+.pf-cover-media{
+  position:absolute; inset:0;
+  overflow:hidden;
+}
+.pf-cover-media img,
+.pf-cover-media video{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+}
+/* 默认（未上传封面时）装饰：细腻噪点纹理 + 两颗缓慢漂浮的柔光光斑，
+   让空状态也具备呼吸感与深度，而不是一块死气沉沉的纯色 */
+.pf-cover-noise{
+  position:absolute; inset:0;
+  opacity:0.5;
+  background-image: radial-gradient(rgba(20,20,26,0.05) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+.pf-cover-orb{
+  position:absolute;
+  border-radius:50%;
+  filter: blur(26px);
+  opacity:0.65;
+}
+.pf-cover-orb-a{
+  width:150px; height:150px;
+  left:-30px; top:-40px;
+  background: radial-gradient(circle, rgba(255,255,255,0.9), transparent 70%);
+  animation: pfOrbFloatA 13s ease-in-out infinite alternate;
+}
+.pf-cover-orb-b{
+  width:120px; height:120px;
+  right:-20px; bottom:-30px;
+  background: radial-gradient(circle, rgba(20,20,26,0.14), transparent 72%);
+  animation: pfOrbFloatB 16s ease-in-out infinite alternate;
+}
+@keyframes pfOrbFloatA{
+  0%{ transform: translate(0,0) scale(1); }
+  100%{ transform: translate(24px, 18px) scale(1.12); }
+}
+@keyframes pfOrbFloatB{
+  0%{ transform: translate(0,0) scale(1); }
+  100%{ transform: translate(-18px, -14px) scale(1.08); }
+}
+.pf-cover.has-media .pf-cover-noise,
+.pf-cover.has-media .pf-cover-orb,
+.pf-cover.has-media .pf-cover-lines{ display:none; }
+
+/* 细密斜纹层：无图状态下叠加在光斑之上的额外肌理，避免大面积空白 */
+.pf-cover-lines{
+  position:absolute; inset:0;
+  background-image: repeating-linear-gradient(128deg, rgba(20,20,26,0.035) 0 1px, transparent 1px 13px);
+  mix-blend-mode: multiply;
+}
+
+/* 底部渐深遮罩，保证头像/文字叠在任何封面图上都清晰可读 */
+.pf-cover-scrim{
+  position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(10,10,14,0) 40%, rgba(10,10,14,0.16) 76%, rgba(10,10,14,0.34) 100%);
+  pointer-events:none;
+}
+/* 右下角一枚线刻星芒印记，纯装饰，呼应全站"刻痕"语汇 */
+.pf-cover-corner{
+  position:absolute;
+  right:14px; bottom:14px;
+  color: rgba(255,255,255,0.75);
+  display:flex;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+  pointer-events:none;
+}
+
+/* ---- 漂浮徽标（纯装饰点缀） ---- */
+.pf-badge{
+  position:absolute;
+  display:inline-flex; align-items:center; gap:5px;
+  padding: 6px 11px;
+  border-radius:999px;
+  background: rgba(255,255,255,0.85);
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  letter-spacing:0.12em;
+  color: var(--grey-1);
+  box-shadow: 0 10px 20px -12px rgba(20,20,30,0.32);
+  pointer-events:none;
+}
+.pf-badge-status{ top:16px; right:16px; }
+.pf-badge-dot{
+  width:5px; height:5px;
+  border-radius:50%;
+  background: var(--ink);
+  animation: comingPulse 2.6s ease-in-out infinite;
+}
+.pf-badge-ring{
+  top:16px; left:16px;
+  width:26px; height:26px;
+  padding:0;
+  justify-content:center;
+  font-size:9.5px;
+  font-weight:700;
+  border:1px solid rgba(255,255,255,0.5);
+}
+
+/* ---- 头像：压边叠加，白厚描边 + 呼吸光晕 ---- */
+.pf-avatar{
+  position:relative;
+  width:92px; height:92px;
+  margin: -46px auto 0;
+  display:flex; align-items:center; justify-content:center;
+  border:none; padding:0; cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  border-radius:50%;
+  background: var(--paper-2);
+  box-shadow:
+    0 0 0 5px var(--paper-2),
+    0 18px 32px -14px rgba(20,20,26,0.4);
+  transition: transform 0.5s cubic-bezier(.34,1.56,.64,1);
+  z-index:2;
+}
+.pf-avatar:active{ transform: scale(0.94); }
+.ica-plate{
+  position:absolute; inset:0;
+  border-radius:50%;
+  background: linear-gradient(150deg, #4c4c55 0%, #201f24 55%, #0a0a0c 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.16) inset, 0 -10px 16px -8px rgba(0,0,0,0.4) inset;
+}
+.ica-halo{
+  position:absolute; inset:-9px;
+  border-radius:50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.6), transparent 68%);
+  filter: blur(1px);
+  animation: icaHaloBreathe 4.5s ease-in-out infinite;
+  pointer-events:none;
+  z-index:-1;
+}
+@keyframes icaHaloBreathe{
+  0%,100%{ opacity:0.6; transform:scale(1); }
+  50%{ opacity:1; transform:scale(1.06); }
+}
+/* 环绕头像一圈细刻度，像旋钮/勋章边缘的精密刻线，缓慢自转 */
+.ica-ticks{
+  position:absolute; inset:-15px;
+  pointer-events:none;
+  animation: icaTicksSpin 30s linear infinite;
+}
+.ica-ticks i{
+  position:absolute;
+  left:50%; top:2px;
+  width:1px; height:5px;
+  background: rgba(20,20,26,0.22);
+  transform-origin: 50% 44px;
+}
+.ica-ticks i:nth-child(1){ transform: rotate(0deg); }
+.ica-ticks i:nth-child(2){ transform: rotate(30deg); }
+.ica-ticks i:nth-child(3){ transform: rotate(60deg); }
+.ica-ticks i:nth-child(4){ transform: rotate(90deg); }
+.ica-ticks i:nth-child(5){ transform: rotate(120deg); }
+.ica-ticks i:nth-child(6){ transform: rotate(150deg); }
+.ica-ticks i:nth-child(7){ transform: rotate(180deg); }
+.ica-ticks i:nth-child(8){ transform: rotate(210deg); }
+.ica-ticks i:nth-child(9){ transform: rotate(240deg); }
+.ica-ticks i:nth-child(10){ transform: rotate(270deg); }
+.ica-ticks i:nth-child(11){ transform: rotate(300deg); }
+.ica-ticks i:nth-child(12){ transform: rotate(330deg); }
+@keyframes icaTicksSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+.ica-glyph{
+  position:relative;
+  color: rgba(255,255,255,0.9);
+  display:flex; align-items:center; justify-content:center;
+}
+.pf-avatar.has-photo .ica-plate{ background:none; }
+.pf-avatar.has-photo img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  border-radius:50%;
+}
+.pf-avatar.has-photo .ica-glyph{ display:none; }
+.pf-avatar-plus{
+  position:absolute;
+  right:-1px; bottom:-1px;
+  width:24px; height:24px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  background: linear-gradient(150deg, #3a3a42, #101012);
+  color: var(--paper-2);
+  box-shadow: 0 0 0 3px var(--paper-2), 0 6px 14px -6px rgba(20,20,26,0.5);
+}
+
+/* ---- 信息区 ---- */
+.pf-info{
+  position:relative;
+  display:flex; flex-direction:column; align-items:center;
+  padding-top:14px;
+}
+/* 姓名两侧的细小星芒点缀，营造"勋章授予"式的仪式感 */
+.pf-info-star{
+  position:absolute;
+  top:8px;
+  color: var(--grey-3);
+  animation: pfStarTwinkle 3.4s ease-in-out infinite;
+}
+.pf-info-star-l{ left:calc(50% - 92px); }
+.pf-info-star-r{ right:calc(50% - 108px); top:16px; animation-delay:1.1s; color: var(--grey-4); }
+@keyframes pfStarTwinkle{
+  0%,100%{ opacity:0.35; transform:scale(0.9) rotate(0deg); }
+  50%{ opacity:0.9; transform:scale(1.08) rotate(8deg); }
+}
+
+.pf-name-row{
+  display:flex; align-items:center; gap:6px;
+  margin-bottom:10px;
+}
+.pf-name{
+  font-family:'Playfair Display', serif;
+  font-size:22px;
+  font-weight:700;
+  color: var(--ink);
+  letter-spacing:0.01em;
+}
+.pf-verified{ color: var(--ink-soft); display:flex; }
+
+.pf-id{
+  display:inline-flex; align-items:center; gap:7px;
+  padding: 4px 12px 4px 4px;
+  border:none;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.7);
+  box-shadow:
+    0 6px 14px -8px rgba(20,20,30,0.18),
+    0 0 0 1px rgba(255,255,255,0.6) inset;
+  margin-bottom:14px;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.4s cubic-bezier(.34,1.56,.64,1);
+}
+.pf-id:active{ transform: scale(0.95); }
+.idc-id-tag{
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:0.06em;
+  color: var(--paper-2);
+  background: linear-gradient(150deg, #3a3a42, #101012);
+  padding: 3px 8px;
+  border-radius:999px;
+}
+.idc-id-dots{
+  font-family:'Space Mono', monospace;
+  font-size:10.5px;
+  color: var(--grey-2);
+  letter-spacing:0.12em;
+}
+
+.pf-bio{
+  position:relative;
+  display:block;
+  max-width:280px;
+  padding: 10px 22px;
+  border:none;
+  border-radius:18px;
+  background: rgba(255,255,255,0.55);
+  box-shadow: 0 0 0 1px var(--hair-soft) inset;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.4s cubic-bezier(.34,1.56,.64,1);
+}
+.pf-bio:active{ transform: scale(0.97); }
+.pf-bio-quote{
+  position:absolute;
+  left:8px; top:2px;
+  font-family:'Playfair Display', serif;
+  font-size:26px;
+  font-weight:900;
+  color: var(--grey-4);
+  line-height:1;
+  pointer-events:none;
+}
+.pf-bio-text{
+  position:relative;
+  font-size:12.5px;
+  color: var(--grey-1);
+  line-height:1.6;
+  letter-spacing:0.01em;
+}
+
+/* 印章式刻度点缀：纯几何圆点+菱形+分隔线，不含文字，避免任何写死的身份信息 */
+.pf-tag-wall{
+  display:flex; align-items:center; gap:9px;
+  margin-top:16px;
+  justify-content:center;
+}
+.pf-tag-dot{
+  font-family:'Space Mono', monospace;
+  font-size:11px;
+  color: var(--grey-3);
+  font-weight:700;
+}
+.pf-tag-line{
+  width:26px; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(20,20,26,0.18), transparent);
+}
+.pf-tag-diamond{
+  width:6px; height:6px;
+  background: var(--ink);
+  transform: rotate(45deg);
+  border-radius:1.5px;
+}
+
+.pf-chip-row{
+  display:flex; align-items:center; gap:6px;
+  margin-top:18px;
+}
+.pf-chip{
+  width:5px; height:5px;
+  border-radius:50%;
+  background: var(--grey-4);
+}
+.pf-chip-mid{
+  width:16px;
+  border-radius:999px;
+  background: var(--grey-3);
+}
+
+/* 卡片四角刻度线，纯点缀，呼应"印鉴/勋章"边缘工艺细节 */
+.pf-corner-mark{
+  position:absolute;
+  width:18px; height:18px;
+  pointer-events:none;
+  opacity:0.5;
+}
+.pf-corner-mark-tl{
+  left:-6px; top:70px;
+  border-left:1px solid rgba(20,20,26,0.16);
+  border-top:1px solid rgba(20,20,26,0.16);
+  border-radius: 6px 0 0 0;
+}
+.pf-corner-mark-br{
+  right:-6px; bottom:8px;
+  border-right:1px solid rgba(20,20,26,0.16);
+  border-bottom:1px solid rgba(20,20,26,0.16);
+  border-radius: 0 0 6px 0;
+}
+
+/* ==========================================================================
+   数据胶囊条：动态 / 好友 / 在场天数
+   头像卡与功能入口之间的过渡带，浮起的珠光胶囊，圆润 Q 弹，
+   用大号衬线数字撑出视觉重量，避免"我的"页看起来空洞。
+========================================================================== */
+.pf-stat-strip{
+  display:flex; align-items:center; justify-content:center;
+  gap:0;
+  padding: 15px 10px;
+  margin: 4px 0 22px;
+  border-radius:26px;
+  background-image: linear-gradient(160deg, rgba(255,255,255,0.92) 0%, rgba(250,250,252,0.78) 50%, rgba(240,240,244,0.8) 100%);
+  box-shadow:
+    0 20px 40px -26px rgba(20,20,30,0.26),
+    0 1px 0 0 rgba(255,255,255,0.8) inset,
+    0 0 0 1px rgba(255,255,255,0.5) inset;
+}
+.pf-stat-pill{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:2px 6px;
+}
+.pf-stat-num{
+  font-family:'Playfair Display', serif;
+  font-size:21px;
+  font-weight:900;
+  color: var(--ink);
+  line-height:1;
+  letter-spacing:0.01em;
+}
+.pf-stat-label{
+  font-size:10px;
+  font-weight:500;
+  color: var(--grey-2);
+  letter-spacing:0.04em;
+}
+.pf-stat-sep{
+  width:1px; height:30px;
+  flex-shrink:0;
+  background: linear-gradient(180deg, transparent, rgba(20,20,26,0.12) 50%, transparent);
+}
+
+/* ==========================================================================
+   功能入口 · 非对称卡片矩阵（美化设置主推大卡 + 收藏/表情包双方卡）
+   放弃三行等高列表的菜单感：一枚横跨全宽的大卡在上，配衬线大字
+   与四色调色板可视化预览；下方两枚正方比例海报式方卡并排——
+   符号居中偏上，标题压在底部渐深遮罩上，图文比例更接近杂志排版
+   而非表单控件。全程黑白灰浅色系，靠比例、材质、留白制造层次。
+========================================================================== */
+.pf-entry-list{
+  display:flex; flex-direction:column; gap:14px;
+  margin-bottom:8px;
+}
+.pf-entry-list-head{
+  display:flex; align-items:center; gap:10px;
+  padding: 2px 4px 4px;
+  margin-bottom:2px;
+}
+.pf-entry-list-head-num{
+  font-family:'Playfair Display', serif;
+  font-size:13px;
+  font-weight:700;
+  color: var(--grey-3);
+}
+.pf-entry-list-head-col{
+  display:flex; flex-direction:column; gap:1px;
+}
+.pf-entry-list-head-cn{
+  font-size:12px;
+  font-weight:600;
+  color: var(--grey-1);
+  letter-spacing:0.02em;
+}
+.pf-entry-list-head-en{
+  font-family:'Space Mono', monospace;
+  font-size:7.5px;
+  letter-spacing:0.24em;
+  color: var(--grey-3);
+}
+
+/* ---- 主推大卡：美化设置 ---- */
+.pf-feature-card{
+  position:relative;
+  display:flex; flex-direction:column;
+  width:100%;
+  padding: 20px 22px 22px;
+  border:none;
+  border-radius:32px;
+  text-align:left;
+  cursor:pointer;
+  overflow:hidden;
+  -webkit-tap-highlight-color: transparent;
+  background-image:
+    radial-gradient(120% 140% at 8% -10%, rgba(255,255,255,0.95) 0%, transparent 55%),
+    linear-gradient(155deg, #f3f3f6 0%, #e7e7ec 55%, #dcdce2 100%);
+  box-shadow:
+    0 26px 46px -26px rgba(20,20,30,0.3),
+    0 16px 24px -20px rgba(20,20,30,0.18),
+    0 1.5px 0 0 rgba(255,255,255,0.85) inset,
+    0 0 0 1px rgba(255,255,255,0.5) inset;
+  transition: transform 0.5s cubic-bezier(.34,1.56,.64,1), box-shadow 0.5s cubic-bezier(.34,1.56,.64,1);
+}
+.pf-feature-card:active{
+  transform: scale(0.978) translateY(2px);
+  box-shadow:
+    0 10px 18px -16px rgba(20,20,30,0.3),
+    0 1.5px 0 0 rgba(255,255,255,0.7) inset,
+    0 0 0 1px rgba(255,255,255,0.5) inset;
+}
+.pf-feature-sheen{
+  position:absolute; left:-8%; right:-8%; top:0; height:52%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 100%);
+  pointer-events:none;
+}
+.pf-feature-top{
+  position:relative;
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:20px;
+}
+.pf-feature-eyebrow{
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  letter-spacing:0.2em;
+  color: var(--grey-2);
+}
+.pf-feature-arrow-wrap{
+  display:flex; align-items:center; justify-content:center;
+  width:32px; height:32px;
+  border-radius:50%;
+  background: rgba(255,255,255,0.75);
+  box-shadow: 0 6px 12px -8px rgba(20,20,30,0.22), 0 0 0 1px rgba(255,255,255,0.6) inset;
+  transition: transform 0.5s cubic-bezier(.34,1.56,.64,1);
+}
+.pf-feature-card:active .pf-feature-arrow-wrap{ transform: translateX(3px) scale(0.92); }
+.pf-feature-arrow{ color: var(--ink-soft); }
+.pf-feature-body{
+  position:relative;
+  display:flex; align-items:flex-end; justify-content:space-between;
+  gap:16px;
+}
+.pf-feature-title{
+  font-family:'Noto Serif KR', 'Playfair Display', serif;
+  font-size:26px;
+  font-weight:700;
+  color: var(--ink);
+  letter-spacing:-0.01em;
+  line-height:1.1;
+}
+/* 调色板预览：四枚錯落叠放的圆角色卡，直接可视化"美化设置"这个功能
+   本身，取代抽象符号图标——同时是整卡里最具"眼前一亮"记忆点的元素 */
+.pf-feature-swatches{
+  position:relative;
+  flex-shrink:0;
+  width:88px; height:52px;
+}
+.pf-swatch{
+  position:absolute;
+  bottom:0;
+  width:30px; height:44px;
+  border-radius:14px;
+  box-shadow: 0 10px 20px -10px rgba(20,20,30,0.35), 0 1px 0 0 rgba(255,255,255,0.4) inset;
+  transition: transform 0.5s cubic-bezier(.34,1.56,.64,1);
+}
+.pf-feature-card:active .pf-swatch{ transform: translateY(2px); }
+.pf-swatch-1{ left:0; height:36px; background: linear-gradient(160deg, #efeff2, #d7d7dd); z-index:1; }
+.pf-swatch-2{ left:16px; height:44px; background: linear-gradient(160deg, #b9b9c1, #8c8c95); z-index:2; }
+.pf-swatch-3{ left:36px; height:52px; background: linear-gradient(160deg, #4c4c55, #17171b); z-index:3; }
+.pf-swatch-4{ left:58px; height:38px; background: linear-gradient(160deg, #fdfdfe, #e9e9ee); z-index:1; box-shadow: 0 10px 20px -10px rgba(20,20,30,0.25), 0 0 0 1px rgba(20,20,30,0.06) inset; }
+
+/* ---- 双方卡行：我的收藏 / 表情包 ---- */
+.pf-tile-row{
+  display:flex; gap:14px;
+}
+.pf-tile{
+  position:relative;
+  flex:1;
+  aspect-ratio: 1 / 0.92;
+  display:flex; flex-direction:column; justify-content:flex-end;
+  padding: 16px;
+  border:none;
+  border-radius:28px;
+  cursor:pointer;
+  overflow:hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.5s cubic-bezier(.34,1.56,.64,1), box-shadow 0.5s cubic-bezier(.34,1.56,.64,1);
+}
+.pf-tile:active{ transform: scale(0.96) translateY(2px); }
+.pf-tile-sheen{
+  position:absolute; left:-10%; right:-10%; top:0; height:50%;
+  pointer-events:none;
+}
+.pf-tile-badge{
+  position:absolute; top:14px; right:14px;
+  font-family:'Space Mono', monospace;
+  font-size:10px; font-weight:700;
+  padding: 4px 9px;
+  border-radius:999px;
+}
+.pf-tile-mark{
+  position:relative;
+  margin-bottom:auto;
+  width:46px; height:46px;
+  display:flex; align-items:center; justify-content:center;
+}
+.pf-tile-foot{
+  position:relative;
+  display:flex; flex-direction:column; gap:2px;
+}
+.pf-tile-title{
+  font-family:'Noto Serif KR', 'Playfair Display', serif;
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:0.01em;
+}
+.pf-tile-sub{
+  font-family:'Space Mono', monospace;
+  font-size:8px;
+  letter-spacing:0.2em;
+}
+
+/* 卡一：我的收藏——墨色渐面，克制的暖白光晕从底部泛出，避免"纯黑色块"的突兀感 */
+.pf-tile-ink{
+  background-image:
+    radial-gradient(140% 100% at 100% 100%, rgba(255,255,255,0.14) 0%, transparent 60%),
+    linear-gradient(165deg, #47474f 0%, #232227 52%, #121114 100%);
+  box-shadow:
+    0 22px 40px -22px rgba(15,15,20,0.5),
+    0 1.5px 0 0 rgba(255,255,255,0.16) inset,
+    0 0 0 1px rgba(255,255,255,0.08) inset;
+}
+.pf-tile-ink .pf-tile-sheen{ background: linear-gradient(180deg, rgba(255,255,255,0.14), transparent); }
+.pf-tile-glow{
+  position:absolute; left:50%; bottom:-30%;
+  width:140%; height:80%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(255,255,255,0.16), transparent 68%);
+  pointer-events:none;
+}
+.pf-tile-ink .pf-tile-badge{ background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.9); box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset; }
+.pf-tile-ink .pf-tile-mark{ color: rgba(255,255,255,0.92); }
+.pf-tile-ink .pf-tile-title{ color: #fff; }
+.pf-tile-ink .pf-tile-sub{ color: rgba(255,255,255,0.42); }
+
+/* 卡二：表情包——珍珠白面，右上角三枚错落叠放的迷你贴纸预览 */
+.pf-tile-pearl{
+  background-image:
+    radial-gradient(120% 120% at 100% 0%, rgba(255,255,255,0.95), transparent 55%),
+    linear-gradient(160deg, #f5f5f7 0%, #e6e6eb 60%, #d9d9de 100%);
+  box-shadow:
+    0 22px 40px -24px rgba(20,20,30,0.24),
+    0 1.5px 0 0 rgba(255,255,255,0.85) inset,
+    0 0 0 1px rgba(255,255,255,0.5) inset;
+}
+.pf-tile-pearl .pf-tile-sheen{ background: linear-gradient(180deg, rgba(255,255,255,0.6), transparent); }
+.pf-tile-badge-dark{ background: rgba(255,255,255,0.7); color: var(--grey-1); box-shadow: 0 0 0 1px rgba(255,255,255,0.6) inset; }
+.pf-tile-mark-dark{ color: var(--ink-soft); }
+.pf-tile-title-dark{ color: var(--ink); }
+.pf-tile-sub-dark{ color: var(--grey-3); }
+.pf-tile-peek{
+  position:absolute; top:12px; right:14px;
+  width:34px; height:34px;
+  pointer-events:none;
+}
+.pfe-peek{
+  position:absolute;
+  width:14px; height:14px;
+  border-radius:5px;
+  background: linear-gradient(155deg, #fff, #e4e4e9);
+  box-shadow: 0 4px 8px -4px rgba(20,20,30,0.22), 0 0 0 1px rgba(255,255,255,0.7) inset;
+}
+.pfe-peek-1{ right:12px; top:0; transform: rotate(-10deg); z-index:1; }
+.pfe-peek-2{ right:2px; top:6px; transform: rotate(9deg); background: linear-gradient(155deg, #4c4c55, #17171b); z-index:2; }
+.pfe-peek-3{ right:8px; top:13px; transform: rotate(-5deg); background: linear-gradient(155deg, #eaeaee, #d0d0d6); z-index:0; }
+
+
+/* ==========================================================================
+   底部收尾徽记：填满卡片区到导航栏之间的留白
+   居中錾刻印章 + 两道渐隐刻度线，呼应资料页顶部星芒语言，
+   让"我的"页在滚动到底时仍有内容收束感，而非撞到一片死白。
+========================================================================== */
+.pf-foot-mark{
+  display:flex; align-items:center; justify-content:center;
+  gap:14px;
+  margin: 26px 0 4px;
+}
+.pf-foot-line{
+  width:44px; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(20,20,26,0.16), transparent);
+}
+.pf-foot-seal{
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px;
+  border-radius:50%;
+  color: var(--grey-3);
+  background: rgba(255,255,255,0.5);
+  box-shadow: 0 8px 16px -10px rgba(20,20,30,0.2), 0 0 0 1px rgba(255,255,255,0.5) inset;
+  animation: pfStarTwinkle 3.4s ease-in-out infinite;
+}
+
+/* ---- 签名编辑弹窗（复用 identity-modal 的浮层语言） ---- */
+.bio-modal{
+  position:absolute; inset:0;
+  z-index:60;
+  opacity:0; pointer-events:none;
+  transition: opacity 0.3s ease;
+}
+.bio-modal.open{ opacity:1; pointer-events:auto; }
+.bio-modal-scrim{
+  position:absolute; inset:0;
+  background: rgba(14,14,18,0.4);
+  backdrop-filter: blur(2px);
+}
+.bio-modal-sheet{
+  position:absolute; left:0; right:0; bottom:0;
+  padding: 10px 22px calc(24px + env(safe-area-inset-bottom));
+  border-radius:26px 26px 0 0;
+  background: var(--sheet);
+  box-shadow: 0 -20px 50px -20px rgba(20,20,30,0.35);
+  transform: translateY(100%);
+  transition: transform 0.42s cubic-bezier(.4,0,.2,1);
+}
+.bio-modal.open .bio-modal-sheet{ transform: translateY(0); }
+.bio-modal-textarea{
+  width:100%;
+  margin: 14px 0 16px;
+  padding: 14px 16px;
+  border-radius:16px;
+  border:1px solid var(--hair);
+  background: rgba(255,255,255,0.6);
+  font-family:'Inter', sans-serif;
+  font-size:13.5px;
+  color: var(--ink-soft);
+  resize:none;
+  line-height:1.6;
+}
+.bio-modal-textarea::placeholder{ color: var(--grey-3); }
+
+/* ==========================================================================
+   敬请期待 占位组件
+========================================================================== */
+.coming-block{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center;
+  padding: 40px 20px 30px;
+  border-radius:24px;
+  background: rgba(255,255,255,0.32);
+  border:1px solid var(--hair-soft);
+  position:relative;
+  overflow:hidden;
+}
+.coming-block-tall{ min-height: 46vh; }
+.coming-block::before{
+  content:'';
+  position:absolute; inset:-40%;
+  background: radial-gradient(ellipse 40% 30% at 30% 20%, rgba(255,255,255,0.7), transparent 60%);
+  animation: comingShimmer 12s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+@keyframes comingShimmer{
+  0%{ transform: translate(0,0); }
+  100%{ transform: translate(6%, 8%); }
+}
+
+.coming-mark{
+  position:relative;
+  width:64px; height:64px;
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:22px;
+}
+.coming-mark-sm{ width:48px; height:48px; margin-bottom:18px; }
+.coming-ring{
+  position:absolute; inset:0;
+  border-radius:50%;
+  border:1px solid rgba(20,20,26,0.18);
+  animation: comingRotate 14s linear infinite;
+}
+.coming-ring-2{
+  inset:12px;
+  border-color: rgba(20,20,26,0.1);
+  animation: comingRotate 10s linear infinite reverse;
+}
+@keyframes comingRotate{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+.coming-dot{
+  width:6px; height:6px;
+  border-radius:50%;
+  background: var(--ink);
+  animation: comingPulse 2.6s ease-in-out infinite;
+}
+@keyframes comingPulse{
+  0%,100%{ opacity:0.4; transform:scale(1); }
+  50%{ opacity:1; transform:scale(1.3); }
+}
+
+.coming-cn{
+  font-family:'Playfair Display', serif;
+  font-size:20px;
+  font-weight:700;
+  color: var(--ink);
+  letter-spacing:0.02em;
+  margin-bottom:8px;
+}
+.coming-en{
+  font-family:'Space Mono', monospace;
+  font-size:10px;
+  letter-spacing:0.36em;
+  color: var(--grey-2);
+  margin-bottom:14px;
+}
+.coming-desc{
+  font-size:12.5px;
+  color: var(--grey-1);
+  line-height:1.7;
+  max-width:220px;
+  letter-spacing:0.01em;
+}
+
+
+/* ==========================================================================
+   ★ 底部导航栏 · 「刻痕索引」Etched Index ★
+
+   彻底放弃一切"胶囊/浮块/黑色药丸"语言 —— 不再有任何悬浮矩形、
+   不再有整块纯黑背景，台面与内容区共用同一张纸，无缝无留白。
+
+   选中态的分量感完全靠"雕刻感"营造：纸面本身在选中项下方微微
+   凹陷（极浅内阴影，如同压印），图标线条由细转粗、由灰转墨，
+   下方浮出一枚极窄的墨色刻痕（非圆角矩形、非胶囊——两端为直角
+   切角的窄条），随手指切换做橡皮筋回弹平移。未选中项收作纯细线
+   灰稿，明度拉开，制造对比而非平均分布。
+========================================================================== */
+.tabbar{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  z-index:90;
+  padding: 0;
+  background:transparent;
+}
+
+.tab-dock-wrap{
+  position:relative;
+  width:100%;
+  height:100%;
+}
+
+/* 台面：与纸面同源渐变，仅顶缘一道发丝线分界，零留白零悬浮 */
+.tab-dock{
+  position:relative;
+  width:100%;
+  height: 100%;
+  display:flex;
+  align-items:stretch;
+  justify-content:stretch;
+  padding: 0 6px;
+  gap: 0;
+  background: linear-gradient(180deg, rgba(244,244,247,0.7) 0%, rgba(238,238,241,0.96) 100%);
+  border-top: 1px solid var(--hair-soft);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.tab-dock::before{ content:none; }
+
+/* 刻痕层：JS 实测目标 .tab-item 的像素位置写 left/width，
+   这里只负责刻痕本体的形态与回弹时机 */
+.tab-rail{
+  position:absolute;
+  top:0; bottom:0; left:0;
+  width: 0;
+  pointer-events:none;
+  z-index:1;
+  transition: left 0.5s cubic-bezier(.34,1.56,.64,1), width 0.5s cubic-bezier(.34,1.56,.64,1);
+  will-change: left;
+}
+
+/* 凹陷台面：极浅内阴影，模拟选中项下方被"压"出的一小片凹面，
+   不是色块，是同色系纸面上的明度差 */
+.rail-plinth{
+  display:block;
+  position:absolute;
+  left:8px; right:8px; top:0; bottom:0;
+  border-radius:2px;
+  background: linear-gradient(180deg, rgba(20,20,26,0.035) 0%, rgba(20,20,26,0.01) 45%, transparent 70%);
+  box-shadow: 0 1px 2px 0 rgba(20,20,28,0.05) inset;
+}
+
+/* 刻痕本体：窄条、直角切角（非圆角胶囊），墨黑到深灰渐变，
+   悬于台面之上极浅高度，靠自身明度对比而非"浮起"制造焦点 */
+.rail-chip{
+  position:absolute;
+  top:6px;
+  left:50%;
+  width:26px; height:3px;
+  margin-left:-13px;
+  border-radius:1.5px;
+  background: linear-gradient(90deg, var(--ink-soft), var(--ink));
+  box-shadow: 0 1px 3px -1px rgba(20,20,28,0.3);
+}
+.rail-chip::before{ content:none; }
+.rail-halo{ display:none; }
+
+/* 切换瞬间：刻痕先横向拉伸再收拢回弹，制造 Q 弹的"划过"质感 */
+.tab-rail.pulse .rail-chip{
+  animation: markSnap 0.5s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes markSnap{
+  0%{ transform: scaleX(0.4); opacity:0.4; }
+  45%{ transform: scaleX(1.35); opacity:1; }
+  70%{ transform: scaleX(0.9); }
+  100%{ transform: scaleX(1); }
+}
+
+.tab-item{
+  position:relative;
+  z-index:5;
+  height:100%;
+  flex: 1 1 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  color: var(--grey-3);
+  transition: color 0.32s ease;
+}
+
+.tab-glyph-wrap{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  width:22px; height:22px;
+  transform: translateY(0) scale(1);
+  transition: transform 0.42s cubic-bezier(.34,1.56,.64,1), color 0.3s ease;
+}
+.tab-glyph{ display:block; }
+.tab-glyph .glyph-stroke{ fill:none; opacity:0.9; stroke-width:1.15; transition: opacity 0.26s ease, stroke 0.3s ease; }
+.tab-glyph .glyph-fill{ opacity:0; transition: opacity 0.26s ease; }
+.tab-glyph .glyph-accent{ opacity:0; transition: opacity 0.22s ease 0.06s; }
+
+/* 选中态：图标本身从细弱灰线"长粗"为墨色实线，配合一次轻微
+   过冲缩放，与下方刻痕的回弹节奏同步 —— 没有背景块、没有位移拔起 */
+.tab-item.tab-active{ color: var(--ink); }
+.tab-item.tab-active .tab-glyph-wrap{ transform: scale(1.12); }
+.tab-item.tab-active .tab-glyph .glyph-stroke{ opacity:1; stroke: var(--ink); stroke-width:1.5; }
+.tab-item.tab-active .tab-glyph .glyph-fill{ opacity:0.1; fill: var(--ink); }
+.tab-item.tab-active .tab-glyph .glyph-accent{ opacity:0.9; stroke: var(--ink-soft); }
+
+.tab-caption{
+  font-family:-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', 'Inter', sans-serif;
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:0.14em;
+  white-space:nowrap;
+  color: var(--grey-3);
+  opacity:0.9;
+  transition: opacity 0.26s ease, color 0.3s ease;
+}
+.tab-item.tab-active .tab-caption{
+  opacity:1;
+  color: var(--ink);
+  font-weight:700;
+}
+
+.tab-item:actsive .tab-glyph-wrap{ transform: scale(0.86); }
+.tab-item.tab-active:active .tab-glyph-wrap{ transform: scale(1.02); }
+
+/* ==========================================================================
+   响应式
+========================================================================== */
+@media (max-height: 700px){
+  :root{ --tabbar-h: 58px; }
+  .ph-title{ font-size:29px; }
+  .photo-stack-wrap{ width:126px; height:168px; }
+  .quote-panel{ height:168px; }
+}
+@media (max-width: 340px){
+  .deco-panel{ gap:10px; }
+  .photo-stack-wrap{ width:124px; height:165px; margin-right:26px; }
+  .quote-panel{ width:88px; height:165px; }
+}
