@@ -9,6 +9,7 @@
   --tg-nav-h: 74px;
   --tg-nav-bottom: 18px;
   --tg-nav-pad: calc(var(--tg-nav-h) + var(--tg-nav-bottom) + 14px);
+  --tg-pvbar-h: calc(71px + env(safe-area-inset-bottom)); /* 帖子详情页悬浮输入栏（单行状态）的固定高度，输入栏与内容区末尾垫高块共用此值，避免二者算不齐 */
 
   --tg-ink:    #16161a;
   --tg-ink-2:  #2c2c33;
@@ -343,6 +344,11 @@ body {
   background: linear-gradient(160deg, #ffffff, #ececf0);
   box-shadow: var(--tg-shadow-s), inset 0 1px 0 rgba(255,255,255,0.95);
 }
+.tg-btn-ghost {
+  color: var(--tg-mist); background: transparent; box-shadow: none;
+  font-weight: 500; letter-spacing: 0.1em;
+}
+.tg-btn-ghost:active { background: rgba(22,22,30,0.045); }
 .tg-btn:active { transform: scale(0.965); }
 .tg-btn:disabled { opacity: 0.36; pointer-events: none; }
 .tg-btn-row { display: flex; gap: 10px; }
@@ -618,6 +624,51 @@ body {
 .tg-rec-side i { display: block; font-style: normal; font-family: var(--tg-mono); font-size: 8.5px; letter-spacing: 0.16em; color: var(--tg-mist-2); }
 .tg-rec-del { border: none; background: transparent; color: var(--tg-mist-2); cursor: pointer; padding: 6px; }
 .tg-rec-del svg { width: 14px; height: 14px; }
+
+/* ================================================================
+   我磕的圈 —— 资料页专属卡片（区别于通用 .tg-rec 列表）
+   黑白灰高级质感：序号水印 + 细分割线 + 悬浮头像 + 箭头呼吸
+================================================================ */
+.tg-mc-list { position: relative; margin-top: 12px; border-radius: 24px; overflow: hidden;
+  background: linear-gradient(165deg, rgba(255,255,255,0.97) 0%, rgba(244,244,248,0.9) 60%, rgba(234,234,240,0.94) 100%);
+  box-shadow: var(--tg-shadow-m), inset 0 1px 0 rgba(255,255,255,0.96); }
+
+.tg-mc-card { position: relative; display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; cursor: pointer; overflow: hidden;
+  transition: background .32s var(--tg-ease); }
+.tg-mc-card + .tg-mc-card { border-top: 1px solid var(--tg-line); }
+.tg-mc-card:active { background: rgba(22,22,30,0.035); }
+
+.tg-mc-idx { position: absolute; right: 10px; top: 50%; transform: translateY(-52%);
+  font-family: var(--tg-serif); font-style: italic; font-weight: 600; font-size: 46px;
+  color: rgba(22,22,30,0.045); letter-spacing: -0.02em; pointer-events: none; user-select: none; }
+
+.tg-mc-av { position: relative; width: 52px; height: 52px; flex: 0 0 52px; border-radius: 17px; overflow: hidden;
+  background: linear-gradient(158deg,#26262f,#4d4d5a); display: grid; place-items: center;
+  box-shadow: 0 12px 22px -12px rgba(20,20,28,0.55), inset 0 1px 0 rgba(255,255,255,0.22), 0 0 0 2.5px rgba(255,255,255,0.92); }
+.tg-mc-av img { width: 100%; height: 100%; object-fit: cover; }
+.tg-mc-av span { font-family: var(--tg-serif); color: #fff; font-size: 19px; }
+
+.tg-mc-main { min-width: 0; flex: 1; position: relative; z-index: 2; }
+.tg-mc-main b { display: block; font-family: var(--tg-serif); font-size: 14.5px; font-weight: 600; letter-spacing: 0.04em; color: var(--tg-ink); }
+.tg-mc-main p { margin-top: 4px; font-size: 10px; color: var(--tg-mist); letter-spacing: 0.08em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tg-mc-main-tags { display: flex; gap: 5px; margin-top: 7px; }
+.tg-mc-main-tags i { font-style: normal; font-family: var(--tg-mono); font-size: 8px; letter-spacing: 0.1em;
+  color: var(--tg-ink-3); padding: 3px 8px; border-radius: 7px;
+  background: rgba(22,22,30,0.05); box-shadow: inset 0 0 0 1px rgba(22,22,30,0.06); }
+
+.tg-mc-side { position: relative; z-index: 2; display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.tg-mc-date { text-align: right; font-family: var(--tg-mono); font-size: 8.5px; letter-spacing: 0.14em; color: var(--tg-mist-2); }
+.tg-mc-arrow { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 26px;
+  background: linear-gradient(158deg,#232329,#46464f); box-shadow: 0 8px 16px -8px rgba(20,20,28,0.6); }
+.tg-mc-arrow svg { width: 11px; height: 11px; color: #fff; transition: transform .32s var(--tg-spring); }
+.tg-mc-card:active .tg-mc-arrow svg { transform: translateX(2px); }
+
+.tg-mc-foot { display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 18px; border-top: 1px solid var(--tg-line);
+  font-family: var(--tg-mono); font-size: 8.5px; letter-spacing: 0.18em; color: var(--tg-mist-2); }
+.tg-mc-foot b { font-family: var(--tg-mono); color: var(--tg-ink-3); font-size: 9px; }
 
 .tg-empty { padding: 56px 20px; text-align: center; }
 .tg-empty-mark { width: 66px; height: 66px; margin: 0 auto; border-radius: 24px; display: grid; place-items: center;

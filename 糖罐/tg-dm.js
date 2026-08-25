@@ -1,18 +1,13 @@
 /* ================================================================
-   糖罐 TANGGUAN — tg-dm.js
-   私信：角色库同步 · 陌生人来信 · 高级感聊天页 · AI 回复
-   依赖：tg-core.js、tg-plaza.js（复用 tgChat / tgAskJSON / 图标）
+   糖罐 TANGGUAN — tg-dm.js  v2
+   私信：角色库同步 · 陌生人批量来信 · 高级感聊天页 · 不限条数 AI 回复
+   依赖：tg-core.js / tg-genre.js
 ================================================================ */
 
 let tgDM = {
-  convs: [],      // 会话（含角色会话与陌生人会话）
-  chars: [],      // 角色库公开信息
-  deep: {},       // 角色库全字段（只喂模型）
-  tab: 'all',
-  cur: null,      // 当前会话
-  msgs: [],
-  busy: false,
-  loaded: false
+  convs: [], chars: [], deep: {},
+  tab: 'all', cur: null, msgs: [],
+  busy: false, loaded: false
 };
 
 /* ================================================================
@@ -25,11 +20,10 @@ async function tgDMLoad() {
   if (!tgDM.loaded) { tgDM.deep = await tgLoadCharsDeep(); tgDM.loaded = true; }
   tgRenderDM();
 }
-
 function tgConvOfChar(uid) { return tgDM.convs.find(c => c.charUid === uid); }
 
 /* ================================================================
-   二、列表渲染
+   二、列表
 ================================================================ */
 function tgDMTab(t, btn) {
   tgDM.tab = t;
@@ -58,20 +52,22 @@ function tgRenderDM() {
   let rows = tgDM.tab === 'char' ? charRows : tgDM.tab === 'stranger' ? strRows : charRows.concat(strRows);
   rows.sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
+  const unread = strangers.reduce((a, c) => a + (c.unread || 0), 0);
   const head = `
     <div class="tg-seg" style="margin-bottom:14px">
       <button class="${tgDM.tab === 'all' ? 'on' : ''}" onclick="tgDMTab('all',this)">全部</button>
       <button class="${tgDM.tab === 'char' ? 'on' : ''}" onclick="tgDMTab('char',this)">角色</button>
-      <button class="${tgDM.tab === 'stranger' ? 'on' : ''}" onclick="tgDMTab('stranger',this)">陌生人</button>
+      <button class="${tgDM.tab === 'stranger' ? 'on' : ''}" onclick="tgDMTab('stranger',this)">陌生人 ${unread ? '· ' + unread : ''}</button>
     </div>
     <div class="tg-plaza-acts" style="margin:0 0 16px">
-      <button class="tg-btn tg-btn-dark tg-btn-sm" id="tgStrBtn" onclick="tgNewStranger()">随机一封陌生人私信</button>
+      <button class="tg-btn tg-btn-dark tg-btn-sm" id="tgStrBtn" ${tgDM.busy ? 'disabled' : ''} onclick="tgNewStranger()">${tgDM.busy ? '正在收信…' : '收一批陌生人私信'}</button>
+      <button class="tg-mini-btn" data-ico="shuffle" ${tgDM.busy ? 'disabled' : ''} onclick="tgStrangerSheet()"></button>
       <button class="tg-mini-btn" data-ico="refresh" onclick="tgDMLoad()"></button>
     </div>`;
 
   if (!rows.length) {
     box.innerHTML = head + `<div class="tg-empty"><div class="tg-empty-mark" data-ico="dm"></div>
-      <p>信箱是空的。<br>角色库里的人会自动出现在这里；<br>也可以让糖罐替你收一封陌生人的私信。</p></div>`;
+      <p>信箱是空的。<br>角色库里的人会自动出现在这里；<br>也可以让糖罐替你收一批陌生人的私信。</p></div>`;
     tgFillIcons(box); return;
   }
 
@@ -97,7 +93,7 @@ function tgFmtTime(ts) {
 }
 
 /* ================================================================
-   三、陌生人生成
+   三、陌生人：一次几封由随机决定，不锁死在某个数上
 ================================================================ */
 const TG_STRANGER_KINDS = [
   '同担（和你磕同一对，热情到有点吓人）',
@@ -107,63 +103,123 @@ const TG_STRANGER_KINDS = [
   '写手太太（想找你约稿或者互相看文，说话客气有分寸）',
   '产粮的画手（发来草图想听意见，忐忑）',
   '前圈老人（说着当年的事，带着一点唏嘘）',
-  '对家（阴阳怪气地来试探，克制但有刺）'
+  '对家（阴阳怪气地来试探，克制但有刺）',
+  '搞错人了的陌生人（发错了对象，但聊着聊着没走）',
+  '你三年前的同担（重新回坑，翻到了你的旧文）',
+  '做同人志的编辑（正式、有条理，带着约稿单）',
+  '半夜睡不着的路人（没什么目的，就是想找人说话）',
+  '拿你的文当过救命稻草的人（真诚到让人不好意思）',
+  '自称认识正主原型的人（真假难辨，说话吞吞吐吐）',
+  '想收你旧痛的收藏党（开口就问价）',
+  '被 CP 伤到弃坑的人（回来道别）'
 ];
 
-async function tgNewStranger() {
+/* 宽分布随机：不会永远停在同一个数量级上 */
+function tgStrangerCount() {
+  const r = Math.random();
+  if (r < 0.22) return tgRnd(1, 3);
+  if (r < 0.52) return tgRnd(3, 7);
+  if (r < 0.80) return tgRnd(6, 12);
+  if (r < 0.95) return tgRnd(10, 18);
+  return tgRnd(16, 26);
+}
+
+function tgStrangerSheet() {
+  tgSheetOpen(`<h4>这一次收几封</h4>
+    <p class="tg-sheet-sub">默认交给随机：可能只来一封，也可能一口气涌进来二十几封，不设固定范围。每个人的开场消息条数也各不相同。</p>
+    <div class="tg-chips" style="margin-top:14px">
+      <button class="tg-chip on" onclick="tgCloseSheet();tgNewStranger()">随机（推荐）</button>
+      ${[1, 3, 5, 10, 20].map(n => `<button class="tg-chip" onclick="tgCloseSheet();tgNewStranger(${n})">${n} 封</button>`).join('')}
+    </div>
+    <div style="height:16px"></div>
+    <div class="tg-rule"><b>他们是谁</b><p>糖罐会从十六种网友类型里随机抽人，并读取你已经建好的圈子资料，让对方知道你在磕什么。每个人都有独立的性格档案，之后的对话会一直沿用。</p></div>`);
+}
+
+async function tgNewStranger(fixed) {
   if (tgDM.busy) return;
   if (!tgHasApi()) { tgToast('请先在设置里配置模型接口'); return; }
   tgDM.busy = true;
-  const btn = document.getElementById('tgStrBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '正在收信…'; }
+  tgRenderDM();
 
+  const total = fixed || tgStrangerCount();
   const circles = await tgAll('circles');
-  const c = circles.length ? circles[Math.floor(Math.random() * circles.length)] : null;
-  const kind = TG_STRANGER_KINDS[Math.floor(Math.random() * TG_STRANGER_KINDS.length)];
   const me = (typeof tgMe !== 'undefined' && tgMe.name) ? tgMe.name : '你';
 
-  const sys = tgSysPrompt();
-  const user = [
-    '【任务】为一个中文同人社区生成一位来私信的陌生人，以及他发来的开场消息。',
-    c ? '【对方知道你磕的圈】\n' + tgCircleBrief(c, tgDM.deep) : '【收信人还没有公开的圈子，对方是因为广场上的动态找过来的】',
-    `【这个人的类型】${kind}`,
-    `【收信人昵称】${me}`,
-    '【要求】名字与用户名要像真实网友（可以有数字、缩写、生僻词，不要「用户A」）；开场消息 2 到 4 条，长短不一，像真人连发，第一条不要长篇大论；语气要贴合类型，不要客服腔，不要自我介绍式的完整段落。',
-    '',
-    '【必须严格遵循的 JSON 结构】',
-    '{"name":"昵称","handle":"英文或拼音ID","identity":"一句话身份，8字以内","bio":"个人简介，30字内","persona":"这个人的完整性格与说话方式描述，120到200字，供后续对话使用","opening":["第一条","第二条"]}',
-    '',
-    '现在直接输出 JSON。'
-  ].filter(Boolean).join('\n');
+  const btn = document.getElementById('tgStrBtn');
+  const setTip = t => { const b = document.getElementById('tgStrBtn'); if (b) b.textContent = t; };
+  setTip(`正在收信 0 / ${total}`);
 
-  try {
-    const j = await tgAskJSON(sys, user, { max: 1400 });
-    const conv = await tgPut('dms', {
-      kind: 'stranger',
-      name: j.name || '陌生人',
-      handle: j.handle || ('u' + Math.random().toString(36).slice(2, 7)),
-      identity: (j.identity || '陌生人').slice(0, 12),
-      bio: j.bio || '',
-      persona: j.persona || kind,
-      lastText: '', lastTs: Date.now(), unread: 0
-    });
-    let ops = Array.isArray(j.opening) ? j.opening.filter(x => typeof x === 'string' && x.trim()) : [];
-    if (!ops.length) ops = ['在吗', '冒昧打扰一下'];
-    for (let i = 0; i < ops.length; i++) {
-      await tgPut('msgs', { convId: conv.id, side: 'them', text: ops[i].trim(), ts: Date.now() + i, createdAt: Date.now() + i });
+  let got = 0;
+  /* 分批请求：每批 4 封，失败只影响这一批，不会全军覆没 */
+  const per = 4;
+  for (let s = 0; s < total; s += per) {
+    const n = Math.min(per, total - s);
+    const kinds = [];
+    while (kinds.length < n) {
+      const k = TG_STRANGER_KINDS[Math.floor(Math.random() * TG_STRANGER_KINDS.length)];
+      if (kinds.indexOf(k) < 0 || kinds.length >= TG_STRANGER_KINDS.length) kinds.push(k);
     }
-    conv.lastText = ops[ops.length - 1]; conv.lastTs = Date.now(); conv.unread = ops.length;
-    await tgPut('dms', conv);
-    await tgDMLoad();
-    tgToast('收到一封新的私信');
-    if (typeof tgAddSweet === 'function') tgAddSweet(4);
-  } catch (e) {
-    tgToast('这次没能收到信，稍后再试');
-  } finally {
-    tgDM.busy = false;
-    const b = document.getElementById('tgStrBtn');
-    if (b) { b.disabled = false; b.textContent = '随机一封陌生人私信'; }
+    const c = circles.length ? circles[Math.floor(Math.random() * circles.length)] : null;
+
+    const user = [
+      `【任务】为一个中文同人社区生成 ${n} 位来私信的陌生人，以及他们各自发来的开场消息。`,
+      c ? '【他们知道收信人在磕什么】\n' + tgCircleBrief(c, tgDM.deep) : '【收信人还没有公开的圈子，他们是因为广场上的动态找过来的】',
+      '【这一批人的类型，按顺序一一对应】\n' + kinds.map((k, i) => `${i + 1}. ${k}`).join('\n'),
+      `【收信人昵称】${me}`,
+      '',
+      '【要求】',
+      '· 名字与用户名要像真实网友：可以有数字、缩写、生僻词、拼错的英文，绝不能是「用户A」这类占位名。',
+      '· 每个人的开场消息条数由这个人的性格决定，不要都一样：话痨可能连发七八条，高冷的可能只发一句，紧张的可能发一条又补一条。至少一条，上不封顶。',
+      '· 第一条不要长篇大论，也不要自我介绍式的完整段落。要像真人在手机上打字。',
+      '· 每个人的语气必须明显不同，不能几个人一个腔调。',
+      '· persona 要写足 120 到 220 字，把说话习惯、口头禅、打字习惯（爱不爱用标点、会不会打错字）、对这个 CP 的态度都写清楚，之后的对话会一直沿用它。',
+      '· 禁止 emoji、颜文字、星号。',
+      '',
+      '【必须严格遵循的 JSON 结构】',
+      '{"people":[{"name":"昵称","handle":"英文或拼音ID","identity":"一句话身份，8字以内","bio":"个人简介，30字内","persona":"完整性格与说话方式","opening":["第一条","第二条"]}]}',
+      '',
+      '现在直接输出 JSON。'
+    ].filter(Boolean).join('\n');
+
+    let people = [];
+    try {
+      const j = await tgAskJSON(tgSysPrompt(), user, { max: 5000, rounds: 3 });
+      people = Array.isArray(j) ? j : (j.people || j.list || j.strangers || []);
+    } catch (e) { people = []; }
+
+    for (let i = 0; i < people.length && i < n; i++) {
+      const j = people[i] || {};
+      let ops = Array.isArray(j.opening) ? j.opening : (typeof j.opening === 'string' ? String(j.opening).split('\n') : []);
+      ops = ops.map(x => String(typeof x === 'string' ? x : (x && (x.text || x.content)) || '').trim()).filter(Boolean);
+      if (!ops.length) ops = ['在吗'];
+      const conv = await tgPut('dms', {
+        kind: 'stranger',
+        name: String(j.name || '陌生人').slice(0, 20),
+        handle: String(j.handle || ('u' + Math.random().toString(36).slice(2, 7))).slice(0, 20),
+        identity: String(j.identity || '陌生人').slice(0, 12),
+        bio: String(j.bio || '').slice(0, 60),
+        persona: String(j.persona || kinds[i] || '').slice(0, 900),
+        lastText: '', lastTs: Date.now(), unread: 0
+      });
+      const base = Date.now() - (total - got) * 1000;
+      for (let k = 0; k < ops.length; k++) {
+        await tgPut('msgs', { convId: conv.id, side: 'them', text: ops[k], ts: base + k * 60, createdAt: base + k * 60 });
+      }
+      conv.lastText = ops[ops.length - 1];
+      conv.lastTs = base + ops.length * 60;
+      conv.unread = ops.length;
+      await tgPut('dms', conv);
+      got++;
+      setTip(`正在收信 ${got} / ${total}`);
+    }
   }
+
+  tgDM.busy = false;
+  await tgDMLoad();
+  if (got) {
+    tgToast(`收到 ${got} 封新私信`);
+    if (typeof tgAddSweet === 'function') tgAddSweet(3 * got);
+  } else tgToast('这次一封都没收到，换个模型或稍后再试');
 }
 
 /* ================================================================
@@ -183,9 +239,7 @@ async function tgOpenChat(kind, uid) {
       });
       tgDM.convs.push(conv);
     }
-  } else {
-    conv = tgDM.convs.find(c => c.id === uid);
-  }
+  } else conv = tgDM.convs.find(c => c.id === uid);
   if (!conv) return;
   conv.unread = 0; await tgPut('dms', conv);
   tgDM.cur = conv;
@@ -193,7 +247,6 @@ async function tgOpenChat(kind, uid) {
   const all = await tgAll('msgs');
   tgDM.msgs = all.filter(m => m.convId === conv.id).sort((a, b) => (a.ts || a.createdAt) - (b.ts || b.createdAt));
 
-  // 角色首次进入：用 firstMes 起个头
   if (!tgDM.msgs.length && conv.kind === 'char') {
     const f = tgDM.deep[conv.charUid];
     const first = f && (f.firstMes || '').trim();
@@ -213,17 +266,16 @@ function tgPaintChat(jump) {
   const box = document.getElementById('tgChatBody');
   if (!box) return;
   const conv = tgDM.cur; if (!conv) return;
-  let last = 0;
-  const html = tgDM.msgs.map(m => {
+  let last = 0, prevSide = null;
+  const html = tgDM.msgs.map((m, i) => {
     const ts = m.ts || m.createdAt;
     let div = '';
-    if (ts - last > 1000 * 60 * 20) {
-      div = `<div class="tg-chat-time">${tgFmtChatTime(ts)}</div>`;
-      last = ts;
-    }
+    if (ts - last > 1000 * 60 * 20) { div = `<div class="tg-chat-time">${tgFmtChatTime(ts)}</div>`; last = ts; prevSide = null; }
     const me = m.side === 'me';
-    return div + `<div class="tg-b ${me ? 'me' : 'them'}">
-      ${me ? '' : `<div class="tg-b-av">${conv.avatar ? `<img src="${conv.avatar}">` : `<span>${tgEsc((conv.name || '·')[0])}</span>`}</div>`}
+    const cont = prevSide === m.side;
+    prevSide = m.side;
+    return div + `<div class="tg-b ${me ? 'me' : 'them'} ${cont ? 'cont' : ''}">
+      ${me ? '' : `<div class="tg-b-av">${cont ? '' : (conv.avatar ? `<img src="${conv.avatar}">` : `<span>${tgEsc((conv.name || '·')[0])}</span>`)}</div>`}
       <div class="tg-b-body"><div class="tg-b-bub">${tgEsc(m.text).replace(/\n/g, '<br>')}</div></div>
     </div>`;
   }).join('');
@@ -245,7 +297,6 @@ async function tgPushMsg(side, text) {
   await tgPut('dms', conv);
   tgPaintChat();
 }
-
 async function tgSendMsg() {
   const inp = document.getElementById('tgChatInput');
   const v = (inp.value || '').trim();
@@ -254,7 +305,6 @@ async function tgSendMsg() {
   await tgPushMsg('me', v);
   if (typeof tgAddSweet === 'function') tgAddSweet(1);
 }
-
 function tgChatPlus() {
   tgSheetOpen(`<h4>功能栏</h4>
     <p class="tg-sheet-sub">这一栏留给后续的玩法。当前版本先把对话本身做扎实。</p>
@@ -265,7 +315,7 @@ function tgChatPlus() {
 }
 
 /* ================================================================
-   五、AI 回复（只有点按钮才会调用）
+   五、AI 回复：条数不设上限
 ================================================================ */
 function tgPersonaOf(conv) {
   if (conv.kind === 'stranger') {
@@ -283,8 +333,7 @@ function tgPersonaOf(conv) {
   return [
     `你现在就是「${f.name || conv.name}」本人，正在用手机和对方私聊。`,
     put('人设', f.prompt || f.desc),
-    put('身份', f.role),
-    put('性别', f.gender), put('年龄', f.age), put('设定', f.species),
+    put('身份', f.role), put('性别', f.gender), put('年龄', f.age), put('设定', f.species),
     put('外貌', f.appearance), put('穿着', f.outfit),
     put('性格特质', (f.traits || []).join('、')),
     put('说话方式', f.speechStyle),
@@ -303,19 +352,18 @@ function tgPersonaOf(conv) {
 }
 
 function tgChatRules() {
-  const n = 2 + Math.floor(Math.random() * 5); // 2-6，本轮期望条数
   return [
     '【回复规则，必须全部遵守】',
-    `1. 这一轮你要连发 ${n} 条消息（长短不一，不要每条都一样长）。这是私聊，像真人一样把话拆开发。`,
-    '2. 每条都要短——大多数在 6 到 30 字之间，允许出现极短的一条（三五个字），最多一条稍长但不超过 60 字。',
+    '1. 这一轮你要连发几条消息，由你自己根据情绪和内容决定，不设上限也不设下限：可能只回一个字，也可能一口气刷十几条。绝不要每次都发一样多。',
+    '2. 每条的长短要有落差。大多数很短，允许出现只有两三个字的一条，也允许偶尔一条稍长。不要每条都一样长。',
     '3. 必须接住对方最后一句话，不要答非所问、不要另起话题、不要复述对方说过的内容。',
     '4. 严格保持人设：称呼、语气、用词、性格边界都要一致，绝不 OOC，绝不跳出角色，不提自己是 AI。',
     '5. 不写旁白、不写心理描写、不写场景描述，除非人设本来就爱用括号里的小动作（那也最多一处）。',
-    '6. 禁止使用任何 emoji、颜文字、星号、破折号排比等书面腔；禁止「有什么可以帮你」这类客服用语；禁止总结与说教。',
-    '7. 允许出现停顿感：没说完的半句、突然的追问、答非所问但符合性格的岔开——要有活人的毛边。',
+    '6. 禁止 emoji、颜文字、星号、书面腔排比；禁止「有什么可以帮你」这类客服用语；禁止总结与说教。',
+    '7. 要有活人的毛边：没说完的半句、突然的追问、发出去又改口、答非所问但符合性格的岔开。',
     '',
     '【输出格式】只输出一个 JSON 对象，第一个字符是 {，最后一个字符是 }，不要代码块、不要解释：',
-    '{"msgs":["第一条","第二条","第三条"]}'
+    '{"msgs":["第一条","第二条"]}'
   ].join('\n');
 }
 
@@ -334,37 +382,25 @@ async function tgAIReply() {
     <div class="tg-b-body"><div class="tg-b-bub typing"><i></i><i></i><i></i></div></div></div>`);
   box.scrollTop = box.scrollHeight + 999;
 
-  const hist = tgDM.msgs.slice(-24).map(m => `${m.side === 'me' ? '对方' : conv.name}：${m.text}`).join('\n');
+  const hist = tgDM.msgs.slice(-40).map(m => `${m.side === 'me' ? '对方' : conv.name}：${m.text}`).join('\n');
   const meName = (typeof tgMe !== 'undefined' && tgMe.name) ? tgMe.name : '对方';
 
-  const sys = [
-    tgPersonaOf(conv),
-    '',
-    `和你说话的人叫「${meName}」。`,
-    '',
-    tgChatRules()
-  ].join('\n');
-  const user = [
-    '【到目前为止的聊天记录】',
-    hist || '（还没有任何对话，由你先开口）',
-    '',
-    '现在轮到你回复。直接输出 JSON。'
-  ].join('\n');
+  const sys = [tgPersonaOf(conv), '', `和你说话的人叫「${meName}」。`, '', tgChatRules()].join('\n');
+  const user = ['【到目前为止的聊天记录】', hist || '（还没有任何对话，由你先开口）', '', '现在轮到你回复。直接输出 JSON。'].join('\n');
 
   let msgs = null;
   try {
-    const j = await tgAskJSON(sys, user, { max: 1200 });
+    const j = await tgAskJSON(sys, user, { max: 3000, rounds: 3 });
     if (Array.isArray(j)) msgs = j;
     else if (Array.isArray(j.msgs)) msgs = j.msgs;
     else if (Array.isArray(j.messages)) msgs = j.messages;
     else if (typeof j.text === 'string') msgs = [j.text];
   } catch (e) {
-    // 兜底：直接要一段自然文本，再自行切条
     try {
       const raw = await tgChat([
-        { role: 'system', content: sys.replace(/【输出格式】[\s\S]*$/, '直接用自然语言回复，每条消息独占一行，不要编号。') },
+        { role: 'system', content: sys.replace(/【输出格式】[\s\S]*$/, '直接用自然语言回复，每条消息独占一行，不要编号、不要引号。条数由你自己决定，不设上限。') },
         { role: 'user', content: user.replace('直接输出 JSON。', '直接回复。') }
-      ], { max: 900, temp: 0.9 });
+      ], { max: 2000, temp: 0.95 });
       msgs = String(raw).split('\n');
     } catch (e2) { msgs = null; }
   }
@@ -374,23 +410,20 @@ async function tgAIReply() {
   if (btn) btn.classList.remove('busy');
   tgDM.busy = false;
 
-  msgs = (msgs || []).map(x => String(typeof x === 'string' ? x : (x && (x.text || x.content) || '')))
+  msgs = (msgs || []).map(x => String(typeof x === 'string' ? x : ((x && (x.text || x.content)) || '')))
     .map(s => s.replace(/^\s*[-–—·•\d]+[.、)]?\s*/, '').replace(/^["「『]|["」』]$/g, '').trim())
     .filter(Boolean);
 
   if (!msgs.length) { tgToast('这次没有回复出来，再点一次试试'); return; }
-
-  // 只有一条时按语气切开，保证不是单条
-  if (msgs.length === 1) msgs = tgSplitLine(msgs[0]);
+  if (msgs.length === 1 && msgs[0].length > 26) msgs = tgSplitLine(msgs[0]);
 
   for (let i = 0; i < msgs.length; i++) {
-    await new Promise(r => setTimeout(r, i ? 380 + Math.random() * 620 : 120));
+    await new Promise(r => setTimeout(r, i ? 260 + Math.random() * 560 : 120));
     await tgPushMsg('them', msgs[i]);
   }
   if (typeof tgAddSweet === 'function') tgAddSweet(3);
 }
 
-/* 把一整段切成 2-4 条，长短随机，绝不只剩一条 */
 function tgSplitLine(s) {
   const str = String(s);
   const parts = [];
@@ -404,7 +437,7 @@ function tgSplitLine(s) {
     const mid = Math.max(4, Math.floor(s.length / 2));
     return [s.slice(0, mid), s.slice(mid)].filter(Boolean);
   }
-  const want = Math.min(parts.length, 2 + Math.floor(Math.random() * 3));
+  const want = Math.min(parts.length, 2 + Math.floor(Math.random() * 4));
   const out = [];
   const per = Math.ceil(parts.length / want);
   for (let i = 0; i < parts.length; i += per) out.push(parts.slice(i, i + per).join(''));
@@ -412,7 +445,7 @@ function tgSplitLine(s) {
 }
 
 /* ================================================================
-   六、入场钩子与输入框自适应
+   六、入场钩子
 ================================================================ */
 function tgOnEnterDM(id) {
   if (id === 'scr-dm') tgDMLoad();

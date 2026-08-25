@@ -81,7 +81,7 @@ const TG_TABS = [
   { id: 'scr-bifang',  ico: 'nib',    txt: '笔坊' },
   { id: 'scr-profile', ico: 'me',     txt: '我' }
 ];
-let tgStack = ['scr-bifang'];
+let tgStack = ['scr-plaza'];
 
 function tgCurrent() { return tgStack[tgStack.length - 1]; }
 
@@ -99,6 +99,9 @@ function tgShow(id, push) {
   // 配对席位固定托盘：只在 scr-pick 页显示，挂在外框上不随任何页面滚动
   const tray = document.getElementById('tgTray');
   if (tray) tray.classList.toggle('show', id === 'scr-pick');
+  // 帖子详情页的固定回复条，同样挂在外框上
+  const pvb = document.getElementById('tgPvBar');
+  if (pvb) pvb.classList.toggle('show', id === 'scr-postview');
   document.getElementById('tgFrame').classList.toggle('on-dark',
     id === 'scr-profile' && !!(typeof tgMe !== 'undefined' && tgMe.bgImg));
   // 重新触发浮现动画
@@ -146,6 +149,13 @@ function tgSyncNav(forceIdx) {
     if (['scr-pick','scr-ai','scr-airesult','scr-style','scr-name','scr-cover','scr-done','scr-archive'].includes(cur)) idx = 3;
     else if (cur === 'scr-chat') idx = 2;
     else if (cur === 'scr-level') idx = 4;
+    else if (cur === 'scr-circlehome') idx = 1;
+    else if (cur === 'scr-postview') {
+      // 详情页归属于把它打开的那一页
+      const prev = tgStack[tgStack.length - 2] || 'scr-plaza';
+      const pi = TG_TABS.findIndex(t => t.id === prev);
+      idx = pi >= 0 ? pi : (prev === 'scr-circlehome' ? 1 : 0);
+    }
     else idx = 0;
   }
   const tabs = document.querySelectorAll('.tg-tab');
@@ -303,7 +313,7 @@ function tgSheetOpen(html) {
   document.getElementById('tgSheetMask').classList.add('on');
 }
 function tgCloseSheet(e) {
-  if (e && e.target.closest('.tg-sheet')) return;
+  if (e && e.target !== e.currentTarget) return;
   document.getElementById('tgSheetMask').classList.remove('on');
 }
 function tgFmtDate(ts) {
@@ -435,8 +445,8 @@ document.addEventListener('DOMContentLoaded', () => {
   tgBuildNav();
   tgFillIcons(document);
   tgInitFileInput();
-  tgShow('scr-bifang', true);
-  requestAnimationFrame(() => tgSyncNav(3));
+  tgShow('scr-plaza', true);
+  requestAnimationFrame(() => tgSyncNav(0));
   window.addEventListener('resize', () => tgSyncNav());
   if (typeof tgInitBifang === 'function') tgInitBifang();
   if (typeof tgInitProfile === 'function') tgInitProfile();

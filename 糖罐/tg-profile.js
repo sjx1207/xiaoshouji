@@ -93,13 +93,24 @@ async function tgRenderProfile() {
   /* 我磕的圈 */
   const box = document.getElementById('tgMeCircles');
   box.innerHTML = circles.length
-    ? circles.slice(0, 6).map(r => `
-      <div class="tg-rec" onclick="tgOpenCircle('${r.id}')">
-        <div class="tg-rec-av">${r.avatar ? `<img src="${r.avatar}">` : `<span>${tgEsc((r.name || '?')[0])}</span>`}</div>
-        <div class="tg-rec-main"><b>${tgEsc(r.name)}</b><p>${tgEsc(r.pairA.name)} × ${tgEsc(r.pairB.name)}</p></div>
-        <div class="tg-rec-side"><i>${tgFmtDate(r.createdAt)}</i></div>
-      </div>`).join('')
+    ? `<div class="tg-mc-list">
+        ${circles.slice(0, 6).map((r, i) => `
+        <div class="tg-mc-card" onclick="tgOpenCircle('${r.id}')">
+          <i class="tg-mc-idx">${String(i + 1).padStart(2, '0')}</i>
+          <div class="tg-mc-av">${r.avatar ? `<img src="${r.avatar}">` : `<span>${tgEsc((r.name || '?')[0])}</span>`}</div>
+          <div class="tg-mc-main">
+            <b>${tgEsc(r.name)}</b>
+            <p>${tgEsc(r.pairA.name)} × ${tgEsc(r.pairB.name)}</p>
+          </div>
+          <div class="tg-mc-side">
+            <div class="tg-mc-date">${tgFmtDate(r.createdAt)}</div>
+            <div class="tg-mc-arrow" data-ico="go"></div>
+          </div>
+        </div>`).join('')}
+        <div class="tg-mc-foot"><span>共磕 ${circles.length} 圈</span><b>ARCHIVE</b></div>
+      </div>`
     : `<p class="tg-hint">还没有圈子。去笔坊建立第一个，甜蜜值 +120。</p>`;
+  tgFillIcons(box);
   window._tgArc = circles;
 }
 
