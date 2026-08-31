@@ -1705,6 +1705,7 @@ function openApp(name) {
     'yehuaguan':'yehuaguan.html',
     'companion':'companion.html',
     'relationlib':'dossier.html',
+    'gongduyu': '共读屿/gongduyu.html',
   }
 
   const url = routes[name];
