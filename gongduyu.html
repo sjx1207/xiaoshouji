@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>共读屿</title>
+<link rel="stylesheet" href="gd-core.css">
+<link rel="stylesheet" href="gd-main.css">
+</head>
+<body>
+
+<!-- ================= 视图 1 · 粮仓 ================= -->
+<div class="gd-view on" id="viewGranary">
+  <div class="gd-scroll" id="grScroll">
+
+    <div class="gr-head">
+      <div class="gr-brand">
+        <div>
+          <h1>粮仓</h1>
+          <div class="en">Granary &nbsp;·&nbsp; Gongduyu Archive</div>
+        </div>
+        <div class="gr-stamp">
+          <div class="v" id="grStampNum">0</div>
+          <div class="k">FILES</div>
+        </div>
+      </div>
+
+      <div class="gr-meta">
+        <div><div class="n" id="grWords">0</div><div class="l">总字数</div></div>
+        <div><div class="n" id="grTime">0m</div><div class="l">在屿时长</div></div>
+        <div><div class="n" id="grStreak">0</div><div class="l">连续到访</div></div>
+      </div>
+    </div>
+
+    <!-- 投递口：拖动或轻触，稿纸被吸入 → 进入投稿页 -->
+    <div class="slot-wrap">
+      <div class="slot" id="slot">
+        <div class="slot-card" id="slotCard">
+          <div class="clip"></div>
+          <div class="tt">投 稿 至 粮 仓</div>
+          <div class="sub">DROP YOUR FIC HERE</div>
+          <div class="ln"></div>
+          <div class="ln s"></div>
+        </div>
+        <div class="slot-mouth"></div>
+        <div class="slot-arrows"><i></i><i></i></div>
+        <div class="slot-hint">向上推入稿纸 &nbsp;/&nbsp; 或轻触</div>
+      </div>
+    </div>
+
+    <!-- 档案索引标签 -->
+    <div class="arc-tabs" id="arcTabs"></div>
+    <div class="arc-line"></div>
+
+    <!-- 篇目 -->
+    <div class="gr-list" id="grList"></div>
+  </div>
+</div>
+
+<!-- ================= 视图 2 · 我的 ================= -->
+<div class="gd-view" id="viewMe">
+  <div class="gd-scroll" id="meScroll">
+
+    <div class="me-hero" id="meHero">
+      <img id="meBanner" style="display:none">
+      <div class="grid"></div>
+      <div class="veil"></div>
+      <div class="isle">GONGDUYU · ID CARD</div>
+      <div class="cam" id="meBannerBtn">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+          <path d="M4 8h3l1.5-2h7L17 8h3v11H4z" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/>
+          <circle cx="12" cy="13" r="3.4" stroke="#fff" stroke-width="1.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="me-idcard">
+      <div class="me-avatar-row">
+        <div class="me-avatar" id="meAvatar"><div class="edge"></div></div>
+        <div style="flex:1;min-width:0;padding-bottom:4px;">
+          <div class="me-lvchip" id="meLvChip">LV.00</div>
+          <div class="me-name" id="meName">未署名的读者
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" style="opacity:.4">
+              <path d="M4 20h4L19 9l-4-4L4 16z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="me-handle" id="meHandle">@reader_00</div>
+        </div>
+      </div>
+
+      <div class="me-bio" id="meBio">在纸页的缝隙里靠岸。</div>
+      <div class="me-loc" id="meLoc">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none">
+          <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z" stroke="currentColor" stroke-width="1.4"/>
+          <circle cx="12" cy="10" r="2.4" stroke="currentColor" stroke-width="1.4"/>
+        </svg>
+        <span id="meLocText">共读屿 · 西岸灯塔</span>
+      </div>
+      <div class="me-links" id="meLinks"></div>
+    </div>
+
+    <div class="gd-sec-label"><span class="num">01</span><span class="txt">屿 上 记 录</span><span class="fill"></span></div>
+    <div class="me-stats" id="meStats"></div>
+
+    <div class="gd-sec-label"><span class="num">02</span><span class="txt">勋 章 与 屿 光</span><span class="fill"></span></div>
+    <div class="me-badge-box" id="meBadgeBox"></div>
+
+    <div class="gd-sec-label"><span class="num">03</span><span class="txt">近 期 阅 读</span><span class="fill"></span></div>
+    <div class="rec-list" id="meRecords"></div>
+    <div class="heat" id="meHeat"></div>
+    <div style="margin:8px 20px 0;font-family:var(--mono);font-size:8px;letter-spacing:.18em;color:var(--ink-5);">LAST 28 DAYS · 每格代表一天的阅读浓度</div>
+
+    <div class="gd-sec-label">
+      <span class="num">00</span><span class="txt">AI 接 口</span><span class="fill"></span>
+    </div>
+    <!-- 注意这里：把 class="me-idcard" 删掉或者换成普通的盒子样式，加上正常的外边距 margin-top -->
+    <div style="margin: 12px 20px 0; background: var(--card); border: 1px solid var(--line-2); box-shadow: var(--shadow-s); padding: 14px 16px; cursor: pointer; position: relative; z-index: 2;" id="apiSetEntry">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink-4);margin-bottom:6px;">CO-READING RELIES ON THIS</div>
+      <div style="font-size:13.5px;color:var(--ink-2);letter-spacing:.04em;">配置 AI 接口（Base URL / API Key / Model）→</div>
+    </div>
+
+    <div class="gd-sec-label"><span class="num">04</span><span class="txt">共 读</span><span class="fill"></span></div>
+    <div class="coread-entry" id="coreadEntry">
+      <div class="arc"></div><div class="arc2"></div>
+      <div class="k">CO-READING SESSION</div>
+      <div class="t" id="coreadTitle">邀请一个人，陪你读完这篇</div>
+      <div class="d" id="coreadDesc">同步角色档案 · 发出邀请 · 等待应答 —— 成功后 TA 会以悬浮球的形式停在你的屏幕上，一起计时，一起看完。</div>
+      <div class="live" id="coreadLive" style="display:none"><b></b><span>SESSION LIVE</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 底部双联标签 ================= -->
+<div class="gd-dock">
+  <div class="gd-dock-item on" data-view="granary">
+    <div class="idx">Ⅰ / GRANARY</div><div class="nm">粮仓</div><div class="bar"></div>
+  </div>
+  <div class="gd-dock-item" data-view="me">
+    <div class="idx">Ⅱ / PROFILE</div><div class="nm">我的</div><div class="bar"></div>
+  </div>
+</div>
+
+<!-- ================= 编辑资料弹层 ================= -->
+<div class="gd-mask" id="editMask">
+  <div class="gd-sheet">
+    <div class="gd-sheet-head">
+      <div class="t" id="editTitle">编辑</div>
+      <div class="gd-x" onclick="closeEdit()">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.7"/></svg>
+      </div>
+    </div>
+    <div class="gd-sheet-body" id="editBody"></div>
+  </div>
+</div>
+
+<!-- ================= 勋章全览 ================= -->
+<div class="gd-mask" id="badgeMask">
+  <div class="gd-sheet">
+    <div class="gd-sheet-head">
+      <div class="t">屿光勋章 · 三十级</div>
+      <div class="gd-x" onclick="document.getElementById('badgeMask').classList.remove('show')">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.7"/></svg>
+      </div>
+    </div>
+    <div class="gd-sheet-body">
+      <div id="badgeRule" style="font-size:11.5px;line-height:2;color:var(--ink-3);letter-spacing:.03em;
+        border:1px solid var(--line-2);background:var(--card);padding:14px;margin-bottom:16px;"></div>
+      <div class="badge-grid" id="badgeGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 篇目操作 ================= -->
+<div class="gd-mask" id="ficMask">
+  <div class="gd-sheet">
+    <div class="gd-sheet-head">
+      <div class="t" id="ficMaskTitle">篇目</div>
+      <div class="gd-x" onclick="document.getElementById('ficMask').classList.remove('show')">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.7"/></svg>
+      </div>
+    </div>
+    <div class="gd-sheet-body" id="ficMaskBody"></div>
+  </div>
+</div>
+
+<input type="file" id="hiddenImg" accept="image/*" style="display:none">
+
+<script src="gd-core.js"></script>
+<script src="gd-badges.js"></script>
+<script src="gd-fab.js"></script>
+<script src="gd-main.js"></script>
+</body>
+</html>
