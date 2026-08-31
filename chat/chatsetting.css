@@ -11,6 +11,92 @@
   --cst-line-strong: rgba(18,18,26,0.16);
 }
 
+/* ---- 全局兜底：[hidden] 属性与任何 .xxx{ display:flex/block/... } 类名
+   同属 (0,1,0) 优先级，作者样式表里写在后面的类名规则会盖过浏览器
+   内置的 [hidden]{display:none}，导致 JS 设了 element.hidden = true
+   却依然可见（本页此前已在多处逐一手动打过 [hidden] 补丁，说明这是
+   会反复复发的坑）。这里用 !important 一次性兜底本页所有元素，
+   之后新增任何自定义组件都不用再记得手动补一条 ---- */
+.cst-frame [hidden]{ display:none !important; }
+
+/* ---- 中文字体兜底：Google Fonts（Inter / PingFang SC 等）依赖联网加载，
+     一旦请求被拦截、超时或本机未安装 PingFang SC（常见于 Windows），
+     浏览器会退到系统默认 sans-serif，个别环境下这个默认字体不含中文
+     字形，导致中文文字渲染为空白（英文/图标不受影响，因此表现为
+     "只显示头像不显示文字"）。这里强制在本页所有文字上追加系统级
+     中文字体兜底，不依赖任何网络字体是否加载成功 ---- */
+.cst-frame, .cst-frame * {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Microsoft YaHei', 'Noto Sans SC', 'Noto Sans CJK SC', sans-serif;
+}
+
+/* ==========================================================================
+   状态栏灵动岛（同步 settings.css，样式随 luna_island_style 实时切换）
+========================================================================== */
+.status-island {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: 6px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+
+/* 基础胶囊 */
+.si-capsule {
+  background: #000;
+  border-radius: 24px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34,1.2,0.64,1);
+}
+
+/* 各样式尺寸 */
+.si-minimal  .si-capsule { width: 110px; height: 32px; }
+.si-glow     .si-capsule { width: 110px; height: 32px; box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); animation: siGlow 2s ease-in-out infinite; }
+.si-clock    .si-capsule { width: 130px; height: 32px; gap: 6px; padding: 0 10px; }
+.si-pulse    .si-capsule { width: 72px;  height: 32px; gap: 12px; }
+.si-ripple   .si-capsule { width: 110px; height: 32px; overflow: visible; }
+.si-rainbow  .si-capsule { width: 110px; height: 32px; }
+.si-music    .si-capsule { width: 110px; height: 32px; gap: 3px; padding: 0 12px; align-items: flex-end; padding-bottom: 5px; }
+.si-scan     .si-capsule { width: 110px; height: 32px; overflow: hidden; }
+
+@keyframes siGlow {
+  0%,100% { box-shadow: 0 0 10px 4px rgba(255,255,255,0.45); }
+  50%      { box-shadow: 0 0 4px 1px rgba(255,255,255,0.15); }
+}
+.si-clock-text {
+  font-size: 13px; font-weight: 600; color: #fff;
+  letter-spacing: -0.3px; font-family: -apple-system, sans-serif;
+  white-space: nowrap;
+}
+.si-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.9; }
+.si-dot-l { animation: siPulse 1.4s ease-in-out infinite; }
+.si-dot-r { animation: siPulse 1.4s ease-in-out 0.7s infinite; }
+@keyframes siPulse {
+  0%,100% { transform: scale(1); opacity: 0.9; }
+  50%      { transform: scale(0.4); opacity: 0.2; }
+}
+.si-ring { position: absolute; inset: -1px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.6); animation: siRipple 1.8s ease-out infinite; pointer-events: none; }
+@keyframes siRipple {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.si-rainbow .si-capsule { background: linear-gradient(90deg,#f43f5e,#f59e0b,#10b981,#3b82f6,#a78bfa,#f43f5e); background-size: 300% 100%; animation: siRainbow 2.5s linear infinite; }
+@keyframes siRainbow { 0% { background-position: 0% 0; } 100% { background-position: 300% 0; } }
+.si-bar { width: 3px; background: #fff; border-radius: 2px; opacity: 0.9; }
+.si-bar:nth-child(1) { animation: siBar 0.9s ease-in-out infinite; }
+.si-bar:nth-child(2) { animation: siBar 0.9s ease-in-out 0.15s infinite; }
+.si-bar:nth-child(3) { animation: siBar 0.9s ease-in-out 0.3s infinite; }
+.si-bar:nth-child(4) { animation: siBar 0.9s ease-in-out 0.45s infinite; }
+.si-bar:nth-child(5) { animation: siBar 0.9s ease-in-out 0.6s infinite; }
+@keyframes siBar {
+  0%,100% { height: 5px; }
+  50%      { height: 20px; }
+}
+.si-scanline { position: absolute; left: 0; right: 0; height: 1.5px; background: linear-gradient(90deg,transparent,rgba(255,255,255,0.9),transparent); animation: siScan 1.6s linear infinite; }
+@keyframes siScan { 0% { top: 0; } 100% { top: 100%; } }
+
 /* ==========================================================================
    顶栏：返回键 · 中央印玺题名（聊天设置 / CHAT SETTING + 副行显示范围）
 ========================================================================== */
@@ -98,6 +184,660 @@
   color: var(--grey-3);
   text-transform:uppercase;
   margin-left:2px;
+}
+
+/* ==========================================================================
+   羁绊印鉴：char × user 关联展示 —— 以一整枚「月白玉玺」为底座，象牙白到
+   云灰的多层渐变叠出真实进深，四角饰以极细回纹角标与顶部烫金细线，
+   摆脱「一片白底加几根发丝线」的单薄观感。双牌如阴阳合契般咬合排布，
+   中缝一枚浮雕骑缝印相扣，下方以「关系向语」单行文字明示方向
+   （谁 视 谁 为 什么），只呈现「关系性事实」（是谁 / 叫什么 / 什么关系 /
+   怎么称呼 / 如何相识），绝不渲染角色完整人设、背景故事或系统提示词。
+   全部文字均以可读对比度呈现，不再有低于 60% 不透明度的正文字号。
+   未绑定时：若已有身份卡 → 卡内直接选择完成绑定（不跳转）；
+             若尚无任何身份卡 → 引导前往创建。
+========================================================================== */
+.cst-bond-seal{
+  position:relative;
+  border-radius:28px;
+  padding:1.5px;
+  background: linear-gradient(150deg, #ffffff 0%, #e6e6ec 45%, #d3d3da 78%, #e9e9ee 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 36px 64px -28px rgba(18,18,26,0.24),
+    0 10px 22px -14px rgba(18,18,26,0.14),
+    0 0 0 1px rgba(18,18,26,0.07);
+  overflow:hidden;
+}
+.cst-bond-seal::before{
+  content:'';
+  position:absolute; inset:0;
+  background:
+    radial-gradient(130% 75% at 15% -5%, rgba(255,255,255,0.95), transparent 52%),
+    radial-gradient(100% 65% at 105% 105%, rgba(198,200,212,0.55), transparent 58%),
+    linear-gradient(180deg, #fdfdfe 0%, #f2f2f6 55%, #ececf1 100%);
+  pointer-events:none;
+}
+/* 顶部烫金细线：为整枚印玺提上一层「华丽」的仪式感边线 */
+.cst-bond-seal::after{
+  content:'';
+  position:absolute; top:0; left:14%; right:14%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(18,18,26,0.32) 20%, rgba(18,18,26,0.5) 50%, rgba(18,18,26,0.32) 80%, transparent);
+  pointer-events:none;
+}
+/* 四角回纹角标：替代纯直线边框，制造「印玺」而非「设置卡片」的质感 */
+.cst-bond-seal-corner{
+  position:absolute;
+  width:15px; height:15px;
+  pointer-events:none;
+  opacity:0.5;
+}
+.cst-bond-seal-corner svg{ width:100%; height:100%; display:block; color: rgba(18,18,26,0.5); }
+.cst-bond-seal-corner--tl{ top:10px; left:10px; }
+.cst-bond-seal-corner--tr{ top:10px; right:10px; transform: scaleX(-1); }
+.cst-bond-seal-corner--bl{ bottom:10px; left:10px; transform: scaleY(-1); }
+.cst-bond-seal-corner--br{ bottom:10px; right:10px; transform: scale(-1,-1); }
+
+.cst-bond-plates{
+  position:relative;
+  display:flex;
+  align-items:stretch;
+  padding:28px 8px 20px;
+}
+.cst-bond-plate{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center;
+  gap:10px;
+  min-width:0;
+  padding:0 10px;
+}
+.cst-bond-plate-tag{
+  display:flex; align-items:baseline; gap:6px;
+  margin-bottom:2px;
+  padding:3px 10px;
+  border-radius:8px;
+  background: rgba(18,18,26,0.05);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.06);
+}
+.cst-bond-plate-tag-cn{
+  font-size:10px; font-weight:800;
+  color: rgba(18,18,26,0.62);
+  letter-spacing:0.08em;
+}
+.cst-bond-plate-tag-en{
+  font-family:'Space Mono', monospace;
+  font-size:6.5px; letter-spacing:0.2em;
+  color: rgba(18,18,26,0.36);
+  text-transform:uppercase;
+}
+.cst-bond-avatar{
+  position:relative;
+  width:60px; height:60px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+  flex-shrink:0;
+}
+/* 双圈光晕：给头像加一圈外围光环，替代原先的贴边描边 */
+.cst-bond-avatar::before{
+  content:'';
+  position:absolute; inset:-6px;
+  border-radius:50%;
+  border:1px solid rgba(18,18,26,0.1);
+}
+.cst-bond-plate--char .cst-bond-avatar{
+  background: linear-gradient(160deg, #ffffff 0%, #f0f0f3 45%, #dcdce3 100%);
+  box-shadow:
+    0 0 0 1px rgba(18,18,26,0.12),
+    0 0 0 6px #ffffff,
+    0 0 0 7px rgba(18,18,26,0.06),
+    0 16px 30px -14px rgba(18,18,26,0.32);
+}
+.cst-bond-plate--user .cst-bond-avatar{
+  background: linear-gradient(160deg, #34343a 0%, #121215 100%);
+  box-shadow:
+    0 0 0 1px rgba(18,18,26,0.12),
+    0 0 0 6px #ffffff,
+    0 0 0 7px rgba(18,18,26,0.06),
+    0 16px 30px -14px rgba(18,18,26,0.4);
+}
+.cst-bond-avatar-img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+}
+.cst-bond-avatar-glyph{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:21px; font-weight:700;
+}
+.cst-bond-plate--char .cst-bond-avatar-glyph{ color:#2c2c30; }
+.cst-bond-plate--user .cst-bond-avatar-glyph{ color:#f4f4f6; }
+
+.cst-bond-name{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:15.5px; font-weight:700;
+  color: var(--ink);
+  max-width:100%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  letter-spacing:0.01em;
+}
+.cst-bond-role{
+  font-family:'Space Mono', monospace;
+  font-size:9px; letter-spacing:0.04em;
+  color: rgba(18,18,26,0.5);
+  max-width:100%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  min-height:12px;
+}
+
+/* ---- 骑缝印：两片牌之间的竖向双线锁扣，中央嵌一枚浮雕圆印，
+     双线replaces原先的单一发丝线，视觉厚度更接近真实印契 ---- */
+.cst-bond-hinge{
+  position:relative;
+  flex-shrink:0;
+  width:9px;
+  align-self:stretch;
+  margin: 6px 0;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.cst-bond-hinge::before,
+.cst-bond-hinge::after{
+  content:'';
+  width:1px; height:100%;
+  background-image: linear-gradient(180deg, transparent, rgba(18,18,26,0.16) 18%, rgba(18,18,26,0.16) 82%, transparent);
+}
+.cst-bond-hinge-ring{ display:none; }
+.cst-bond-hinge-seal{
+  position:absolute;
+  top:50%; left:50%;
+  transform: translate(-50%, -50%);
+  width:38px; height:38px;
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  color:#f6f6f8;
+  border-radius:50%;
+  background: linear-gradient(160deg, #45454c 0%, #121215 100%);
+  box-shadow:
+    0 0 0 5px #fdfdfe,
+    0 0 0 6.5px rgba(18,18,26,0.12),
+    0 1px 0 0 rgba(255,255,255,0.15) inset,
+    0 12px 24px -10px rgba(18,18,26,0.42);
+}
+
+/* ---- 关系向语：单行文言，明确「谁 视 谁 为 关系」，象牙纸卡承底，
+     两端姓名以细金线下划强调，关系值用深色印章徽标承载 ---- */
+.cst-bond-orient{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  flex-wrap:wrap;
+  gap:7px;
+  margin: 2px 16px 16px;
+  padding:12px 16px;
+  border-radius:16px;
+  background: linear-gradient(160deg, #ffffff 0%, #f5f5f8 100%);
+  box-shadow:
+    0 0 0 1px rgba(18,18,26,0.08),
+    0 1px 0 0 rgba(255,255,255,0.8) inset,
+    0 10px 20px -16px rgba(18,18,26,0.2);
+}
+.cst-bond-orient-from,
+.cst-bond-orient-to{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:12.5px; font-weight:800;
+  color: var(--ink);
+  max-width:88px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  padding-bottom:2px;
+  border-bottom:1.5px solid rgba(18,18,26,0.18);
+}
+.cst-bond-orient-arrow{ color: rgba(18,18,26,0.38); display:flex; flex-shrink:0; }
+.cst-bond-orient-mid{
+  font-size:11.5px; font-weight:600;
+  color: rgba(18,18,26,0.55);
+  flex-shrink:0;
+}
+.cst-bond-orient-value{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:12.5px; font-weight:700;
+  color:#f6f6f8;
+  padding:4px 12px;
+  border-radius:9px;
+  background: linear-gradient(160deg, #45454c, #121215);
+  box-shadow: 0 8px 16px -10px rgba(18,18,26,0.4);
+  letter-spacing:0.01em;
+  max-width:120px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-bond-orient-value.is-empty{
+  color: rgba(18,18,26,0.45);
+  font-family:'Space Mono', monospace;
+  font-size:9.5px; font-weight:600;
+  letter-spacing:0.05em;
+  background: rgba(18,18,26,0.06);
+  box-shadow:none;
+}
+
+/* ---- 关系事实：印于印玺下半幅，双层卡纸叠底 + 内嵌投影，
+     条目间分隔线加粗至可辨识、标签与取值均放大至更具分量的字号，
+     摆脱「设置表单行」的观感，向印谱题跋的排布靠拢 ---- */
+.cst-bond-facts{
+  position:relative;
+  display:flex; flex-direction:column;
+  margin:0 10px 14px;
+  border-radius:20px;
+  overflow:hidden;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f6f9 100%);
+  box-shadow:
+    0 0 0 1px rgba(18,18,26,0.08),
+    0 1px 0 0 rgba(255,255,255,0.8) inset,
+    0 14px 26px -20px rgba(18,18,26,0.22);
+}
+.cst-bond-fact{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px;
+  padding:16px 17px;
+}
+.cst-bond-fact + .cst-bond-fact{
+  border-top:1px solid rgba(18,18,26,0.09);
+}
+.cst-bond-fact-label{
+  flex-shrink:0;
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:13.5px; font-weight:700;
+  color: rgba(18,18,26,0.72);
+  letter-spacing:0.01em;
+}
+.cst-bond-fact-value{
+  font-size:14px; font-weight:700;
+  color: var(--ink);
+  text-align:right;
+  max-width:60%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-bond-fact-value.is-empty{
+  color: rgba(18,18,26,0.42);
+  font-weight:600;
+  font-family:'Space Mono', monospace;
+  font-size:10px;
+  letter-spacing:0.05em;
+}
+
+/* ---- 彼此称呼：双向对照排列，角色称 / 用户称 并排展示，
+     标签底纹提升对比度，不再是「几乎看不见的浅灰字」 ---- */
+.cst-bond-fact--pair{ align-items:flex-start; }
+.cst-bond-fact-pair-values{
+  display:flex; flex-direction:column; align-items:flex-end;
+  gap:9px;
+}
+.cst-bond-fact-pair-item{
+  display:flex; align-items:center; gap:8px;
+}
+.cst-bond-fact-pair-tag{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; font-weight:700; letter-spacing:0.05em;
+  color: rgba(18,18,26,0.62);
+  padding:3px 7px;
+  border-radius:6px;
+  background: rgba(18,18,26,0.07);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.05);
+}
+
+/* ---- 可编辑关系事实：整行/整项即为可点击的按钮，末尾常驻一支
+     墨笔图标提示「可编辑」，点按时行内轻微凸起而非仅变灰 ---- */
+button.cst-bond-fact,
+button.cst-bond-fact-pair-item{
+  border:none;
+  background:transparent;
+  font-family:inherit;
+  text-align:left;
+  cursor:pointer;
+  width:100%;
+  transition: background 0.18s ease;
+}
+button.cst-bond-fact-pair-item{ width:auto; }
+.cst-bond-editable:active{ background: rgba(18,18,26,0.045); }
+.cst-bond-fact-value-wrap{
+  display:flex; align-items:center; gap:8px;
+  max-width:62%;
+  justify-content:flex-end;
+}
+.cst-bond-fact-value-wrap .cst-bond-fact-value{ max-width:100%; }
+.cst-bond-edit-pen{
+  flex-shrink:0;
+  width:13px; height:13px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color: rgba(18,18,26,0.4);
+  background: rgba(18,18,26,0.05);
+  padding:5px;
+  box-sizing:content-box;
+}
+.cst-bond-edit-pen svg{ width:100%; height:100%; display:block; }
+.cst-bond-fact-pair-item .cst-bond-edit-pen{ margin-left:-2px; }
+
+/* ---- 关系事实 · 内嵌编辑面板：卡内浮层，象牙纸底承载一枚小型
+     题跋式编辑卡——大号衬线标题 + 圆形印记徽标 + 温润输入区，
+     刻意与「普通设置表单」拉开距离，避免过于正式呆板的观感 ---- */
+.cst-bond-editor{
+  display:none;
+  flex-direction:column;
+  gap:16px;
+  margin:0 10px 20px;
+  padding:20px 18px 20px;
+  border-radius:22px;
+  position:relative;
+  background: linear-gradient(165deg, #ffffff 0%, #f7f7fa 55%, #efeff3 100%);
+  box-shadow:
+    0 0 0 1px rgba(18,18,26,0.1),
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 26px 48px -24px rgba(18,18,26,0.32);
+  overflow:hidden;
+}
+/* 顶部烫金细线，与整枚印玺的题头语汇呼应，避免编辑面板像一张脱离主题的表单 */
+.cst-bond-editor::before{
+  content:'';
+  position:absolute; top:0; left:12%; right:12%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(18,18,26,0.3) 25%, rgba(18,18,26,0.46) 50%, rgba(18,18,26,0.3) 75%, transparent);
+}
+.cst-bond-seal.is-editing .cst-bond-editor{ display:flex; }
+.cst-bond-seal.is-editing .cst-bond-facts{ display:none; }
+
+.cst-bond-editor-head{
+  display:flex; align-items:center; gap:12px;
+}
+.cst-bond-editor-seal{
+  flex-shrink:0;
+  width:34px; height:34px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color:#f6f6f8;
+  background: linear-gradient(160deg, #45454c 0%, #121215 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.15) inset, 0 10px 20px -10px rgba(18,18,26,0.4);
+}
+.cst-bond-editor-headtext{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.cst-bond-editor-title{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:17px; font-weight:800;
+  color: var(--ink);
+  letter-spacing:0.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-bond-editor-eyebrow{
+  font-family:'Space Mono', monospace;
+  font-size:7.5px; letter-spacing:0.2em;
+  color: rgba(18,18,26,0.36);
+  text-transform:uppercase;
+}
+.cst-bond-editor-close{
+  flex-shrink:0;
+  width:28px; height:28px;
+  display:flex; align-items:center; justify-content:center;
+  border:none; border-radius:50%;
+  background: rgba(18,18,26,0.06);
+  color: rgba(18,18,26,0.55);
+  cursor:pointer;
+}
+.cst-bond-editor-close:active{ background: rgba(18,18,26,0.13); }
+
+.cst-bond-editor-hint{
+  font-size:12px; line-height:1.6; letter-spacing:0.01em;
+  color: rgba(18,18,26,0.56);
+  padding:11px 13px;
+  border-radius:13px;
+  background: rgba(18,18,26,0.035);
+}
+
+.cst-bond-editor-input{
+  width:100%;
+  border:none;
+  border-radius:15px;
+  padding:15px 16px;
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:15px; font-weight:700;
+  color: var(--ink);
+  background:#ffffff;
+  box-shadow: 0 0 0 1.5px rgba(18,18,26,0.14), 0 10px 20px -16px rgba(18,18,26,0.15);
+  outline:none;
+  transition: box-shadow 0.18s ease;
+}
+.cst-bond-editor-input:focus{ box-shadow: 0 0 0 2px rgba(18,18,26,0.5), 0 10px 20px -14px rgba(18,18,26,0.25); }
+.cst-bond-editor-input::placeholder{ color: rgba(18,18,26,0.3); font-weight:600; font-family:inherit; }
+
+.cst-bond-editor-text{ display:none; }
+.cst-bond-editor-tags{ display:none; flex-direction:column; gap:12px; }
+.cst-bond-seal[data-bond-edit-kind="text"] .cst-bond-editor-text{ display:block; }
+.cst-bond-seal[data-bond-edit-kind="tags"] .cst-bond-editor-tags{ display:flex; }
+
+.cst-bond-editor-chiplist{
+  display:flex; flex-wrap:wrap; gap:9px;
+  min-height:30px;
+}
+.cst-bond-editor-chip{
+  display:flex; align-items:center; gap:7px;
+  padding:7px 9px 7px 13px;
+  border-radius:11px;
+  background: linear-gradient(160deg,#45454c,#121215);
+  color:#f6f6f8;
+  font-size:12px; font-weight:700;
+  box-shadow: 0 8px 16px -10px rgba(18,18,26,0.4);
+}
+.cst-bond-editor-chip-remove{
+  display:flex; align-items:center; justify-content:center;
+  width:16px; height:16px;
+  border:none; border-radius:50%;
+  background: rgba(255,255,255,0.2);
+  color:#f6f6f8;
+  cursor:pointer;
+  padding:0;
+}
+.cst-bond-editor-chip-remove svg{ width:8px; height:8px; display:block; }
+.cst-bond-editor-chipadd{
+  display:flex; align-items:center; gap:9px;
+}
+.cst-bond-editor-chipadd .cst-bond-editor-input{
+  flex:1;
+  font-family:inherit;
+  font-size:13px; font-weight:600;
+  padding:13px 15px;
+}
+.cst-bond-editor-chipadd-btn{
+  flex-shrink:0;
+  padding:13px 16px;
+  border:none; border-radius:13px;
+  font-family:inherit;
+  font-size:12.5px; font-weight:700;
+  color: rgba(18,18,26,0.72);
+  background: rgba(18,18,26,0.08);
+  cursor:pointer;
+}
+.cst-bond-editor-chipadd-btn:active{ background: rgba(18,18,26,0.15); }
+
+.cst-bond-editor-actions{
+  display:flex; gap:10px;
+}
+.cst-bond-editor-cancel,
+.cst-bond-editor-save{
+  flex:1;
+  padding:14px;
+  border:none; border-radius:15px;
+  font-family:inherit;
+  font-size:13.5px; font-weight:700;
+  cursor:pointer;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1);
+}
+.cst-bond-editor-cancel{
+  color: rgba(18,18,26,0.58);
+  background: rgba(18,18,26,0.06);
+}
+.cst-bond-editor-save{
+  color:#f6f6f8;
+  background: linear-gradient(160deg,#45454c,#121215);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.15) inset, 0 16px 30px -16px rgba(18,18,26,0.55);
+}
+.cst-bond-editor-cancel:active,
+.cst-bond-editor-save:active{ transform: scale(0.96); }
+.cst-bond-editor-save[disabled]{ opacity:0.5; pointer-events:none; }
+
+/* ---- 未绑定态 A：已有身份卡可选 —— 印玺内直接选择完成绑定 ---- */
+.cst-bond-picker{
+  display:none;
+  flex-direction:column;
+  gap:12px;
+  margin:0 10px 20px;
+  /* 修复：同 .cst-bond-empty，防止 display:none → flex 动态切换
+     触发的渲染缺陷导致列表内容不可见 ---- */
+  transform: translateZ(0);
+}
+.cst-bond-seal.is-picking .cst-bond-picker{ display:flex; }
+.cst-bond-seal.is-picking .cst-bond-facts,
+.cst-bond-seal.is-picking .cst-bond-orient{ display:none; }
+.cst-bond-picker-head{
+  display:flex; align-items:center; gap:10px;
+  padding:2px 2px 2px 0;
+}
+.cst-bond-picker-seal{
+  flex-shrink:0;
+  width:30px; height:30px;
+  display:flex; align-items:center; justify-content:center;
+  color: rgba(18,18,26,0.65);
+  border-radius:50%;
+  background: linear-gradient(160deg, #ffffff, #eeeef2);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.1), 0 6px 14px -8px rgba(18,18,26,0.25);
+}
+.cst-bond-picker-text{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.cst-bond-picker-cn{ font-size:13px; font-weight:800; color: var(--ink); letter-spacing:0.01em; }
+.cst-bond-picker-en{ font-family:'Space Mono', monospace; font-size:7px; letter-spacing:0.18em; color: rgba(18,18,26,0.4); }
+
+.cst-bond-picker-list{
+  display:flex; flex-direction:column; gap:9px;
+  max-height:216px;
+  overflow-y:auto;
+}
+.cst-bond-picker-list::-webkit-scrollbar{ display:none; }
+.cst-bond-picker-row{
+  display:flex; align-items:center; gap:11px;
+  padding:11px 13px;
+  border-radius:15px;
+  cursor:pointer;
+  background: linear-gradient(160deg, #ffffff, #f5f5f8);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.09), 0 8px 18px -14px rgba(18,18,26,0.2);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), background 0.2s ease, box-shadow 0.2s ease;
+}
+.cst-bond-picker-row:active{ transform: scale(0.98); }
+.cst-bond-picker-row.is-selecting{ opacity:0.5; pointer-events:none; }
+.cst-bond-picker-row-avatar{
+  position:relative;
+  flex-shrink:0;
+  width:36px; height:36px;
+  border-radius:50%;
+  overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(160deg, #34343a, #121215);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.12), 0 0 0 3px #ffffff;
+}
+.cst-bond-picker-row-avatar img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.cst-bond-picker-row-avatar span{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:13.5px; font-weight:700; color:#f4f4f6;
+}
+.cst-bond-picker-row-info{ display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+.cst-bond-picker-row-name{
+  font-size:13px; font-weight:700; color: var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-bond-picker-row-role{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; letter-spacing:0.04em;
+  color: rgba(18,18,26,0.48);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-bond-picker-row-primary{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:7px; font-weight:700; letter-spacing:0.1em;
+  color:#f6f6f8;
+  padding:3px 8px;
+  border-radius:8px;
+  background: linear-gradient(160deg,#45454c,#121215);
+}
+.cst-bond-picker-row-arrow{ flex-shrink:0; color: rgba(18,18,26,0.4); display:flex; }
+
+.cst-bond-picker-new{
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  padding:12px;
+  border:1.5px dashed rgba(18,18,26,0.24);
+  border-radius:15px;
+  background: rgba(18,18,26,0.02);
+  color: rgba(18,18,26,0.6);
+  font-family:inherit;
+  font-size:12px; font-weight:700;
+  cursor:pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.cst-bond-picker-new:active{ background: rgba(18,18,26,0.06); }
+
+/* ---- 未绑定态 B：账下尚无任何身份卡 —— 引导前往创建，
+     图标改为浮雕徽章，按钮加金属光泽，避免「空空如也」的寒酸感 ---- */
+.cst-bond-empty{
+  display:none;
+  flex-direction:column; align-items:center;
+  gap:10px;
+  padding:10px 24px 28px;
+  text-align:center;
+  /* 修复：部分 Chromium 内核在「父级 overflow:hidden + 子级由 JS
+     动态从 display:none 切到 display:flex」的组合下，存在合成层
+     脏标记未及时刷新的渲染缺陷，表现为内容在 DOM / computed style
+     层面完全正常，却不会被绘制到屏幕上（只有头像等 SVG 图标可见，
+     文字整体消失）。显式提升为独立合成层可强制触发一次正确重绘，
+     不改变任何布局效果，纯粹是渲染层面的兜底 ---- */
+  transform: translateZ(0);
+}
+.cst-bond-seal.is-empty-vault .cst-bond-empty{ display:flex; }
+.cst-bond-seal.is-empty-vault .cst-bond-facts,
+.cst-bond-seal.is-empty-vault .cst-bond-orient,
+.cst-bond-seal.is-empty-vault .cst-bond-picker{ display:none; }
+.cst-bond-empty-seal{
+  width:46px; height:46px;
+  display:flex; align-items:center; justify-content:center;
+  color: rgba(18,18,26,0.55);
+  border-radius:50%;
+  background: linear-gradient(160deg, #ffffff, #ececf0);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.1), 0 10px 20px -12px rgba(18,18,26,0.28);
+}
+.cst-bond-empty-cn{ font-size:13px; font-weight:800; color: var(--ink); letter-spacing:0.01em; }
+.cst-bond-empty-en{ font-family:'Space Mono', monospace; font-size:7.5px; letter-spacing:0.2em; color: rgba(18,18,26,0.4); }
+.cst-bond-empty-btn{
+  display:flex; align-items:center; gap:5px;
+  margin-top:8px;
+  padding:11px 20px;
+  border:none; border-radius:13px;
+  font-family:inherit;
+  font-size:12px; font-weight:700;
+  color:#f6f6f8;
+  cursor:pointer;
+  background: linear-gradient(160deg,#45454c,#121215);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.15) inset, 0 16px 30px -16px rgba(18,18,26,0.55);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1);
+}
+.cst-bond-empty-btn:active{ transform: scale(0.95); }
+
+/* ---- 底部注记：字号与对比度同步提升，保持克制但不再形同虚设 ---- */
+.cst-bond-note{
+  display:flex; align-items:flex-start; gap:7px;
+  margin: 12px 4px 0;
+}
+.cst-bond-note-dot{
+  flex-shrink:0;
+  width:4px; height:4px;
+  margin-top:6px;
+  border-radius:50%;
+  background: rgba(18,18,26,0.4);
+}
+.cst-bond-note span:last-child{
+  font-family:'Space Mono', monospace;
+  font-size:9px; line-height:1.65; letter-spacing:0.01em;
+  color: rgba(18,18,26,0.48);
 }
 
 /* ==========================================================================
@@ -410,6 +1150,1245 @@
 .cst-dim-slider::-moz-range-progress{ height:3px; border-radius:2px; background: rgba(18,18,26,0.5); }
 
 /* ==========================================================================
+   感知设置 · 三合感应仪 —— 时间 / 地区 / 天气三枚感应卡，沿用印玺纸面
+   语汇：象牙白到云灰的多层渐变、顶部烫金细线、圆印徽标；每卡内以
+   「真实 / 虚拟」双键切换出两套完全不同的呈现——真实态是一块跳动的
+   「读数牌」，虚拟态要么是一枚可编辑的输入牌（地区），要么是一张
+   如实标注「暂不支持」的素纸（时间 / 天气），绝不做视觉上以假乱真
+   的伪开关。
+========================================================================== */
+.cst-perc-lede{
+  font-family:'Space Mono', monospace;
+  font-size:9px; line-height:1.7; letter-spacing:0.02em;
+  color: #4a4a50;
+  padding: 0 4px;
+  margin-bottom: 16px;
+}
+
+.cst-perc-card{
+  position:relative;
+  border-radius:22px;
+  padding: 16px 16px 17px;
+  margin-bottom: 14px;
+  background:
+    radial-gradient(120% 70% at 12% -10%, rgba(255,255,255,0.95), transparent 55%),
+    linear-gradient(180deg, #fdfdfe 0%, #f4f4f7 55%, #ececf1 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 22px 40px -26px rgba(18,18,26,0.22),
+    0 6px 14px -10px rgba(18,18,26,0.12),
+    0 0 0 1px rgba(18,18,26,0.07);
+  overflow:hidden;
+}
+/* 顶部烫金细线，与羁绊印鉴同源的仪式感边线 */
+.cst-perc-card::after{
+  content:'';
+  position:absolute; top:0; left:12%; right:12%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(18,18,26,0.28) 22%, rgba(18,18,26,0.46) 50%, rgba(18,18,26,0.28) 78%, transparent);
+  pointer-events:none;
+}
+
+.cst-perc-card-head{
+  display:flex; align-items:center; gap:11px;
+  margin-bottom:14px;
+}
+.cst-perc-card-icon{
+  flex-shrink:0;
+  width:34px; height:34px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink-soft);
+  background: linear-gradient(160deg, #ffffff 0%, #eeeef2 55%, #dedee4 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 10px 18px -10px rgba(18,18,26,0.32),
+    0 0 0 1px rgba(18,18,26,0.06);
+}
+.cst-perc-card-headtext{
+  flex:1;
+  display:flex; flex-direction:column; gap:1px;
+  min-width:0;
+}
+.cst-perc-card-title{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:14.5px; font-weight:700;
+  color: var(--ink);
+  letter-spacing:0.02em;
+}
+.cst-perc-card-en{
+  font-family:'Space Mono', monospace;
+  font-size:7px; letter-spacing:0.2em;
+  color: var(--grey-3);
+  text-transform:uppercase;
+}
+.cst-perc-card-badge{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; font-weight:700; letter-spacing:0.08em;
+  padding: 4px 10px;
+  border-radius:8px;
+  color: rgba(18,18,26,0.55);
+  background: rgba(18,18,26,0.05);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.07);
+  transition: color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
+}
+.cst-perc-card-badge.is-virtual{
+  color:#f4f4f6;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 0 0 1px var(--crm-lacquer-rim);
+}
+
+/* ---- user / char 双轨切换：地区感知卡顶部的轨道选择 ---- */
+.cst-perc-track-tabs{
+  display:flex; gap:8px;
+  margin-bottom:12px;
+}
+.cst-perc-track-tab{
+  flex:1;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  padding: 9px 8px;
+  border:none; border-radius:12px;
+  cursor:pointer;
+  font-family:inherit;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease, background 0.22s ease;
+}
+.cst-perc-track-tab:active{ transform: scale(0.96); }
+.cst-perc-track-cn{ font-size:11.5px; font-weight:700; color: var(--grey-2); letter-spacing:0.02em; }
+.cst-perc-track-en{ font-family:'Space Mono', monospace; font-size:6.5px; letter-spacing:0.16em; color: var(--grey-3); }
+.cst-perc-track-badge{
+  font-family:'Space Mono', monospace;
+  font-size:7.5px; font-weight:700; letter-spacing:0.06em;
+  padding: 2px 6px;
+  border-radius:6px;
+  color: rgba(18,18,26,0.5);
+  background: rgba(18,18,26,0.06);
+}
+.cst-perc-track-tab.is-active{
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 12px 22px -14px rgba(10,10,12,0.48), 0 0 0 1px var(--crm-lacquer-rim);
+}
+.cst-perc-track-tab.is-active .cst-perc-track-cn{ color:#f4f4f6; }
+.cst-perc-track-tab.is-active .cst-perc-track-en{ color: rgba(244,244,246,0.55); }
+.cst-perc-track-tab.is-active .cst-perc-track-badge{
+  color:#f4f4f6;
+  background: rgba(244,244,246,0.16);
+}
+.cst-perc-track-badge.is-virtual{
+  color:#f4f4f6;
+  background: var(--crm-bubble-me);
+}
+.cst-perc-track-tab.is-active .cst-perc-track-badge.is-virtual{
+  background: rgba(244,244,246,0.16);
+}
+
+/* ---- user / char 双栏并列：时间感知 / 天气感知卡内部左右分栏，
+   同一张卡片内两条数据同时展示，互不遮挡、互不覆盖 ---- */
+.cst-perc-dual{
+  display:flex; align-items:stretch; gap:12px;
+}
+.cst-perc-col{
+  flex:1; min-width:0;
+  display:flex; flex-direction:column; gap:9px;
+}
+.cst-perc-col-divider{
+  width:1px; flex-shrink:0;
+  background: linear-gradient(180deg, transparent, rgba(18,18,26,0.12) 20%, rgba(18,18,26,0.12) 80%, transparent);
+}
+.cst-perc-col-head{ display:flex; align-items:center; }
+.cst-perc-col-tag{
+  font-family:'Space Mono', monospace;
+  font-size:8px; font-weight:700; letter-spacing:0.1em;
+  color: #4a4a50;
+  text-transform:uppercase;
+}
+.cst-perc-col .cst-perc-readout{
+  flex-direction:column; align-items:flex-start; gap:2px;
+  padding: 10px 11px;
+}
+.cst-perc-col .cst-perc-readout-value{ font-size:15px; }
+.cst-perc-col .cst-perc-readout--text .cst-perc-readout-value{ font-size:13px; }
+.cst-perc-col .cst-perc-readout-unit{ font-size:8.5px; }
+.cst-perc-col .cst-perc-meta{ padding:0; }
+.cst-perc-col .cst-perc-locate-btn{
+  padding: 8px 10px;
+  font-size:10px;
+}
+
+/* ---- 真实 / 虚拟 双键切换：小型化的 scope-btn 变体 ---- */
+.cst-perc-toggle{
+  display:flex; gap:8px;
+  margin-bottom:14px;
+}
+.cst-perc-toggle-btn{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding: 8px 6px 7px;
+  border:none; border-radius:12px;
+  font-family:inherit;
+  cursor:pointer;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease, background 0.22s ease, opacity 0.22s ease;
+}
+.cst-perc-toggle-btn:active{ transform: scale(0.96); }
+.cst-perc-toggle-cn{ font-size:11px; font-weight:700; color: var(--grey-2); letter-spacing:0.02em; }
+.cst-perc-toggle-en{ font-family:'Space Mono', monospace; font-size:6.5px; letter-spacing:0.18em; color: var(--grey-3); }
+.cst-perc-toggle-btn.is-active{
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 12px 22px -14px rgba(10,10,12,0.48), 0 0 0 1px var(--crm-lacquer-rim);
+}
+.cst-perc-toggle-btn.is-active .cst-perc-toggle-cn{ color:#f4f4f6; }
+.cst-perc-toggle-btn.is-active .cst-perc-toggle-en{ color: rgba(244,244,246,0.55); }
+/* 暂不支持的虚拟键：如实呈现为「锁定」态，不可点亮，但保留可读文字，
+   不以纯灰蒙版掩盖成看不清的残缺按钮 */
+.cst-perc-toggle-btn.is-locked{
+  cursor:not-allowed;
+  opacity:0.46;
+}
+.cst-perc-toggle-btn.is-locked:active{ transform:none; }
+
+/* ---- 真实态读数牌：大号等宽数字/文字，配一行元信息 ---- */
+.cst-perc-real{ display:flex; flex-direction:column; gap:10px; }
+.cst-perc-real[hidden]{ display:none; }
+.cst-perc-readout{
+  display:flex; align-items:baseline; gap:9px;
+  padding: 13px 14px;
+  border-radius:14px;
+  background: linear-gradient(178deg, #ffffff 0%, #f5f5f8 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+}
+.cst-perc-readout--text{ align-items:center; }
+.cst-perc-readout-value{
+  font-family:'Space Mono', monospace;
+  font-size:19px; font-weight:700; letter-spacing:0.01em;
+  color: var(--ink);
+  white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.cst-perc-readout--text .cst-perc-readout-value{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:15.5px;
+}
+.cst-perc-readout-unit{
+  font-family:'Space Mono', monospace;
+  font-size:9.5px; letter-spacing:0.03em;
+  color: #4a4a50;
+  white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.cst-perc-meta{
+  display:flex; align-items:center; gap:6px;
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; letter-spacing:0.02em;
+  color: #3a3a40;
+  padding: 0 2px;
+}
+.cst-perc-meta-dot{
+  width:5px; height:5px; border-radius:50%; flex-shrink:0;
+  background: rgba(18,18,26,0.28);
+}
+.cst-perc-meta.is-ok{ color:#1c1c20; }
+.cst-perc-meta.is-ok .cst-perc-meta-dot{ background:#2c2c30; }
+.cst-perc-meta.is-error .cst-perc-meta-dot{ background:#a01818; }
+.cst-perc-meta.is-error{ color:#8a1f1f; font-weight:600; }
+
+.cst-perc-locate-btn{
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  border:none; border-radius:13px;
+  padding: 11px 12px;
+  cursor:pointer;
+  color: var(--ink-soft);
+  font-size:11.5px; font-weight:700;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), opacity 0.2s ease;
+}
+.cst-perc-locate-btn:active{ transform: scale(0.97); }
+.cst-perc-locate-btn:disabled{ opacity:0.5; cursor:default; transform:none; }
+
+/* ---- 虚拟态：暂不支持素纸 —— 素净底纹 + 短句说明，不做假开关 ---- */
+.cst-perc-unsupported[hidden]{ display:none; }
+.cst-perc-unsupported{
+  display:flex; align-items:flex-start; gap:9px;
+  padding: 13px 14px;
+  border-radius:14px;
+  background: repeating-linear-gradient(135deg, rgba(18,18,26,0.025) 0px, rgba(18,18,26,0.025) 1px, transparent 1px, transparent 7px), linear-gradient(178deg, #f7f7fa 0%, #efeff3 100%);
+  box-shadow: 0 0 0 1px var(--cst-line);
+}
+.cst-perc-unsupported-seal{
+  flex-shrink:0;
+  width:22px; height:22px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-3);
+  background: rgba(255,255,255,0.7);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.08);
+  margin-top:1px;
+}
+.cst-perc-unsupported-text{
+  font-size:11px; line-height:1.6;
+  color: var(--grey-2);
+}
+
+/* ---- 虚拟态：地区自由指定 —— 复用 url-field 输入条 + 预设印记小牌 ---- */
+.cst-perc-virtual{ display:flex; flex-direction:column; gap:11px; }
+.cst-perc-virtual[hidden]{ display:none; }
+.cst-perc-input-field{ margin-top:0; }
+.cst-perc-preset-row{
+  display:flex; flex-wrap:wrap; gap:7px;
+}
+.cst-perc-preset-chip{
+  border:none; border-radius:10px;
+  padding: 7px 12px;
+  font-size:10.5px; font-weight:600;
+  color: var(--grey-2);
+  cursor:pointer;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+}
+.cst-perc-preset-chip:active{ transform: scale(0.94); }
+.cst-perc-preset-chip.is-active{
+  color:#f4f4f6;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 0 0 1px var(--crm-lacquer-rim);
+}
+
+.cst-perc-note{
+  display:flex; align-items:flex-start; gap:8px;
+  padding: 12px 14px;
+  margin: 2px 2px 0;
+  border-radius:14px;
+  background: rgba(18,18,26,0.035);
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; line-height:1.7; letter-spacing:0.01em;
+  color: #4a4a50;
+}
+.cst-perc-note-dot{
+  flex-shrink:0; margin-top:5px;
+  width:5px; height:5px; border-radius:50%;
+  background: rgba(18,18,26,0.32);
+}
+
+/* ==========================================================================
+   世界书感知 · 本聊天室生效条目 —— 沿用 cst-perc-card 同源纸面语汇，
+   但条目列表需要承载更高密度的信息（分类/模式/常驻/勾选态），
+   因此采用素牌堆叠形态，而非感应仪式的读数牌
+========================================================================== */
+.cst-wb-stats-card{
+  display:flex; align-items:stretch;
+  border-radius:18px;
+  padding: 14px 6px;
+  margin-bottom: 14px;
+  background:
+    radial-gradient(120% 70% at 12% -10%, rgba(255,255,255,0.95), transparent 55%),
+    linear-gradient(180deg, #fdfdfe 0%, #f4f4f7 55%, #ececf1 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 18px 34px -24px rgba(18,18,26,0.2),
+    0 0 0 1px rgba(18,18,26,0.07);
+}
+.cst-wb-stat{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+}
+.cst-wb-stat-value{
+  font-family:'Space Mono', monospace;
+  font-size:18px; font-weight:700; letter-spacing:0.01em;
+  color: var(--ink);
+}
+.cst-wb-stat-label{
+  font-size:9.5px; font-weight:600; color: var(--grey-2);
+  letter-spacing:0.02em;
+}
+.cst-wb-stat--accent .cst-wb-stat-value{ color:#1c1c20; }
+.cst-wb-stat--accent .cst-wb-stat-label{ color:#1c1c20; font-weight:700; }
+.cst-wb-stat-divider{
+  width:1px; flex-shrink:0;
+  background: linear-gradient(180deg, transparent, rgba(18,18,26,0.13) 20%, rgba(18,18,26,0.13) 80%, transparent);
+}
+
+.cst-wb-search-field{ margin: 0 0 10px; }
+
+.cst-wb-filter-row{
+  display:flex; flex-wrap:wrap; gap:7px;
+  margin-bottom: 12px;
+}
+.cst-wb-filter-chip{
+  border:none; border-radius:10px;
+  padding: 7px 12px;
+  font-size:10.5px; font-weight:600;
+  color: var(--grey-2);
+  cursor:pointer;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+}
+.cst-wb-filter-chip:active{ transform: scale(0.94); }
+.cst-wb-filter-chip.is-active{
+  color:#f4f4f6;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 0 0 1px var(--crm-lacquer-rim);
+}
+
+.cst-wb-quickrow{
+  display:flex; align-items:center; gap:8px;
+  margin-bottom: 12px;
+}
+.cst-wb-quick-btn{
+  flex:1;
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  border:none; border-radius:11px;
+  padding: 9px 8px;
+  font-family:inherit;
+  font-size:10.5px; font-weight:700;
+  color: var(--grey-2);
+  text-decoration:none;
+  cursor:pointer;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+}
+.cst-wb-quick-btn:active{ transform: scale(0.96); }
+.cst-wb-quick-btn--link{ color: var(--ink-soft); }
+
+.cst-wb-list{
+  display:flex; flex-direction:column; gap:9px;
+  margin-bottom: 4px;
+}
+
+/* ---- 单条条目：可勾选卡片，勾选态整卡翻为漆面深色，
+   与作用范围/真实虚拟等主开关同一套「选中即漆面」的视觉语言 ---- */
+.cst-wb-row{
+  display:flex; align-items:center; gap:11px;
+  padding: 12px 13px;
+  border-radius:16px;
+  cursor:pointer;
+  background: linear-gradient(160deg, #ffffff, #f5f5f8);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.09), 0 8px 18px -14px rgba(18,18,26,0.2);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), background 0.22s ease, box-shadow 0.22s ease;
+}
+.cst-wb-row:active{ transform: scale(0.98); }
+.cst-wb-row.is-disabled-entry{ opacity:0.5; }
+
+.cst-wb-row-check{
+  flex-shrink:0;
+  width:21px; height:21px;
+  border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  color: transparent;
+  background: linear-gradient(178deg, #ffffff 0%, #eeeef1 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line-strong);
+  transition: background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+.cst-wb-row.is-checked .cst-wb-row-check{
+  color:#f4f4f6;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 0 0 1px var(--crm-lacquer-rim);
+}
+
+.cst-wb-row-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.cst-wb-row-top{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.cst-wb-row-title{
+  font-size:13px; font-weight:700; color: var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  max-width: 100%;
+}
+.cst-wb-row-cat{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:7.5px; font-weight:700; letter-spacing:0.06em;
+  padding: 2.5px 7px;
+  border-radius:6px;
+  color: rgba(18,18,26,0.55);
+  background: rgba(18,18,26,0.06);
+}
+.cst-wb-row-const{
+  flex-shrink:0;
+  display:flex; align-items:center; gap:3px;
+  font-family:'Space Mono', monospace;
+  font-size:7.5px; font-weight:700; letter-spacing:0.06em;
+  padding: 2.5px 7px 2.5px 6px;
+  border-radius:6px;
+  color:#f4f4f6;
+  background: var(--crm-bubble-me);
+}
+.cst-wb-row-const svg{ flex-shrink:0; }
+.cst-wb-row-disabled-tag{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:7.5px; font-weight:700; letter-spacing:0.06em;
+  padding: 2.5px 7px;
+  border-radius:6px;
+  color:#8a1f1f;
+  background: rgba(160,24,24,0.08);
+}
+.cst-wb-row-sub{
+  font-size:10.5px; line-height:1.5;
+  color: var(--grey-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-wb-row-meta{
+  display:flex; align-items:center; gap:6px;
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.03em;
+  color: var(--grey-3);
+}
+.cst-wb-row-meta-dot{ opacity:0.5; }
+
+.cst-wb-empty{
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  padding: 34px 20px 30px;
+  border-radius:18px;
+  background: rgba(18,18,26,0.03);
+  margin-bottom: 4px;
+}
+.cst-wb-empty-icon{ color: rgba(18,18,26,0.32); }
+.cst-wb-empty-text{ font-size:12px; font-weight:600; color: var(--grey-2); }
+.cst-wb-empty-btn{
+  font-family:'Space Mono', monospace;
+  font-size:9.5px; font-weight:700; letter-spacing:0.05em;
+  color:#f4f4f6;
+  padding: 9px 16px;
+  border-radius:11px;
+  text-decoration:none;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 0 0 1px var(--crm-lacquer-rim);
+}
+
+/* ---- 音色触发牌：取代原生 <select>，样式与其它素牌完全统一，
+   点击后拉起下方的自绘弹层面板，而不是交给浏览器渲染原生下拉 ---- */
+.cst-voice-trigger{
+  width: 100%;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:none; border-radius:14px;
+  padding: 13px 14px;
+  font-family: inherit;
+  cursor:pointer;
+  background: rgba(18,18,26,0.03);
+  box-shadow: 0 0 0 1px var(--cst-line);
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s cubic-bezier(.34,1.56,.64,1);
+  margin-bottom: 4px;
+}
+.cst-voice-trigger:active{ transform: scale(0.99); }
+.cst-voice-trigger.is-open{
+  background: rgba(18,18,26,0.05);
+  box-shadow: 0 0 0 1.5px var(--crm-lacquer-rim);
+}
+.cst-voice-trigger-label{
+  font-size: 12.5px; font-weight: 700;
+  color: var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  text-align:left;
+}
+.cst-voice-trigger-arrow{
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-3);
+  transition: transform 0.25s cubic-bezier(.34,1.56,.64,1);
+}
+.cst-voice-trigger.is-open .cst-voice-trigger-arrow{ transform: rotate(180deg); }
+
+/* ==========================================================================
+   音色弹层面板 —— 固定定位遮罩 + 底部抽屉式面板，内部限高滚动。
+   分类 tab 与搜索框解决"音色一多不好找、长列表撑爆页面"的问题；
+   面板本身绝不参与文档流布局，不会把设置页撑高或让内容溢出屏幕。
+========================================================================== */
+.cst-voice-panel-mask{
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display:flex; align-items:flex-end; justify-content:center;
+  background: rgba(12,12,16,0.42);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s ease;
+}
+.cst-voice-panel-mask.is-open{
+  opacity: 1;
+  pointer-events: auto;
+}
+.cst-voice-panel{
+  width: 100%;
+  max-width: 428px;
+  max-height: min(72vh, 560px);
+  display:flex; flex-direction:column;
+  border-radius: 22px 22px 0 0;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,0.97), transparent 55%),
+    linear-gradient(180deg, #fdfdfe 0%, #f4f4f7 40%, #eeeef2 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 -18px 46px -18px rgba(18,18,26,0.38),
+    0 0 0 1px rgba(18,18,26,0.08);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(.32,.9,.35,1);
+}
+.cst-voice-panel-mask.is-open .cst-voice-panel{
+  transform: translateY(0);
+}
+.cst-voice-panel::before{
+  content:'';
+  align-self:center;
+  width: 34px; height: 4px;
+  border-radius: 3px;
+  background: rgba(18,18,26,0.15);
+  margin-bottom: 10px;
+  flex-shrink:0;
+}
+
+.cst-voice-panel-head{
+  display:flex; align-items:baseline; gap:7px;
+  margin-bottom: 12px;
+  flex-shrink:0;
+}
+.cst-voice-panel-title-cn{ font-size:14px; font-weight:800; color: var(--ink); letter-spacing:0.01em; }
+.cst-voice-panel-title-en{ font-family:'Space Mono', monospace; font-size:7.5px; letter-spacing:0.16em; color: var(--grey-3); }
+.cst-voice-panel-close{
+  margin-left: auto;
+  flex-shrink:0;
+  width:26px; height:26px;
+  border:none; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-2);
+  cursor:pointer;
+  background: linear-gradient(178deg, #ffffff 0%, #eeeef1 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line-strong);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1);
+}
+.cst-voice-panel-close:active{ transform: scale(0.9); }
+
+.cst-voice-panel-search{
+  flex-shrink:0;
+  display:flex; align-items:center; gap:8px;
+  padding: 10px 13px;
+  border-radius: 13px;
+  color: var(--grey-3);
+  background: rgba(18,18,26,0.045);
+  box-shadow: 0 0 0 1px var(--cst-line);
+  margin-bottom: 10px;
+}
+.cst-voice-panel-search svg{ flex-shrink:0; }
+.cst-voice-panel-search-input{
+  flex:1; min-width:0;
+  border:none; background:transparent;
+  font-family: inherit;
+  font-size: 12.5px; font-weight:600;
+  color: var(--ink);
+}
+.cst-voice-panel-search-input::placeholder{ color: var(--grey-3); font-weight:500; }
+.cst-voice-panel-search-input:focus{ outline:none; }
+
+/* ---- 分类 tab：横向可滚动一行，不换行不撑高，音色再多也只占这一条 ---- */
+.cst-voice-panel-tabs{
+  flex-shrink:0;
+  display:flex; gap:7px;
+  overflow-x:auto;
+  padding-bottom: 2px;
+  margin-bottom: 10px;
+  scrollbar-width: none;
+}
+.cst-voice-panel-tabs::-webkit-scrollbar{ display:none; }
+.cst-voice-panel-tab{
+  flex-shrink:0;
+  border:none; border-radius:10px;
+  padding: 7px 12px;
+  font-size:10.5px; font-weight:700;
+  color: var(--grey-2);
+  cursor:pointer;
+  white-space:nowrap;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+}
+.cst-voice-panel-tab:active{ transform: scale(0.94); }
+.cst-voice-panel-tab.is-active{
+  color:#f4f4f6;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 0 0 1px var(--crm-lacquer-rim);
+}
+
+/* ---- 列表：唯一的滚动区域，面板高度封顶后列表内部滚，
+   不会把弹层本身或设置页顶出视口 ---- */
+.cst-voice-panel-list{
+  flex:1;
+  min-height: 0;
+  overflow-y:auto;
+  display:flex; flex-direction:column; gap:8px;
+  -webkit-overflow-scrolling: touch;
+}
+.cst-voice-panel-group-label{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; font-weight:700; letter-spacing:0.1em;
+  color: var(--grey-3);
+  padding: 6px 2px 1px;
+}
+.cst-voice-panel-group-label:first-child{ padding-top:0; }
+
+.cst-voice-panel-item{
+  display:flex; align-items:center; gap:11px;
+  padding: 11px 12px;
+  border-radius:14px;
+  cursor:pointer;
+  background: linear-gradient(160deg, #ffffff, #f5f5f8);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.08);
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), background 0.2s ease, box-shadow 0.2s ease;
+}
+.cst-voice-panel-item:active{ transform: scale(0.98); }
+.cst-voice-panel-item.is-selected{
+  background: var(--crm-bubble-me);
+  box-shadow: 0 10px 20px -14px rgba(10,10,12,0.5), 0 0 0 1px var(--crm-lacquer-rim);
+}
+.cst-voice-panel-item-radio{
+  flex-shrink:0;
+  width:18px; height:18px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(178deg, #ffffff 0%, #eeeef1 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line-strong);
+}
+.cst-voice-panel-item-radio::after{
+  content:'';
+  width:8px; height:8px;
+  border-radius:50%;
+  background: transparent;
+  transition: background 0.18s ease;
+}
+.cst-voice-panel-item.is-selected .cst-voice-panel-item-radio{
+  background: rgba(244,244,246,0.16);
+  box-shadow: 0 0 0 1px var(--crm-lacquer-rim);
+}
+.cst-voice-panel-item.is-selected .cst-voice-panel-item-radio::after{ background:#f4f4f6; }
+.cst-voice-panel-item-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.cst-voice-panel-item-name{
+  font-size:12.5px; font-weight:700;
+  color: var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-voice-panel-item.is-selected .cst-voice-panel-item-name{ color:#f4f4f6; }
+.cst-voice-panel-item-id{
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.02em;
+  color: var(--grey-3);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-voice-panel-item.is-selected .cst-voice-panel-item-id{ color: rgba(244,244,246,0.55); }
+
+.cst-voice-panel-nores{
+  flex-shrink:0;
+  text-align:center;
+  padding: 26px 4px 8px;
+  font-size:11.5px; font-weight:600;
+  color: var(--grey-3);
+}
+
+/* ==========================================================================
+   语音设置 · 专属音色 —— 沿用世界书感知同一套素牌堆叠语汇：
+   scope 牙牌切换复用 .cst-scope-row / .cst-scope-btn，
+   预设列表复用 .cst-wb-list / .cst-wb-row（单选态，非多选勾选），
+   本节只新增「当前生效回执牌」与选中态下的单选标记两处专属样式
+========================================================================== */
+.cst-voice-current-card{
+  display:flex; align-items:center; gap:11px;
+  border-radius:18px;
+  padding: 13px 14px;
+  margin-bottom: 14px;
+  background:
+    radial-gradient(120% 70% at 12% -10%, rgba(255,255,255,0.95), transparent 55%),
+    linear-gradient(180deg, #fdfdfe 0%, #f4f4f7 55%, #ececf1 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 18px 34px -24px rgba(18,18,26,0.2),
+    0 0 0 1px rgba(18,18,26,0.07);
+}
+.cst-voice-current-icon{
+  flex-shrink:0;
+  width:34px; height:34px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink-soft);
+  background: linear-gradient(178deg, #ffffff 0%, #eeeef1 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line-strong);
+}
+.cst-voice-current-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.cst-voice-current-name{
+  font-size:13px; font-weight:700; color: var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-voice-current-meta{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; letter-spacing:0.03em;
+  color: var(--grey-3);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cst-voice-current-tag{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:7.5px; font-weight:700; letter-spacing:0.06em;
+  padding: 3px 8px;
+  border-radius:7px;
+  color:#f4f4f6;
+  background: var(--crm-bubble-me);
+}
+
+/* ---- 音色预设行：复用 .cst-wb-row 卡面，勾选框改为圆形单选样式 ---- */
+.cst-voice-row .cst-wb-row-check{
+  border-radius:50%;
+}
+.cst-voice-row-empty-hint{
+  padding:16px 4px;
+  text-align:center;
+  font-family:'Space Mono', monospace;
+  font-size:9px; letter-spacing:0.03em;
+  color: var(--grey-3);
+}
+
+/* ==========================================================================
+   翻译设置 · 双语月鉴 —— 总开关复用月相意象，展开区内语言选择卡沿用
+   cst-source-card 的纸面质感但改双卡横排，气泡样式卡是本节唯一的
+   全新组件：右上角缩略图直接示意两种呈现逻辑的差异，下方大预览
+   完全复用聊天室 .crm-bubble 真实类名——这不是仿制品，是同一份视觉
+   语言在设置页里的真实自证。
+========================================================================== */
+
+/* ---- 总开关行：素牌 + 一枚沿用漆面语言的自绘开关（非原生 checkbox） ---- */
+.cst-tr-master-row{
+  display:flex; align-items:center; gap:12px;
+  border-radius:18px;
+  padding: 14px 14px 14px 15px;
+  margin-bottom: 4px;
+  background:
+    radial-gradient(120% 70% at 12% -10%, rgba(255,255,255,0.95), transparent 55%),
+    linear-gradient(180deg, #fdfdfe 0%, #f4f4f7 55%, #ececf1 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 18px 34px -24px rgba(18,18,26,0.2),
+    0 0 0 1px rgba(18,18,26,0.07);
+}
+.cst-tr-master-icon{
+  flex-shrink:0;
+  width:32px; height:32px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink-soft);
+  background: linear-gradient(178deg, #ffffff 0%, #eeeef1 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line-strong);
+}
+.cst-tr-master-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.cst-tr-master-title{ font-size:13px; font-weight:700; color: var(--ink); }
+.cst-tr-master-sub{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; letter-spacing:0.03em;
+  color: var(--grey-3);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* ---- 自绘开关：轨道 + 滑钮，off 态素白、on 态漆面黑，与气泡双色呼应 ---- */
+.cst-swt{
+  flex-shrink:0;
+  border:none; padding:0; cursor:pointer;
+  background:transparent;
+  -webkit-tap-highlight-color:transparent;
+}
+.cst-swt-track{
+  position:relative;
+  display:block;
+  width:44px; height:26px;
+  border-radius:14px;
+  background: linear-gradient(180deg, #e6e6ea 0%, #dcdce1 100%);
+  box-shadow: 0 1px 2px 0 rgba(18,18,26,0.14) inset, 0 0 0 1px rgba(18,18,26,0.06);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+.cst-swt-thumb{
+  position:absolute;
+  top:2px; left:2px;
+  width:22px; height:22px;
+  border-radius:50%;
+  background: linear-gradient(178deg, #ffffff 0%, #f2f2f5 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 3px 8px -2px rgba(18,18,26,0.4);
+  transition: transform 0.28s cubic-bezier(.34,1.56,.64,1);
+}
+.cst-swt[aria-checked="true"] .cst-swt-track{
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.4) inset, 0 0 0 1px var(--crm-lacquer-rim);
+}
+.cst-swt[aria-checked="true"] .cst-swt-thumb{
+  transform: translateX(18px);
+  background: linear-gradient(178deg, #3a3a40 0%, #1c1c20 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.16) inset, 0 3px 10px -2px rgba(0,0,0,0.6);
+}
+.cst-swt:active .cst-swt-thumb{ width:24px; }
+.cst-swt[aria-checked="true"]:active .cst-swt-thumb{ transform: translateX(16px); }
+
+/* ---- 展开区：折叠时高度归零并隐藏内容，展开时正常排布，
+     用 grid-template-rows 做高度过渡（比 max-height 更精确不留尾巴）---- */
+.cst-tr-panel{
+  display:grid;
+  grid-template-rows: 0fr;
+  opacity:0;
+  transition: grid-template-rows 0.32s cubic-bezier(.4,0,.2,1), opacity 0.24s ease;
+}
+.cst-tr-panel.is-open{
+  grid-template-rows: 1fr;
+  opacity:1;
+  margin-top: 14px;
+}
+/* 关键修复：grid-template-rows:0fr 的压缩动画只在容器只有「一个直接子元素」
+   时才能把内容真正压到 0 高度——本节展开区原先直接把十余个平级块塞进
+   .cst-tr-panel，多子元素会各自占据网格轨道内的最小内容高度，导致
+   收起时仍然按内容自然撑开、留出大片空白。这里把所有内容统一收进
+   .cst-tr-panel-inner 这一个子元素，grid 只需处理它一个盒子的压缩，
+   0fr 才能真正把高度收到 0；overflow:hidden 挂在这唯一的子元素上，
+   避免收起过程中内容溢出可见。 */
+.cst-tr-panel > .cst-tr-panel-inner{ min-height:0; overflow:hidden; }
+
+/* ---- 语言选择：双卡横排 + 中间互换钮，沿用 cst-source-card 纸面质感 ---- */
+.cst-tr-lang-row{
+  display:flex; align-items:center; gap:8px;
+  margin: 4px 0 0;
+}
+.cst-tr-lang-card{
+  flex:1; min-width:0;
+  display:flex; flex-direction:column; gap:4px;
+  padding: 11px 13px 12px;
+  border:none;
+  border-radius:16px;
+  font-family:inherit;
+  text-align:left;
+  cursor:pointer;
+  color: inherit;
+  background: linear-gradient(178deg, #ffffff 0%, #f5f5f8 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 14px 26px -18px rgba(18,18,26,0.24),
+    0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+}
+.cst-tr-lang-card:active{ transform: scale(0.97); }
+.cst-tr-lang-card.is-set{
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 14px 26px -18px rgba(18,18,26,0.3),
+    0 0 0 1.5px rgba(18,18,26,0.32);
+}
+.cst-tr-lang-label-cn{ font-size:10.5px; font-weight:700; color: var(--grey-2); letter-spacing:0.02em; }
+.cst-tr-lang-label-en{
+  font-family:'Space Mono', monospace;
+  font-size:7px; letter-spacing:0.2em;
+  color: var(--grey-3);
+  margin-top:-3px;
+}
+.cst-tr-lang-value{
+  font-size:13px; font-weight:700; color: var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  margin-top:3px;
+}
+.cst-tr-lang-card:not(.is-set) .cst-tr-lang-value{ color: var(--grey-3); font-weight:600; }
+
+.cst-tr-swap-btn{
+  flex-shrink:0;
+  width:34px; height:34px;
+  border-radius:50%;
+  border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink-soft);
+  background: linear-gradient(160deg, #ffffff, #ececf0 70%, #e2e2e7);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 8px 16px -10px rgba(18,18,26,0.3);
+  transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+}
+.cst-tr-swap-btn:active{ transform: rotate(180deg) scale(0.92); }
+
+.cst-tr-lang-note{ margin-top:12px; }
+
+/* ---- 语言弹层分组小标：复用 voice 面板 tab 视觉，语言列表沿用
+     cst-wb-row 素牌但改单选圆点，与音色列表单选态同源 ---- */
+.cst-tr-lang-row-item{
+  display:flex; align-items:center; gap:10px;
+  padding: 11px 12px;
+  border-radius:13px;
+  margin-bottom:6px;
+  cursor:pointer;
+  background: linear-gradient(178deg, #ffffff 0%, #f6f6f9 100%);
+  box-shadow: 0 0 0 1px var(--cst-line);
+  transition: box-shadow 0.18s ease, background 0.18s ease;
+}
+.cst-tr-lang-row-item:active{ transform: scale(0.98); }
+.cst-tr-lang-row-item.is-selected{
+  background: var(--crm-bubble-me);
+  box-shadow: 0 0 0 1px var(--crm-lacquer-rim);
+}
+.cst-tr-lang-row-radio{
+  flex-shrink:0;
+  width:16px; height:16px;
+  border-radius:50%;
+  box-shadow: 0 0 0 1.5px var(--cst-line-strong) inset;
+  position:relative;
+}
+.cst-tr-lang-row-item.is-selected .cst-tr-lang-row-radio{ box-shadow: 0 0 0 1.5px rgba(255,255,255,0.5) inset; }
+.cst-tr-lang-row-item.is-selected .cst-tr-lang-row-radio::after{
+  content:'';
+  position:absolute; inset:3px;
+  border-radius:50%;
+  background:#f4f4f6;
+}
+.cst-tr-lang-row-name{ font-size:12.5px; font-weight:600; color: var(--ink); }
+.cst-tr-lang-row-item.is-selected .cst-tr-lang-row-name{ color:#f4f4f6; }
+.cst-tr-lang-row-native{
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.03em;
+  color: var(--grey-3);
+  margin-left:auto;
+}
+.cst-tr-lang-row-item.is-selected .cst-tr-lang-row-native{ color: rgba(244,244,246,0.55); }
+
+/* ---- 气泡样式选择卡：右上角小缩略图直接示意两种呈现差异 ---- */
+.cst-tr-style-grid{
+  display:flex; gap:10px;
+  margin-bottom: 16px;
+}
+.cst-tr-style-card{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding: 16px 10px 13px;
+  border:none;
+  border-radius:18px;
+  font-family:inherit;
+  cursor:pointer;
+  color: inherit;
+  background: linear-gradient(178deg, #ffffff 0%, #f5f5f8 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 14px 26px -18px rgba(18,18,26,0.24),
+    0 0 0 1px var(--cst-line);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+}
+.cst-tr-style-card:active{ transform: scale(0.96); }
+.cst-tr-style-card.is-active{
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 14px 26px -18px rgba(18,18,26,0.3),
+    0 0 0 1.5px rgba(18,18,26,0.4);
+}
+.cst-tr-style-thumb{
+  position:relative;
+  width:100%; height:46px;
+  border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(165deg, #f1f1f4 0%, #e6e6ea 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.7) inset, 0 0 0 1px rgba(18,18,26,0.06);
+}
+.cst-tr-style-thumb-bub{
+  width:34px; height:16px;
+  border-radius:8px;
+  background: var(--crm-bubble-peer);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.8) inset, 0 3px 6px -3px rgba(18,18,26,0.3);
+}
+.cst-tr-style-thumb--tap .cst-tr-style-thumb-bub{ width:26px; }
+.cst-tr-style-thumb--tap .cst-tr-style-thumb-tag{
+  position:absolute;
+  right: calc(50% - 21px);
+  top: 50%;
+  transform: translateY(-50%);
+  width:14px; height:14px;
+  border-radius:50%;
+  font-family:'Noto Serif KR', serif;
+  font-size:8px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  color:#f4f4f6;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 2px 5px -2px rgba(18,18,26,0.5);
+}
+.cst-tr-style-thumb--both{ flex-direction:column; gap:4px; }
+.cst-tr-style-thumb-bub--ghost{
+  width:26px; height:9px; border-radius:5px;
+  background: rgba(18,18,26,0.1);
+  box-shadow:none;
+}
+.cst-tr-style-title{ font-size:12px; font-weight:700; color: var(--ink); }
+.cst-tr-style-sub{
+  font-family:'Space Mono', monospace;
+  font-size:7px; letter-spacing:0.16em;
+  color: var(--grey-3);
+  margin-top:-4px;
+}
+
+/* ---- 实时预览容器：素纸卡座 ---- */
+.cst-tr-preview{
+  border-radius:20px;
+  padding: 14px 14px 16px;
+  margin-bottom: 14px;
+  background: linear-gradient(178deg, #f4f4f6 0%, #ececef 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.7) inset, 0 0 0 1px var(--cst-line);
+}
+.cst-tr-preview-badge{
+  display:flex; align-items:center; gap:6px;
+  margin-bottom: 12px;
+}
+.cst-tr-preview-badge-dot{
+  width:6px; height:6px; border-radius:50%;
+  background: linear-gradient(155deg, #6b6b72, #232329);
+  box-shadow: 0 0 0 3px rgba(35,35,41,0.12);
+  flex-shrink:0;
+}
+.cst-tr-preview-badge-cn{ font-size:10.5px; font-weight:700; color: var(--ink-soft); }
+.cst-tr-preview-badge-en{
+  font-family:'Space Mono', monospace;
+  font-size:7px; letter-spacing:0.18em;
+  color: var(--grey-3);
+}
+.cst-tr-preview-stage{
+  padding: 4px 2px 2px;
+}
+
+/* ---- 预览专属的一行：头像 + 气泡，完全脱离聊天室 DOM/CSS 依赖，
+     盒模型自己说了算，不再有任何外部样式表能覆盖到这里 ---- */
+.cst-tr-preview-row{
+  display:flex; align-items:flex-end; gap:8px;
+  user-select:none; -webkit-touch-callout:none;
+}
+.cst-tr-preview-avatar{
+  flex-shrink:0;
+  width:30px; height:30px;
+  border-radius:50%;
+  overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(160deg, #ffffff 0%, #eeeef2 60%, #e4e4e9 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px var(--cst-line-strong);
+}
+.cst-tr-preview-avatar-img{ width:100%; height:100%; object-fit:cover; display:block; }
+.cst-tr-preview-avatar-glyph{
+  font-family:'Noto Serif KR', serif;
+  font-size:12px; font-weight:700;
+  color: var(--ink-soft);
+}
+
+/* ---- 双语签气泡：四角统一弧度的白灰渐变气泡，独立盒模型，
+     padding/line-height/字号全部在这里一次定义，不再需要
+     任何 !important 去和外部规则拔河 ---- */
+.cst-tr-bubble{
+  position:relative;
+  max-width: 74%;
+  box-sizing:border-box;
+  padding: 12px 15px 11px;
+  border-radius: 18px;
+  cursor:pointer;
+  transition: padding 0.2s ease;
+  background:
+    radial-gradient(120% 140% at 8% -12%, rgba(255,255,255,0.95), transparent 55%),
+    linear-gradient(155deg, #ffffff 0%, #f4f4f6 38%, #e9e9ed 72%, #dfdfe4 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.85) inset,
+    0 14px 26px -16px rgba(18,18,26,0.28),
+    0 0 0 1px rgba(18,18,26,0.08);
+}
+.cst-tr-bubble-sigil{
+  position:absolute;
+  top:-8px; left:15px;
+  width:18px; height:18px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--ink-soft);
+  background: linear-gradient(160deg, #ffffff 0%, #eeeef2 60%, #e4e4e9 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 3px 8px -3px rgba(18,18,26,0.35), 0 0 0 2px #f4f4f6;
+  z-index:2;
+}
+.cst-tr-bubble-orig{
+  font-size:13.5px; line-height:1.5;
+  color: var(--ink);
+  word-break: break-word;
+}
+.cst-tr-bubble-divider{
+  height:1px;
+  margin: 9px -15px;
+  background-image: repeating-linear-gradient(90deg, rgba(18,18,26,0.16) 0, rgba(18,18,26,0.16) 4px, transparent 4px, transparent 9px);
+}
+.cst-tr-bubble-trans{
+  font-style: italic;
+  font-size:12.5px; line-height:1.5;
+  color: var(--grey-2);
+  word-break: break-word;
+}
+/* 点按显影模式：折叠/展开的实际 display 切换完全交给 JS 通过
+   行内 style.display 来控制（见 chatsetting.js renderPreview），
+   不依赖 CSS 选择器，避免特异性或加载顺序问题导致分隔线与译文
+   偷偷占位撑大气泡。这里只保留「展开时」的淡入动画。 */
+.cst-tr-bubble.style-tap.is-revealed .cst-tr-bubble-divider,
+.cst-tr-bubble.style-tap.is-revealed .cst-tr-bubble-trans{
+  animation: cstTrRevealFade 0.28s ease;
+}
+/* 未展开时角标压在右下角，给原文右下方留出余量，避免最后一行文字
+   和「译」字牌贴太近；一旦展开（原译并陈，或点按后展开）角标隐藏，
+   这圈留白就不需要了，交给 padding 过渡自然收回 */
+.cst-tr-bubble.style-tap:not(.is-revealed){ padding-right:34px; padding-bottom:16px; }
+@keyframes cstTrRevealFade{
+  from{ opacity:0; transform: translateY(-3px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+/* ---- 「译」角标：不做成独立一整条按钮杵在文字下方了，改成贴在
+     气泡右下角的一枚小徽标——漆面深色圆角方牌，只有「译」一个字，
+     半嵌在气泡边缘，像一枚落款印章。点击范围仍是这一小块本身，
+     不占用气泡内文字的排版空间，视觉上克制、不喧宾夺主 ---- */
+.cst-tr-bubble-taphint{
+  position:absolute;
+  right:8px; bottom:8px;
+  display:flex; align-items:center; justify-content:center;
+  width:22px; height:22px;
+  border:none; border-radius:8px;
+  padding:0;
+  cursor:pointer;
+  font-family:'Noto Serif KR', serif;
+  font-size:10px; font-weight:700;
+  color:#f4f4f6;
+  background: var(--crm-bubble-me);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.14) inset,
+    0 4px 10px -4px rgba(18,18,26,0.5),
+    0 0 0 2px #f4f4f6;
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1);
+}
+.cst-tr-bubble-taphint:active{ transform: scale(0.88); }
+/* 默认 display 交给 [hidden] 这条浏览器内建规则去关（等同 display:none），
+   显示时需要 flex，这里只在「未隐藏」时补上，避免和上面按钮基础样式
+   的 display 声明打架。角标只留「译」字，说明文字视觉隐藏不占位 */
+.cst-tr-bubble-taphint:not([hidden]){ display:flex; }
+.cst-tr-bubble-taphint-glyph{ line-height:1; }
+.cst-tr-bubble-taphint span:last-child{
+  position:absolute;
+  width:1px; height:1px;
+  overflow:hidden;
+  clip-path: inset(50%);
+  white-space:nowrap;
+}
+.cst-tr-preview-foot{
+  text-align:center;
+  margin-top:10px;
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.03em;
+  color: var(--grey-3);
+}
+
+/* ---- 配置完整性回执：三项缺一时的琥珀提示态 / 三项齐备时的确认态 ---- */
+.cst-tr-status-card{
+  display:flex; align-items:flex-start; gap:9px;
+  padding: 12px 14px;
+  border-radius:14px;
+  background: rgba(196,138,32,0.09);
+  font-size:11px; line-height:1.55;
+  color:#8a6218;
+}
+.cst-tr-status-icon{ flex-shrink:0; margin-top:1px; }
+.cst-tr-status-card.is-complete{
+  background: rgba(18,18,26,0.035);
+  color:#3c3c42;
+}
+.cst-tr-status-card.is-complete .cst-tr-status-icon{ color: var(--ink-soft); }
+
+/* ==========================================================================
    底部操作：恢复默认（素净文本键）+ 保存（漆面主键）
 ========================================================================== */
 .cst-action-row{
@@ -500,4 +2479,102 @@
 .crm-bg-scrim{
   position:absolute; inset:0;
   background: rgba(10,10,12, 0.3);
+}
+/* ==========================================================================
+   记录设置 · 时轨双牌 —— 聊天记录 / 通话记录 两枚并列导航条。
+   与「羁绊印鉴」同源的印玺语汇，但收敛为轻量「牙牌」条状：
+   左侧圆印图标 · 中段中英双标题 + 状态副行 · 右侧数量徽标 + 箭头，
+   整条可点击直达独立页面。通话记录条为「筹备中」态，视觉降一档
+   但不做纯灰禁用处理——依旧可点，进入占位页说明现状，
+   而不是把入口直接锁死。
+========================================================================== */
+.cst-record-list{
+  display:flex; flex-direction:column; gap:10px;
+  margin-bottom: 4px;
+}
+.cst-record-row{
+  position:relative;
+  display:flex; align-items:center; gap:12px;
+  padding: 13px 14px;
+  border-radius:18px;
+  text-decoration:none;
+  background:
+    radial-gradient(120% 90% at 10% -20%, rgba(255,255,255,0.95), transparent 55%),
+    linear-gradient(180deg, #fdfdfe 0%, #f4f4f7 55%, #ececf1 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 18px 34px -24px rgba(18,18,26,0.24),
+    0 5px 12px -9px rgba(18,18,26,0.12),
+    0 0 0 1px rgba(18,18,26,0.07);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+}
+.cst-record-row::after{
+  content:'';
+  position:absolute; top:0; left:12%; right:12%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(18,18,26,0.26) 22%, rgba(18,18,26,0.42) 50%, rgba(18,18,26,0.26) 78%, transparent);
+  pointer-events:none;
+}
+.cst-record-row:active{ transform: scale(0.98); }
+
+.cst-record-row-icon{
+  flex-shrink:0;
+  width:38px; height:38px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: rgba(244,244,246,0.94);
+  background: var(--crm-bubble-me);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.14) inset,
+    0 10px 20px -10px rgba(10,10,12,0.5),
+    0 0 0 1px var(--crm-lacquer-rim);
+}
+
+.cst-record-row-body{
+  flex:1;
+  min-width:0;
+  display:flex; flex-direction:column; gap:3px;
+}
+.cst-record-row-title-row{
+  display:flex; align-items:baseline; gap:7px;
+}
+.cst-record-row-title-cn{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:14px; font-weight:700;
+  color: var(--ink);
+  letter-spacing:0.02em;
+}
+.cst-record-row-title-en{
+  font-family:'Space Mono', monospace;
+  font-size:7px; letter-spacing:0.18em;
+  color: var(--grey-3);
+  text-transform:uppercase;
+}
+.cst-record-row-sub{
+  font-size:10.5px;
+  color: var(--grey-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+.cst-record-row-badge{
+  flex-shrink:0;
+  font-family:'Space Mono', monospace;
+  font-size:9.5px; font-weight:700; letter-spacing:0.05em;
+  padding: 5px 11px;
+  border-radius:10px;
+  color: rgba(18,18,26,0.6);
+  background: rgba(18,18,26,0.05);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.07);
+  white-space:nowrap;
+}
+.cst-record-row-badge--soon{
+  font-family:'Inter', sans-serif;
+  font-size:9.5px;
+  color: var(--grey-2);
+  background: rgba(18,18,26,0.04);
+}
+
+.cst-record-row-arrow{
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-3);
 }

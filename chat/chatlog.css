@@ -1,0 +1,408 @@
+/* ==========================================================================
+   Chat Log — chatlog.css
+   聊天记录 · LUNA 月鉴 —— 只读复现聊天室气泡/日期徽记，另加
+   顶部概览牙牌（消息总数 / 往来天数 / 最早记录）与可展开搜索条。
+   —— 复用 chatroom.css 的墨玉/月光漆面气泡语汇与 chat.css 的
+      黑白灰变量体系，不引入任何新色相，不使用 emoji，
+      不使用米色/暖调纸面，保持与聊天设置页同源的克制华丽感。
+   —— 页面切换与内容渲染均为纯本地 DOM 操作，无网络请求参与
+      首屏渲染，杜绝任何加载卡顿。
+========================================================================== */
+
+.cll-frame [hidden]{ display:none !important; }
+
+.cll-frame, .cll-frame * {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Microsoft YaHei', 'Noto Sans SC', 'Noto Sans CJK SC', sans-serif;
+}
+
+.crm-frame.cll-frame{
+  background:
+    radial-gradient(130% 46% at 50% 0%, rgba(150,160,190,0.08), transparent 58%),
+    var(--sheet);
+}
+
+/* ==========================================================================
+   顶栏：返回 · 印玺题名（聊天记录 / CHAT LOG + 副行对方昵称）· 搜索键
+========================================================================== */
+.cll-top-bar{
+  justify-content:space-between;
+}
+.cll-title-seal{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  min-width:0;
+}
+.cll-title-row{ display:flex; align-items:center; gap:8px; }
+.cll-title-cn{
+  font-family:'Noto Serif KR','Playfair Display',serif;
+  font-size:16px; font-weight:700;
+  color: var(--ink);
+  letter-spacing:0.02em;
+}
+.cll-title-en{
+  font-family:'Space Mono', monospace;
+  font-size:8px; letter-spacing:0.24em;
+  color: var(--grey-3);
+  text-transform:uppercase;
+  padding-top:2px;
+}
+.cll-title-peer{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; letter-spacing:0.05em;
+  color: var(--grey-2);
+  max-width:220px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+.cll-search-btn{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  width:37px; height:37px;
+  flex-shrink:0;
+  color: var(--ink-soft);
+  border:none;
+  border-radius:50%;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f1f4 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 8px 16px -10px rgba(18,18,26,0.28),
+    0 0 0 1px rgba(18,18,26,0.06);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1);
+}
+.cll-search-btn:active{ transform: scale(0.88); }
+.cll-search-btn.is-active{
+  color: rgba(244,244,246,0.94);
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 0 0 1px var(--crm-lacquer-rim);
+}
+
+/* ==========================================================================
+   搜索条：默认收起（高度 0 + 透明），点击放大镜后展开 —— 用
+   max-height + opacity 过渡而非 display 切换，保证展开/收起丝滑
+========================================================================== */
+.cll-search-bar{
+  position:absolute;
+  top: calc(var(--status-h) + var(--topbar-h) + 6px);
+  left:0; right:0;
+  z-index:60;
+  display:flex; flex-direction:column; gap:8px;
+  padding: 0 14px;
+  max-height:0;
+  opacity:0;
+  overflow:hidden;
+  transition: max-height 0.36s cubic-bezier(.22,1,.36,1), opacity 0.24s ease, padding 0.32s cubic-bezier(.22,1,.36,1);
+}
+.cll-search-bar.is-open{
+  max-height:230px;
+  opacity:1;
+  padding: 8px 14px 12px;
+}
+.cll-search-row{
+  display:flex; align-items:center; gap:8px;
+}
+.cll-search-field{
+  flex:1;
+  display:flex; align-items:center; gap:8px;
+  min-width:0;
+  padding: 9px 13px;
+  border-radius:14px;
+  color: var(--grey-2);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f3f6 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px rgba(18,18,26,0.08);
+}
+.cll-search-input{
+  flex:1;
+  min-width:0;
+  border:none; outline:none;
+  background:transparent;
+  font-family:inherit;
+  font-size:12.5px;
+  color: var(--ink);
+}
+.cll-search-input::placeholder{ color: var(--grey-3); }
+.cll-search-clear{
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  width:18px; height:18px;
+  border:none; border-radius:50%;
+  color: var(--grey-2);
+  background: rgba(18,18,26,0.06);
+}
+
+/* ---- 选项按钮：展开高级筛选面板（发送方 / 大小写） ---- */
+.cll-search-optbtn{
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  width:35px; height:35px;
+  border:none; border-radius:12px;
+  color: var(--grey-2);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f3f6 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px rgba(18,18,26,0.08);
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.cll-search-optbtn:active{ transform: scale(0.9); }
+.cll-search-optbtn.is-active{
+  color: rgba(244,244,246,0.94);
+  background: var(--crm-bubble-me);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.14) inset, 0 0 0 1px var(--crm-lacquer-rim);
+}
+
+/* ---- 结果导航条：命中计数 · 上一条/下一条 —— 深色小牙牌，
+   与「回到底部」按钮同一套墨玉基调，跟浅色搜索框形成层次对比 ---- */
+.cll-search-nav{
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 7px 8px 7px 14px;
+  border-radius:13px;
+  background: linear-gradient(180deg, #1c1c1f 0%, #0f0f11 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.08) inset, 0 12px 24px -16px rgba(10,10,12,0.6);
+}
+.cll-search-nav-count{
+  font-family:'Space Mono', monospace;
+  font-size:10.5px; letter-spacing:0.05em;
+  color: rgba(244,244,246,0.86);
+  white-space:nowrap;
+}
+.cll-search-nav-btns{ display:flex; align-items:center; gap:4px; }
+.cll-search-nav-btn{
+  display:flex; align-items:center; justify-content:center;
+  width:26px; height:26px;
+  border:none; border-radius:50%;
+  color: rgba(244,244,246,0.9);
+  background: rgba(255,255,255,0.08);
+  transition: transform 0.16s cubic-bezier(.34,1.56,.64,1), background 0.16s ease, opacity 0.16s ease;
+}
+.cll-search-nav-btn:active{ transform: scale(0.86); }
+.cll-search-nav-btn:disabled{ opacity:0.28; }
+.cll-search-nav-btn:not(:disabled):hover{ background: rgba(255,255,255,0.15); }
+
+/* ---- 高级筛选面板：发送方筹码 + 大小写开关 ---- */
+.cll-search-opts{
+  display:flex; flex-direction:column; gap:10px;
+  padding: 11px 13px;
+  border-radius:14px;
+  background: linear-gradient(180deg, #fbfbfc 0%, #f0f0f3 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 1px rgba(18,18,26,0.07);
+}
+.cll-opt-group{ display:flex; align-items:center; gap:10px; }
+.cll-opt-group-label{
+  flex-shrink:0;
+  font-size:10.5px; font-weight:600;
+  color: var(--grey-2);
+  letter-spacing:0.02em;
+}
+.cll-opt-chips{ display:flex; align-items:center; gap:6px; }
+.cll-opt-chip{
+  padding: 5px 12px;
+  border:none; border-radius:10px;
+  font-family:inherit;
+  font-size:10.5px; font-weight:600;
+  color: var(--grey-2);
+  background: rgba(18,18,26,0.055);
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s cubic-bezier(.34,1.56,.64,1);
+}
+.cll-opt-chip:active{ transform: scale(0.92); }
+.cll-opt-chip.is-active{
+  color: rgba(244,244,246,0.94);
+  background: var(--crm-bubble-me);
+  box-shadow: 0 0 0 1px var(--crm-lacquer-rim) inset;
+}
+.cll-opt-toggle{
+  display:flex; align-items:center; justify-content:space-between;
+  cursor:pointer;
+}
+.cll-opt-toggle-label{
+  font-size:10.5px; font-weight:600;
+  color: var(--grey-2);
+  letter-spacing:0.02em;
+}
+.cll-opt-switch{
+  position:relative;
+  flex-shrink:0;
+  width:34px; height:20px;
+  border-radius:10px;
+  background: rgba(18,18,26,0.12);
+  transition: background 0.22s ease;
+}
+.cll-opt-switch::after{
+  content:'';
+  position:absolute;
+  top:2px; left:2px;
+  width:16px; height:16px;
+  border-radius:50%;
+  background: #ffffff;
+  box-shadow: 0 2px 6px -1px rgba(18,18,26,0.4);
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1);
+}
+.cll-opt-switch[aria-checked="true"]{ background: var(--crm-bubble-me); }
+.cll-opt-switch[aria-checked="true"]::after{ transform: translateX(14px); }
+
+/* ==========================================================================
+   概览牙牌：消息总数 / 往来天数 / 最早记录 —— 与感知设置的
+   世界书总览卡同一套「三栏 + 竖分隔线」语言，压在顶栏与搜索条之下
+========================================================================== */
+.cll-stats-row{
+  position:absolute;
+  top: calc(var(--status-h) + var(--topbar-h) + 12px);
+  left:14px; right:14px;
+  z-index:55;
+  display:flex; align-items:center;
+  padding: 12px 6px;
+  border-radius:18px;
+  background:
+    radial-gradient(120% 90% at 12% -20%, rgba(255,255,255,0.95), transparent 55%),
+    linear-gradient(180deg, #fdfdfe 0%, #f4f4f7 55%, #ececf1 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 18px 34px -24px rgba(18,18,26,0.24),
+    0 5px 12px -9px rgba(18,18,26,0.12),
+    0 0 0 1px rgba(18,18,26,0.07);
+  transition: top 0.32s cubic-bezier(.22,1,.36,1);
+}
+body.cll-search-open .cll-stats-row{
+  top: calc(var(--status-h) + var(--topbar-h) + 58px + var(--cll-search-extra, 0px));
+}
+.cll-stat{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.cll-stat-value{
+  font-family:'Space Mono', monospace;
+  font-size:15px; font-weight:700;
+  color: var(--ink);
+  letter-spacing:0.01em;
+}
+.cll-stat-label{
+  font-size:9px;
+  color: var(--grey-2);
+  letter-spacing:0.02em;
+}
+.cll-stat-divider{ width:1px; height:24px; background: var(--crm-hair-line); flex-shrink:0; }
+
+/* ==========================================================================
+   消息滚动区：与聊天室 .crm-scroll 同源，但顶部让位给概览牙牌
+========================================================================== */
+.cll-scroll{
+  position:absolute;
+  top: calc(var(--status-h) + var(--topbar-h) + 78px);
+  bottom:0; left:0; right:0;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y: contain;
+  z-index:10;
+  transition: top 0.32s cubic-bezier(.22,1,.36,1);
+}
+body.cll-search-open .cll-scroll{
+  top: calc(var(--status-h) + var(--topbar-h) + 124px + var(--cll-search-extra, 0px));
+}
+.cll-scroll::-webkit-scrollbar{ display:none; }
+.cll-scroll-inner{
+  padding: 6px 18px 28px;
+  display:flex; flex-direction:column;
+  min-height:100%;
+}
+
+/* ---- 空态：与聊天室空态同一套印玺语汇，另加「前往聊天室」引导 ---- */
+.cll-empty-hint{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px;
+  padding: 40px 30px;
+  text-align:center;
+}
+.cll-empty-seal{
+  width:56px; height:56px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--grey-1);
+  background: linear-gradient(180deg, #ffffff, #f0f0f4);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 16px 34px -18px rgba(18,18,26,0.28),
+    0 0 0 1px rgba(18,18,26,0.05);
+  margin-bottom:4px;
+}
+.cll-empty-cn{ font-size:14px; font-weight:700; color: var(--ink); letter-spacing:0.02em; }
+.cll-empty-en{ font-family:'Space Mono', monospace; font-size:9px; letter-spacing:0.24em; color: var(--grey-3); }
+.cll-empty-btn{
+  margin-top:10px;
+  padding:11px 26px;
+  border-radius:18px;
+  font-size:12px; font-weight:700;
+  color:#fff; text-decoration:none;
+  letter-spacing:0.02em;
+  background: var(--crm-bubble-me);
+  box-shadow: 0 16px 30px -16px rgba(18,18,26,0.55), 0 0 0 1px var(--crm-lacquer-rim) inset;
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1);
+}
+.cll-empty-btn:active{ transform: scale(0.96); }
+
+/* ---- 搜索无结果态 ---- */
+.cll-nores-hint{
+  display:flex; align-items:center; justify-content:center;
+  padding: 46px 30px;
+  text-align:center;
+}
+.cll-nores-cn{ font-size:12.5px; color: var(--grey-2); line-height:1.6; }
+.cll-nores-cn span{ color: var(--ink); font-weight:700; }
+
+/* ---- 搜索命中高亮：消息文字内联标记，不改变气泡结构 ---- */
+.cll-hit-mark{
+  background: rgba(18,18,26,0.12);
+  border-radius:3px;
+  padding: 0 1px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.crm-msg-group.is-me .cll-hit-mark{
+  background: rgba(255,255,255,0.22);
+}
+/* 当前定位命中：加一圈更亮的描边，区别于其余同词命中 */
+.cll-hit-mark.is-current{
+  background: rgba(18,18,26,0.22);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.35);
+}
+.crm-msg-group.is-me .cll-hit-mark.is-current{
+  background: rgba(255,255,255,0.4);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.55);
+}
+/* 跳转定位时气泡短暂的呼吸提示，不依赖颜色跳变，只用透明度做柔和脉冲 */
+@keyframes cllJumpPulse{
+  0%{ box-shadow: 0 0 0 0 rgba(18,18,26,0.16); }
+  60%{ box-shadow: 0 0 0 9px rgba(18,18,26,0); }
+  100%{ box-shadow: 0 0 0 0 rgba(18,18,26,0); }
+}
+.crm-bubble.cll-jump-pulse{ animation: cllJumpPulse 0.9s ease-out; }
+
+/* ---- 搜索筛选下被过滤掉的消息组：收起为 0 高度，保留 DOM 便于即时切回 ---- */
+.crm-msg-group.cll-filtered-out,
+.crm-date-seal-row.cll-filtered-out{
+  display:none;
+}
+
+/* ==========================================================================
+   回到底部悬浮钮
+========================================================================== */
+.cll-toBottom-btn{
+  position:absolute;
+  right:16px; bottom:22px;
+  z-index:80;
+  display:flex; align-items:center; justify-content:center;
+  width:38px; height:38px;
+  border:none; border-radius:50%;
+  color: rgba(244,244,246,0.94);
+  background: var(--crm-bubble-me);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.14) inset,
+    0 16px 30px -14px rgba(10,10,12,0.55),
+    0 0 0 1px var(--crm-lacquer-rim);
+  opacity:0;
+  transform: translateY(8px) scale(0.9);
+  pointer-events:none;
+  transition: opacity 0.24s ease, transform 0.28s cubic-bezier(.34,1.56,.64,1);
+}
+.cll-toBottom-btn.is-visible{
+  opacity:1;
+  transform: translateY(0) scale(1);
+  pointer-events:auto;
+}
+.cll-toBottom-btn:active{ transform: scale(0.88); }

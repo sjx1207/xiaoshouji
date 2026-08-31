@@ -120,6 +120,124 @@
     };
   })();
 
+  /* ==========================================================================
+     收藏系统 —— window.LunaFavorites
+     数据落盘于 LunaDB 的 'favorites:messages'（消息收藏，数组）与
+     'favorites:moments'（动态收藏，数组，暂未启用），与聊天记录/
+     好友分组共用同一个 IndexedDB（luna_chat_db / kv），不新建数据库。
+
+     每条消息收藏记录结构：
+       {
+         id:          string   收藏记录自身的唯一 id（收藏时间戳+随机位）
+         ts:          number   原消息发出时间戳（用于展示、以及可能的跳转定位）
+         from:        'me' | 其它  原消息发送方
+         text:        string   消息文本
+         quote:       object|null  原消息若引用了别的消息，一并带上
+         favoritedAt: number   收藏动作发生的时间戳（用于收藏列表排序）
+         charId:      number|null 关联的角色档案 id（用于取角色背景图 cardBg）
+         friendKey:   string   好友分组键：charId!=null ? 'char-'+charId : 'name-'+friendName，
+                                与 chatroom.js 的 storeKey 后缀保持一致，用作分组依据
+         friendName:  string   好友/角色昵称（收藏时的快照，角色改名不会回溯更新旧记录）
+         friendAvatar:string   好友/角色头像（同上，快照）
+         color:       string   好友色阶 key（无头像时的字母底色兜底，同上，快照）
+       }
+
+     广播机制与 LunaMessagesBus 同源：优先 BroadcastChannel，
+     退化到 localStorage ping，统一收敛到 CustomEvent('luna:favorites-changed')，
+     收藏页监听此事件后原地增删 DOM，无需刷新整页。
+  ========================================================================== */
+  (function () {
+    var PING_KEY = 'luna_favorites_ping';
+    var bc = null;
+    try { if (window.BroadcastChannel) bc = new BroadcastChannel('luna_favorites'); } catch (e) {}
+
+    function fireLocal() {
+      document.dispatchEvent(new CustomEvent('luna:favorites-changed'));
+    }
+    if (bc) { bc.onmessage = function () { fireLocal(); }; }
+    window.addEventListener('storage', function (e) {
+      if (e.key === PING_KEY) fireLocal();
+    });
+
+    function notify() {
+      if (bc) { try { bc.postMessage({ ts: Date.now() }); } catch (e) {} }
+      try { localStorage.setItem(PING_KEY, String(Date.now())); } catch (e) {}
+      fireLocal();
+    }
+
+    function genId() {
+      return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    }
+
+    function getMessageFavorites() {
+      if (!window.LunaDB) return Promise.resolve([]);
+      return LunaDB.get('favorites:messages').then(function (v) { return Array.isArray(v) ? v : []; });
+    }
+
+    // session 结构与 chatroom.js 的 session 完全一致：{ name, avatar, online, color, charId }
+    function addMessageFavorite(msg, session) {
+      return getMessageFavorites().then(function (list) {
+        var friendKey = (session && session.charId != null) ? ('char-' + session.charId) : ('name-' + (session && session.name || '未知好友'));
+        // 幂等：同一条原始消息（同 ts + from + friendKey）已收藏过则不重复添加
+        var already = list.some(function (r) {
+          return r.ts === msg.ts && r.from === msg.from && r.friendKey === friendKey;
+        });
+        if (already) return { ok: false, reason: 'duplicate' };
+
+        list.push({
+          id: genId(),
+          ts: msg.ts,
+          from: msg.from,
+          text: msg.text || '',
+          quote: msg.quote || null,
+          favoritedAt: Date.now(),
+          charId: (session && session.charId != null) ? session.charId : null,
+          friendKey: friendKey,
+          friendName: (session && session.name) || '未知好友',
+          friendAvatar: (session && session.avatar) || '',
+          color: (session && session.color) || 'ink'
+        });
+        return LunaDB.set('favorites:messages', list).then(function () {
+          notify();
+          return { ok: true };
+        });
+      });
+    }
+
+    function removeMessageFavorite(id) {
+      return getMessageFavorites().then(function (list) {
+        var next = list.filter(function (r) { return r.id !== id; });
+        return LunaDB.set('favorites:messages', next).then(function () {
+          notify();
+          return true;
+        });
+      });
+    }
+
+    window.LunaFavorites = {
+      getMessageFavorites: getMessageFavorites,
+      addMessageFavorite: addMessageFavorite,
+      removeMessageFavorite: removeMessageFavorite,
+      notify: notify
+    };
+  })();
+
+  /* ==========================================================================
+     独立全屏覆盖层注册表 —— 表情包总览层 / 收藏总览层 / 好友资料层
+     都与 .pages-root 平级（绝对定位铺满整个 phone-frame，z-index 更高），
+     切换一级 tab 的逻辑天然不知道、也管不到这些覆盖层。若用户在某个
+     覆盖层内部时点击底部 tab，覆盖层若不主动关闭，会继续以最高层级
+     盖住新切入的页面，表现为"点了 tab 但画面没变、像卡住了一样"。
+
+     用一个共享数组代替事件广播：每个覆盖层模块初始化时把自己的
+     "如果开着就关闭"函数 push 进来，chat.js 切 tab 时直接遍历调用。
+     比事件广播更直接可查——数组内容随时可以打印出来确认"到底注册
+     上了几个"，不会出现"广播了但没人监听、且不报错"的隐性遗漏。
+     chat.js 在所有覆盖层脚本之前加载，此处只需保证 tab 点击时
+     （而非此刻）该数组已经填好即可，与脚本加载顺序无关。
+  ========================================================================== */
+  window.LunaOverlays = window.LunaOverlays || [];
+
   var PAGE_ORDER = ['messages', 'friends', 'moments', 'profile'];
   var PAGE_TITLES = {
     messages: '消息',
@@ -152,6 +270,63 @@
     opts = opts || {};
     var index = PAGE_ORDER.indexOf(name);
     if (index === -1) return;
+
+    // ------------------------------------------------------------------
+    // 强制清场：无论任何弹窗因为任何原因（时序、焦点、事件没触发、
+    // 别的模块的 bug）残留在打开状态，切页时一律就地强制拍平，
+    // 不做任何"是否应该关闭"的判断、不依赖任何模块自己的关闭函数、
+    // 不依赖任何事件是否被触发。这里直接操作最原始的 DOM 属性，
+    // 保证不管上游出了什么问题，导航本身永远不会被弹窗卡住。
+    try {
+      // 所有原生 <dialog>：只要还带着 open 属性，直接调用原生
+      // close()（同步、无动画、无条件）。不判断是谁的、不判断
+      // 之前状态，开着就关。
+      document.querySelectorAll('dialog[open]').forEach(function (dlg) {
+        try {
+          if (document.activeElement && dlg.contains(document.activeElement)) {
+            document.activeElement.blur();
+          }
+          dlg.close();
+        } catch (e) {}
+        dlg.classList.remove('is-open');
+      });
+      // 所有手写的全屏浮层（同时带 is-open 这个视觉 class 的元素）：
+      // 直接清掉 is-open，并强制打上 aria-hidden + inert，物理层面
+      // 保证它既不可见也不可交互，不依赖它自己内部任何一个变量。
+      document.querySelectorAll('.is-open').forEach(function (el) {
+        if (document.activeElement && el.contains(document.activeElement)) {
+          document.activeElement.blur();
+        }
+        el.classList.remove('is-open');
+      });
+      // 最后一道保险：不管上面两类清理是否覆盖到了所有情况，
+      // 只要某个元素此刻仍然铺满屏幕、盖在最上层（这正是"挡住
+      // 导航、点哪里都没反应"的唯一表现形式），直接用内联样式
+      // 强制把它按下去——不判断它是什么、属于哪个模块、该不该
+      // 关，纯粹保证它这一刻起不再能拦截任何点击或遮挡任何页面。
+      // 只对"确实还残留可见"的元素动手，不误伤正常隐藏的元素。
+      document.querySelectorAll('dialog, .fav-overlay, .fav-char-detail, .fp-overlay').forEach(function (el) {
+        var stillVisible = el.hasAttribute('open') || el.classList.contains('is-open');
+        if (stillVisible) {
+          el.style.setProperty('display', 'none', 'important');
+          el.style.setProperty('pointer-events', 'none', 'important');
+          el.classList.remove('is-open');
+          if (el.tagName === 'DIALOG') { try { el.close(); } catch (e) {} }
+        } else {
+          // 之前若被这段代码强制按下去过，这次确认它已经是关闭
+          // 状态了，把内联样式清掉，避免以后想正常打开它时，这
+          // 里残留的 !important 内联样式反而把它重新锁死在隐藏态。
+          el.style.removeProperty('display');
+          el.style.removeProperty('pointer-events');
+        }
+      });
+    } catch (err) {
+      console.error('[activatePage] 强制清场失败（不影响继续切页）：', err);
+    }
+    // ------------------------------------------------------------------
+
+    var previousPage = PAGE_ORDER[currentIndex];
+    opts.previousPage = previousPage;
     currentIndex = index;
 
     pages.forEach(function (p) {
@@ -214,13 +389,75 @@
     // 一整张画布，而非 content 区域内孤立的圆角色块
     var phoneFrame = document.querySelector('.phone-frame');
     if (phoneFrame) phoneFrame.classList.toggle('is-moments-chrome', name === 'moments');
+
+    // 广播全局导航事件——chat.js 不需要知道有谁在监听、监听的
+    // 模块要做什么。任何独立的覆盖层/弹窗模块（表情包、收藏、
+    // 好友资料等）都可以自己订阅这个事件，在页面切走时自行判断
+    // 要不要关闭、怎么关闭、怎么转移焦点，chat.js 全程不参与、
+    // 也不需要认识任何具体模块的 DOM 结构。
+    try {
+      window.dispatchEvent(new CustomEvent('luna:page-change', {
+        detail: { page: name, previousPage: opts.previousPage }
+      }));
+    } catch (err) {
+      console.error('[luna:page-change] 广播导航事件失败：', err);
+    }
   }
+
+  /* ==========================================================================
+     LunaOverlays —— 保留作为可选的通用注册表
+
+     这里不再对收藏页（.fav-overlay、.fav-char-detail）、好友资料页
+     （.fp-overlay）等任何具体模块的 DOM 结构做硬编码认知。原来的写法
+     是主导航（chat.js）反过来知道并耦合每个子模块内部怎么实现弹窗——
+     子模块随便改一下自己的 class 名或结构，主导航这边的兜底就悄悄
+     失效，出问题时也很难联想到"罪魁祸首其实是 chat.js 里的一段
+     选择器"。
+
+     现在改为两种互补的、模块"自己选、自己负责"的接入方式：
+
+     1. 广播 luna:page-change 事件（见下方 activatePage 内部）——
+        任何模块只要监听这个事件，就能在页面切走时自己判断"我是不是
+        还开着"、自己关闭、自己做焦点转移。推荐用这种方式。
+
+     2. window.LunaOverlays 数组——仍然保留作为可选的"拉"模型注册表，
+        模块可以往里 push 一个 { closeIfOpen() {...} }，chat.js 切
+        tab 时会遍历调用。chat.js 自己永远不会往这个数组里塞任何
+        东西，也不关心里面某一项具体是什么模块、该怎么处理，纯粹是
+        "数组里注册了什么就都点名喊一遍"——继续保留只是为了兼容可能
+        还在用这种旧接口的模块，而不是主导航反过来认识任何具体实现。
+  ========================================================================== */
+  window.LunaOverlays = window.LunaOverlays || [];
 
   tabItems.forEach(function (btn) {
     btn.addEventListener('click', function () {
       var name = btn.dataset.tab;
       if (!name) return;
-      activatePage(name);
+      // 关键：这里必须给每一个 closeIfOpen() 单独兜一层 try/catch。
+      // LunaOverlays 数组会随着页面越做越多、越接越多模块进来，
+      // 任何一个模块自己的关闭逻辑里哪怕只是一处疏漏（空指针、
+      // 元素不存在等）抛出异常，如果不隔离，forEach 会被整体中断，
+      // 直接导致下面 activatePage(name) 这行真正切页面的代码
+      // 永远执行不到——表现出来就是"点了 tab 没反应，卡在原页面"，
+      // 而且控制台里往往看不到明显提示（错误发生在事件回调里，
+      // 容易被忽略）。一个弹窗自己没关好，绝不应该有能力拖垮
+      // 整个底部导航，两者要严格隔离。
+      window.LunaOverlays.forEach(function (ov) {
+        try {
+          if (ov && typeof ov.closeIfOpen === 'function') ov.closeIfOpen();
+        } catch (err) {
+          console.error('[LunaOverlays] 某个覆盖层关闭时报错，已跳过，不影响切页：', err);
+        }
+      });
+      // activatePage 本身也兜一层，理由同上——切页动作是全局最基础的
+      // 交互，任何意外都不该让它失效。activatePage 内部会广播
+      // luna:page-change 事件，各模块自己监听、自己清理自己的
+      // 弹窗/浮层，chat.js 不需要认识任何一个具体模块。
+      try {
+        activatePage(name);
+      } catch (err) {
+        console.error('[activatePage] 切页时报错：', err);
+      }
     });
   });
 
@@ -1077,10 +1314,17 @@
       { id: 'default', cn: '我的好友', en: 'ALL FRIENDS', collapsed: false, friends: [] }
     ];
 
+    // 注意：listEl/countEl/sectionEl 只存在于"好友页"自身的 DOM 里。
+    // 但本 IIFE 除了渲染好友页列表之外，还承担着导出 window.LunaFriends
+    // （好友数据的读写接口）、从 IndexedDB 恢复 friendGroups 等"全站
+    // 共享"的职责——聊天室页（chatroom.html）、消息页等其它页面虽然
+    // 没有这三个 DOM 节点，但同样需要 window.LunaFriends 可用（例如
+    // 转发功能要读 uniqueFriends()）。因此这里绝不能在缺少这三个节点
+    // 时整体 return，否则会导致 window.LunaFriends 在那些页面上根本
+    // 不存在。改为只在真正需要写 DOM 的地方（renderFriends 内部）判空。
     var listEl = document.getElementById('friendsList');
     var countEl = document.getElementById('friendsTotalCount');
     var sectionEl = document.getElementById('flistSection');
-    if (!listEl || !countEl || !sectionEl) return;
 
     // 罗马数字序号，呼应全站"錾刻/卷宗"字体语言，避免使用阿拉伯数字或 emoji
     var ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
@@ -1205,18 +1449,24 @@
     }
 
     function renderFriends() {
-      listEl.innerHTML = '';
+      // 当前页面没有好友页自身的列表 DOM（例如聊天室页/消息页）时，
+      // 跳过这部分 DOM 渲染，但函数仍需继续往下执行——调用方（save()、
+      // 数据库读取回调等）依赖 renderFriends() 之后紧跟的
+      // renderMessagesStoryRing() 与事件广播照常发生。
+      if (listEl && countEl && sectionEl) {
+        listEl.innerHTML = '';
 
-      GROUPS.forEach(function (g, gi) {
-        if (g.friends.length === 0) return;
-        listEl.appendChild(buildGroup(g, gi));
-      });
+        GROUPS.forEach(function (g, gi) {
+          if (g.friends.length === 0) return;
+          listEl.appendChild(buildGroup(g, gi));
+        });
 
-      // 计数与空态均由实际渲染出的条目数决定，杜绝"列表为空却显示数字"
-      // 或"有数据却显示 0"的不一致情况。
-      var total = totalFriends();
-      countEl.textContent = String(total);
-      sectionEl.setAttribute('data-empty', total === 0 ? 'true' : 'false');
+        // 计数与空态均由实际渲染出的条目数决定，杜绝"列表为空却显示数字"
+        // 或"有数据却显示 0"的不一致情况。
+        var total = totalFriends();
+        countEl.textContent = String(total);
+        sectionEl.setAttribute('data-empty', total === 0 ? 'true' : 'false');
+      }
 
       renderMessagesStoryRing();
     }
@@ -1298,6 +1548,13 @@
       online.forEach(function (f) { ring.appendChild(buildStoryRingItem(f)); });
     }
 
+    // 是否已完成启动时的一次性数据库读取。在此之前绝不允许 save()
+    // 把内存里的初始空 GROUPS 写回数据库——否则任何在读库完成前
+    // 触发的 save()（例如切换 tab 时连带调用到的渲染/保存路径）
+    // 都会用空数组覆盖掉数据库里已经保存的真实好友数据，造成
+    // "切一次 tab 数据就整个消失"的严重 bug。
+    var friendsLoaded = false;
+
     // 暴露读写接口，供后续"加好友/分组管理"等功能写入真实数据后
     // 调用 window.LunaFriends.save() 持久化并重新渲染。先导出、
     // 再异步读库——确保下面 LunaDB.get('friendGroups') 的回调触发时，
@@ -1305,6 +1562,14 @@
     window.LunaFriends = {
       groups: GROUPS,
       save: function () {
+        // 数据库初次读取尚未完成时，直接跳过持久化写入（但仍然
+        // 允许内存态渲染），避免用尚未加载完成的空/旧 GROUPS
+        // 覆盖数据库里已经存在的数据。读取完成后如仍有待保存的
+        // 修改，调用方会在数据到手后重新触发一次 save()。
+        if (!friendsLoaded) {
+          renderFriends();
+          return;
+        }
         if (window.LunaDB) LunaDB.set('friendGroups', GROUPS);
         renderFriends();
         // 广播好友数据变更，动态页故事环等其它模块借此实时刷新，
@@ -1314,7 +1579,11 @@
       // 供消息列表模块复用：按 charId/姓名去重后的好友数组、以及与
       // 好友卡片一致的头像取色算法，避免消息页头像与好友页对不上
       uniqueFriends: uniqueFriends,
-      toneForKey: toneForKey
+      toneForKey: toneForKey,
+      // 供其它页面（如聊天室转发功能）判断"数据库首次读取是否已经
+      // 完成"——不能仅凭 uniqueFriends() 返回空数组就断定用户确实
+      // 没有好友，因为读库是异步的，可能只是还没读完
+      isLoaded: function () { return friendsLoaded; }
     };
 
     // 启动时从数据库恢复好友分组数据；若数据库中尚无记录（首次使用），
@@ -1329,10 +1598,16 @@
           // 过期数据，即使好友页自己渲染正常也发现不了这个问题
           window.LunaFriends.groups = GROUPS;
         }
+        // 必须先标记"已加载完成"，再渲染/广播——否则如果 renderFriends()
+        // 或事件监听内部又同步触发了一次 save()，那次 save() 仍会因
+        // friendsLoaded 还是 false 而被跳过，导致这一轮真实数据白白
+        // 读了一遍却没能落盘。
+        friendsLoaded = true;
         renderFriends();
         document.dispatchEvent(new CustomEvent('luna:friends-changed'));
       });
     } else {
+      friendsLoaded = true;
       renderFriends();
     }
   })();

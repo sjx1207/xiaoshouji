@@ -1,0 +1,504 @@
+/* ==========================================================
+   共读屿 · 阅读器 v2
+   ========================================================== */
+:root{
+  --rd-bg:#f6f7f8;
+  --rd-ink:#191c21;
+  --rd-fs:18px;
+  --rd-lh:2.12;
+  --rd-ls:0.015em;
+  --rd-ps:1.55em;
+  --rd-pad:28px;
+  --rd-indent:0em;
+  --rd-font:'Noto Serif SC','Songti SC',serif;
+  --rd-line:rgba(25,28,33,.14);
+  --rd-soft:rgba(25,28,33,.55);
+}
+html.rd, body.reader{ background:var(--rd-bg); }
+body.reader{ overscroll-behavior:none; }
+
+#rdBgImg{
+  position:fixed; inset:0; z-index:0; background-size:cover; background-position:center;
+  display:none;
+}
+#rdBgVeil{ position:fixed; inset:0; z-index:1; display:none; }
+
+/* ---------------- 顶栏 ---------------- */
+/* 顶栏与状态栏本身不再铺不透明底色——始终透出 body / #rdBgImg 背景。
+   可读性靠极轻的黑色渐隐 + 模糊来保证，而不是拿实色糊住背景图。
+   没有自定义背景图时，body 背景就是 --rd-bg，视觉效果与之前基本一致；
+   一旦设置了背景图，这里会如实透出背景图，不再出现"白蒙皮"。 */
+.rd-top{
+  position:fixed; top:0; left:0; right:0; z-index:600;
+  padding:calc(var(--status-h) + 5px) 15px 11px;
+  display:flex; align-items:center; gap:11px;
+  background:linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,0) 100%);
+  -webkit-backdrop-filter:blur(7px) saturate(1.1);
+  backdrop-filter:blur(7px) saturate(1.1);
+  -webkit-mask-image:linear-gradient(180deg, #000 55%, transparent 100%);
+  mask-image:linear-gradient(180deg, #000 55%, transparent 100%);
+  transition:opacity .3s, transform .3s;
+}
+.rd-top.hide{ opacity:0; transform:translateY(-10px); pointer-events:none; }
+.rd-top .t{
+  flex:1; min-width:0; font-family:var(--serif); font-size:14px; font-weight:600;
+  letter-spacing:.1em; color:var(--rd-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:.82;
+}
+.rd-ic{
+  width:36px; height:36px; flex:0 0 36px; display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--rd-line); background:rgba(255,255,255,.62); color:var(--rd-ink);
+  cursor:pointer; backdrop-filter:blur(10px); border-radius:2px;
+}
+.rd-prog{ position:fixed; top:0; left:0; right:0; height:2px; z-index:700; }
+.rd-prog i{ display:block; height:100%; background:var(--rd-ink); width:0; opacity:.65; }
+
+.rd-scroll{ position:absolute; inset:0; overflow-y:auto; z-index:3; background:transparent; }
+.rd-scroll::-webkit-scrollbar{ width:0; }
+.rd-body{ padding:calc(var(--status-h) + 44px) var(--rd-pad) 0; position:relative; }
+
+/* ---------------- 卷首扉页 ---------------- */
+.rd-hero{ position:relative; padding:34px 0 40px; margin-bottom:16px; }
+.rd-hero .rule-top{ display:flex; align-items:center; gap:11px; margin-bottom:26px; }
+.rd-hero .rule-top i{ flex:1; height:1px; background:var(--rd-line); }
+.rd-hero .rule-top b{
+  font-family:var(--mono); font-size:10px; font-weight:400; letter-spacing:.3em;
+  color:var(--rd-soft); text-transform:uppercase;
+}
+.rd-hero .cp{
+  display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:.26em;
+  color:var(--rd-ink); border:1px solid var(--rd-line); padding:5px 10px; text-transform:uppercase; opacity:.85;
+}
+.rd-hero h1{
+  margin:20px 0 0; font-family:var(--rd-font); font-size:33px; font-weight:800;
+  line-height:1.46; letter-spacing:.04em; color:var(--rd-ink);
+}
+.rd-hero .meta{
+  margin-top:20px; font-family:var(--mono); font-size:10.5px; letter-spacing:.16em;
+  color:var(--rd-soft); display:flex; gap:14px; flex-wrap:wrap;
+}
+.rd-hero .tagline{ margin-top:12px; font-size:12px; color:var(--rd-soft); letter-spacing:.06em; line-height:2; }
+.rd-hero .sum{
+  margin-top:24px; padding:18px 20px 18px 26px; position:relative;
+  font-family:var(--rd-font); font-size:14px; line-height:2.05; color:var(--rd-ink);
+  background:rgba(255,255,255,.5); border:1px solid var(--rd-line); opacity:.94;
+}
+.rd-hero .sum::before{
+  content:''; position:absolute; left:10px; top:18px; bottom:18px; width:1px;
+  background:var(--rd-ink); opacity:.35;
+}
+.rd-hero .cvr{
+  position:absolute; right:0; top:56px; width:74px; height:99px;
+  border:4px solid #fff; box-shadow:0 10px 26px rgba(18,20,24,.24); transform:rotate(3.5deg); overflow:hidden;
+}
+.rd-hero .cvr img{ width:100%; height:100%; object-fit:cover; filter:grayscale(.3); }
+
+.rd-open{ display:flex; align-items:center; justify-content:center; gap:14px; margin:6px 0 34px; }
+.rd-open i{ width:44px; height:1px; background:var(--rd-line); }
+.rd-open b{ width:5px; height:5px; background:var(--rd-ink); opacity:.5; transform:rotate(45deg); }
+
+/* ---------------- 图例 ---------------- */
+.rd-legend{
+  display:flex; gap:9px; flex-wrap:wrap; align-items:center;
+  padding:12px 14px; margin-bottom:30px;
+  border-top:1px solid var(--rd-line); border-bottom:1px solid var(--rd-line);
+}
+.rd-legend .k{ font-family:var(--mono); font-size:9.5px; letter-spacing:.22em; color:var(--rd-soft); }
+.rd-legend span.s{ font-size:12px; letter-spacing:.04em; color:var(--rd-ink); opacity:.85; }
+.rd-legend .tg{
+  margin-left:auto; font-family:var(--mono); font-size:10px; letter-spacing:.14em;
+  cursor:pointer; color:var(--rd-ink); border-bottom:1px solid var(--rd-line); opacity:.7;
+}
+
+/* ---------------- 正文 ---------------- */
+.rd-p{
+  position:relative; margin:0 0 var(--rd-ps);
+  font-family:var(--rd-font); font-size:var(--rd-fs); line-height:var(--rd-lh);
+  letter-spacing:var(--rd-ls); color:var(--rd-ink); text-align:justify;
+  text-indent:var(--rd-indent); word-break:normal;
+}
+.rd-p.lead{ text-indent:0; }
+.rd-p.lead::before{
+  content:''; display:block; width:34px; height:2px; background:var(--rd-ink);
+  opacity:.75; margin:0 0 16px;
+}
+/* ==========================================================
+   对白独立分层（dlg）—— 整段判定为"纯对白"时套的段落级样式
+   ----------------------------------------------------------
+   下面 5 种都只用"整个 <p> 盒子"级别的属性：border / background /
+   padding / margin，以及只标记盒子四角（不追踪具体某一行）的
+   ::before/::after。没有任何依赖"文字在哪一行换行"的定位，
+   所以无论段落多长、换多少行，都不会露出断裂或错位的装饰——
+   跟前面 q 标记同一个安全原则。
+   由 gd-reader.js 的 nextDlgVariant() 按段随机指派，相邻不重复。 */
+.rd-p.dlg{ text-indent:0; font-size:calc(var(--rd-fs) + 0.5px); }
+
+/* v0 · 原始款：左侧细线 + 顶部小竖标，安静基调款 */
+.rd-p.dlg.dlg-v0{
+  padding-left:16px; margin-left:2px;
+  border-left:1px solid var(--rd-line);
+}
+.rd-p.dlg.dlg-v0::before{
+  content:''; position:absolute; left:-1px; top:.55em; width:2px; height:1.15em;
+  background:var(--rd-ink); opacity:.62;
+}
+
+/* v1 · 卡片底款：极浅的整段底色 + 四角描边，像便签贴纸包住整段对白 */
+.rd-p.dlg.dlg-v1{
+  padding:14px 16px;
+  margin-left:-16px; margin-right:-16px;
+  background:color-mix(in srgb, var(--rd-ink) 4.5%, transparent);
+  box-shadow:0 0 0 1px var(--rd-line);
+}
+
+/* v2 · 双线框款：顶部与底部各一条细线，像把整段对白圈在两道界线之间，
+   不用左右边框，避免和两端对齐的文字宽度产生视觉冲突。 */
+.rd-p.dlg.dlg-v2{
+  padding:12px 2px;
+  border-top:1px solid var(--rd-line);
+  border-bottom:1px solid var(--rd-line);
+}
+
+/* v3 · 缩进款：整段轻微右缩，配合极淡的左侧竖向渐变色带，
+   像剧本里单独抬头缩进的一段台词。 */
+.rd-p.dlg.dlg-v3{
+  padding-left:22px;
+  margin-left:6px;
+  background:linear-gradient(90deg, color-mix(in srgb, var(--rd-ink) 10%, transparent) 0, transparent 3px);
+  background-repeat:no-repeat;
+  border-left:2px solid transparent;
+  box-shadow:inset 2px 0 0 var(--rd-ink);
+}
+
+/* v4 · 角标款：只在左上、右下两个角画一对小折角框线（像旧书里
+   圈住引文的手法），中间完全不加任何底色或边框，最不抢戏但仍可辨认。 */
+.rd-p.dlg.dlg-v4{
+  padding:10px 14px;
+  margin-left:-14px; margin-right:-14px;
+}
+.rd-p.dlg.dlg-v4::before, .rd-p.dlg.dlg-v4::after{
+  content:''; position:absolute; width:11px; height:11px; opacity:.7;
+}
+.rd-p.dlg.dlg-v4::before{
+  left:0; top:0;
+  border-left:1.4px solid var(--rd-ink); border-top:1.4px solid var(--rd-ink);
+}
+.rd-p.dlg.dlg-v4::after{
+  right:0; bottom:0;
+  border-right:1.4px solid var(--rd-ink); border-bottom:1.4px solid var(--rd-ink);
+}
+
+.rd-num{
+  position:absolute; right:calc(var(--rd-pad) * -1 + 6px); top:.62em;
+  font-family:var(--mono); font-size:9px; color:var(--rd-soft); opacity:.5; letter-spacing:.04em;
+}
+.rd-sep{ display:flex; align-items:center; justify-content:center; gap:16px; margin:46px 0 42px; }
+.rd-sep i{ flex:0 0 40px; height:1px; background:var(--rd-line); }
+.rd-sep b{
+  font-family:var(--serif); font-size:12.5px; letter-spacing:.34em; color:var(--rd-ink);
+  font-weight:500; opacity:.7;
+}
+
+/* ---------------- 左右结构标点 ---------------- */
+/* 「对白」基础样式（所有变体共享） + 十种风格差异明显的"标记手法"，
+   由 gd-reader.js 按段随机指派（相邻不重复）。每种变体都尽量做到
+   "一眼能认出是不同的记号"，而不是同一套字重/字距的排列组合——
+   有的像荧光笔划过、有的像图章盖下去、有的像手写圈注，
+   仍然限定在黑白灰体系内，不引入彩色。 */
+/* ==========================================================
+   对白（q）标记 v3：全部重做为"跨行安全"的样式集
+   ----------------------------------------------------------
+   旧版 v3/v4/v5/v6/v9 都依赖 position:absolute 的 ::before/::after
+   贴在整个 <span> 外面画装饰（波浪线、竖标、圈线、三角、括标）。
+   这类绝对定位装饰是"钉在这个span的包围盒"上的，一旦span里的文字
+   在段落里换行、被分成两截，装饰只会出现在其中一行（通常是第一行
+   或最后一行的某个位置），跟文字断开，看起来就像正文里凭空多出来
+   一个孤立的符号（读者反馈里说的"乱码"本质就是这个）。
+
+   这一版改为只使用三类天然"跟随换行"的手法，任何一种都不会在
+   换行处产生游离的装饰碎片：
+   1. background（背景色块）——background 对每一行独立重绘，天然贴合；
+      配合 box-decoration-break:clone，换行后每一段文字各自补全
+      左右圆角/内边距，不会露出断口。
+   2. box-shadow（外框描边）——同样受 box-decoration-break 控制，
+      逐行独立画框，不存在"整体外框"这种东西，自然没有断裂问题。
+   3. text-decoration（下划线/删除线样式）——这是浏览器原生跟随文字
+      换行的排版属性，本来就是逐行绘制的，最安全。
+   4. font-weight / letter-spacing / font-style 等纯文字属性——
+      不产生任何独立于文字的图形，绝对不会跨行错位。
+
+   唯一的例外是 qm（「」「“」这些标点本身）：因为它们是真实的行内
+   文字节点，不是装饰，所以可以放心地单独强调它们的颜色/字重/大小，
+   即使换行也只是这个字符本身换到下一行，不会有"孤立符号"问题。 */
+.q{ font-weight:600; color:var(--rd-ink); letter-spacing:.02em; }
+.q .qm{ font-weight:300; opacity:.34; }
+
+/* v0 · 原始款：纯粹加粗，安静不抢戏 —— 出现频率最高时也不突兀的基调款 */
+.q.q-v0{ font-weight:600; }
+
+/* v1 · 荧光块款：一整条半透明色块贴在文字后面，像用扁头荧光笔划过
+   background + box-decoration-break:clone：逐行独立绘制色块，换行
+   后每一行各自拥有完整的色块与圆角，不会断裂或产生孤立碎片。 */
+.q.q-v1{
+  font-weight:500;
+  background:var(--rd-ink);
+  padding:.08em .3em;
+  margin:0 -.05em;
+  color:var(--rd-bg);
+  border-radius:1px;
+  -webkit-box-decoration-break:clone; box-decoration-break:clone;
+}
+.q.q-v1 .qm{ color:var(--rd-bg); opacity:.55; }
+
+/* v2 · 描边框款：box-shadow 外框，逐行独立描边，圆角略微不规则
+   （模拟手盖印章的歪斜感），跨行时每一行各自成框，天然安全。 */
+.q.q-v2{
+  font-weight:600;
+  padding:.08em .4em;
+  margin:0 -.05em;
+  box-shadow:0 0 0 1.4px var(--rd-ink);
+  border-radius:3px 9px 4px 10px / 8px 4px 10px 3px;
+  -webkit-box-decoration-break:clone; box-decoration-break:clone;
+}
+
+/* v3 · 波浪下划线款：改用原生 text-decoration-style:wavy 而非
+   position:absolute 的 SVG mask 波浪线——text-decoration 是逐行
+   跟随文字排布的原生属性，换行后每一行都会各自画出完整的波浪，
+   不存在"装饰留在上一行"的问题。 */
+.q.q-v3{
+  font-weight:500;
+  text-decoration:underline;
+  text-decoration-style:wavy;
+  text-decoration-color:var(--rd-ink);
+  text-decoration-thickness:1.1px;
+  text-underline-offset:4px;
+}
+
+/* v4 · 双色块款：background 分层叠加，比 v1 更浅更宽，配合极小字距
+   拉伸，像用两种深浅荧光笔重复扫过——同样是 background，逐行安全。 */
+.q.q-v4{
+  font-weight:600;
+  letter-spacing:.03em;
+  background:linear-gradient(180deg, transparent 62%, var(--rd-ink) 62%, var(--rd-ink) 88%, transparent 88%);
+  -webkit-box-decoration-break:clone; box-decoration-break:clone;
+}
+
+/* v5 · 描边反白款：外框 + 极淡底色，比 v2 更"卡片感"，同样靠
+   box-shadow + background 逐行独立绘制，不用任何绝对定位装饰。 */
+.q.q-v5{
+  font-weight:500;
+  padding:.1em .42em;
+  margin:0 -.05em;
+  box-shadow:0 0 0 1px var(--rd-ink);
+  background:color-mix(in srgb, var(--rd-ink) 6%, transparent);
+  border-radius:2px;
+  -webkit-box-decoration-break:clone; box-decoration-break:clone;
+}
+
+/* v6 · 双下划线款：text-decoration-style:double，原生逐行绘制，
+   比单线更强调、比波浪线更克制，适合放"郑重宣告"类台词。 */
+.q.q-v6{
+  font-weight:600;
+  text-decoration:underline;
+  text-decoration-style:double;
+  text-decoration-color:var(--rd-ink);
+  text-underline-offset:5px;
+}
+
+/* v7 · 反白款：深底浅字，像被贴了一小张便签纸
+   background + box-decoration-break:clone，跨行也不会破坏两端对齐排版。 */
+.q.q-v7{
+  font-weight:600;
+  padding:.1em .38em;
+  background:var(--rd-ink);
+  color:var(--rd-bg);
+  border-radius:1px;
+  -webkit-box-decoration-break:clone; box-decoration-break:clone;
+}
+.q.q-v7 .qm{ color:var(--rd-bg); opacity:.55; }
+
+/* v8 · 疏排款：不加粗，靠字距拉开制造"停顿感"，像被念得慢一点的那句
+   纯文字属性，没有任何附加图形，天然不会有换行错位问题。 */
+.q.q-v8{
+  font-weight:400;
+  letter-spacing:.11em;
+}
+
+/* v9 · 点式下划线款：text-decoration-style:dotted，配合斜体，
+   像编辑手写标出的引述重点——同样是原生逐行属性，绝对安全。 */
+.q.q-v9{
+  font-weight:500;
+  font-style:italic;
+  text-decoration:underline;
+  text-decoration-style:dotted;
+  text-decoration-color:var(--rd-ink);
+  text-underline-offset:4px;
+  text-decoration-thickness:1.4px;
+}
+
+.p{ color:var(--rd-soft); font-size:.93em; letter-spacing:.04em; }
+.p .qm{ opacity:.45; }
+/* 场记【】—— 前置一枚小巧的装饰符号（回形针状），文字本身用描边+投影
+   而不是背景色块来提升可读性：不管压在纸面还是深色照片背景上都清晰，
+   同时因为有独立图形符号，比纯排版处理更有记忆点、更"抓眼"。 */
+.n{
+  font-family:var(--rd-font); font-size:.92em; font-weight:600;
+  letter-spacing:.08em; color:var(--rd-ink);
+  padding-left:1.3em; position:relative;
+  text-shadow:
+    0 0 1px var(--rd-bg), 0 0 6px var(--rd-bg),
+    0 1px 3px rgba(0,0,0,.18);
+}
+.n::before{
+  content:''; position:absolute; left:0; top:.14em;
+  width:.85em; height:.85em;
+  background:var(--rd-ink);
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 7l-8.5 8.5a3 3 0 0 0 4.24 4.24L20.5 12a5 5 0 0 0-7.07-7.07L6 12.36'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 7l-8.5 8.5a3 3 0 0 0 4.24 4.24L20.5 12a5 5 0 0 0-7.07-7.07L6 12.36'/%3E%3C/svg%3E");
+  -webkit-mask-size:contain; mask-size:contain;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  filter:drop-shadow(0 0 2px var(--rd-bg)) drop-shadow(0 0 2px var(--rd-bg));
+}
+.n .qm{ display:none; }
+.w{ text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:6px; text-decoration-color:var(--rd-line); }
+.w .qm{ opacity:.4; }
+.d{ letter-spacing:.14em; opacity:.78; }
+
+body.off-q .q{
+  font-weight:inherit; font-style:inherit; letter-spacing:inherit; text-decoration:none;
+  text-shadow:none; padding:0; margin:0; border:none; box-shadow:none;
+  background:none; color:inherit; display:inline; transform:none;
+  border-radius:0;
+}
+body.off-q .q::before, body.off-q .q::after{ display:none; content:none; }
+body.off-q .q .qm{ opacity:inherit; font-weight:inherit; color:inherit; }
+body.off-p .p{ color:inherit; font-size:inherit; letter-spacing:inherit; }
+body.off-n .n{
+  font-family:inherit; font-size:inherit; font-weight:inherit; letter-spacing:inherit;
+  color:inherit; padding:0; text-shadow:none;
+}
+body.off-n .n::before{ display:none; }
+body.off-n .n .qm{ display:inline; opacity:.4; }
+body.off-w .w{ text-decoration:none; }
+body.off-d .d{ letter-spacing:inherit; opacity:1; }
+body.off-q .rd-p.dlg{
+  border:none; box-shadow:none; background:none; padding:0; margin:0;
+  font-size:var(--rd-fs);
+}
+body.off-q .rd-p.dlg::before, body.off-q .rd-p.dlg::after{ display:none; content:none; }
+body.noj .rd-p{ text-align:left; }
+
+/* ---------------- 尾页 ---------------- */
+.rd-end{ margin:52px 0 0; padding:30px 0 26px; text-align:center; border-top:1px solid var(--rd-line); }
+.rd-end .t{ font-family:var(--rd-font); font-size:15px; letter-spacing:.34em; color:var(--rd-ink); opacity:.8; }
+.rd-end .s{ font-family:var(--mono); font-size:10px; letter-spacing:.18em; color:var(--rd-soft); margin-top:11px; }
+
+/* ---------------- 互动召唤 ---------------- */
+.rd-call{
+  margin:26px calc(var(--rd-pad) * -1) 0; padding:38px 24px 34px;
+  position:relative; text-align:center; cursor:pointer; overflow:hidden;
+  border-top:1px solid var(--rd-line);
+}
+.rd-call .ripple{ width:88px; height:88px; margin:0 auto 16px; position:relative; }
+.rd-call .ripple i{
+  position:absolute; inset:0; border-radius:50%; border:1px solid var(--rd-line);
+  animation:rdRip 3.2s infinite ease-out;
+}
+.rd-call .ripple i:nth-child(2){ animation-delay:1.05s; }
+.rd-call .ripple i:nth-child(3){ animation-delay:2.1s; }
+.rd-call .ripple b{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:13px; height:13px; border-radius:50%; background:var(--rd-ink); opacity:.75;
+}
+@keyframes rdRip{ 0%{ transform:scale(.22); opacity:.8 } 100%{ transform:scale(1); opacity:0 } }
+.rd-call .t{ font-family:var(--rd-font); font-size:16px; font-weight:700; letter-spacing:.2em; color:var(--rd-ink); }
+.rd-call .s{ font-family:var(--mono); font-size:10px; letter-spacing:.2em; color:var(--rd-soft); margin-top:10px; }
+
+/* ---------------- 评论 ---------------- */
+.cmt-wrap{ margin:0 calc(var(--rd-pad) * -1); padding:4px 24px 34px; }
+.cmt-head{ display:flex; align-items:baseline; gap:11px; padding:22px 0 14px; border-bottom:1px solid var(--rd-line); }
+.cmt-head .t{ font-family:var(--rd-font); font-size:17px; font-weight:700; letter-spacing:.14em; color:var(--rd-ink); }
+.cmt-head .c{ font-family:var(--mono); font-size:10px; color:var(--rd-soft); letter-spacing:.14em; }
+.cmt-head .re{ margin-left:auto; font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--rd-ink); cursor:pointer; border-bottom:1px solid var(--rd-line); }
+
+.cmt{ padding:18px 0; border-bottom:1px solid var(--rd-line); position:relative; animation:gdRise .45s both; }
+.cmt-top{ display:flex; gap:12px; align-items:flex-start; }
+.cmt-av{ flex:0 0 38px; width:38px; border-radius:10px; overflow:hidden; }
+.cmt-av img{ width:38px; height:38px; object-fit:cover; display:block; }
+.cmt-main{ flex:1; min-width:0; }
+.cmt-nm{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.cmt-nm b{ font-size:13.5px; font-weight:700; color:var(--rd-ink); letter-spacing:.03em; }
+.cmt-nm .fl{ font-family:var(--mono); font-size:9.5px; color:var(--rd-soft); letter-spacing:.1em; }
+.cmt-nm .badge{ font-family:var(--mono); font-size:9px; letter-spacing:.1em; color:var(--rd-bg); background:var(--rd-ink); padding:2px 6px; }
+.cmt-tx{
+  margin-top:8px; font-family:var(--rd-font); font-size:14px; line-height:1.98;
+  color:var(--rd-ink); opacity:.92; letter-spacing:.02em; white-space:pre-wrap; word-break:break-word;
+}
+.cmt-ft{ display:flex; align-items:center; gap:18px; margin-top:10px; }
+.cmt-ft span{ font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--rd-soft); cursor:pointer; display:flex; align-items:center; gap:5px; }
+.cmt-ft span.on{ color:var(--rd-ink); font-weight:700; }
+.cmt-sub{ margin:14px 0 0 50px; padding-left:15px; border-left:1px solid var(--rd-line); }
+.cmt-sub .cmt{ padding:12px 0; border-bottom:none; }
+.cmt-sub .cmt-av{ flex:0 0 30px; width:30px; border-radius:8px; }
+.cmt-sub .cmt-av img{ width:30px; height:30px; }
+.cmt-sub .cmt-tx{ font-size:13px; }
+#cmtList .cmt:last-child{ border-bottom:none; }
+
+.cmt-loading{ padding:28px 0; text-align:center; }
+.cmt-loading .dots{ display:inline-flex; gap:6px; }
+.cmt-loading .dots i{ width:5px; height:5px; border-radius:50%; background:var(--rd-soft); animation:blink 1.2s infinite; }
+.cmt-loading .dots i:nth-child(2){ animation-delay:.2s } .cmt-loading .dots i:nth-child(3){ animation-delay:.4s }
+@keyframes blink{ 0%,100%{ opacity:.25 } 50%{ opacity:1 } }
+.cmt-loading .tx{ font-family:var(--mono); font-size:10px; letter-spacing:.2em; color:var(--rd-soft); margin-top:12px; }
+
+.cmt-input{
+  position:fixed; left:0; right:0; bottom:0; z-index:1180;
+  padding:12px 16px calc(15px + env(safe-area-inset-bottom));
+  background:rgba(250,251,252,.94); backdrop-filter:blur(18px);
+  border-top:1px solid rgba(20,22,26,.12);
+  display:flex; gap:10px; align-items:flex-end;
+  transform:translateY(115%); transition:transform .32s cubic-bezier(.22,1,.36,1);
+}
+.cmt-input.show{ transform:none; }
+.cmt-input textarea{
+  flex:1; max-height:96px; min-height:40px; resize:none; padding:11px 13px;
+  border:1px solid rgba(20,22,26,.16); background:#fff; color:#14161a;
+  font-size:13.5px; font-family:var(--serif); line-height:1.6; outline:none;
+}
+.cmt-input .rt{
+  position:absolute; top:-26px; left:16px; font-family:var(--mono); font-size:10px;
+  letter-spacing:.14em; color:#3a4048; background:rgba(250,251,252,.96); padding:4px 9px;
+  border:1px solid rgba(20,22,26,.14); display:none;
+}
+.cmt-input .rt.show{ display:block; }
+.cmt-send{ padding:12px 17px; background:#1b1e23; color:#fff; cursor:pointer; font-size:12.5px; letter-spacing:.1em; border:none; }
+
+/* ---------------- 设置面板 ---------------- */
+.set-group{ margin-bottom:26px; }
+.set-row{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.set-row .lb{ flex:0 0 60px; font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--ink-4); }
+.set-row input[type=range]{ flex:1; -webkit-appearance:none; appearance:none; height:2px; background:var(--line-3); outline:none; }
+.set-row input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:17px; height:17px; border-radius:50%;
+  background:var(--card); border:1.5px solid var(--ink-2); box-shadow:var(--shadow-s); cursor:pointer;
+}
+.set-row .vl{ flex:0 0 46px; text-align:right; font-family:var(--mono); font-size:11px; color:var(--ink-2); }
+
+.theme-row{ display:flex; gap:11px; flex-wrap:wrap; }
+.theme-sw{
+  width:54px; height:54px; border:1px solid var(--line-2); cursor:pointer; position:relative;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--serif); font-size:16px; box-shadow:var(--inset-hi);
+}
+.theme-sw.on{ box-shadow:0 0 0 2px var(--ink-2); }
+.theme-sw .nm{ position:absolute; bottom:-17px; left:0; right:0; text-align:center; font-family:var(--mono); font-size:9px; letter-spacing:.1em; color:var(--ink-4); }
+
+.ink-row{ display:flex; gap:12px; flex-wrap:wrap; }
+.ink-sw{ width:38px; height:38px; border:1px solid var(--line-2); cursor:pointer; position:relative; }
+.ink-sw.on{ box-shadow:0 0 0 2px var(--ink-2); }
+
+.font-row{ display:flex; gap:9px; flex-wrap:wrap; }
+.font-sw{
+  padding:10px 14px; border:1px solid var(--line-2); background:var(--card); cursor:pointer;
+  font-size:13.5px; letter-spacing:.06em; color:var(--ink-2);
+}
+.font-sw.on{ background:var(--graphite); color:#fff; border-color:transparent; }

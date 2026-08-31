@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="chat.css" />
 <link rel="stylesheet" href="chat-conversation.css" />
 <link rel="stylesheet" href="friend-profile.css" />
+<link rel="stylesheet" href="favorites.css" />
 </head>
 <body>
 
@@ -729,7 +730,7 @@
             </span>
           </button>
 
-          <button class="pf-tile pf-tile-pearl" id="profileEntryStickers" aria-label="表情包">
+          <button class="pf-tile pf-tile-pearl" id="profileEntryStickers" aria-label="表情包" onclick="window.location.href='emoji-vault.html'">
             <span class="pf-tile-sheen" aria-hidden="true"></span>
             <span class="pf-tile-badge pf-tile-badge-dark">6</span>
             <span class="pf-tile-peek" aria-hidden="true">
@@ -973,6 +974,140 @@
 
   </div>
 
+  <!-- ============================================================================
+       收藏总览页 · Favorites Overlay
+       独立全屏覆盖层，与 .fp-overlay 平级；唯一入口是"我的"页
+       "我的空间"区块内的"我的收藏"卡片（#profileEntryFavorites）。
+       内含两个分区：消息收藏（按角色分组的档案卡）· 动态收藏（占位）。
+  ============================================================================ -->
+  <div class="fav-overlay" id="favOverlay" aria-hidden="true">
+
+    <!-- 覆盖层专属状态栏 -->
+    <div class="fav-status-bar">
+      <div class="fav-status-time" id="favStatusTime">9:41</div>
+      <div class="fav-status-island">
+        <div class="fav-si-capsule"></div>
+      </div>
+      <div class="fav-status-right">
+        <div class="fav-signal"><i></i><i></i><i></i><i></i></div>
+        <div class="fav-battery">
+          <span class="fav-bat-pct" id="favBatPct">76</span>
+          <div class="fav-bat-shell"><div class="fav-bat-inner" id="favBatInner"></div><div class="fav-bat-nub"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 覆盖层专属顶栏 -->
+    <div class="fav-top-bar">
+      <button class="fav-back-btn" id="favBackBtn" aria-label="返回">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="fav-title-seal">
+        <span class="fav-title-num">06</span>
+        <span class="fav-title-divider"></span>
+        <span class="fav-title-col">
+          <span class="fav-title-cn">我的收藏</span>
+          <span class="fav-title-en">FAVORITES</span>
+        </span>
+      </div>
+      <span class="fav-top-spacer" aria-hidden="true"></span>
+    </div>
+
+    <!-- 两分区切换：消息收藏 / 动态收藏 -->
+    <div class="fav-tab-deck">
+      <button class="fav-tab-btn is-active" data-fav-tab="messages">
+        <span>消息收藏</span><span class="fav-tab-en">MESSAGES</span>
+      </button>
+      <button class="fav-tab-btn" data-fav-tab="moments">
+        <span>动态收藏</span><span class="fav-tab-en">MOMENTS</span>
+      </button>
+    </div>
+
+    <!-- 滚动内容区 -->
+    <div class="fav-scroll">
+
+      <!-- 分区一：消息收藏 -->
+      <div class="fav-pane is-active" id="favPaneMessages">
+        <div class="fav-section-head">
+          <span class="fav-section-eyebrow">
+            <span class="fav-section-num">01</span>
+            <span class="fav-section-col">
+              <span class="fav-section-cn">按角色归档</span>
+              <span class="fav-section-en">ARCHIVED&nbsp;BY&nbsp;CHARACTER</span>
+            </span>
+          </span>
+          <span class="fav-section-count" id="favMsgCount">0 条</span>
+        </div>
+
+        <div class="fav-char-grid" id="favCharGrid" style="display:none"></div>
+
+        <div class="fav-msg-blank" id="favMsgBlank">
+          <div class="fav-msg-blank-mark">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 4L14.3 9.7L20.5 10.3L15.8 14.3L17.2 20.4L12 17.1L6.8 20.4L8.2 14.3L3.5 10.3L9.7 9.7L12 4Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="fav-msg-blank-cn">暂无收藏的消息</div>
+          <div class="fav-msg-blank-en">NO&nbsp;MESSAGES&nbsp;YET</div>
+          <div class="fav-msg-blank-desc">在聊天室中长按任意一条消息，选择"收藏"即可归档到这里</div>
+        </div>
+      </div>
+
+      <!-- 分区二：动态收藏（占位） -->
+      <div class="fav-pane" id="favPaneMoments">
+        <div class="fav-moments-soon">
+          <div class="fav-soon-ring">
+            <span class="fav-soon-ring-texture" aria-hidden="true"></span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2.6L20.6 7.6V17.6L12 22.6L3.4 17.6V7.6L12 2.6Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M6.8 15.4L10 10.6L12.6 13.4L14.6 10L17.4 14.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="fav-soon-cn">动态收藏，敬请期待</div>
+          <div class="fav-soon-en">COMING&nbsp;SOON</div>
+          <div class="fav-soon-desc">收藏好友动态的功能正在设计中，上线后会第一时间出现在这里</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 角色详情子层：点击档案卡后展开该角色的完整收藏列表。
+         状态栏与顶栏均融合进同一张角色背景画布，深色反白文字，
+         杜绝"背景到状态栏区域被切断"的拼接感 -->
+    <div class="fav-char-detail" id="favCharDetail" aria-hidden="true">
+      <div class="fav-detail-hero">
+        <span class="fav-detail-hero-bg" id="favDetailHeroBg"></span>
+        <span class="fav-detail-hero-texture" aria-hidden="true"></span>
+        <span class="fav-detail-hero-scrim" aria-hidden="true"></span>
+
+        <!-- 详情层专属状态栏：与背景画布同层，反白文字 -->
+        <div class="fav-detail-status-bar">
+          <div class="fav-detail-status-time" id="favDetailStatusTime">9:41</div>
+          <div class="fav-detail-status-island"><div class="fav-detail-si-capsule"></div></div>
+          <div class="fav-detail-status-right">
+            <div class="fav-detail-signal"><i></i><i></i><i></i><i></i></div>
+            <div class="fav-detail-battery">
+              <span class="fav-detail-bat-pct" id="favDetailBatPct">76</span>
+              <div class="fav-detail-bat-shell"><div class="fav-detail-bat-inner" id="favDetailBatInner"></div><div class="fav-detail-bat-nub"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fav-detail-top-bar">
+          <button class="fav-detail-back" id="favDetailBack" aria-label="返回">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="fav-detail-identity">
+          <div class="fav-detail-avatar" id="favDetailAvatar"></div>
+          <div class="fav-detail-name-col">
+            <span class="fav-detail-name" id="favDetailName">好友</span>
+            <span class="fav-detail-count" id="favDetailCount">0 条收藏</span>
+          </div>
+        </div>
+      </div>
+      <div class="fav-detail-scroll" id="favDetailScroll">
+        <div id="favDetailList"></div>
+      </div>
+    </div>
+
+  </div>
+
   <!-- ============ 底部导航栏 ============ -->
   <nav class="tabbar" id="tabbar">
     <div class="tab-dock-wrap">
@@ -1100,5 +1235,6 @@
 <script src="chat-conversation.js"></script>
 <script src="chat-picker.js"></script>
 <script src="friend-profile.js"></script>
+<script src="favorites.js"></script>
 </body>
 </html>

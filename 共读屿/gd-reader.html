@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="rd">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>阅读 · 共读屿</title>
+<link rel="stylesheet" href="gd-core.css">
+<link rel="stylesheet" href="gd-reader.css">
+</head>
+<body class="reader">
+
+<div id="rdBgImg"></div>
+<div id="rdBgVeil"></div>
+
+<div class="rd-prog"><i id="rdProg"></i></div>
+
+<div class="rd-top" id="rdTop">
+  <div class="rd-ic" onclick="leaveReader()">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+  </div>
+  <div class="t" id="rdTitle">—</div>
+  <div class="rd-ic" id="rdTimerBtn" title="本次阅读计时">
+    <span id="rdTimer" style="font-family:var(--mono);font-size:10px;letter-spacing:.04em;">0m</span>
+  </div>
+  <div class="rd-ic" onclick="openSet()">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+      <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="9" cy="7" r="2.2" fill="currentColor"/><circle cx="15" cy="12" r="2.2" fill="currentColor"/><circle cx="11" cy="17" r="2.2" fill="currentColor"/>
+    </svg>
+  </div>
+</div>
+
+<div class="rd-scroll" id="rdScroll">
+  <div class="rd-body">
+
+    <div class="rd-hero" id="rdHero"></div>
+    <div class="rd-open"><i></i><b></b><i></i></div>
+
+    <div class="rd-legend" id="rdLegend">
+      <span class="k">MARKS</span>
+      <span class="s q">「对白」</span>
+      <span class="s p">（低语）</span>
+      <span class="s n">【场记】</span>
+      <span class="s w">《引用》</span>
+      <span class="tg" id="markToggle">HIGHLIGHT</span>
+    </div>
+
+    <div id="rdText"></div>
+
+    <div class="rd-end" id="rdEnd">
+      <div class="t">全 文 完</div>
+      <div class="s" id="rdEndMeta">—</div>
+    </div>
+
+    <div class="rd-call" id="rdCall">
+      <div class="ripple"><i></i><i></i><i></i><b></b></div>
+      <div class="t">向 屿 上 发 出 信 号</div>
+      <div class="s">Summon readers · 让同好来读这篇</div>
+    </div>
+
+    <div class="cmt-wrap" id="cmtWrap" style="display:none">
+      <div class="cmt-head">
+        <div class="t">屿 上 回 声</div>
+        <div class="c" id="cmtCount">0 条</div>
+        <div class="re" id="cmtMore">再唤一批 ＋</div>
+      </div>
+      <div id="cmtList"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="cmt-input" id="cmtInput">
+  <div class="rt" id="replyTo"></div>
+  <textarea id="cmtText" rows="1" placeholder="说点什么…"></textarea>
+  <button class="cmt-send" id="cmtSend">发送</button>
+</div>
+
+<!-- 设置面板 -->
+<div class="gd-mask" id="setMask">
+  <div class="gd-sheet">
+    <div class="gd-sheet-head">
+      <div class="t">阅读设置</div>
+      <div class="gd-x" onclick="document.getElementById('setMask').classList.remove('show')">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.7"/></svg>
+      </div>
+    </div>
+    <div class="gd-sheet-body">
+
+      <div class="set-group">
+        <div class="gd-label"><b>字体</b><span>TYPEFACE</span></div>
+        <div class="font-row" id="fontRow"></div>
+        <div style="display:flex;gap:9px;margin-top:11px;">
+          <div class="font-sw" id="fontUpload">＋ 上传字体（ttf / otf / woff）</div>
+        </div>
+        <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" style="display:none">
+      </div>
+
+      <div class="set-group">
+        <div class="gd-label"><b>排版</b><span>LAYOUT</span></div>
+        <div class="set-row"><div class="lb">字号</div><input type="range" id="sFs" min="15" max="28" step="1"><div class="vl" id="vFs"></div></div>
+        <div class="set-row"><div class="lb">行距</div><input type="range" id="sLh" min="160" max="300" step="4"><div class="vl" id="vLh"></div></div>
+        <div class="set-row"><div class="lb">字距</div><input type="range" id="sLs" min="-2" max="12" step="1"><div class="vl" id="vLs"></div></div>
+        <div class="set-row"><div class="lb">段距</div><input type="range" id="sPs" min="80" max="300" step="10"><div class="vl" id="vPs"></div></div>
+        <div class="set-row"><div class="lb">边距</div><input type="range" id="sPad" min="16" max="52" step="2"><div class="vl" id="vPad"></div></div>
+        <div class="gd-chips" id="layoutRow" style="margin-top:6px;">
+          <div class="gd-chip" data-k="indent">首行缩进两字</div>
+          <div class="gd-chip" data-k="justify">两端对齐</div>
+          <div class="gd-chip" data-k="num">显示行标</div>
+          <div class="gd-chip" data-k="dlgBlock">对白独立分层</div>
+        </div>
+      </div>
+
+      <div class="set-group">
+        <div class="gd-label"><b>纸面</b><span>SURFACE</span></div>
+        <div class="theme-row" id="themeRow"></div>
+        <div style="display:flex;gap:9px;margin-top:28px;flex-wrap:wrap;">
+          <div class="font-sw" id="bgUpload">＋ 上传背景图</div>
+          <div class="font-sw" id="bgClear">清除背景</div>
+        </div>
+        <input type="file" id="bgFile" accept="image/*" style="display:none">
+        <div class="set-row" style="margin-top:16px;"><div class="lb">蒙版</div><input type="range" id="sVeil" min="0" max="92" step="2"><div class="vl" id="vVeil"></div></div>
+        <div class="set-row"><div class="lb">虚化</div><input type="range" id="sBlur" min="0" max="10" step="1"><div class="vl" id="vBlur"></div></div>
+        <div class="set-row"><div class="lb">去色</div><input type="range" id="sGray" min="0" max="100" step="5"><div class="vl" id="vGray"></div></div>
+      </div>
+
+      <div class="set-group">
+        <div class="gd-label"><b>字色</b><span>INK</span></div>
+        <div class="ink-row" id="inkRow"></div>
+      </div>
+
+      <div class="set-group">
+        <div class="gd-label"><b>标点高亮</b><span>PUNCTUATION</span></div>
+        <div class="gd-chips" id="markRow">
+          <div class="gd-chip" data-k="q">「」对白</div>
+          <div class="gd-chip" data-k="p">（）低语</div>
+          <div class="gd-chip" data-k="n">【】场记</div>
+          <div class="gd-chip" data-k="w">《》引用</div>
+          <div class="gd-chip" data-k="d">——…延展</div>
+        </div>
+      </div>
+
+      <button class="gd-btn ghost" style="width:100%" id="resetSet">恢复默认排版</button>
+    </div>
+  </div>
+</div>
+
+<script src="gd-core.js"></script>
+<script src="gd-fab.js"></script>
+<script src="gd-reader.js"></script>
+</body>
+</html>

@@ -1,0 +1,602 @@
+/* ==========================================================================
+   Favorites Overlay — favorites.css
+   收藏总览页 · 黑白灰浅色系 · 高级华丽风格
+   独立覆盖层，与 chat.css 共用 :root 变量，视觉语言对齐 friend-profile.css：
+   衬线数字徽记 + 双语标题 + 多层描边磨砂卡片 + 唯一一处深色礼遇质感。
+   禁止 emoji、禁止米色系、禁止新增色相、禁止线条感极简风格。
+========================================================================== */
+
+.fav-overlay{
+  position:absolute;
+  inset:0;
+  z-index:520;
+  background: var(--sheet);
+  opacity:0;
+  transform: translateY(14px) scale(0.985);
+  pointer-events:none;
+  transition: opacity 0.42s cubic-bezier(.32,.9,.4,1), transform 0.46s cubic-bezier(.22,.68,.32,1);
+}
+.fav-overlay.fav-open{
+  opacity:1;
+  transform: translateY(0) scale(1);
+  pointer-events:auto;
+}
+
+/* ==========================================================================
+   覆盖层专属状态栏 —— 与 .fp-status-bar 完全同源
+========================================================================== */
+.fav-status-bar{
+  position:absolute;
+  top:0; left:0; right:0;
+  height: var(--status-h);
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  padding: 0 24px 10px;
+  z-index:40;
+  background:transparent;
+  pointer-events:none;
+}
+.fav-status-time{ font-size:15px; font-weight:600; color: var(--ink); letter-spacing:0.2px; }
+.fav-status-island{ position:absolute; left:50%; transform:translateX(-50%); bottom:6px; display:flex; align-items:center; justify-content:center; }
+.fav-si-capsule{ width:110px; height:32px; background:#000; border-radius:24px; }
+.fav-status-right{ display:flex; align-items:center; gap:7px; }
+.fav-signal{ display:flex; align-items:flex-end; gap:2px; height:13px; }
+.fav-signal i{ display:block; width:2.5px; border-radius:1px; background: var(--ink-soft); opacity:0.85; }
+.fav-signal i:nth-child(1){ height:4px; }
+.fav-signal i:nth-child(2){ height:7px; }
+.fav-signal i:nth-child(3){ height:10px; }
+.fav-signal i:nth-child(4){ height:13px; }
+.fav-battery{ display:flex; align-items:center; gap:3px; }
+.fav-bat-pct{ font-size:14px; font-weight:600; color: var(--ink-soft); opacity:0.85; }
+.fav-bat-shell{ width:24px; height:12px; border:1.5px solid rgba(20,20,28,0.42); border-radius:3.5px; padding:1.5px; position:relative; }
+.fav-bat-inner{ width:76%; height:100%; border-radius:1.5px; background: linear-gradient(90deg, var(--ink-soft), var(--ink)); }
+.fav-bat-nub{ position:absolute; right:-4px; top:50%; transform:translateY(-50%); width:2.5px; height:5px; background:rgba(20,20,28,0.35); border-radius:0 2px 2px 0; }
+
+/* ==========================================================================
+   覆盖层专属顶栏 —— 左返回 · 中徽记标题 · 右留白对齐
+========================================================================== */
+.fav-top-bar{
+  position:absolute;
+  top: var(--status-h); left:0; right:0;
+  height: var(--topbar-h);
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 0 16px;
+  z-index:41;
+  background:transparent;
+}
+.fav-back-btn{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px;
+  flex-shrink:0;
+  color: var(--ink-soft);
+  border-radius: 11px 16px 11px 16px;
+  background: linear-gradient(160deg, #ffffff 0%, #f6f6f8 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 7px 16px -10px rgba(20,20,28,0.22),
+    0 0 0 1px rgba(20,20,28,0.05);
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), color 0.2s ease;
+}
+.fav-back-btn::before{
+  content:'';
+  position:absolute; left:6px; top:50%; transform: translateY(-50%);
+  width:3px; height:3px; border-radius:50%;
+  background: var(--ink-soft); opacity:0.7;
+}
+.fav-back-btn:active{ transform: scale(0.9); color: var(--ink); }
+
+.fav-title-seal{
+  display:flex; align-items:center; gap:10px;
+  padding: 6px 18px 6px 15px;
+  border-radius:18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f9 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 8px 18px -12px rgba(20,20,28,0.2),
+    0 0 0 1px rgba(20,20,28,0.045);
+}
+.fav-title-num{ font-family:'Playfair Display', serif; font-weight:900; font-size:15px; color: var(--grey-3); line-height:1; }
+.fav-title-divider{ width:1px; height:16px; background: linear-gradient(180deg, transparent, var(--hair) 30%, var(--hair) 70%, transparent); flex-shrink:0; }
+.fav-title-col{ display:flex; flex-direction:column; align-items:flex-start; gap:1px; }
+.fav-title-cn{ font-size:14px; font-weight:700; letter-spacing:0.08em; color: var(--ink); line-height:1.15; }
+.fav-title-en{ font-family:'Space Mono', monospace; font-size:8px; letter-spacing:0.22em; color: var(--grey-2); line-height:1; }
+
+.fav-top-spacer{ width:34px; height:34px; flex-shrink:0; }
+
+/* ==========================================================================
+   两分区切换：消息收藏 / 动态收藏 —— 伸缩式主辅结构，
+   呼应消息页 .filter-deck 的"一大一小"语言，但只有两项，
+   选中项膨胀为墨黑主胶囊，未选中收缩为素净小胶囊
+========================================================================== */
+.fav-tab-deck{
+  position:absolute;
+  top: calc(var(--status-h) + var(--topbar-h) + 14px);
+  left:20px; right:20px;
+  z-index:38;
+  display:flex; gap:8px;
+  padding:5px;
+  border-radius:20px;
+  background: rgba(255,255,255,0.6);
+  border:1px solid var(--hair);
+  box-shadow: 0 10px 24px -18px rgba(20,20,26,0.22), 0 1px 0 0 rgba(255,255,255,0.8) inset;
+  backdrop-filter: blur(6px);
+}
+.fav-tab-btn{
+  flex:1;
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  padding: 11px 10px;
+  border-radius:16px;
+  font-size:12.5px;
+  font-weight:600;
+  letter-spacing:0.02em;
+  color: var(--grey-1);
+  transition: background 0.3s cubic-bezier(.4,0,.2,1), color 0.3s ease, box-shadow 0.3s ease, flex-grow 0.3s ease;
+}
+.fav-tab-btn .fav-tab-en{
+  font-family:'Space Mono', monospace;
+  font-size:8px;
+  letter-spacing:0.14em;
+  opacity:0.6;
+}
+.fav-tab-btn.is-active{
+  background: linear-gradient(165deg, #2c2c30, #101012);
+  color:#f4f4f6;
+  box-shadow: 0 12px 24px -14px rgba(16,16,18,0.5);
+}
+.fav-tab-btn.is-active .fav-tab-en{ opacity:0.5; color:#fff; }
+.fav-tab-btn:active{ transform: scale(0.97); }
+
+/* ==========================================================================
+   滚动内容区
+========================================================================== */
+.fav-scroll{
+  position:absolute;
+  top: calc(var(--status-h) + var(--topbar-h) + 66px);
+  left:0; right:0; bottom:0;
+  overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding: 4px 20px 40px;
+}
+.fav-scroll::-webkit-scrollbar{ display:none; }
+
+.fav-pane{ display:none; }
+.fav-pane.is-active{ display:block; }
+
+/* ---- 面板小节头 ---- */
+.fav-section-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin: 10px 2px 16px;
+}
+.fav-section-eyebrow{ display:flex; align-items:center; gap:9px; }
+.fav-section-num{ font-family:'Playfair Display', serif; font-weight:900; font-size:13px; color: var(--grey-3); }
+.fav-section-col{ display:flex; flex-direction:column; gap:1px; }
+.fav-section-cn{ font-size:14.5px; font-weight:700; color: var(--ink); letter-spacing:0.02em; }
+.fav-section-en{ font-family:'Space Mono', monospace; font-size:8px; letter-spacing:0.2em; color: var(--grey-2); }
+.fav-section-count{
+  font-family:'Space Mono', monospace;
+  font-size:10px;
+  color: var(--grey-2);
+  padding: 5px 11px;
+  border-radius:999px;
+  background: var(--grey-5);
+}
+
+/* ==========================================================================
+   角色档案卡 —— 单列横幅式"密档"卡：真实背景图铺满卡面（同步角色档案
+   cardBg），深色雕版质感 + 錾刻网格纹理 + 蜡封式头像徽记，
+   呼应 fp-circle-card 的"全站唯一深色礼遇"语言，而非白底信息条。
+   角色少时不留空白（单列自适应流），角色多时纵向堆叠。
+========================================================================== */
+.fav-char-grid{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.fav-char-card{
+  position:relative;
+  height:196px;
+  border-radius:28px;
+  overflow:hidden;
+  cursor:pointer;
+  text-align:left;
+  width:100%;
+  background: linear-gradient(150deg, #3c3c43 0%, #1e1e21 52%, #08080a 100%);
+  box-shadow:
+    0 28px 50px -24px rgba(10,10,14,0.55),
+    0 1px 0 0 rgba(255,255,255,0.08) inset,
+    0 0 0 1px rgba(0,0,0,0.32);
+  transition: transform 0.26s cubic-bezier(.34,1.56,.64,1), box-shadow 0.26s ease;
+}
+.fav-char-card:active{ transform: scale(0.975); }
+
+/* 背景图层：角色档案 cardBg 真实铺满，暗角渐深保证文字可读 */
+.fav-char-card-bg{
+  position:absolute; inset:0;
+  background-position:center;
+  background-size:cover;
+  opacity:0.78;
+  transition: opacity 0.3s ease;
+}
+.fav-char-card-texture{
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.055) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 90% at 82% 14%, #000 0%, transparent 62%);
+  mask-image: radial-gradient(ellipse 90% 90% at 82% 14%, #000 0%, transparent 62%);
+  pointer-events:none;
+}
+.fav-char-card-scrim{
+  position:absolute; inset:0;
+  background:
+    linear-gradient(100deg, rgba(6,6,7,0.9) 0%, rgba(6,6,7,0.6) 30%, rgba(6,6,7,0.12) 60%, rgba(6,6,7,0.02) 100%),
+    linear-gradient(0deg, rgba(4,4,5,0.68) 0%, rgba(4,4,5,0.15) 40%, rgba(4,4,5,0) 62%);
+  pointer-events:none;
+}
+.fav-char-card-sheen{
+  position:absolute;
+  top:-60%; left:40%;
+  width:60%; height:220%;
+  background: linear-gradient(100deg, transparent 42%, rgba(255,255,255,0.09) 50%, transparent 58%);
+  transform: rotate(14deg);
+  pointer-events:none;
+}
+.fav-char-card-corner{
+  position:absolute;
+  width:16px; height:16px;
+  border-color: rgba(255,255,255,0.3);
+  border-style:solid; border-width:0;
+  pointer-events:none;
+  z-index:2;
+}
+.fav-char-card-corner-tl{ top:13px; left:13px; border-top-width:1.1px; border-left-width:1.1px; border-top-left-radius:5px; }
+.fav-char-card-corner-br{ bottom:13px; right:13px; border-bottom-width:1.1px; border-right-width:1.1px; border-bottom-right-radius:5px; }
+
+/* 蜡封式头像徽记：叠在左上，多层描边 + 投影，像钤在密档封面上的印记 */
+.fav-char-card-mark{
+  position:absolute;
+  left:20px; top:20px;
+  z-index:3;
+  width:60px; height:60px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+  background: linear-gradient(155deg, #57575f 0%, #26262a 55%, #0a0a0b 100%);
+  box-shadow:
+    0 12px 24px -10px rgba(0,0,0,0.55),
+    0 0 0 2.5px rgba(255,255,255,0.9),
+    0 0 0 3.5px rgba(255,255,255,0.16);
+}
+.fav-char-card-mark img{ width:100%; height:100%; object-fit:cover; }
+.fav-char-card-mark-glyph{
+  font-family:'Playfair Display', serif;
+  font-weight:700;
+  font-size:22px;
+  color:#f0f0f2;
+}
+
+/* 档案序印：右上角一枚极小衬线数字徽记，与头像/数量印章错落分布，
+   填补卡片加高后左右两侧的留白，同时呼应全站"档案编号"语言 */
+.fav-char-card-index{
+  position:absolute;
+  top:22px; left:92px;
+  z-index:3;
+  display:flex; flex-direction:column; gap:1px;
+}
+.fav-char-card-index-num{
+  font-family:'Playfair Display', serif;
+  font-weight:900;
+  font-size:13px;
+  color: rgba(255,255,255,0.5);
+  line-height:1;
+}
+.fav-char-card-index-en{
+  font-family:'Space Mono', monospace;
+  font-size:7px;
+  letter-spacing:0.18em;
+  color: rgba(255,255,255,0.28);
+}
+
+/* 数量印章：右上角，独立于头像徽记，圆形浮雕数字 */
+.fav-char-card-badge{
+  position:absolute;
+  top:20px; right:20px;
+  z-index:3;
+  min-width:28px; height:28px;
+  padding:0 9px;
+  border-radius:999px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Space Mono', monospace;
+  font-size:11.5px; font-weight:700;
+  color: rgba(255,255,255,0.95);
+  background: rgba(255,255,255,0.14);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.22) inset, 0 6px 14px -8px rgba(0,0,0,0.4);
+  backdrop-filter: blur(3px);
+}
+
+/* 细分割线：头像区与文字区之间留出的呼吸带上，一道极细金属线，
+   与好友页 fp-glyph-card 顶部反光线呼应，同时明确划出卡片的
+   "上下两段式"结构，不让内容全部挤在底部 */
+.fav-char-card-hair{
+  position:absolute;
+  left:20px; right:20px; top:96px;
+  z-index:2;
+  height:1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.22), rgba(255,255,255,0.05) 60%, transparent);
+}
+
+/* 文字信息：压在底部渐深遮罩上，衬线体大标题 + 等宽小标注，
+   与头像区之间留出更充裕的呼吸间距 */
+.fav-char-card-foot{
+  position:absolute; left:20px; right:20px; bottom:18px;
+  z-index:3;
+  display:flex; flex-direction:column; gap:7px;
+}
+.fav-char-card-name{
+  font-family:'Noto Serif KR', 'Playfair Display', serif;
+  font-weight:700;
+  font-size:19px;
+  color:#fff;
+  letter-spacing:0.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.fav-char-card-preview{
+  font-size:12px;
+  line-height:1.5;
+  color: rgba(255,255,255,0.58);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  max-width: 82%;
+}
+.fav-char-card-sub{
+  font-family:'Space Mono', monospace;
+  font-size:7.5px;
+  letter-spacing:0.2em;
+  color: rgba(255,255,255,0.32);
+  margin-top:2px;
+}
+
+/* ---- 消息收藏空态 ---- */
+.fav-msg-blank{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center;
+  padding: 74px 20px 30px;
+}
+.fav-msg-blank-mark{
+  position:relative;
+  width:64px; height:64px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:20px;
+  color: var(--grey-3);
+  background: linear-gradient(165deg, #ffffff, #f0f0f3);
+  box-shadow: 0 16px 30px -18px rgba(20,20,26,0.28), 0 0 0 1px var(--hair-soft);
+}
+.fav-msg-blank-cn{ font-size:14px; font-weight:700; color: var(--ink-soft); margin-bottom:6px; letter-spacing:0.02em; }
+.fav-msg-blank-en{ font-family:'Space Mono', monospace; font-size:9px; letter-spacing:0.18em; color: var(--grey-3); margin-bottom:12px; }
+.fav-msg-blank-desc{ font-size:12px; color: var(--grey-2); line-height:1.6; max-width:230px; }
+
+/* ==========================================================================
+   角色详情子层 —— 点击档案卡后铺开，展示该角色的完整收藏列表；
+   顶部延续同一张 cardBg 作横幅，呼应 friend-profile 的英雄区语言，
+   下方为磨砂白玉气泡式收藏条目，靠左右留白区分自己/对方发言
+========================================================================== */
+.fav-char-detail{
+  position:absolute; inset:0;
+  z-index:60;
+  background: var(--sheet);
+  opacity:0;
+  transform: translateX(18px);
+  pointer-events:none;
+  transition: opacity 0.36s cubic-bezier(.32,.9,.4,1), transform 0.4s cubic-bezier(.22,.68,.32,1);
+}
+.fav-char-detail.is-open{
+  opacity:1;
+  transform: translateX(0);
+  pointer-events:auto;
+}
+
+.fav-detail-hero{
+  position:relative;
+  height: calc(var(--status-h) + var(--topbar-h) + 96px);
+  overflow:hidden;
+  background: linear-gradient(150deg, #2c2c31 0%, #1a1a1d 52%, #0c0c0e 100%);
+}
+.fav-detail-hero-bg{
+  position:absolute; inset:0;
+  background-position:center;
+  background-size:cover;
+  opacity:0.7;
+}
+.fav-detail-hero-texture{
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 16%, #000 0%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 16%, #000 0%, transparent 100%);
+  pointer-events:none;
+}
+.fav-detail-hero-scrim{
+  position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(8,8,10,0.5) 0%, rgba(8,8,10,0.12) 26%, rgba(8,8,10,0.1) 46%, rgba(8,8,10,0.9) 100%);
+  pointer-events:none;
+}
+
+/* 详情层专属状态栏：与背景同一张画布，反白文字，
+   不再借用总览层浅色状态栏——彻底消除"背景到状态栏被切断"的接缝 */
+.fav-detail-status-bar{
+  position:absolute;
+  top:0; left:0; right:0;
+  height: var(--status-h);
+  display:flex; align-items:flex-end; justify-content:space-between;
+  padding: 0 24px 10px;
+  z-index:4;
+}
+.fav-detail-status-time{ font-size:15px; font-weight:600; color:#fff; letter-spacing:0.2px; }
+.fav-detail-status-island{ position:absolute; left:50%; transform:translateX(-50%); bottom:6px; }
+.fav-detail-si-capsule{ width:110px; height:32px; background:#000; border-radius:24px; box-shadow: 0 0 0 1px rgba(255,255,255,0.08); }
+.fav-detail-status-right{ display:flex; align-items:center; gap:7px; }
+.fav-detail-signal{ display:flex; align-items:flex-end; gap:2px; height:13px; }
+.fav-detail-signal i{ display:block; width:2.5px; border-radius:1px; background:#fff; opacity:0.9; }
+.fav-detail-signal i:nth-child(1){ height:4px; }
+.fav-detail-signal i:nth-child(2){ height:7px; }
+.fav-detail-signal i:nth-child(3){ height:10px; }
+.fav-detail-signal i:nth-child(4){ height:13px; }
+.fav-detail-battery{ display:flex; align-items:center; gap:3px; }
+.fav-detail-bat-pct{ font-size:14px; font-weight:600; color:#fff; opacity:0.9; }
+.fav-detail-bat-shell{ width:24px; height:12px; border:1.5px solid rgba(255,255,255,0.5); border-radius:3.5px; padding:1.5px; position:relative; }
+.fav-detail-bat-inner{ width:76%; height:100%; border-radius:1.5px; background:#fff; }
+.fav-detail-bat-nub{ position:absolute; right:-4px; top:50%; transform:translateY(-50%); width:2.5px; height:5px; background:rgba(255,255,255,0.5); border-radius:0 2px 2px 0; }
+
+.fav-detail-top-bar{
+  position:absolute;
+  top: var(--status-h); left:0; right:0;
+  height: var(--topbar-h);
+  display:flex; align-items:center;
+  padding: 0 16px;
+  z-index:4;
+}
+.fav-detail-back{
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px;
+  border-radius: 11px 16px 11px 16px;
+  color:#fff;
+  background: rgba(255,255,255,0.14);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.2) inset;
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1);
+}
+.fav-detail-back:active{ transform: scale(0.9); }
+
+.fav-detail-identity{
+  position:absolute; left:20px; right:20px; bottom:18px;
+  z-index:3;
+  display:flex; align-items:center; gap:12px;
+}
+.fav-detail-avatar{
+  width:46px; height:46px;
+  border-radius:16px;
+  overflow:hidden;
+  flex-shrink:0;
+  background: linear-gradient(165deg, #3a3a40, #0c0c0e);
+  box-shadow: 0 8px 18px -10px rgba(0,0,0,0.5), 0 0 0 1.5px rgba(255,255,255,0.5);
+  display:flex; align-items:center; justify-content:center;
+}
+.fav-detail-avatar img{ width:100%; height:100%; object-fit:cover; }
+.fav-detail-avatar-glyph{ font-family:'Playfair Display', serif; font-weight:700; font-size:17px; color:#f4f4f6; }
+.fav-detail-name-col{ display:flex; flex-direction:column; gap:2px; }
+.fav-detail-name{ font-family:'Noto Serif KR','Playfair Display', serif; font-weight:700; font-size:17px; color:#fff; }
+.fav-detail-count{ font-family:'Space Mono', monospace; font-size:9px; letter-spacing:0.14em; color: rgba(255,255,255,0.55); }
+
+.fav-detail-scroll{
+  position:absolute;
+  top: calc(var(--status-h) + var(--topbar-h) + 96px);
+  left:0; right:0; bottom:0;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding: 18px 18px 40px;
+}
+.fav-detail-scroll::-webkit-scrollbar{ display:none; }
+
+/* ---- 单条收藏卡：磨砂白玉气泡，左侧细线标出发言方 ---- */
+.fav-msg-card{
+  position:relative;
+  display:flex;
+  gap:12px;
+  padding: 15px 16px;
+  margin-bottom:12px;
+  border-radius:18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
+  border:1px solid var(--hair);
+  box-shadow: 0 12px 26px -20px rgba(20,20,26,0.26), 0 1px 0 0 rgba(255,255,255,0.85) inset;
+}
+.fav-msg-card-rail{
+  flex-shrink:0;
+  width:3px;
+  border-radius:2px;
+  background: var(--grey-4);
+}
+.fav-msg-card.is-me .fav-msg-card-rail{ background: linear-gradient(180deg, var(--ink-soft), var(--ink)); }
+.fav-msg-card-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+.fav-msg-card-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.fav-msg-card-who{ font-size:11.5px; font-weight:700; color: var(--ink-soft); letter-spacing:0.02em; }
+.fav-msg-card-time{ font-family:'Space Mono', monospace; font-size:9px; color: var(--grey-3); flex-shrink:0; }
+.fav-msg-card-text{ font-size:13.5px; line-height:1.6; color: var(--ink); word-break:break-word; white-space:pre-wrap; }
+.fav-msg-card-quote{
+  display:flex; align-items:center; gap:6px;
+  padding: 7px 10px;
+  border-radius:10px;
+  background: var(--grey-5);
+  font-size:11px;
+  color: var(--grey-1);
+  overflow:hidden;
+}
+.fav-msg-card-quote-bar{ width:2px; align-self:stretch; border-radius:1px; background: var(--grey-3); flex-shrink:0; }
+.fav-msg-card-quote-text{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fav-msg-card-foot{ display:flex; align-items:center; justify-content:space-between; margin-top:2px; }
+.fav-msg-card-favtime{ font-family:'Space Mono', monospace; font-size:8.5px; letter-spacing:0.08em; color: var(--grey-3); }
+.fav-msg-card-unstar{
+  display:flex; align-items:center; gap:5px;
+  padding: 5px 10px;
+  border-radius:999px;
+  background: var(--grey-5);
+  color: var(--grey-1);
+  font-size:10.5px;
+  font-weight:500;
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), background 0.2s ease, color 0.2s ease;
+}
+.fav-msg-card-unstar:active{ transform: scale(0.92); background: var(--grey-4); color: var(--ink); }
+.fav-msg-card-unstar svg{ display:block; }
+
+/* ==========================================================================
+   动态收藏 —— 敬请期待占位
+========================================================================== */
+.fav-moments-soon{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center;
+  padding: 90px 24px 30px;
+}
+.fav-soon-ring{
+  position:relative;
+  width:74px; height:74px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:22px;
+  background: linear-gradient(150deg, #2c2c31 0%, #131315 60%, #060607 100%);
+  box-shadow: 0 20px 36px -18px rgba(10,10,14,0.5), 0 0 0 1px rgba(255,255,255,0.08) inset;
+  color: rgba(255,255,255,0.85);
+}
+.fav-soon-ring-texture{
+  position:absolute; inset:2px;
+  border-radius:50%;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 9px 9px;
+  -webkit-mask-image: radial-gradient(circle at 30% 30%, #000 0%, transparent 70%);
+  mask-image: radial-gradient(circle at 30% 30%, #000 0%, transparent 70%);
+}
+.fav-soon-cn{ font-size:15px; font-weight:700; color: var(--ink-soft); margin-bottom:7px; letter-spacing:0.02em; }
+.fav-soon-en{ font-family:'Space Mono', monospace; font-size:9.5px; letter-spacing:0.2em; color: var(--grey-3); margin-bottom:14px; }
+.fav-soon-desc{ font-size:12px; color: var(--grey-2); line-height:1.7; max-width:230px; }
+
+/* ---- 我的（profile）页收藏卡数字角标：实时更新用 ---- */
+#profileEntryFavorites .pf-tile-badge{ transition: opacity 0.2s ease; }
+
+/* ---- 占位交互瞬时闪烁反馈（与全站占位语言统一） ---- */
+.fav-tap-flash{ animation: favTapFlash 0.22s ease; }
+@keyframes favTapFlash{
+  0%{ filter: brightness(1); }
+  40%{ filter: brightness(0.92); }
+  100%{ filter: brightness(1); }
+}
+
+@media (max-width: 360px){
+  .fav-scroll{ padding-left:16px; padding-right:16px; }
+  .fav-tab-deck{ left:16px; right:16px; }
+  .fav-detail-identity{ left:16px; right:16px; }
+  .fav-detail-scroll{ padding-left:14px; padding-right:14px; }
+}

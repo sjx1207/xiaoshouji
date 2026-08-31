@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>表情包</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="emoji-vault.css" />
+</head>
+<body>
+
+<div class="ev-wrap">
+<div class="ev-frame" id="evFrame">
+
+  <span class="ev-halo" aria-hidden="true"></span>
+
+  <!-- 状态栏 -->
+  <header class="ev-statusline">
+    <span class="ev-clock" id="evClock">9:41</span>
+    <span class="ev-notch">
+      <span class="ev-notch-pill"></span>
+    </span>
+    <span class="ev-status-right">
+      <span class="ev-signal-bars"><i></i><i></i><i></i><i></i></span>
+      <span class="ev-batt-wrap">
+        <span class="ev-batt-num" id="evBattNum">76</span>
+        <span class="ev-batt-shell"><span class="ev-batt-fill" id="evBattFill"></span><span class="ev-batt-tip"></span></span>
+      </span>
+    </span>
+  </header>
+
+  <!-- 顶部导航 -->
+  <div class="ev-nav">
+    <button class="ev-nav-back" id="evNavBack" aria-label="返回" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15.5 5L8.5 12L15.5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="ev-nav-title-slot">
+      <span class="ev-nav-badge">
+        <span class="ev-nav-badge-num">07</span>
+        <span class="ev-nav-badge-text">
+          <span class="ev-nav-badge-cn">表情包</span>
+          <span class="ev-nav-badge-en">STICKERS</span>
+        </span>
+      </span>
+    </div>
+    <button class="ev-nav-manage" id="evNavManage" aria-label="管理分组" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M4 12H20M4 18H14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <!-- 分组条 -->
+  <nav class="ev-tag-rail" id="evTagRail">
+    <button class="ev-tag-chip is-current" data-tag="__all__" type="button">
+      <span>全部</span><span class="ev-tag-num" id="evAllTagCount">0</span>
+    </button>
+    <button class="ev-tag-plus" id="evTagPlusInline" aria-label="新建分组" type="button">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+  </nav>
+
+  <!-- 主滚动区 -->
+  <main class="ev-body" id="evBody">
+    <div class="ev-body-head">
+      <span class="ev-body-head-left">
+        <span class="ev-body-head-num">01</span>
+        <span class="ev-body-head-text">
+          <span class="ev-body-head-cn">我的表情</span>
+          <span class="ev-body-head-en">MY&nbsp;COLLECTION</span>
+        </span>
+      </span>
+      <span class="ev-body-head-count" id="evVisibleCount">0 个</span>
+    </div>
+
+    <div class="ev-wall" id="evWall" style="display:none"></div>
+
+    <div class="ev-blank" id="evBlank">
+      <div class="ev-blank-circle">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4.4" y="4.4" width="15.2" height="15.2" rx="3.4" stroke="currentColor" stroke-width="1.3"/><path d="M8 14.5L11 10.8L13.4 13.4L15.6 10.6L18 14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <p class="ev-blank-cn">还没有表情包</p>
+      <p class="ev-blank-en">NO&nbsp;STICKERS&nbsp;YET</p>
+      <p class="ev-blank-desc">点击下方"单张导入"或"批量导入"，从本地图片或链接开始收集你的表情包</p>
+    </div>
+  </main>
+
+  <!-- 悬浮操作按钮 -->
+  <div class="ev-fab-row">
+    <button class="ev-fab ev-fab-outline" id="evOpenBatch" type="button">
+      <span class="ev-fab-glyph"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="1.5"/></svg></span>
+      <span>批量导入</span>
+    </button>
+    <button class="ev-fab ev-fab-solid" id="evOpenSingle" type="button">
+      <span class="ev-fab-glyph"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7.5 8.5M12 4L16.5 8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15V17.5C5 18.9 6.1 20 7.5 20H16.5C17.9 20 19 18.9 19 17.5V15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+      <span>单张导入</span>
+    </button>
+  </div>
+
+  <div class="ev-toast" id="evToast"></div>
+
+  <!-- 单张 / URL 导入弹窗 -->
+  <dialog id="evSingleDialog" class="ev-modal">
+    <div class="ev-card" style="max-height:92%;">
+      <div class="ev-card-grip"></div>
+      <div class="ev-card-head">
+        <span class="ev-card-head-num">01</span>
+        <span class="ev-card-head-text">
+          <span class="ev-card-head-cn">导入表情</span>
+          <span class="ev-card-head-en">ADD&nbsp;STICKER</span>
+        </span>
+        <button class="ev-card-head-x" id="evSingleClose" aria-label="关闭" type="button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 5L19 19M19 5L5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="ev-card-scroll">
+        <div class="ev-switch-row">
+          <button class="ev-switch-btn is-current" data-src="file" type="button">本地图片</button>
+          <button class="ev-switch-btn" data-src="url" type="button">链接解析</button>
+        </div>
+
+        <div class="ev-src-pane" data-pane="file">
+          <div class="ev-dropzone" id="evLocalDrop" role="button" tabindex="0" aria-label="点击选择图片">
+            <div class="ev-dropzone-hint" id="evLocalDropHint">
+              <div class="ev-dropzone-ring">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 16V6M12 6L7 11M12 6L17 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <span class="ev-dropzone-cn">点击选择图片</span>
+              <span class="ev-dropzone-en">TAP&nbsp;TO&nbsp;CHOOSE</span>
+            </div>
+            <button class="ev-dropzone-x" id="evLocalDropRemove" style="display:none" aria-label="移除图片" type="button">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 5L19 19M19 5L5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <input type="file" id="evLocalFileInput" accept="image/*" style="display:none" />
+        </div>
+
+        <div class="ev-src-pane" data-pane="url" style="display:none">
+          <div class="ev-dropzone" id="evUrlDrop">
+            <div class="ev-dropzone-hint" id="evUrlDropHint">
+              <div class="ev-dropzone-ring">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 16V6M12 6L7 11M12 6L17 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <span class="ev-dropzone-cn">粘贴链接后自动预览</span>
+              <span class="ev-dropzone-en">PASTE&nbsp;A&nbsp;URL</span>
+            </div>
+            <button class="ev-dropzone-x" id="evUrlDropRemove" style="display:none" aria-label="移除" type="button">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 5L19 19M19 5L5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div class="ev-url-bar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9.5 14.5L14.5 9.5M11 8L12.5 6.5C13.9 5.1 16.1 5.1 17.5 6.5C18.9 7.9 18.9 10.1 17.5 11.5L16 13M13 16L11.5 17.5C10.1 18.9 7.9 18.9 6.5 17.5C5.1 16.1 5.1 13.9 6.5 12.5L8 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <input type="text" id="evUrlField" placeholder="https://... 图片链接" />
+            <button class="ev-url-go" id="evUrlGo" type="button">解析</button>
+          </div>
+          <div class="ev-url-status" id="evUrlStatus"></div>
+        </div>
+
+        <div class="ev-field-label">
+          <span>文字标注</span>
+          <span class="ev-field-opt">OPTIONAL</span>
+        </div>
+        <input type="text" class="ev-text-field" id="evTextField" placeholder="给这张表情起个名字 / 配一句文案" maxlength="30" />
+
+        <div class="ev-field-label">
+          <span>归入分组</span>
+          <span class="ev-field-opt">OPTIONAL</span>
+        </div>
+        <div class="ev-tag-picker" id="evSingleTagPicker"></div>
+
+        <button class="ev-submit-btn" id="evSingleSubmit" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12.5L9.5 17L19 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>保存到表情包</span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 批量导入弹窗 -->
+  <dialog id="evBatchDialog" class="ev-modal">
+    <div class="ev-card" style="max-height:92%;">
+      <div class="ev-card-grip"></div>
+      <div class="ev-card-head">
+        <span class="ev-card-head-num">02</span>
+        <span class="ev-card-head-text">
+          <span class="ev-card-head-cn">批量导入</span>
+          <span class="ev-card-head-en">BATCH&nbsp;IMPORT</span>
+        </span>
+        <button class="ev-card-head-x" id="evBatchClose" aria-label="关闭" type="button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 5L19 19M19 5L5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="ev-card-scroll">
+        <p class="ev-batch-note">支持多选本地图片，或在下方文本框按 <code>名字：链接</code> 每行一条批量粘贴，两种来源会合并成一份预览列表一并保存。</p>
+
+        <button class="ev-batch-drop" id="evBatchDropBtn" type="button">
+          <div class="ev-batch-drop-ring">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15V5M12 5L7.5 9.5M12 5L16.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15V17C5 18.7 6.3 20 8 20H16C17.7 20 19 18.7 19 17V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <span class="ev-batch-drop-cn">点击选择多张图片</span>
+          <span class="ev-batch-drop-en">CHOOSE&nbsp;MULTIPLE&nbsp;FILES</span>
+        </button>
+        <input type="file" id="evBatchFileInput" accept="image/*" multiple style="display:none" />
+        <div class="ev-batch-files" id="evBatchFiles" style="display:none"></div>
+
+        <div class="ev-field-label" style="margin-top:20px;">
+          <span>文本批量粘贴</span>
+          <span class="ev-field-opt">NAME&nbsp;:&nbsp;URL</span>
+        </div>
+        <div class="ev-batch-text-wrap">
+          <textarea class="ev-batch-text" id="evBatchTextarea" placeholder="示例：&#10;开心大笑：https://example.com/a.png&#10;疑惑脸 https://example.com/b.jpg"></textarea>
+        </div>
+
+        <div class="ev-batch-preview-head" id="evBatchPreviewHead" style="display:none">
+          <span class="ev-batch-preview-count">共解析出 <span id="evBatchPreviewNum">0</span> 条</span>
+          <span class="ev-batch-preview-clear" id="evBatchPreviewClear">清空</span>
+        </div>
+        <div class="ev-batch-preview-list" id="evBatchPreviewList"></div>
+
+        <div class="ev-field-label">
+          <span>归入分组</span>
+          <span class="ev-field-opt">OPTIONAL</span>
+        </div>
+        <div class="ev-tag-picker" id="evBatchTagPicker"></div>
+
+        <button class="ev-submit-btn" id="evBatchSubmit" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12.5L9.5 17L19 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="evBatchSubmitText">批量保存</span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 分组管理弹窗 -->
+  <dialog id="evTagManagerDialog" class="ev-modal">
+    <div class="ev-card">
+      <div class="ev-card-grip"></div>
+      <div class="ev-card-head">
+        <span class="ev-card-head-num">03</span>
+        <span class="ev-card-head-text">
+          <span class="ev-card-head-cn">管理分组</span>
+          <span class="ev-card-head-en">MANAGE&nbsp;GROUPS</span>
+        </span>
+        <button class="ev-card-head-x" id="evTagManagerClose" aria-label="关闭" type="button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 5L19 19M19 5L5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="ev-card-scroll">
+        <div class="ev-tag-new-row">
+          <input type="text" id="evTagNewField" placeholder="新建分组名称" maxlength="12" />
+          <button class="ev-tag-new-btn" id="evTagNewBtn" aria-label="新建" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="ev-tag-manager-list" id="evTagManagerList"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 详情编辑弹窗 -->
+  <dialog id="evEditDialog" class="ev-modal">
+    <div class="ev-card">
+      <div class="ev-card-grip"></div>
+      <div class="ev-card-head">
+        <span class="ev-card-head-num">04</span>
+        <span class="ev-card-head-text">
+          <span class="ev-card-head-cn">编辑表情</span>
+          <span class="ev-card-head-en">EDIT&nbsp;STICKER</span>
+        </span>
+        <button class="ev-card-head-x" id="evEditClose" aria-label="关闭" type="button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 5L19 19M19 5L5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="ev-card-scroll">
+        <div class="ev-edit-preview" id="evEditPreview"></div>
+
+        <div class="ev-field-label">
+          <span>文字标注</span>
+          <span class="ev-field-opt">OPTIONAL</span>
+        </div>
+        <input type="text" class="ev-text-field" id="evEditTextField" placeholder="给这张表情起个名字 / 配一句文案" maxlength="30" />
+
+        <div class="ev-field-label">
+          <span>归入分组</span>
+          <span class="ev-field-opt">OPTIONAL</span>
+        </div>
+        <div class="ev-tag-picker" id="evEditTagPicker"></div>
+
+        <div class="ev-edit-actions">
+          <button class="ev-edit-btn ev-edit-btn-del" id="evEditDelete" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 7H20M9 7V5C9 4.4 9.4 4 10 4H14C14.6 4 15 4.4 15 5V7M18 7L17.3 19C17.2 20.1 16.3 21 15.2 21H8.8C7.7 21 6.8 20.1 6.7 19L6 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>删除</span>
+          </button>
+          <button class="ev-edit-btn ev-edit-btn-save" id="evEditSave" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12.5L9.5 17L19 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>保存</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+</div>
+</div>
+
+<script src="emoji-vault.js"></script>
+</body>
+</html>

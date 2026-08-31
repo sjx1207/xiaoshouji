@@ -34,9 +34,7 @@
   <!-- ============ 状态栏：与主状态栏同源同步 ============ -->
   <div class="status-bar">
     <div class="status-time" id="statusTime">9:41</div>
-    <div class="status-island">
-      <div class="si-capsule si-minimal-capsule"></div>
-    </div>
+    <div class="status-island" id="statusIsland"></div>
     <div class="status-right">
       <div class="signal">
         <i></i><i></i><i></i><i></i>
@@ -72,8 +70,193 @@
   <div class="cst-scroll" id="cstScroll">
     <div class="cst-scroll-inner">
 
-      <!-- ---- 分组题额 ---- -->
+      <!-- ---- 分组题额：羁绊印鉴 —— 展示 char 与 user 的关联关系，
+           供 AI 充分理解「我在和谁说话、以什么身份说话」，
+           仅呈现关系性元数据，绝不渲染角色人设/系统提示词等深层设定 ---- -->
       <div class="cst-section-head">
+        <span class="cst-section-seal" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 3.5C9 5.5 7 8.6 7 12C7 15.4 9 18.5 12 20.5C15 18.5 17 15.4 17 12C17 8.6 15 5.5 12 3.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 3.5V20.5" stroke="currentColor" stroke-width="1.1" stroke-dasharray="0.5 3.2" stroke-linecap="round"/></svg>
+        </span>
+        <span class="cst-section-title-cn">羁绊印鉴</span>
+        <span class="cst-section-title-en">BOND&nbsp;SEAL</span>
+      </div>
+
+      <!-- ---- 印玺卡：月光纸面为底，char × user 双牌以「阴阳合契」
+           式咬合排布，中缝一枚可开合的骑缝印，是本卡的视觉重心。
+           双牌下方以一条「关系向语」明示方向：谁 → 视谁为「什么关系」，
+           避免关系定位读不出主客体的问题 ---- -->
+      <div class="cst-bond-seal" id="cstBondSeal">
+
+        <span class="cst-bond-seal-corner cst-bond-seal-corner--tl" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M2 2H10M2 2V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2 15V22M2 22H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" opacity="0.5"/></svg></span>
+        <span class="cst-bond-seal-corner cst-bond-seal-corner--tr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M2 2H10M2 2V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2 15V22M2 22H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" opacity="0.5"/></svg></span>
+        <span class="cst-bond-seal-corner cst-bond-seal-corner--bl" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M2 2H10M2 2V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2 15V22M2 22H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" opacity="0.5"/></svg></span>
+        <span class="cst-bond-seal-corner cst-bond-seal-corner--br" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M2 2H10M2 2V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2 15V22M2 22H9" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" opacity="0.5"/></svg></span>
+
+        <div class="cst-bond-plates">
+          <div class="cst-bond-plate cst-bond-plate--char" id="cstBondCharPlate">
+            <span class="cst-bond-plate-tag">
+              <span class="cst-bond-plate-tag-cn">角色</span>
+              <span class="cst-bond-plate-tag-en">CHAR</span>
+            </span>
+            <div class="cst-bond-avatar" id="cstBondCharAvatar">
+              <span class="cst-bond-avatar-glyph" id="cstBondCharGlyph"></span>
+            </div>
+            <div class="cst-bond-name" id="cstBondCharName">—</div>
+            <div class="cst-bond-role" id="cstBondCharRole"></div>
+          </div>
+
+          <div class="cst-bond-hinge" aria-hidden="true">
+            <span class="cst-bond-hinge-ring"></span>
+            <span class="cst-bond-hinge-seal">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9.5 14.5L14.5 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M11 7.2L12.4 5.8C13.9 4.3 16.3 4.3 17.7 5.8C19.2 7.2 19.2 9.6 17.7 11.1L16.3 12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 16.8L11.6 18.2C10.1 19.7 7.7 19.7 6.3 18.2C4.8 16.8 4.8 14.4 6.3 12.9L7.7 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+
+          <div class="cst-bond-plate cst-bond-plate--user" id="cstBondUserPlate">
+            <span class="cst-bond-plate-tag">
+              <span class="cst-bond-plate-tag-cn">用户</span>
+              <span class="cst-bond-plate-tag-en">USER</span>
+            </span>
+            <div class="cst-bond-avatar" id="cstBondUserAvatar">
+              <span class="cst-bond-avatar-glyph" id="cstBondUserGlyph"></span>
+            </div>
+            <div class="cst-bond-name" id="cstBondUserName">—</div>
+            <div class="cst-bond-role" id="cstBondUserRole"></div>
+          </div>
+        </div>
+
+        <!-- ---- 关系向语 —— 单行文言，明确方向：角色 视 用户 为「关系」，
+             彻底消除「关系定位」原先读不出主客体的问题 ---- -->
+        <div class="cst-bond-orient" id="cstBondOrient" aria-hidden="true">
+          <span class="cst-bond-orient-from" id="cstBondOrientFrom">—</span>
+          <span class="cst-bond-orient-arrow" aria-hidden="true">
+            <svg width="30" height="10" viewBox="0 0 30 10" fill="none"><path d="M0 5H28M28 5L23 1M28 5L23 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="cst-bond-orient-mid">视</span>
+          <span class="cst-bond-orient-to" id="cstBondOrientTo">—</span>
+          <span class="cst-bond-orient-mid">为</span>
+          <span class="cst-bond-orient-value" id="cstBondOrientValue">—</span>
+        </div>
+
+        <!-- ---- 关系事实 —— 印于卡片下半幅纸面，与双牌同属一枚印玺。
+             双向称呼对照排列，一望便知「谁怎么叫谁」；
+             另加一条「相识情境」，仅记事实性的关系背景（如何相识 /
+             当前阶段），不触及角色人设正文。
+             每一项均可点击直接编辑并保存，「彼此称呼·角色称」与
+             「相识情境」写入角色档案（LunaCharDB），
+             「彼此称呼·用户称」与「用户身份标签」写入身份卡
+             （LunaIdentityDB），两库各自持久化，与聊天室读取同源 ---- -->
+        <div class="cst-bond-facts" id="cstBondFacts">
+          <div class="cst-bond-fact cst-bond-fact--pair">
+            <span class="cst-bond-fact-label">彼此称呼</span>
+            <span class="cst-bond-fact-pair-values">
+              <button class="cst-bond-fact-pair-item cst-bond-editable" id="cstBondEditCharCall" type="button" data-field="charCall">
+                <span class="cst-bond-fact-pair-tag">角色 称</span>
+                <span class="cst-bond-fact-value" id="cstBondFactCallValue">—</span>
+                <svg class="cst-bond-edit-pen" width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M4 20L4.7 16.6L15.5 5.8C16.1 5.2 17.1 5.2 17.7 5.8L18.2 6.3C18.8 6.9 18.8 7.9 18.2 8.5L7.4 19.3L4 20Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="cst-bond-fact-pair-item cst-bond-editable" id="cstBondEditUserCall" type="button" data-field="userCall">
+                <span class="cst-bond-fact-pair-tag">用户 称</span>
+                <span class="cst-bond-fact-value" id="cstBondFactUserCallValue">—</span>
+                <svg class="cst-bond-edit-pen" width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M4 20L4.7 16.6L15.5 5.8C16.1 5.2 17.1 5.2 17.7 5.8L18.2 6.3C18.8 6.9 18.8 7.9 18.2 8.5L7.4 19.3L4 20Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+              </button>
+            </span>
+          </div>
+          <button class="cst-bond-fact cst-bond-editable" id="cstBondEditContext" type="button" data-field="context">
+            <span class="cst-bond-fact-label">相识情境</span>
+            <span class="cst-bond-fact-value-wrap">
+              <span class="cst-bond-fact-value" id="cstBondFactContextValue">—</span>
+              <svg class="cst-bond-edit-pen" width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M4 20L4.7 16.6L15.5 5.8C16.1 5.2 17.1 5.2 17.7 5.8L18.2 6.3C18.8 6.9 18.8 7.9 18.2 8.5L7.4 19.3L4 20Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            </span>
+          </button>
+          <button class="cst-bond-fact cst-bond-editable" id="cstBondEditTags" type="button" data-field="tags">
+            <span class="cst-bond-fact-label">用户身份标签</span>
+            <span class="cst-bond-fact-value-wrap">
+              <span class="cst-bond-fact-value" id="cstBondFactUserTagsValue">—</span>
+              <svg class="cst-bond-edit-pen" width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M4 20L4.7 16.6L15.5 5.8C16.1 5.2 17.1 5.2 17.7 5.8L18.2 6.3C18.8 6.9 18.8 7.9 18.2 8.5L7.4 19.3L4 20Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            </span>
+          </button>
+        </div>
+
+        <!-- ---- 关系事实 · 内嵌编辑面板 —— 点击任一「关系事实」条目后，
+             以卡内浮层形式展开对应输入控件，保存后立即回写对应数据库
+             （角色字段 → LunaCharDB / chars，用户字段 → LunaIdentityDB /
+             identities），并同步刷新展示，无需离开本设置页 ---- -->
+        <div class="cst-bond-editor" id="cstBondEditor" aria-hidden="true">
+          <div class="cst-bond-editor-head">
+            <span class="cst-bond-editor-seal" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 20L4.7 16.6L15.5 5.8C16.1 5.2 17.1 5.2 17.7 5.8L18.2 6.3C18.8 6.9 18.8 7.9 18.2 8.5L7.4 19.3L4 20Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="cst-bond-editor-headtext">
+              <span class="cst-bond-editor-title" id="cstBondEditorTitle">编辑</span>
+              <span class="cst-bond-editor-eyebrow">EDIT&nbsp;BOND&nbsp;FACT</span>
+            </span>
+            <button class="cst-bond-editor-close" id="cstBondEditorClose" type="button" aria-label="关闭">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div class="cst-bond-editor-hint" id="cstBondEditorHint">该项将写入角色档案，供角色理解你们的关系</div>
+
+          <!-- 文本类字段：彼此称呼 · 相识情境 共用 -->
+          <div class="cst-bond-editor-text" id="cstBondEditorTextWrap">
+            <input type="text" class="cst-bond-editor-input" id="cstBondEditorInput" maxlength="40" autocomplete="off" spellcheck="false" placeholder="请输入" />
+          </div>
+
+          <!-- 标签类字段：用户身份标签 专用，逐个添加为印记小牌 -->
+          <div class="cst-bond-editor-tags" id="cstBondEditorTagsWrap" aria-hidden="true">
+            <div class="cst-bond-editor-chiplist" id="cstBondEditorChips"></div>
+            <div class="cst-bond-editor-chipadd">
+              <input type="text" class="cst-bond-editor-input" id="cstBondEditorTagInput" maxlength="12" autocomplete="off" spellcheck="false" placeholder="输入标签后按添加" />
+              <button class="cst-bond-editor-chipadd-btn" id="cstBondEditorChipAdd" type="button">添加</button>
+            </div>
+          </div>
+
+          <div class="cst-bond-editor-actions">
+            <button class="cst-bond-editor-cancel" id="cstBondEditorCancel" type="button">取消</button>
+            <button class="cst-bond-editor-save" id="cstBondEditorSave" type="button">保存</button>
+          </div>
+        </div>
+
+        <!-- ---- 未绑定态 A：已有身份卡可选 —— 卡内直接选择并完成绑定，
+             不离开本页 ---- -->
+        <div class="cst-bond-picker" id="cstBondPicker" aria-hidden="true">
+          <div class="cst-bond-picker-head">
+            <span class="cst-bond-picker-seal" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3.5C9 5.5 7 8.6 7 12C7 15.4 9 18.5 12 20.5C15 18.5 17 15.4 17 12C17 8.6 15 5.5 12 3.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="cst-bond-picker-text">
+              <span class="cst-bond-picker-cn" id="cstBondPickerTitle">尚未与任何用户身份缔结羁绊</span>
+              <span class="cst-bond-picker-en">SELECT&nbsp;AN&nbsp;IDENTITY&nbsp;TO&nbsp;BIND</span>
+            </span>
+          </div>
+          <div class="cst-bond-picker-list" id="cstBondPickerList"></div>
+          <button class="cst-bond-picker-new" id="cstBondPickerNew" type="button">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span>新建一个用户身份</span>
+          </button>
+        </div>
+
+        <!-- ---- 未绑定态 B：账下尚无任何身份卡 —— 引导前往创建 ---- -->
+        <div class="cst-bond-empty" id="cstBondEmpty" aria-hidden="true">
+          <span class="cst-bond-empty-seal" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3.5C9 5.5 7 8.6 7 12C7 15.4 9 18.5 12 20.5C15 18.5 17 15.4 17 12C17 8.6 15 5.5 12 3.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M12 3.5V20.5" stroke="currentColor" stroke-width="0.9" stroke-dasharray="0.5 3" stroke-linecap="round"/></svg>
+          </span>
+          <span class="cst-bond-empty-cn">你还没有创建任何用户身份</span>
+          <span class="cst-bond-empty-en">NO&nbsp;IDENTITY&nbsp;CARD&nbsp;YET</span>
+          <button class="cst-bond-empty-btn" id="cstBondEmptyBtn" type="button">
+            <span>前往创建身份</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="cst-bond-note" id="cstBondNote">
+        <span class="cst-bond-note-dot" aria-hidden="true"></span>
+        <span id="cstBondNoteText">以上信息将同步供角色在对话中理解彼此关系与身份，仅展示关系性事实，角色人设正文不在此显示</span>
+      </div>
+
+      <!-- ---- 分组题额 ---- -->
+      <div class="cst-section-head cst-section-head-tight">
         <span class="cst-section-seal" aria-hidden="true">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 17L9.5 9.5L13.2 13.6L20 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 5V10.2M20 5H14.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </span>
@@ -177,6 +360,646 @@
           <span class="cst-dim-label-en">SCRIM</span>
         </span>
         <input type="range" id="cstDimSlider" class="cst-dim-slider" min="0" max="80" value="30" />
+      </div>
+
+      <!-- ============================================================
+           感知设置 · 双轨感应仪 —— 地区感知 / 时间感知 / 天气感知
+           user 与 char 各自独立成轨，互不覆盖、互不联动：
+             每一轨都可单独选择「真实」或「虚拟」——
+               真实：填写一个现实中真实存在的地名，系统据此查询该地
+                     真实时区与当前天气，实时同步；
+               虚拟：填写一个现实中并不存在的虚构地名，供该轨理解一个
+                     纯属虚构的场景；时间/天气查不到就如实标注「无法
+                     获取」，不阻断、不编造。
+             谁真实谁虚拟完全由你自行决定，两轨的数据同时存在、
+             同时提交给 AI，不再是二选一的单一开关。
+           ============================================================ -->
+      <div class="cst-section-head cst-section-head-tight">
+        <span class="cst-section-seal" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.4"/><path d="M12 7.6V12L15 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="cst-section-title-cn">感知设置</span>
+        <span class="cst-section-title-en">PERCEPTION</span>
+      </div>
+      <div class="cst-perc-lede">
+        用户与角色分轨独立设置：各自选择真实或虚拟，各自填写地名，时间与天气据此分别实时同步，二者同时生效、互不覆盖；地理编码与天气均由 Open-Meteo 免费提供，无需注册、无需密钥，开箱即用
+      </div>
+
+      <!-- ============ 感知卡 · 地区感知（user / char 双轨） ============ -->
+      <div class="cst-perc-card" id="cstPercRegion" data-perc="region">
+        <div class="cst-perc-card-head">
+          <span class="cst-perc-card-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 21.5C12 21.5 5.5 15.2 5.5 9.8C5.5 6 8.4 3 12 3C15.6 3 18.5 6 18.5 9.8C18.5 15.2 12 21.5 12 21.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="9.8" r="2.6" stroke="currentColor" stroke-width="1.4"/></svg>
+          </span>
+          <span class="cst-perc-card-headtext">
+            <span class="cst-perc-card-title">地区感知</span>
+            <span class="cst-perc-card-en">REGION&nbsp;SENSE</span>
+          </span>
+        </div>
+
+        <!-- ---- 轨道切换：user / char，切换后下方表单指向对应轨道的独立数据 ---- -->
+        <div class="cst-perc-track-tabs" id="cstRegionTrackTabs">
+          <button class="cst-perc-track-tab is-active" data-track="user" type="button">
+            <span class="cst-perc-track-cn">用户</span>
+            <span class="cst-perc-track-en">USER</span>
+            <span class="cst-perc-track-badge" id="cstRegionUserBadge">真实</span>
+          </button>
+          <button class="cst-perc-track-tab" data-track="char" type="button">
+            <span class="cst-perc-track-cn">角色</span>
+            <span class="cst-perc-track-en">CHAR</span>
+            <span class="cst-perc-track-badge" id="cstRegionCharBadge">真实</span>
+          </button>
+        </div>
+
+        <div class="cst-perc-toggle" id="cstRegionToggle">
+          <button class="cst-perc-toggle-btn is-active" data-mode="real" type="button">
+            <span class="cst-perc-toggle-cn">真实感知</span>
+            <span class="cst-perc-toggle-en">REAL</span>
+          </button>
+          <button class="cst-perc-toggle-btn" data-mode="virtual" type="button">
+            <span class="cst-perc-toggle-cn">虚拟感知</span>
+            <span class="cst-perc-toggle-en">VIRTUAL</span>
+          </button>
+        </div>
+
+        <div class="cst-url-field cst-perc-input-field">
+          <input type="text" id="cstRegionInput" class="cst-url-input" placeholder="填写一个真实存在的地区，如「上海」「东京」" maxlength="30" autocomplete="off" spellcheck="false" />
+          <button class="cst-url-go" id="cstRegionGo" type="button">应用</button>
+        </div>
+        <div class="cst-perc-preset-row" id="cstRegionPresetRow">
+          <button class="cst-perc-preset-chip" type="button" data-preset="上海">上海</button>
+          <button class="cst-perc-preset-chip" type="button" data-preset="北京">北京</button>
+          <button class="cst-perc-preset-chip" type="button" data-preset="东京">东京</button>
+          <button class="cst-perc-preset-chip" type="button" data-preset="纽约">纽约</button>
+          <button class="cst-perc-preset-chip" type="button" data-preset="伦敦">伦敦</button>
+        </div>
+        <div class="cst-perc-meta" id="cstRegionMeta">
+          <span class="cst-perc-meta-dot" aria-hidden="true"></span>
+          <span id="cstRegionMetaText">当前地区：未指定</span>
+        </div>
+      </div>
+
+      <!-- ============ 感知卡 · 时间感知（user / char 双栏并列） ============ -->
+      <div class="cst-perc-card" id="cstPercTime" data-perc="time">
+        <div class="cst-perc-card-head">
+          <span class="cst-perc-card-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.3" stroke="currentColor" stroke-width="1.5"/><path d="M12 7.4V12.2L15.3 14.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="cst-perc-card-headtext">
+            <span class="cst-perc-card-title">时间感知</span>
+            <span class="cst-perc-card-en">TIME&nbsp;SENSE</span>
+          </span>
+        </div>
+
+        <div class="cst-perc-dual">
+          <div class="cst-perc-col" id="cstTimeUserCol">
+            <div class="cst-perc-col-head">
+              <span class="cst-perc-col-tag">用户 · USER</span>
+            </div>
+            <div class="cst-perc-readout cst-perc-readout--text">
+              <span class="cst-perc-readout-value" id="cstTimeUserValue">—</span>
+            </div>
+            <div class="cst-perc-readout-unit" id="cstTimeUserDate">—</div>
+            <div class="cst-perc-meta" id="cstTimeUserMeta">
+              <span class="cst-perc-meta-dot" aria-hidden="true"></span>
+              <span id="cstTimeUserMetaText">请先在地区感知中填写用户所在地区</span>
+            </div>
+          </div>
+          <div class="cst-perc-col-divider" aria-hidden="true"></div>
+          <div class="cst-perc-col" id="cstTimeCharCol">
+            <div class="cst-perc-col-head">
+              <span class="cst-perc-col-tag">角色 · CHAR</span>
+            </div>
+            <div class="cst-perc-readout cst-perc-readout--text">
+              <span class="cst-perc-readout-value" id="cstTimeCharValue">—</span>
+            </div>
+            <div class="cst-perc-readout-unit" id="cstTimeCharDate">—</div>
+            <div class="cst-perc-meta" id="cstTimeCharMeta">
+              <span class="cst-perc-meta-dot" aria-hidden="true"></span>
+              <span id="cstTimeCharMetaText">请先在地区感知中填写角色所在地区</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 感知卡 · 天气感知（user / char 双栏并列） ============ -->
+      <div class="cst-perc-card" id="cstPercWeather" data-perc="weather">
+        <div class="cst-perc-card-head">
+          <span class="cst-perc-card-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7.5 17.5H16C18 17.5 19.5 15.9 19.5 14C19.5 12.2 18.2 10.7 16.4 10.5C16 7.9 13.7 6 11 6C8.4 6 6.2 7.8 5.6 10.2C4 10.6 2.8 12 2.8 13.7C2.8 15.7 4.4 17.5 6.5 17.5H7.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="cst-perc-card-headtext">
+            <span class="cst-perc-card-title">天气感知</span>
+            <span class="cst-perc-card-en">WEATHER&nbsp;SENSE</span>
+          </span>
+        </div>
+
+        <div class="cst-perc-dual">
+          <div class="cst-perc-col" id="cstWeatherUserCol">
+            <div class="cst-perc-col-head">
+              <span class="cst-perc-col-tag">用户 · USER</span>
+            </div>
+            <div class="cst-perc-readout">
+              <span class="cst-perc-readout-value" id="cstWeatherUserValue">—</span>
+              <span class="cst-perc-readout-unit" id="cstWeatherUserDesc">尚未获取</span>
+            </div>
+            <div class="cst-perc-meta" id="cstWeatherUserMeta">
+              <span class="cst-perc-meta-dot" aria-hidden="true"></span>
+              <span id="cstWeatherUserMetaText">天气将基于「地区感知·用户」查询</span>
+            </div>
+            <button class="cst-perc-locate-btn" id="cstWeatherUserFetchBtn" type="button">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M7.5 17.5H16C18 17.5 19.5 15.9 19.5 14C19.5 12.2 18.2 10.7 16.4 10.5C16 7.9 13.7 6 11 6C8.4 6 6.2 7.8 5.6 10.2C4 10.6 2.8 12 2.8 13.7C2.8 15.7 4.4 17.5 6.5 17.5H7.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+              <span id="cstWeatherUserFetchBtnText">获取天气</span>
+            </button>
+          </div>
+          <div class="cst-perc-col-divider" aria-hidden="true"></div>
+          <div class="cst-perc-col" id="cstWeatherCharCol">
+            <div class="cst-perc-col-head">
+              <span class="cst-perc-col-tag">角色 · CHAR</span>
+            </div>
+            <div class="cst-perc-readout">
+              <span class="cst-perc-readout-value" id="cstWeatherCharValue">—</span>
+              <span class="cst-perc-readout-unit" id="cstWeatherCharDesc">尚未获取</span>
+            </div>
+            <div class="cst-perc-meta" id="cstWeatherCharMeta">
+              <span class="cst-perc-meta-dot" aria-hidden="true"></span>
+              <span id="cstWeatherCharMetaText">天气将基于「地区感知·角色」查询</span>
+            </div>
+            <button class="cst-perc-locate-btn" id="cstWeatherCharFetchBtn" type="button">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M7.5 17.5H16C18 17.5 19.5 15.9 19.5 14C19.5 12.2 18.2 10.7 16.4 10.5C16 7.9 13.7 6 11 6C8.4 6 6.2 7.8 5.6 10.2C4 10.6 2.8 12 2.8 13.7C2.8 15.7 4.4 17.5 6.5 17.5H7.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+              <span id="cstWeatherCharFetchBtnText">获取天气</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cst-perc-note">
+        <span class="cst-perc-note-dot" aria-hidden="true"></span>
+        <span>用户与角色的地区、时间、天气均分轨独立生效，同时供角色在对话中理解「我在此地」与「你在此地」，虚拟轨道查不到真实时间/天气时将如实标注，不编造数据</span>
+      </div>
+
+      <!-- ============================================================
+           世界书感知 · 本聊天室生效条目 —— 决定哪些世界书条目会被
+           实际注入到这个聊天室的对话中。与背景设置同一套作用域逻辑：
+             全局：本聊天室跟随「全局默认」的世界书启用集合；
+             仅此角色：单独为这个聊天室指定一套启用集合，
+                       优先于全局，互不覆盖。
+           世界书条目本身（内容/关键词/常驻规则等）仍统一在「世界书」
+           页维护，这里只负责「这个聊天室要不要用它」这一层开关，
+           相当于角色人设之外的第二套骨架级设定，直接影响 AI 的
+           梗、活人感与说话方式，因此单列一节、位置仅次于感知设置。
+           ============================================================ -->
+      <div class="cst-section-head cst-section-head-tight">
+        <span class="cst-section-seal" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 5.5C5 4.4 5.9 3.5 7 3.5H15L19 7.5V18.5C19 19.6 18.1 20.5 17 20.5H7C5.9 20.5 5 19.6 5 18.5V5.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M15 3.5V7.5H19" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.3 11.2H15.7M8.3 14.4H13.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </span>
+        <span class="cst-section-title-cn">世界书感知</span>
+        <span class="cst-section-title-en">WORLDBOOK&nbsp;LINK</span>
+      </div>
+      <div class="cst-perc-lede">
+        决定「世界书」里的哪些条目会被实际注入这个聊天室——梗、口癖、活人感细节、OOC 防护规则等都由此生效，分量不亚于人设本身；条目内容仍在「世界书」页统一维护，这里只管这个聊天室用不用它
+      </div>
+
+      <!-- ---- 作用范围：全局 / 专属此角色（与背景设置同一套逻辑与样式） ---- -->
+      <div class="cst-scope-row">
+        <button class="cst-scope-btn is-active" id="cstWbScopeGlobal" data-scope="global" type="button">
+          <span class="cst-scope-label-cn">全局启用集</span>
+          <span class="cst-scope-label-en">GLOBAL</span>
+        </button>
+        <button class="cst-scope-btn" id="cstWbScopeChar" data-scope="char" type="button">
+          <span class="cst-scope-label-cn">仅此角色</span>
+          <span class="cst-scope-label-en">THIS&nbsp;CHAT</span>
+        </button>
+      </div>
+      <div class="cst-scope-hint" id="cstWbScopeHint">应用于所有未单独设置的聊天室</div>
+
+      <!-- ---- 世界书总览卡：条目数 / 已启用 / 常驻数 / 本聊天室生效数 ---- -->
+      <div class="cst-wb-stats-card">
+        <div class="cst-wb-stat">
+          <span class="cst-wb-stat-value" id="cstWbStatTotal">00</span>
+          <span class="cst-wb-stat-label">条目总数</span>
+        </div>
+        <div class="cst-wb-stat-divider" aria-hidden="true"></div>
+        <div class="cst-wb-stat">
+          <span class="cst-wb-stat-value" id="cstWbStatConst">00</span>
+          <span class="cst-wb-stat-label">常驻规则</span>
+        </div>
+        <div class="cst-wb-stat-divider" aria-hidden="true"></div>
+        <div class="cst-wb-stat cst-wb-stat--accent">
+          <span class="cst-wb-stat-value" id="cstWbStatActive">00</span>
+          <span class="cst-wb-stat-label" id="cstWbStatActiveLabel">本轨生效</span>
+        </div>
+      </div>
+
+      <!-- ---- 搜索 + 分类筛选 ---- -->
+      <div class="cst-url-field cst-wb-search-field">
+        <input type="text" id="cstWbSearchInput" class="cst-url-input" placeholder="搜索条目名称 / 关键词 / 描述" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="cst-wb-filter-row" id="cstWbFilterRow">
+        <button class="cst-wb-filter-chip is-active" data-cat="all" type="button">全部</button>
+        <button class="cst-wb-filter-chip" data-cat="人物" type="button">人物</button>
+        <button class="cst-wb-filter-chip" data-cat="关系" type="button">关系</button>
+        <button class="cst-wb-filter-chip" data-cat="规则" type="button">规则</button>
+        <button class="cst-wb-filter-chip" data-cat="地点" type="button">地点</button>
+        <button class="cst-wb-filter-chip" data-cat="事件" type="button">事件</button>
+        <button class="cst-wb-filter-chip" data-cat="势力" type="button">势力</button>
+        <button class="cst-wb-filter-chip" data-cat="物品" type="button">物品</button>
+        <button class="cst-wb-filter-chip" data-cat="其他" type="button">其他</button>
+      </div>
+
+      <!-- ---- 快捷操作：全选 / 全不选 / 跳转世界书新建 ---- -->
+      <div class="cst-wb-quickrow">
+        <button class="cst-wb-quick-btn" id="cstWbSelectAllBtn" type="button">全选当前筛选</button>
+        <button class="cst-wb-quick-btn" id="cstWbClearBtn" type="button">清空本轨</button>
+        <a class="cst-wb-quick-btn cst-wb-quick-btn--link" href="../worldbook.html">
+          去世界书新建
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M17 7H9M17 7V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+
+      <!-- ---- 条目列表：勾选决定是否注入本聊天室（本轨） ---- -->
+      <div class="cst-wb-list" id="cstWbList">
+        <!-- JS 动态渲染 -->
+      </div>
+
+      <!-- ---- 空态：世界书本身还没有任何条目 ---- -->
+      <div class="cst-wb-empty" id="cstWbEmpty" hidden>
+        <div class="cst-wb-empty-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 5.5C5 4.4 5.9 3.5 7 3.5H15L19 7.5V18.5C19 19.6 18.1 20.5 17 20.5H7C5.9 20.5 5 19.6 5 18.5V5.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" opacity="0.5"/><path d="M8.3 11.2H15.7M8.3 14.4H13.2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.5"/></svg>
+        </div>
+        <div class="cst-wb-empty-text">世界书里还没有条目</div>
+        <a class="cst-wb-empty-btn" href="../worldbook.html">前往世界书创建</a>
+      </div>
+
+      <div class="cst-perc-note">
+        <span class="cst-perc-note-dot" aria-hidden="true"></span>
+        <span>勾选即视为该轨「启用」，取消勾选不会删除条目，只是本轨暂不注入；常驻条目一旦勾选将持续影响每一次回复，请优先保留人设铁律 / OOC 防护等最关键的规则，避免堆砌过多常驻项占用上下文</span>
+      </div>
+
+      <!-- ============================================================
+           语音设置 · 专属音色 —— 决定这个聊天室发起语音消息 /
+           朗读回复时使用哪一枚已保存的 MiniMax 音色预设。
+           预设本身（Group ID / API Key / Voice ID / 模型）仍统一在
+           「设置 → 语音模型」页维护与保存（LunaVoiceDB / presets），
+           这里只负责「这个聊天室用哪一枚」这一层绑定，与世界书感知
+           同一套 全局 / 仅此角色 双轨作用域逻辑，位置紧随其后。
+           ============================================================ -->
+      <div class="cst-section-head cst-section-head-tight">
+        <span class="cst-section-seal" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 11v1a6 6 0 0 0 12 0v-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M12 18v3.2M9 21.2h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </span>
+        <span class="cst-section-title-cn">语音设置</span>
+        <span class="cst-section-title-en">VOICE&nbsp;SETTING</span>
+      </div>
+      <div class="cst-perc-lede">
+        决定这个聊天室使用哪一枚已保存的音色——音色预设（Group ID / API Key / Voice ID / 模型）仍在「设置 → 语音模型」页统一维护与保存，这里只管这个聊天室用哪一枚，不重复保存新的音色配置
+      </div>
+
+      <!-- ---- 作用范围：全局 / 专属此角色（与世界书感知同一套逻辑与样式） ---- -->
+      <div class="cst-scope-row">
+        <button class="cst-scope-btn is-active" id="cstVoiceScopeGlobal" data-scope="global" type="button">
+          <span class="cst-scope-label-cn">全局音色</span>
+          <span class="cst-scope-label-en">GLOBAL</span>
+        </button>
+        <button class="cst-scope-btn" id="cstVoiceScopeChar" data-scope="char" type="button">
+          <span class="cst-scope-label-cn">仅此角色</span>
+          <span class="cst-scope-label-en">THIS&nbsp;CHAT</span>
+        </button>
+      </div>
+      <div class="cst-scope-hint" id="cstVoiceScopeHint">应用于所有未单独设置的聊天室</div>
+
+      <!-- ---- 当前生效音色回执牌：即时反映本轨最终生效的那一枚预设 ---- -->
+      <div class="cst-voice-current-card" id="cstVoiceCurrentCard">
+        <span class="cst-voice-current-icon" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6 11v1a6 6 0 0 0 12 0v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        <div class="cst-voice-current-body">
+          <div class="cst-voice-current-name" id="cstVoiceCurrentName">跟随系统默认</div>
+          <div class="cst-voice-current-meta" id="cstVoiceCurrentMeta">尚未绑定专属音色预设</div>
+        </div>
+        <span class="cst-voice-current-tag" id="cstVoiceCurrentTag" hidden>本轨生效</span>
+      </div>
+
+      <!-- ---- 音色选择器：自定义触发牌 + 弹层面板（分类 tab + 搜索 +
+           列表），替换原生 <select>——原生下拉在移动端样式不可控、
+           选项一多还会把整块面板顶出屏幕，故完全自绘。数据来源仍是
+           「语音模型」页拉取账号音色列表时写入的同一份缓存
+           （luna_voice_catalog）。触发牌与空态二选一显示，由 JS 按
+           catalogIsEmpty() 的真实结果决定，避免两者同时可见 ---- -->
+      <button class="cst-voice-trigger" id="cstVoiceTrigger" type="button" hidden aria-haspopup="listbox" aria-expanded="false">
+        <span class="cst-voice-trigger-label" id="cstVoiceTriggerLabel">跟随系统默认</span>
+        <span class="cst-voice-trigger-arrow" aria-hidden="true">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 8.5L12 15.5L19 8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+
+      <!-- ---- 空态：账号下还没有拉取过音色列表 ---- -->
+      <div class="cst-wb-empty" id="cstVoiceEmpty" hidden>
+        <div class="cst-wb-empty-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" opacity="0.5"/><path d="M6 11v1a6 6 0 0 0 12 0v-1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/></svg>
+        </div>
+        <div class="cst-wb-empty-text">还没有获取过账号音色列表</div>
+        <a class="cst-wb-empty-btn" href="../settings.html#voice">前往语音模型页获取</a>
+      </div>
+
+      <!-- ---- 弹层面板：固定定位浮层，内部限高滚动，绝不撑大或溢出
+           页面；搜索 + 分类 tab 解决「音色一多不好找」的问题 ---- -->
+      <div class="cst-voice-panel-mask" id="cstVoicePanelMask" hidden>
+        <div class="cst-voice-panel" id="cstVoicePanel" role="listbox" aria-label="选择音色">
+          <div class="cst-voice-panel-head">
+            <span class="cst-voice-panel-title-cn">选择音色</span>
+            <span class="cst-voice-panel-title-en">SELECT&nbsp;VOICE</span>
+            <button class="cst-voice-panel-close" id="cstVoicePanelClose" type="button" aria-label="关闭">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+
+          <div class="cst-voice-panel-search">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M20 20L16.2 16.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <input class="cst-voice-panel-search-input" id="cstVoicePanelSearch" type="text" placeholder="搜索音色名称或 Voice ID" autocomplete="off" />
+          </div>
+
+          <div class="cst-voice-panel-tabs" id="cstVoicePanelTabs">
+            <button class="cst-voice-panel-tab is-active" data-cat="all" type="button">全部</button>
+            <button class="cst-voice-panel-tab" data-cat="system" type="button">系统音色</button>
+            <button class="cst-voice-panel-tab" data-cat="voice_cloning" type="button">克隆音色</button>
+            <button class="cst-voice-panel-tab" data-cat="voice_generation" type="button">捏音色</button>
+          </div>
+
+          <div class="cst-voice-panel-list" id="cstVoicePanelList">
+            <!-- JS 动态渲染 -->
+          </div>
+
+          <div class="cst-voice-panel-nores" id="cstVoicePanelNoRes" hidden>没有匹配的音色</div>
+        </div>
+      </div>
+
+      <!-- ---- 本轨解绑：清除本轨绑定，回退为跟随系统默认 / 跟随全局 ---- -->
+      <div class="cst-wb-quickrow" id="cstVoiceQuickrow" hidden>
+        <button class="cst-wb-quick-btn" id="cstVoiceUnbindBtn" type="button">解除本轨绑定</button>
+      </div>
+
+      <div class="cst-perc-note">
+        <span class="cst-perc-note-dot" aria-hidden="true"></span>
+        <span>这里只同步「保存的音色」这一枚预设的选择结果，不读取也不展示 API Key 等敏感字段；仅此角色轨若未单独绑定，将回退跟随全局音色，与世界书感知同一套回退逻辑</span>
+      </div>
+
+      <!-- ============================================================
+           翻译设置 · 双语月鉴 —— 决定这个聊天室的消息是否附带译文。
+           默认关闭；开启后才要求选择「原文语言 / 译文语言」与呈现
+           气泡样式，三者缺一则视为未完成配置，回执牌会如实提示。
+           气泡样式在「墨玉／月光纸面」基础上派生出一枚专属的
+           「双语签」标记（左上角一枚小小的盈缺月牙 + 虚线分野），
+           与世界书感知 / 语音设置同一套 全局 / 仅此角色 双轨作用域，
+           位置紧随语音设置之后。
+           ============================================================ -->
+      <div class="cst-section-head cst-section-head-tight">
+        <span class="cst-section-seal" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.4 4.9 4.5 6 4.5H11V19.5H6C4.9 19.5 4 18.6 4 17.5V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M13 4.5H18C19.1 4.5 20 5.4 20 6.5V17.5C20 18.6 19.1 19.5 18 19.5H13V4.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 8.2H8.6M7 11H9.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M15.4 8.2H17M15 15.3C16.2 14.9 17.1 14 17.5 12.8M15.4 11H17.6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+        </span>
+        <span class="cst-section-title-cn">翻译设置</span>
+        <span class="cst-section-title-en">TRANSLATION</span>
+      </div>
+      <div class="cst-perc-lede">
+        决定这个聊天室的消息是否自动附带译文——默认关闭；开启后需选择「原文语言」「译文语言」与译文气泡的呈现样式，三者都选好才算配置完整
+      </div>
+
+      <!-- ---- 总开关：默认关闭，与月环徽记同一套盈缺意象 ---- -->
+      <div class="cst-tr-master-row" id="cstTrMasterRow">
+        <div class="cst-tr-master-icon" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15.5 3.2C11.4 4.4 8.5 8.2 8.5 12.5C8.5 16.8 11.4 20.6 15.5 21.8C13.9 22.4 12.2 22.7 10.5 22.4C5.6 21.6 2 17.4 2 12.5C2 7.6 5.6 3.4 10.5 2.6C12.2 2.3 13.9 2.6 15.5 3.2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="cst-tr-master-body">
+          <div class="cst-tr-master-title">开启消息翻译</div>
+          <div class="cst-tr-master-sub" id="cstTrMasterSub">当前关闭 · 消息仅显示原文</div>
+        </div>
+        <button class="cst-swt" id="cstTrSwitch" type="button" role="switch" aria-checked="false" aria-label="开启消息翻译">
+          <span class="cst-swt-track"><span class="cst-swt-thumb"></span></span>
+        </button>
+      </div>
+
+      <!-- ---- 展开区：开启后才显示，收起时高度归零、不占位 ---- -->
+      <div class="cst-tr-panel" id="cstTrPanel">
+       <div class="cst-tr-panel-inner">
+
+        <!-- 作用范围：与世界书感知 / 语音设置同一套双轨逻辑与样式 -->
+        <div class="cst-scope-row" style="margin-top:2px;">
+          <button class="cst-scope-btn is-active" id="cstTrScopeGlobal" data-scope="global" type="button">
+            <span class="cst-scope-label-cn">全局翻译</span>
+            <span class="cst-scope-label-en">GLOBAL</span>
+          </button>
+          <button class="cst-scope-btn" id="cstTrScopeChar" data-scope="char" type="button">
+            <span class="cst-scope-label-cn">仅此角色</span>
+            <span class="cst-scope-label-en">THIS&nbsp;CHAT</span>
+          </button>
+        </div>
+        <div class="cst-scope-hint" id="cstTrScopeHint">应用于所有未单独设置的聊天室</div>
+
+        <!-- 语言选择：原文 ⇄ 译文，中间一枚可点击的互换钮 -->
+        <div class="cst-tr-lang-row">
+          <button class="cst-tr-lang-card" id="cstTrSourceCard" type="button">
+            <span class="cst-tr-lang-label-cn">原文语言</span>
+            <span class="cst-tr-lang-label-en">SOURCE</span>
+            <span class="cst-tr-lang-value" id="cstTrSourceValue">未选择</span>
+          </button>
+
+          <button class="cst-tr-swap-btn" id="cstTrSwapBtn" type="button" aria-label="互换原文与译文语言">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 8H17.5M17.5 8L14 4.5M17.5 8L14 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 16H6.5M6.5 16L10 12.5M6.5 16L10 19.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+
+          <button class="cst-tr-lang-card" id="cstTrTargetCard" type="button">
+            <span class="cst-tr-lang-label-cn">译文语言</span>
+            <span class="cst-tr-lang-label-en">TARGET</span>
+            <span class="cst-tr-lang-value" id="cstTrTargetValue">未选择</span>
+          </button>
+        </div>
+
+        <!-- 语言选择弹层：分组列表 + 搜索，复用音色选择器的浮层结构 -->
+        <div class="cst-voice-panel-mask" id="cstTrLangPanelMask" hidden>
+          <div class="cst-voice-panel" id="cstTrLangPanel" role="listbox" aria-label="选择语言">
+            <div class="cst-voice-panel-head">
+              <span class="cst-voice-panel-title-cn" id="cstTrLangPanelTitleCn">选择语言</span>
+              <span class="cst-voice-panel-title-en" id="cstTrLangPanelTitleEn">SELECT&nbsp;LANGUAGE</span>
+              <button class="cst-voice-panel-close" id="cstTrLangPanelClose" type="button" aria-label="关闭">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+
+            <div class="cst-voice-panel-search">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M20 20L16.2 16.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <input class="cst-voice-panel-search-input" id="cstTrLangPanelSearch" type="text" placeholder="搜索语言名称" autocomplete="off" />
+            </div>
+
+            <div class="cst-voice-panel-tabs" id="cstTrLangPanelTabs">
+              <button class="cst-voice-panel-tab is-active" data-cat="all" type="button">全部</button>
+              <button class="cst-voice-panel-tab" data-cat="zh" type="button">中文</button>
+              <button class="cst-voice-panel-tab" data-cat="asia" type="button">亚洲</button>
+              <button class="cst-voice-panel-tab" data-cat="europe" type="button">欧洲</button>
+              <button class="cst-voice-panel-tab" data-cat="more" type="button">其他</button>
+            </div>
+
+            <div class="cst-voice-panel-list" id="cstTrLangPanelList">
+              <!-- JS 动态渲染 -->
+            </div>
+
+            <div class="cst-voice-panel-nores" id="cstTrLangPanelNoRes" hidden>没有匹配的语言</div>
+          </div>
+        </div>
+
+        <div class="cst-perc-note cst-tr-lang-note">
+          <span class="cst-perc-note-dot" aria-hidden="true"></span>
+          <span>只收录规范书面语言，不含方言分支；中文仅提供简体中文与粤语两种</span>
+        </div>
+
+        <!-- 气泡样式：两枚样式卡，右上角小预览缩略图 + 下方一整块可交互大预览 -->
+        <div class="cst-section-head cst-section-head-tight" style="margin-top:22px;">
+          <span class="cst-section-seal" aria-hidden="true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4.5 5.5C4.5 4.4 5.4 3.5 6.5 3.5H17.5C18.6 3.5 19.5 4.4 19.5 5.5V14.5C19.5 15.6 18.6 16.5 17.5 16.5H10L6 20V16.5H6.5C5.4 16.5 4.5 15.6 4.5 14.5V5.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="cst-section-title-cn">译文气泡样式</span>
+          <span class="cst-section-title-en">BUBBLE&nbsp;STYLE</span>
+        </div>
+        <div class="cst-perc-lede" style="margin-bottom:12px;">选好样式后，下方即为真实气泡的实时预览——点一点，亲眼看看效果</div>
+
+        <div class="cst-tr-style-grid">
+          <button class="cst-tr-style-card" id="cstTrStyleTap" data-style="tap" type="button">
+            <span class="cst-tr-style-thumb cst-tr-style-thumb--tap" aria-hidden="true">
+              <span class="cst-tr-style-thumb-bub"></span>
+              <span class="cst-tr-style-thumb-tag">译</span>
+            </span>
+            <span class="cst-tr-style-title">点按显影</span>
+            <span class="cst-tr-style-sub">TAP&nbsp;TO&nbsp;REVEAL</span>
+          </button>
+          <button class="cst-tr-style-card" id="cstTrStyleBoth" data-style="both" type="button">
+            <span class="cst-tr-style-thumb cst-tr-style-thumb--both" aria-hidden="true">
+              <span class="cst-tr-style-thumb-bub"></span>
+              <span class="cst-tr-style-thumb-bub cst-tr-style-thumb-bub--ghost"></span>
+            </span>
+            <span class="cst-tr-style-title">原译并陈</span>
+            <span class="cst-tr-style-sub">SHOW&nbsp;BOTH</span>
+          </button>
+        </div>
+
+        <!-- 实时预览：自成一体的独立组件，不再借用聊天室 .crm-bubble 结构与其
+             外部样式表（chatroom.css）——那份 padding/line-height 不受本页控制，
+             此前只能靠 !important 硬顶，越顶越乱。这里用一套全新、专属、
+             盒模型完全自包含的类名重做，颜色仍取本页已有的漆面变量，
+             保证与聊天室视觉同源，但布局是设置页自己说了算。 -->
+        <div class="cst-tr-preview" id="cstTrPreview">
+          <div class="cst-tr-preview-badge">
+            <span class="cst-tr-preview-badge-dot" aria-hidden="true"></span>
+            <span class="cst-tr-preview-badge-cn">实时预览</span>
+            <span class="cst-tr-preview-badge-en">LIVE&nbsp;PREVIEW</span>
+          </div>
+
+          <div class="cst-tr-preview-stage">
+            <div class="cst-tr-preview-row" id="cstTrPreviewGroup">
+              <div class="cst-tr-preview-avatar" id="cstTrPreviewAvatar" aria-hidden="true">
+                <span class="cst-tr-preview-avatar-glyph" id="cstTrPreviewAvatarGlyph">友</span>
+              </div>
+
+              <div class="cst-tr-bubble" id="cstTrPreviewBubble">
+                <span class="cst-tr-bubble-sigil" aria-hidden="true">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M15.5 3.2C11.4 4.4 8.5 8.2 8.5 12.5C8.5 16.8 11.4 20.6 15.5 21.8C13.9 22.4 12.2 22.7 10.5 22.4C5.6 21.6 2 17.4 2 12.5C2 7.6 5.6 3.4 10.5 2.6C12.2 2.3 13.9 2.6 15.5 3.2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                </span>
+                <div class="cst-tr-bubble-orig" id="cstTrPreviewOrig">今天月色真好，要不要一起走走？</div>
+                <div class="cst-tr-bubble-divider" id="cstTrPreviewDivider" aria-hidden="true"></div>
+                <div class="cst-tr-bubble-trans" id="cstTrPreviewTrans">The moon's lovely tonight — want to take a walk together?</div>
+                <button class="cst-tr-bubble-taphint" id="cstTrPreviewTapHint" type="button" hidden>
+                  <span class="cst-tr-bubble-taphint-glyph">译</span>
+                  <span>点击查看译文</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="cst-tr-preview-foot" id="cstTrPreviewFoot">此为「原译并陈」样式预览 · 原文与译文同时展示在同一枚气泡内</div>
+        </div>
+
+
+        <div class="cst-perc-note">
+          <span class="cst-perc-note-dot" aria-hidden="true"></span>
+          <span>「点按显影」默认只显示原文，点一下气泡展开译文，再点一下收起，适合不想被译文占用视线的场景；「原译并陈」则原文在上、译文在下同时常显，适合需要逐句对照的场景</span>
+        </div>
+
+        <!-- 配置完整性回执：三项缺一，如实提示，绝不假装已经配置好 -->
+        <div class="cst-tr-status-card" id="cstTrStatusCard">
+          <span class="cst-tr-status-icon" id="cstTrStatusIcon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 8.5V13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.4"/></svg>
+          </span>
+          <span class="cst-tr-status-text" id="cstTrStatusText">尚未选择原文语言与译文语言，翻译暂不会生效</span>
+        </div>
+
+        <div class="cst-wb-quickrow" id="cstTrQuickrow" hidden>
+          <button class="cst-wb-quick-btn" id="cstTrUnbindBtn" type="button">解除本轨绑定</button>
+        </div>
+       </div>
+      </div>
+
+      <!-- ============================================================
+           记录设置 · 时轨双牌 —— 与「这个聊天室」相关的两类原始记录
+           的独立入口：聊天记录 / 通话记录。本节不做任何配置项，
+           只做「查阅」入口，因此不采用感知卡/翻译面板那套可展开
+           表单，而是两枚并列的「牙牌型」导航条——与顶部「羁绊印鉴」
+           呼应的印玺语汇，右侧一枚小箭头明示"点击可前往独立页面"，
+           数量徽标实时同步 LunaDB 中的真实条数，从不编造。
+           聊天记录条跳转 chatlog.html（读取 chatroom.js 同源的
+           chatroom:<key> 消息数据，完整只读复现气泡/日期徽记）；
+           通话记录条跳转 calllog.html（暂为占位页，视觉与守卫逻辑
+           与聊天记录页同构，待通话功能上线后接入真实数据即可）。
+           两页均通过 sessionStorage 会话令牌 + URL 冗余参数双重
+           确认身份，直链访问同样会被拦截层挡下。
+           ============================================================ -->
+      <div class="cst-section-head cst-section-head-tight">
+        <span class="cst-section-seal" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.3" stroke="currentColor" stroke-width="1.4"/><path d="M12 7.6V12.3L15.2 14.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.2 6.2L4.7 4.7M17.8 6.2L19.3 4.7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+        </span>
+        <span class="cst-section-title-cn">记录设置</span>
+        <span class="cst-section-title-en">RECORDS</span>
+      </div>
+      <div class="cst-perc-lede">
+        查阅与这个聊天室相关的原始记录——聊天记录完整复现气泡与时间轴，通话记录待功能上线后同步接入
+      </div>
+
+      <div class="cst-record-list">
+        <a class="cst-record-row" id="cstRecordChatRow" href="chatlog.html">
+          <span class="cst-record-row-icon" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 6.5C5 5.4 5.9 4.5 7 4.5H17C18.1 4.5 19 5.4 19 6.5V14.5C19 15.6 18.1 16.5 17 16.5H10L6 20V16.5H7C5.9 16.5 5 15.6 5 14.5V6.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8.3 9H15.7M8.3 12H12.6" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>
+          </span>
+          <span class="cst-record-row-body">
+            <span class="cst-record-row-title-row">
+              <span class="cst-record-row-title-cn">聊天记录</span>
+              <span class="cst-record-row-title-en">CHAT&nbsp;LOG</span>
+            </span>
+            <span class="cst-record-row-sub" id="cstRecordChatSub">读取中…</span>
+          </span>
+          <span class="cst-record-row-badge" id="cstRecordChatBadge">—</span>
+          <span class="cst-record-row-arrow" aria-hidden="true">
+            <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </a>
+
+        <a class="cst-record-row" id="cstRecordCallRow" href="calllog.html">
+          <span class="cst-record-row-icon" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6.5 4.5C7.2 4.5 7.8 4.9 8.1 5.5L9.2 8C9.5 8.6 9.4 9.4 8.9 9.9L7.6 11.2C8.5 13.2 10.1 14.8 12.1 15.7L13.4 14.4C13.9 13.9 14.7 13.8 15.3 14.1L17.8 15.2C18.4 15.5 18.8 16.1 18.8 16.8V18.7C18.8 19.9 17.7 20.8 16.5 20.6C10.3 19.6 5.3 14.6 4.3 8.4C4.1 7.2 5 6.1 6.2 6.1H6.5V4.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="cst-record-row-body">
+            <span class="cst-record-row-title-row">
+              <span class="cst-record-row-title-cn">通话记录</span>
+              <span class="cst-record-row-title-en">CALL&nbsp;LOG</span>
+            </span>
+            <span class="cst-record-row-sub" id="cstRecordCallSub">功能筹备中</span>
+          </span>
+          <span class="cst-record-row-badge cst-record-row-badge--soon" id="cstRecordCallBadge">敬请期待</span>
+          <span class="cst-record-row-arrow" aria-hidden="true">
+            <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </a>
+      </div>
+
+      <div class="cst-perc-note">
+        <span class="cst-perc-note-dot" aria-hidden="true"></span>
+        <span>两页均为独立页面，仅接受由本设置页跳转携带的会话令牌，直接以链接打开会被拦截层挡下并引导返回；聊天记录为只读查阅，不提供在该页删除/撤回等修改操作</span>
       </div>
 
       <!-- ---- 底部操作：恢复默认 / 保存 ---- -->

@@ -233,6 +233,7 @@
       }
 
       syncStatusBar();
+      overlay.removeAttribute('inert');
       overlay.setAttribute('aria-hidden', 'false');
       overlay.classList.add('fp-open');
       if (scrollEl) scrollEl.scrollTop = 0;
@@ -240,15 +241,35 @@
     }
 
     function closeProfile() {
+      // 用 inert 代替"手动判断焦点在不在里面、再手动挪回 lastFocused"
+      // 的旧写法：lastFocused 若因为页面切换等原因当时不可聚焦，
+      // .focus() 会静默失败，焦点挪不走，"Blocked aria-hidden" 警告
+      // 就会再次出现。inert 由浏览器原生处理焦点挪出，不依赖任何
+      // 具体的 fallback 目标是否可见/可聚焦。
+      overlay.setAttribute('inert', '');
       overlay.classList.remove('fp-open');
       overlay.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
+
+      // inert 已经把焦点安全挪出覆盖层了，此时再尝试把焦点还给
+      // "当初点进来时的那个好友条目"纯粹是体验加分项——键盘用户
+      // 关闭后光标能留在原处，而不是掉回 body。就算 lastFocused
+      // 已经不在 DOM 里或不可聚焦，.focus() 顶多是个静默的 no-op，
+      // 不会再引发任何警告（冲突已经在上面用 inert 解决过了）。
       if (lastFocused && typeof lastFocused.focus === 'function') {
         lastFocused.focus();
       }
     }
 
     if (backBtn) backBtn.addEventListener('click', closeProfile);
+
+    // 向全局覆盖层注册表报到，原因与表情包/收藏总览层一致。
+    window.LunaOverlays = window.LunaOverlays || [];
+    window.LunaOverlays.push({
+      closeIfOpen: function () {
+        if (overlay.classList.contains('fp-open')) closeProfile();
+      }
+    });
 
     // 覆盖层内其余入口均为占位：轻触反馈 + 控制台标注，
     // 不做任何假的跳转或弹窗，避免造成"已经实现"的误导

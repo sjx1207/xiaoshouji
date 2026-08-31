@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Chat Log</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="chat.css" />
+<link rel="stylesheet" href="chatroom.css" />
+<link rel="stylesheet" href="chatlog.css" />
+</head>
+<body data-crm-guard="pending">
+
+<div class="phone-wrap">
+<div class="phone-frame crm-frame cll-frame">
+
+  <div class="bg-glow"></div>
+
+  <!-- ============ 拦截层：与聊天设置共用同一套会话令牌校验，
+       只允许经由「聊天设置 → 记录设置 → 聊天记录」跳转进入 ============ -->
+  <div class="crm-guard" id="cllGuard" aria-hidden="true">
+    <div class="crm-guard-seal" aria-hidden="true">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15.5 3.2C11.4 4.4 8.5 8.2 8.5 12.5C8.5 16.8 11.4 20.6 15.5 21.8C13.9 22.4 12.2 22.7 10.5 22.4C5.6 21.6 2 17.4 2 12.5C2 7.6 5.6 3.4 10.5 2.6C12.2 2.3 13.9 2.6 15.5 3.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="crm-guard-cn">需从聊天设置进入</div>
+    <div class="crm-guard-en">ACCESS&nbsp;VIA&nbsp;CHAT&nbsp;SETTING&nbsp;ONLY</div>
+    <a class="crm-guard-btn" href="chat.html">返回好友列表</a>
+  </div>
+
+  <!-- ============ 状态栏：与主状态栏完全同源同步 ============ -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 顶栏：返回 · 印玺题名（聊天记录）· 条数配平 ============ -->
+  <div class="crm-top-bar cll-top-bar" id="cllTopBar">
+    <button class="crm-back-btn" id="cllBackBtn" aria-label="返回聊天设置">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <div class="cll-title-seal">
+      <span class="cll-title-row">
+        <span class="cll-title-cn">聊天记录</span>
+        <span class="cll-title-en">CHAT&nbsp;LOG</span>
+      </span>
+      <span class="cll-title-peer" id="cllPeerLine">与「好友昵称」的完整对话</span>
+    </div>
+
+    <button class="cll-search-btn" id="cllSearchBtn" aria-label="搜索记录">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.6" stroke="currentColor" stroke-width="1.6"/><path d="M19.5 19.5L15.8 15.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <!-- ============ 搜索条：默认收起，点击放大镜展开 ============ -->
+  <div class="cll-search-bar" id="cllSearchBar" aria-hidden="true">
+    <div class="cll-search-row">
+      <div class="cll-search-field">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M20 20L16.2 16.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input type="text" id="cllSearchInput" class="cll-search-input" placeholder="搜索聊天记录中的文字" autocomplete="off" spellcheck="false" />
+        <button class="cll-search-clear" id="cllSearchClear" type="button" aria-label="清空" hidden>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <button class="cll-search-optbtn" id="cllSearchOptBtn" type="button" aria-label="搜索选项" aria-expanded="false">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M8 12H16M11 18H13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <!-- 结果导航条：命中数量 + 上一条/下一条跳转，仅在有查询词时出现 -->
+    <div class="cll-search-nav" id="cllSearchNav" hidden>
+      <span class="cll-search-nav-count" id="cllSearchNavCount">0 / 0</span>
+      <div class="cll-search-nav-btns">
+        <button class="cll-search-nav-btn" id="cllSearchPrevBtn" type="button" aria-label="上一条结果" disabled>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="cll-search-nav-btn" id="cllSearchNextBtn" type="button" aria-label="下一条结果" disabled>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 高级筛选面板：发送方 · 大小写敏感，折叠展示，不占默认空间 -->
+    <div class="cll-search-opts" id="cllSearchOpts" hidden>
+      <div class="cll-opt-group">
+        <span class="cll-opt-group-label">发送方</span>
+        <div class="cll-opt-chips" id="cllFromChips">
+          <button class="cll-opt-chip is-active" data-from="all" type="button">全部</button>
+          <button class="cll-opt-chip" data-from="me" type="button">我</button>
+          <button class="cll-opt-chip" data-from="peer" type="button">对方</button>
+        </div>
+      </div>
+      <label class="cll-opt-toggle">
+        <span class="cll-opt-toggle-label">区分大小写</span>
+        <span class="cll-opt-switch" id="cllCaseSwitch" role="switch" aria-checked="false" tabindex="0"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- ============ 概览牙牌：条数 · 起止日期 · 天数跨度 ============ -->
+  <div class="cll-stats-row" id="cllStatsRow">
+    <div class="cll-stat">
+      <span class="cll-stat-value" id="cllStatTotal">0</span>
+      <span class="cll-stat-label">消息总数</span>
+    </div>
+    <div class="cll-stat-divider" aria-hidden="true"></div>
+    <div class="cll-stat">
+      <span class="cll-stat-value" id="cllStatDays">0</span>
+      <span class="cll-stat-label">往来天数</span>
+    </div>
+    <div class="cll-stat-divider" aria-hidden="true"></div>
+    <div class="cll-stat">
+      <span class="cll-stat-value" id="cllStatSince">—</span>
+      <span class="cll-stat-label">最早记录</span>
+    </div>
+  </div>
+
+  <!-- ============ 消息滚动区：只读复现聊天室气泡与日期徽记 ============ -->
+  <div class="cll-scroll" id="cllScroll">
+    <div class="cll-scroll-inner" id="cllScrollInner">
+      <div class="cll-empty-hint" id="cllEmptyHint" aria-hidden="true">
+        <span class="cll-empty-seal">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 6.5C5 5.4 5.9 4.5 7 4.5H17C18.1 4.5 19 5.4 19 6.5V14.5C19 15.6 18.1 16.5 17 16.5H10L6 20V16.5H7C5.9 16.5 5 15.6 5 14.5V6.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" opacity="0.55"/></svg>
+        </span>
+        <span class="cll-empty-cn">还没有聊天记录</span>
+        <span class="cll-empty-en">NO&nbsp;MESSAGES&nbsp;YET</span>
+        <a class="cll-empty-btn" href="chatroom.html">前往聊天室开始对话</a>
+      </div>
+
+      <div class="cll-nores-hint" id="cllNoResHint" hidden>
+        <span class="cll-nores-cn">没有匹配「<span id="cllNoResQuery"></span>」的消息</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 回到底部悬浮钮：滚动偏离底部时浮现 ============ -->
+  <button class="cll-toBottom-btn" id="cllToBottomBtn" type="button" aria-label="回到最新消息" hidden>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4V19M12 19L6 13M12 19L18 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+</div>
+</div>
+
+<script src="chat.js"></script>
+<script src="chatlog.js"></script>
+</body>
+</html>

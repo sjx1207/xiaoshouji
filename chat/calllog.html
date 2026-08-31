@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Call Log</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="chat.css" />
+<link rel="stylesheet" href="chatroom.css" />
+<link rel="stylesheet" href="calllog.css" />
+</head>
+<body data-crm-guard="pending">
+
+<div class="phone-wrap">
+<div class="phone-frame crm-frame cll2-frame">
+
+  <div class="bg-glow"></div>
+
+  <!-- ============ 拦截层：与聊天设置共用同一套会话令牌校验，
+       只允许经由「聊天设置 → 记录设置 → 通话记录」跳转进入 ============ -->
+  <div class="crm-guard" id="cll2Guard" aria-hidden="true">
+    <div class="crm-guard-seal" aria-hidden="true">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15.5 3.2C11.4 4.4 8.5 8.2 8.5 12.5C8.5 16.8 11.4 20.6 15.5 21.8C13.9 22.4 12.2 22.7 10.5 22.4C5.6 21.6 2 17.4 2 12.5C2 7.6 5.6 3.4 10.5 2.6C12.2 2.3 13.9 2.6 15.5 3.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="crm-guard-cn">需从聊天设置进入</div>
+    <div class="crm-guard-en">ACCESS&nbsp;VIA&nbsp;CHAT&nbsp;SETTING&nbsp;ONLY</div>
+    <a class="crm-guard-btn" href="chat.html">返回好友列表</a>
+  </div>
+
+  <!-- ============ 状态栏：与主状态栏完全同源同步 ============ -->
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island" id="statusIsland"></div>
+    <div class="status-right">
+      <div class="signal">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="battery">
+        <span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell">
+          <div class="bat-inner" id="batInner"></div>
+          <div class="bat-nub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 顶栏：返回 · 印玺题名（通话记录）· 占位配平 ============ -->
+  <div class="crm-top-bar cll2-top-bar" id="cll2TopBar">
+    <button class="crm-back-btn" id="cll2BackBtn" aria-label="返回聊天设置">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <div class="cll2-title-seal">
+      <span class="cll2-title-row">
+        <span class="cll2-title-cn">通话记录</span>
+        <span class="cll2-title-en">CALL&nbsp;LOG</span>
+      </span>
+      <span class="cll2-title-peer" id="cll2PeerLine">与「好友昵称」的通话往来</span>
+    </div>
+
+    <span class="cll2-top-spacer" aria-hidden="true"></span>
+  </div>
+
+  <!-- ============ 主体：功能筹备中的占位态 ============ -->
+  <div class="cll2-scroll" id="cll2Scroll">
+    <div class="cll2-scroll-inner">
+
+      <div class="cll2-soon-card" id="cll2SoonCard">
+        <span class="cll2-soon-seal-corner cll2-soon-seal-corner--tl" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M2 2H10M2 2V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+        <span class="cll2-soon-seal-corner cll2-soon-seal-corner--tr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M2 2H10M2 2V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+        <span class="cll2-soon-seal-corner cll2-soon-seal-corner--bl" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M2 2H10M2 2V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+        <span class="cll2-soon-seal-corner cll2-soon-seal-corner--br" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M2 2H10M2 2V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+
+        <div class="cll2-soon-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M6.5 4.5C7.2 4.5 7.8 4.9 8.1 5.5L9.2 8C9.5 8.6 9.4 9.4 8.9 9.9L7.6 11.2C8.5 13.2 10.1 14.8 12.1 15.7L13.4 14.4C13.9 13.9 14.7 13.8 15.3 14.1L17.8 15.2C18.4 15.5 18.8 16.1 18.8 16.8V18.7C18.8 19.9 17.7 20.8 16.5 20.6C10.3 19.6 5.3 14.6 4.3 8.4C4.1 7.2 5 6.1 6.2 6.1H6.5V4.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="cll2-soon-title-cn">通话记录功能筹备中</div>
+        <div class="cll2-soon-title-en">CALL&nbsp;LOG&nbsp;COMING&nbsp;SOON</div>
+
+        <div class="cll2-soon-desc">
+          这里将会完整呈现与好友的每一通语音往来——通话时长、发起方向、
+          未接与已接状态都会如实记录，视觉与聊天记录同源，随功能上线后自动接入真实数据。
+        </div>
+
+        <div class="cll2-soon-progress" aria-hidden="true">
+          <span class="cll2-soon-progress-dot"></span>
+          <span class="cll2-soon-progress-dot"></span>
+          <span class="cll2-soon-progress-dot"></span>
+        </div>
+      </div>
+
+      <a class="cll2-back-link" href="chatsetting.html">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        返回聊天设置
+      </a>
+
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="chat.js"></script>
+<script src="calllog.js"></script>
+</body>
+</html>
