@@ -46,7 +46,7 @@ A.openSetup=async function(){
 };
 
 function autoBindUser(cid){
-  const b=idents.find(u=>(Array.isArray(u.boundCharIds)&&u.boundCharIds.includes(cid))||u.boundCharId===cid);
+  const b=idents.find(u=>(Array.isArray(u.boundCharIds)&&u.boundCharIds.some(x=>String(x)===String(cid)))||String(u.boundCharId)===String(cid));
   if(b) return {id:b.id,auto:true};
   const p=idents.find(u=>u.isPrimary)||idents.find(u=>u.active!==false)||idents[0];
   return p?{id:p.id,auto:false}:null;
@@ -88,13 +88,13 @@ function renderWizard(){
 function renderStepBody(){
   if(W.step===0){
     if(!chars.length) return emptyBlock('角色书是空的','请先到「角色」App 创建一位角色，回想录会自动同步。');
-    return `<div class="portraits" id="wChars">${chars.map(c=>portrait(c,W.charId===c.id,false)).join('')}</div>`;
+    return `<div class="portraits" id="wChars">${chars.map(c=>portrait(c,String(W.charId)===String(c.id),false)).join('')}</div>`;
   }
   if(W.step===1){
-    const c=chars.find(x=>x.id===W.charId);
+    const c=chars.find(x=>String(x.id)===String(W.charId));
     if(!idents.length) return emptyBlock('身份档是空的','可到「身份」App 创建，用于精准定义"你"在故事里的样子。也可以跳过，模型会以第二人称称呼你。');
-    return `<div class="portraits" id="wUsers">${idents.map(u=>portrait(u,W.userId===u.id,true,
-        W.autoBound&&W.userId===u.id?'绑定':null)).join('')}</div>`+pairbar(c,idents.find(x=>x.id===W.userId));
+    return `<div class="portraits" id="wUsers">${idents.map(u=>portrait(u,String(W.userId)===String(u.id),true,
+        W.autoBound&&String(W.userId)===String(u.id)?'绑定':null)).join('')}</div>`+pairbar(c,idents.find(x=>String(x.id)===String(W.userId)));
   }
   if(W.step===2){
     return `<div id="wPresets">${M.Preset.pickerHtml(W.presetIds)}</div>
@@ -102,7 +102,7 @@ function renderStepBody(){
       <div style="text-align:center;font-size:11px;letter-spacing:.16em;color:var(--ink-5)">
         已选 ${W.presetIds.length} 条</div>`;
   }
-  const c=chars.find(x=>x.id===W.charId), u=idents.find(x=>x.id===W.userId);
+  const c=chars.find(x=>String(x.id)===String(W.charId)), u=idents.find(x=>String(x.id)===String(W.userId));
   const title=W.title||(c?`与${c.name}的回想`:'未命名');
   return `
     <div class="field">
@@ -191,13 +191,13 @@ function bindStep(){
       const b=autoBindUser(W.charId);
       if(b){ W.userId=b.id; W.autoBound=b.auto; }
       renderWizard();
-      M.toast('已选定 '+(chars.find(x=>x.id===W.charId)||{}).name);
+      M.toast('已选定 '+((chars.find(x=>String(x.id)===String(W.charId))||{}).name||'角色'));
     };
   } else if(W.step===1){
     const el=$('#wUsers'); if(!el) return;
     el.onclick=e=>{
       const p=e.target.closest('.pt'); if(!p) return;
-      if(W.userId===p.dataset.id){ W.userId=null; W.autoBound=false; }
+      if(String(W.userId)===String(p.dataset.id)){ W.userId=null; W.autoBound=false; }
       else { W.userId=p.dataset.id; W.autoBound=false; }
       renderWizard();
     };
@@ -211,7 +211,7 @@ function bindStep(){
     };
   } else {
     $('#wTitle').oninput=e=>{ W.title=e.target.value;
-      $('#wPvTitle').textContent=W.title||((chars.find(x=>x.id===W.charId)||{}).name?`与${chars.find(x=>x.id===W.charId).name}的回想`:'未命名'); };
+      $('#wPvTitle').textContent=W.title||((chars.find(x=>String(x.id)===String(W.charId))||{}).name?`与${chars.find(x=>String(x.id)===String(W.charId)).name}的回想`:'未命名'); };
     $('#wSeed').oninput=e=>W.seed=e.target.value;
     $('#wBg').onclick=async()=>{ const d=await M.pickImage(1400); if(d){ W.bg=d; renderWizard(); } };
   }
@@ -232,8 +232,9 @@ M.actions['w-next']=()=>{
 };
 M.actions['w-done']=async()=>{
   if(!W.charId) return M.toast('请先选定一位角色');
-  const c=chars.find(x=>x.id===W.charId);
-  const u=idents.find(x=>x.id===W.userId)||null;
+  const c=chars.find(x=>String(x.id)===String(W.charId));
+  if(!c) return M.toast('未找到选定的角色，请返回第一步重新选择');
+  const u=idents.find(x=>String(x.id)===String(W.userId))||null;
   const arc={
     id:M.uid(),
     title:(W.title||'').trim()||`与${c.name||'未名'}的回想`,
@@ -394,7 +395,7 @@ M.actions['ad-menu']=async()=>{
     if(sel){ a.presetIds=sel; await A.saveArchive(a); A.renderDetail(); M.toast('预设已更新'); }
   }else if(v==='resync'){
     const cs=await M.loadChars(),us=await M.loadIdentities();
-    const c=cs.find(x=>x.id===a.charId),u=us.find(x=>x.id===a.userId);
+    const c=cs.find(x=>String(x.id)===String(a.charId)),u=us.find(x=>String(x.id)===String(a.userId));
     if(c) a.char=JSON.parse(JSON.stringify(c));
     if(u) a.user=JSON.parse(JSON.stringify(u));
     await A.saveArchive(a); A.renderDetail();
