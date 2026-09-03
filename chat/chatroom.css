@@ -809,6 +809,43 @@ body[data-crm-guard="blocked"] .crm-input-bar{ display:none; }
   padding:0 3px;
 }
 
+/* ---- 图片消息：时间戳同排追加「描述」入口 ----
+   与时间戳完全同源同款字体/字号/颜色，中间用一枚极小圆点分隔，
+   看起来像时间戳自然延伸出的一截文字，而不是额外贴的按钮。
+   图片消息一律显示这枚入口——创作者需要一眼看出"这张图有没有
+   配描述"，而不是没写描述就整个隐藏、无从判断。有描述＝正常
+   字色＋下划线；没描述＝更淡的颜色、去掉下划线，视觉上分得清
+   "有内容可看"和"点了也是空的"，多图切换时随当前图状态实时
+   切换 ---- */
+.crm-msg-time-row{
+  display:flex; align-items:center; gap:5px;
+}
+.crm-msg-time-dot{
+  width:2.5px; height:2.5px;
+  border-radius:50%;
+  background: var(--grey-3);
+  flex:0 0 auto;
+}
+.crm-msg-time-caption-link{
+  font-family:'Space Mono', monospace;
+  font-size:9px;
+  letter-spacing:0.07em;
+  color: var(--grey-3);
+  background:none;
+  border:none;
+  padding:0;
+  cursor:pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(136,136,136,0.4);
+}
+.crm-msg-time-caption-link.is-empty{
+  color: rgba(136,136,136,0.55);
+  text-decoration: none;
+}
+
+.crm-msg-time-caption-link:active{ opacity:0.6; }
+
 /* ==========================================================================
    撤回提示行 —— 黑白双印：我方撤回＝黑色渐变，靠右站位，原文卡展开在
    撤回印的左边；对方撤回＝白色渐变，靠左站位，原文卡展开在撤回印的
@@ -1731,6 +1768,19 @@ body[data-crm-guard="blocked"] .crm-input-bar{ display:none; }
     0 30px 54px -18px rgba(6,6,8,0.62),
     0 0 0 1.5px rgba(255,255,255,0.22),
     0 0 0 2.5px rgba(10,10,12,0.5);
+}
+/* 图卡同样的浮起光效：图卡现在是单一整块圆角照片（描述带默认收起
+   叠在照片内部），高光直接加在整张卡上即可，读法与气泡版本一致 */
+.crm-select-clone .crm-imgcard{ cursor:default; }
+.crm-select-clone .crm-imgcard-media{
+  box-shadow:
+    0 30px 54px -20px rgba(10,10,12,0.4),
+    0 0 0 1.5px rgba(255,255,255,0.55);
+}
+.crm-select-clone.is-me .crm-imgcard-media{
+  box-shadow:
+    0 30px 54px -18px rgba(6,6,8,0.62),
+    0 0 0 1.5px rgba(255,255,255,0.22);
 }
 
 /* 操作面板：磨砂白玉卡片，纵向排列的功能行，行与行之间用发丝级
@@ -3216,4 +3266,1416 @@ body[data-crm-msel="on"] .crm-scroll{ padding-bottom: 96px; }
 @media (prefers-reduced-motion: reduce){
   .crm-shot-veil, .crm-shot-page, .crm-shot-back, .crm-shot-save-btn,
   .crm-bundle-veil, .crm-bundle-page, .crm-bundle-back{ transition:none; }
+}
+/* ==========================================================================
+   「重回」面板 —— 重新生成最新一轮 AI 回复
+   —— 遮罩 + 居中漆面卡，与十三簿牙牌共享同一套「细描边 + 錾刻直角托」
+      语汇，但作为独立对话层出现：纯黑白灰，浅色偏白为主基调，
+      深色只用于文字与实心按钮，杜绝暖米色与任何 emoji。
+========================================================================== */
+.crm-rewind-veil{
+  position:fixed; inset:0;
+  background: rgba(10,10,13,0.46);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity:0; pointer-events:none;
+  transition: opacity 0.26s ease;
+  z-index: 60;
+}
+.crm-rewind-veil.is-open{ opacity:1; pointer-events:auto; }
+
+.crm-rewind-sheet{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  padding: 0 22px;
+  opacity:0; pointer-events:none;
+  transition: opacity 0.28s ease;
+  z-index: 61;
+}
+.crm-rewind-sheet.is-open{ opacity:1; pointer-events:auto; }
+
+.crm-rewind-card{
+  position:relative;
+  width:100%; max-width:340px;
+  border-radius: 10px 30px 30px 30px;
+  padding: 22px 20px 18px;
+  background-image:
+    linear-gradient(130deg,
+      rgba(255,255,255,0.98) 0%,
+      rgba(255,255,255,0.55) 18%,
+      rgba(255,255,255,0) 40%,
+      rgba(255,255,255,0) 80%,
+      rgba(255,255,255,0.3) 100%),
+    linear-gradient(178deg, #ffffff 0%, #f6f6f8 55%, #eaeaee 100%);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.95) inset,
+    0 -1.5px 0 0 rgba(18,18,26,0.06) inset,
+    0 40px 70px -28px rgba(8,8,11,0.55),
+    0 0 0 1px rgba(18,18,26,0.07);
+  border: 1px solid rgba(18,18,26,0.1);
+  transform: translateY(10px) scale(0.96);
+  transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+}
+.crm-rewind-sheet.is-open .crm-rewind-card{ transform: translateY(0) scale(1); }
+
+.crm-rewind-corner-a,
+.crm-rewind-corner-b{
+  content:''; position:absolute;
+  width:11px; height:11px;
+  pointer-events:none;
+}
+.crm-rewind-corner-a{ top:-1px; right:-1px; border-top:1.4px solid rgba(18,18,26,0.32); border-right:1.4px solid rgba(18,18,26,0.32); }
+.crm-rewind-corner-b{ bottom:-1px; left:-1px; border-bottom:1.4px solid rgba(18,18,26,0.32); border-left:1.4px solid rgba(18,18,26,0.32); }
+
+.crm-rewind-head{
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:12px;
+}
+.crm-rewind-glyph{
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:50%;
+  flex-shrink:0;
+  color: var(--ink);
+  background: linear-gradient(178deg, #ffffff 0%, #eeeef1 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 0 0 1px rgba(18,18,26,0.08),
+    0 6px 14px -8px rgba(18,18,26,0.35);
+}
+.crm-rewind-head-col{ display:flex; flex-direction:column; gap:2px; }
+.crm-rewind-title-cn{ font-size:16.5px; font-weight:800; color: var(--ink); letter-spacing:0.02em; }
+.crm-rewind-title-en{ font-size:9.5px; font-weight:600; color: var(--ink-soft, #8a8a92); letter-spacing:0.16em; }
+
+.crm-rewind-desc{
+  margin: 0 0 14px;
+  font-size:13px; line-height:1.65;
+  color: var(--ink-soft, #6d6d76);
+}
+
+/* 被重回的那段原文预览：安静的一条竖线 + 灰字，让用户确认
+   「就是这段要被撤回重说」，与转发签/引用签同一处语法 */
+.crm-rewind-preview{
+  display:flex; gap:9px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(18,18,26,0.035);
+}
+.crm-rewind-preview-bar{
+  flex-shrink:0; width:2.5px; border-radius:2px;
+  background: linear-gradient(180deg, rgba(18,18,26,0.5), rgba(18,18,26,0.18));
+}
+.crm-rewind-preview-text{
+  font-size:12.5px; line-height:1.6;
+  color: var(--ink-soft, #6d6d76);
+  display:-webkit-box;
+  -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+/* 说明问题展开区：默认高度收起为 0，点开后展开，
+   与十三簿面板同一套 cubic-bezier 弹性节奏 */
+.crm-rewind-note{
+  max-height:0;
+  opacity:0;
+  overflow:hidden;
+  transition: max-height 0.32s cubic-bezier(.22,1,.36,1), opacity 0.22s ease, margin 0.32s cubic-bezier(.22,1,.36,1);
+}
+.crm-rewind-note.is-open{
+  max-height:220px;
+  opacity:1;
+  margin-bottom:14px;
+}
+.crm-rewind-tags{
+  display:flex; flex-wrap:wrap; gap:7px;
+  margin-bottom:10px;
+}
+.crm-rewind-tag{
+  font-family:inherit;
+  font-size:11.5px; font-weight:600;
+  color: var(--ink-soft, #6d6d76);
+  padding: 6px 11px;
+  border-radius: 20px;
+  border: 1px solid rgba(18,18,26,0.14);
+  background: rgba(255,255,255,0.6);
+  cursor:pointer;
+  transition: all 0.18s ease;
+}
+.crm-rewind-tag:active{ transform: scale(0.96); }
+.crm-rewind-tag.is-picked{
+  color: #fff;
+  background: linear-gradient(155deg, var(--crm-lacquer-700, #232329), var(--crm-lacquer-900, #0a0a0c));
+  border-color: transparent;
+  box-shadow: 0 6px 14px -8px rgba(18,18,26,0.5);
+}
+.crm-rewind-textarea{
+  width:100%;
+  min-height:64px;
+  resize:none;
+  font-family:inherit;
+  font-size:13px; line-height:1.6;
+  color: var(--ink);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(18,18,26,0.14);
+  background: rgba(255,255,255,0.75);
+  outline:none;
+}
+.crm-rewind-textarea::placeholder{ color: rgba(18,18,26,0.32); }
+.crm-rewind-textarea:focus{
+  border-color: rgba(18,18,26,0.32);
+  box-shadow: 0 0 0 3px rgba(18,18,26,0.05);
+}
+
+.crm-rewind-actions{
+  display:flex; flex-wrap:wrap; gap:8px;
+}
+.crm-rewind-btn{
+  font-family:inherit;
+  font-weight:700;
+  cursor:pointer;
+  border:none;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.2s ease;
+}
+.crm-rewind-btn:active{ transform: scale(0.97); }
+
+.crm-rewind-btn.is-ghost{
+  flex:0 0 auto;
+  font-size:12.5px;
+  color: var(--ink-soft, #8a8a92);
+  background: transparent;
+  padding: 11px 4px;
+}
+.crm-rewind-btn.is-line{
+  flex:1 1 auto;
+  font-size:12.5px;
+  color: var(--ink);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(18,18,26,0.16);
+  border-radius: 22px;
+  padding: 11px 14px;
+}
+.crm-rewind-btn.is-solid{
+  flex:1 1 auto;
+  font-size:13px;
+  color:#fff;
+  background: linear-gradient(155deg, var(--crm-lacquer-700, #232329) 0%, var(--crm-lacquer-800, #16161a) 55%, var(--crm-lacquer-900, #0a0a0c) 100%);
+  border-radius: 22px;
+  padding: 11px 16px;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.12) inset,
+    0 10px 20px -12px rgba(8,8,11,0.6);
+}
+.crm-rewind-btn.is-solid:disabled{ opacity:0.5; pointer-events:none; }
+.crm-rewind-btn-icon{ display:flex; }
+.crm-rewind-btn-icon svg{ animation:none; }
+.crm-rewind-btn.is-solid.is-thinking .crm-rewind-btn-icon svg{ animation: crmAiSpin 0.9s linear infinite; }
+
+@media (prefers-reduced-motion: reduce){
+  .crm-rewind-veil, .crm-rewind-sheet, .crm-rewind-card, .crm-rewind-note, .crm-rewind-tag, .crm-rewind-btn{ transition:none; }
+}
+/* ==========================================================================
+   图片消息功能 —— 「图片」十三簿卡片接入
+   包含四块：
+   1) crm-img-source-*   来源选择弹窗（相册 / 本地设备）—— 复用居中磨砂
+      白玉语言（与 crm-edit-modal 同一套皮肤，纯黑白灰，禁止暖米色/emoji）
+   2) crm-img-pending-*  预览态：图片小图 + AI 识图用的文字描述编辑区，
+      悬浮在输入栏上方，与 crm-quote-pending 同一插槽逻辑（互斥显示）
+   3) crm-imgcard-*      图片消息本体：不套用 .crm-bubble 深色气泡壳，
+      改为独立"图卡"——图片贴边 + 下方图注条，仿 IG/微信图片消息语言
+   4) crm-imgview-*      单击小图后的大图预览满屏页，复用与
+      .crm-shot-page 一致的"壳内 absolute 铺满"写法
+   ========================================================================== */
+
+/* ---- 1) 来源选择弹窗 ---- */
+.crm-img-src-mask{
+  position:absolute; inset:0; z-index:640;
+  background: rgba(10,10,12,0.42);
+  backdrop-filter: blur(6px);
+  opacity:0; pointer-events:none;
+  transition: opacity 0.24s ease;
+}
+.crm-img-src-mask.is-open{ opacity:1; pointer-events:auto; }
+
+.crm-img-src-modal{
+  position:absolute; left:50%; top:50%; z-index:641;
+  width: min(78%, 300px);
+  transform: translate(-50%, -46%) scale(0.94);
+  opacity:0; pointer-events:none;
+  transition: opacity 0.24s ease, transform 0.24s cubic-bezier(.2,.8,.2,1);
+
+  background: linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(246,246,248,0.94) 100%);
+  border: 1px solid rgba(18,18,26,0.10);
+  border-radius: 20px;
+  padding: 22px 20px 18px;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.6) inset,
+    0 24px 48px -20px rgba(8,8,11,0.45);
+}
+.crm-img-src-modal.is-open{
+  opacity:1; pointer-events:auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.crm-img-src-seal{
+  width:34px; height:34px; margin: 0 auto 12px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color: var(--ink, #17171a);
+  background: linear-gradient(155deg, #fff 0%, #f0f0f2 100%);
+  border: 1px solid rgba(18,18,26,0.12);
+}
+
+.crm-img-src-title-row{
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  margin-bottom: 16px; text-align:center;
+}
+.crm-img-src-title-cn{ font-size:15px; font-weight:700; color: var(--ink, #17171a); letter-spacing:0.02em; }
+.crm-img-src-title-en{
+  font-family:'Space Mono', monospace; font-size:9px; letter-spacing:0.16em;
+  color: rgba(18,18,26,0.36); text-transform:uppercase;
+}
+
+.crm-img-src-options{ display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+.crm-img-src-opt{
+  display:flex; align-items:center; gap:12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(18,18,26,0.10);
+  background: rgba(255,255,255,0.6);
+  cursor:pointer;
+  font-family:inherit;
+  text-align:left;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.crm-img-src-opt:active{ transform: scale(0.98); }
+.crm-img-src-opt:hover{ background: rgba(255,255,255,0.92); border-color: rgba(18,18,26,0.18); }
+
+.crm-img-src-opt-icon{
+  flex:0 0 auto;
+  width:36px; height:36px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:11px;
+  color: var(--ink, #17171a);
+  background: linear-gradient(155deg, #fff 0%, #ececef 100%);
+  border: 1px solid rgba(18,18,26,0.09);
+}
+.crm-img-src-opt-col{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.crm-img-src-opt-cn{ font-size:13.5px; font-weight:600; color: var(--ink, #17171a); }
+.crm-img-src-opt-en{
+  font-family:'Space Mono', monospace; font-size:8.5px; letter-spacing:0.12em;
+  color: rgba(18,18,26,0.34); text-transform:uppercase;
+}
+
+.crm-img-src-cancel{
+  width:100%;
+  font-family:inherit; font-size:13px; font-weight:600;
+  color: var(--ink-soft, #8a8a92);
+  background: transparent; border:none; cursor:pointer;
+  padding: 10px 0 2px;
+}
+.crm-img-src-cancel:active{ opacity:0.6; }
+
+/* ---- 2) 图片待发送 · 居中悬浮弹窗 ----
+   不再是输入栏上方的窄条，而是独立居中的磨砂白玉卡片：大图预览
+   清晰可见，"AI 识图描述"说明与文字域各自留白呼吸，禁止暖米色、
+   禁止 emoji，与 .crm-img-src-modal / .crm-rewind-card 同源同款。 */
+.crm-img-pending-veil{
+  position:absolute; inset:0; z-index:645;
+  background:
+    radial-gradient(120% 70% at 50% 20%, rgba(150,160,190,0.08), transparent 60%),
+    rgba(8,8,11,0.46);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  opacity:0; pointer-events:none;
+  transition: opacity 0.26s ease;
+}
+.crm-img-pending-veil.is-open{ opacity:1; pointer-events:auto; }
+
+.crm-img-pending{
+  position:absolute; left:50%; top:50%; z-index:646;
+  width:min(84%, 320px);
+  max-height: 82%;
+  display:flex;
+  transform: translate(-50%, -46%) scale(0.94);
+  opacity:0; pointer-events:none;
+  transition: opacity 0.26s ease, transform 0.26s cubic-bezier(.2,.8,.2,1);
+}
+.crm-img-pending.is-open{
+  opacity:1; pointer-events:auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.crm-img-pending-card{
+  position:relative;
+  width:100%;
+  max-height: 100%;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  padding: 22px 20px 18px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(247,247,249,0.97) 100%);
+  border: 1px solid rgba(18,18,26,0.09);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.7) inset,
+    0 30px 60px -22px rgba(8,8,11,0.5),
+    0 0 0 1px rgba(18,18,26,0.03);
+}
+
+/* 四角錾刻直角托——与 .crm-rewind-card 同一枚「牙牌」语汇 */
+.crm-img-pending-corner-a,
+.crm-img-pending-corner-b{
+  position:absolute;
+  width:13px; height:13px;
+  border-color: rgba(18,18,26,0.16);
+  border-style:solid;
+  pointer-events:none;
+}
+.crm-img-pending-corner-a{
+  top:9px; left:9px;
+  border-width:1.3px 0 0 1.3px;
+  border-radius: 5px 0 0 0;
+}
+.crm-img-pending-corner-b{
+  bottom:9px; right:9px;
+  border-width:0 1.3px 1.3px 0;
+  border-radius: 0 0 5px 0;
+}
+
+.crm-img-pending-remove{
+  position:absolute; top:12px; right:12px; z-index:2;
+  width:24px; height:24px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color: var(--ink, #17171a);
+  background: linear-gradient(155deg, #fff 0%, #ececef 100%);
+  border: 1px solid rgba(18,18,26,0.12);
+  cursor:pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.crm-img-pending-remove:active{ transform: scale(0.9); }
+.crm-img-pending-remove:hover{ background:#fff; }
+
+.crm-img-pending-thumb{
+  flex:0 0 auto;
+  width:100%;
+  aspect-ratio: 4 / 3;
+  border-radius:16px;
+  overflow:hidden;
+  border: 1px solid rgba(18,18,26,0.12);
+  background: linear-gradient(155deg, #f4f4f6 0%, #e7e7ea 100%);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.6) inset;
+}
+.crm-img-pending-thumb img{
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+
+.crm-img-pending-body{ display:flex; flex-direction:column; gap:8px; }
+.crm-img-pending-label-row{ display:flex; align-items:center; gap:9px; }
+.crm-img-pending-label-seal{
+  flex:0 0 auto;
+  width:28px; height:28px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color: var(--ink, #17171a);
+  background: linear-gradient(155deg, #fff 0%, #f0f0f2 100%);
+  border: 1px solid rgba(18,18,26,0.12);
+}
+.crm-img-pending-label-col{ display:flex; flex-direction:column; gap:1px; }
+.crm-img-pending-label-cn{ font-size:14.5px; font-weight:700; color: var(--ink, #17171a); letter-spacing:0.01em; }
+.crm-img-pending-label-en{
+  font-family:'Space Mono', monospace; font-size:8.5px; letter-spacing:0.16em;
+  color: rgba(18,18,26,0.38); text-transform:uppercase;
+}
+.crm-img-pending-hint{
+  margin:0;
+  font-size:12.5px; line-height:1.65;
+  color: rgba(18,18,26,0.58);
+  padding: 10px 12px;
+  border-radius:12px;
+  background: rgba(18,18,26,0.04);
+  border: 1px solid rgba(18,18,26,0.07);
+}
+/* 当前模型支持识图时：提示条改为更醒目的浅银灰"可选"基调，
+   呼应月环签名色，区别于纯文字模型的中性灰提示 */
+.crm-img-pending.is-vision-model .crm-img-pending-hint{
+  color: rgba(18,18,26,0.66);
+  background: linear-gradient(155deg, rgba(150,160,190,0.10) 0%, rgba(150,160,190,0.05) 100%);
+  border-color: rgba(150,160,190,0.32);
+}
+.crm-img-pending-textarea{
+  width:100%;
+  resize:none;
+  font-family:inherit; font-size:13.5px; line-height:1.6;
+  color: var(--ink, #17171a);
+  background: rgba(18,18,26,0.03);
+  border: 1px solid rgba(18,18,26,0.12);
+  border-radius:14px;
+  padding: 11px 13px;
+  outline:none;
+  max-height:120px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.crm-img-pending-textarea::placeholder{ color: rgba(18,18,26,0.34); }
+.crm-img-pending-textarea:focus{
+  border-color: rgba(18,18,26,0.32);
+  background: rgba(18,18,26,0.015);
+}
+
+/* 「无需描述，直接发送」——仅识图模型下出现，点击即收起弹窗并立即发送 */
+.crm-img-pending-skip{
+  display:none;
+  align-items:center; justify-content:center; gap:6px;
+  width:100%;
+  font-family:inherit; font-size:12.5px; font-weight:600;
+  color: var(--ink, #17171a);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed rgba(18,18,26,0.22);
+  padding: 2px 0 10px;
+  cursor:pointer;
+  transition: opacity 0.15s ease;
+}
+.crm-img-pending.is-vision-model .crm-img-pending-skip{ display:flex; }
+.crm-img-pending-skip:active{ opacity:0.55; }
+.crm-img-pending-skip-glyph{ display:flex; }
+
+.crm-img-pending-actions{
+  display:flex; gap:10px;
+  margin-top:2px;
+}
+.crm-img-pending-btn{
+  flex:1 1 0;
+  font-family:inherit; font-size:13.5px; font-weight:700;
+  letter-spacing:0.02em;
+  padding: 12px 0;
+  border-radius:14px;
+  cursor:pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+.crm-img-pending-btn:active{ transform: scale(0.97); }
+.crm-img-pending-btn.is-ghost{
+  color: var(--ink-soft, #6c6c74);
+  background: rgba(18,18,26,0.05);
+  border: 1px solid rgba(18,18,26,0.10);
+}
+.crm-img-pending-btn.is-ghost:hover{ background: rgba(18,18,26,0.08); }
+.crm-img-pending-btn.is-solid{
+  color:#fff;
+  background: var(--crm-bubble-me);
+  border: 1px solid var(--crm-lacquer-rim);
+  box-shadow: 0 14px 26px -14px rgba(18,18,26,0.55);
+}
+.crm-img-pending-btn.is-solid:hover{ opacity:0.94; }
+
+@media (prefers-reduced-motion: reduce){
+  .crm-img-pending-veil, .crm-img-pending, .crm-img-pending-textarea, .crm-img-pending-btn, .crm-img-pending-remove{ transition:none; }
+}
+
+/* ---- 输入栏小回执条：弹窗收起后，图片仍候发时的常驻提示 ---- */
+.crm-img-chip{
+  display:none;
+  align-items:center;
+  gap:10px;
+  margin: 8px 14px 0;
+  padding: 8px 10px;
+  border-radius:14px;
+  background: rgba(18,18,26,0.045);
+  border: 1px solid rgba(18,18,26,0.09);
+  cursor:pointer;
+  transition: background 0.15s ease;
+}
+.crm-img-chip.is-open{ display:flex; }
+.crm-img-chip:hover{ background: rgba(18,18,26,0.07); }
+
+.crm-img-chip-thumb{
+  flex:0 0 auto;
+  width:34px; height:34px;
+  border-radius:9px;
+  overflow:hidden;
+  border: 1px solid rgba(18,18,26,0.12);
+  background: linear-gradient(155deg, #f4f4f6 0%, #e7e7ea 100%);
+}
+.crm-img-chip-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+.crm-img-chip-text{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.crm-img-chip-cn{ font-size:12px; font-weight:700; color: var(--ink, #17171a); }
+.crm-img-chip-en{
+  font-family:'Space Mono', monospace; font-size:7.5px; letter-spacing:0.14em;
+  color: rgba(18,18,26,0.36); text-transform:uppercase;
+}
+
+.crm-img-chip-remove{
+  flex:0 0 auto;
+  width:22px; height:22px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color: var(--ink-soft, #6c6c74);
+  background: #fff;
+  border: 1px solid rgba(18,18,26,0.12);
+  cursor:pointer;
+}
+.crm-img-chip-remove:active{ transform: scale(0.9); }
+
+/* ---- 3) 图片消息本体：不套用深色气泡壳，独立图卡 ----
+   重新设计的出发点：这条消息本质上"应该只是一张照片"——真人聊天
+   不会有人在照片下面钉一整块说明文字。之所以还留了描述，纯粹是
+   因为对方是语言模型、看不见图。于是这版把描述从"图片下方的
+   常驻色块"改成"叠在照片本身一角的极简印记"：
+   - 图卡默认只呈现完整的照片（四角圆润、贴边撑满），第一眼就是
+     一张干净的图，没有任何常驻的文字色块打断画面
+   - 右下角悬浮一枚小巧的磨砂圆形印记（一个小图标），代表"这张图
+     附有 AI 识图描述"——不写字、不占地方，安静地待在角落
+   - 点开图卡时（单击进大图预览之外），若想看这段描述，向上轻扫
+     该印记会展开成一条贴底的磨砂玻璃描述带，悬浮在照片上而不是
+     另起一块矩形；再点一次收回——描述始终是"图片的附属细节"，
+     而不是与图片平起平坐的第二个色块
+   —— 多图堆叠（.is-stack）：真正的"卡片堆叠"交互，而不是轮播——
+     每张图都是卡组里独立的一张牌，用 transform 按与顶层的距离
+     摆出扇形（越往后越小、越往两侧偏、越旋转、越透明），第一眼
+     就能看出"这是一沓能翻的照片"。滑动/点击切换时，最上面这张
+     牌沿着滑动方向飞出去、旋转着离场，牌堆里剩下的每一张同时往
+     前顶一位、扇形收拢一格，读法是真实的"抽走最上面一张牌"，
+     而不是照片在同一个取景框里横移——JS 端 goToIndex 会重新计算
+     每张牌相对当前顶牌的位置并写入 transform，这里的 CSS 只负责
+     统一的层叠视觉基调与动效缓动曲线
+   —— AI 生成的"意象图"（.is-generated）：因为文字模型目前并不
+     真的具备拍照/生图能力，这类图不假装是真实照片——右下角常驻
+     一枚极小的四芒星印记 + "意象"二字，安静地表明"这是被译成
+     图像的一段描述"，与用户真实上传的照片在气质上区分开，但仍
+     保持同一套黑白灰漆面语言，不额外跳出这套视觉体系 */
+.crm-imgcard{
+  position:relative;
+  display:flex; flex-direction:column;
+  width: 172px;
+  max-width: 62vw;
+  border-radius: 20px;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 18px 36px -20px rgba(18,18,26,0.4);
+}
+.crm-imgcard.is-me{ align-self:flex-end; }
+/* 卡组扇形展开需要在卡片四周多留一点空间，让退后几张牌的旋转
+   边角有地方露出来，不被相邻消息的气泡贴边裁掉 */
+.crm-imgcard.is-stack{ margin: 10px 16px 14px; }
+
+.crm-imgcard-media{
+  position:relative;
+  z-index:1;
+  width:100%;
+  aspect-ratio: 4 / 5;
+  /* 卡组模式下不裁切：每张牌各自有独立圆角和裁切（见下方
+     .crm-imgcard-frame），这里必须允许旋转后的牌角露出容器之外，
+     否则扇形完全展不开 */
+  overflow:visible;
+  touch-action: pan-y;
+}
+.crm-imgcard:not(.is-stack) .crm-imgcard-media{
+  overflow:hidden;
+  border-radius: 20px;
+  background: linear-gradient(155deg, #ececef 0%, #dcdce0 100%);
+  border: 1px solid rgba(18,18,26,0.10);
+  box-shadow: 0 10px 22px -14px rgba(18,18,26,0.45);
+}
+
+/* 卡组里的每一张牌：绝对定位叠在同一个位置，靠 JS 写入的 transform
+   区分"第几张"——距离顶牌越远，越往两侧偏、越缩小、越透明、旋转
+   角度越大，营造真实的手持照片扇形厚度感。transition 统一交给
+   这里管，JS 只负责算出目标 transform/opacity/z-index 并赋值，
+   动画曲线用略带回弹的贝塞尔，让"抽牌"有一点点分量感而不是死板
+   的线性平移 */
+.crm-imgcard-frame{
+  position:absolute; inset:0;
+  border-radius: 20px;
+  overflow:hidden;
+  background: linear-gradient(155deg, #ececef 0%, #dcdce0 100%);
+  border: 1px solid rgba(18,18,26,0.10);
+  box-shadow: 0 14px 30px -16px rgba(18,18,26,0.42);
+  transition: transform 0.38s cubic-bezier(.22,.9,.32,1.1), opacity 0.3s ease;
+  will-change: transform;
+}
+.crm-imgcard.is-me .crm-imgcard-frame{
+  background: linear-gradient(155deg, #2c2c31 0%, #1a1a1e 100%);
+  border-color: rgba(255,255,255,0.08);
+}
+/* 拖拽中的顶牌关闭过渡动画，直接跟手，松手那一刻再交还给 transition
+   去补一段回弹或飞出动画 */
+.crm-imgcard-frame.is-dragging{ transition:none; }
+/* 飞出离场的牌：额外叠加更快的透明度衰减，配合 JS 算出的更大位移
+   和旋转角度一起触发，离场干脆利落不拖泥带水 */
+.crm-imgcard-frame.is-exiting{ transition: transform 0.32s cubic-bezier(.4,0,.6,1), opacity 0.32s ease; }
+
+.crm-imgcard-frame img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  pointer-events:none;
+}
+
+.crm-imgcard-media-glyph{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  color: rgba(18,18,26,0.22);
+}
+
+/* AI 生成「意象图」角标：极小、常驻、贴伏在照片一角，不遮挡主体，
+   不能抢视线。整体只是一枚很轻的磨砂玻璃胶囊——线框图标直接落在
+   胶囊背景上（不再叠加圆形浮标底，避免和胶囊本身形成"双层"视觉
+   噪点），细竖线分隔后接文字，通体黑白灰，禁止任何彩色或 emoji ---- */
+.crm-imgcard-gen-mark{
+  position:absolute; left:9px; bottom:9px; z-index:24;
+  display:flex; align-items:center; gap:5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: rgba(255,255,255,0.82);
+  background: rgba(20,20,22,0.34);
+  border: 1px solid rgba(255,255,255,0.16);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  font-family:'Space Mono', monospace;
+  font-size: 8px; letter-spacing:0.1em;
+  line-height:1;
+}
+.crm-imgcard-gen-mark-badge{
+  display:flex; align-items:center; justify-content:center;
+  flex:0 0 auto;
+  opacity:0.85;
+}
+.crm-imgcard-gen-mark-badge svg{ display:block; }
+.crm-imgcard-gen-mark-div{
+  flex:0 0 auto;
+  width:1px; height:7px;
+  background: rgba(255,255,255,0.22);
+}
+.crm-imgcard-gen-mark-text{
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+
+/* 右上角数量徽记：仅多图时出现，居中数字，随滑动实时更新 */
+.crm-imgcard-count{
+  position:absolute; right:9px; top:9px; z-index:25;
+  display:flex; align-items:center; justify-content:center;
+  min-width:30px; height:20px;
+  padding:0 8px;
+  border-radius: 999px;
+  color:#fff;
+  background: rgba(10,10,12,0.52);
+  border: 1px solid rgba(255,255,255,0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family:'Space Mono', monospace;
+  font-size: 9.5px; letter-spacing:0.03em;
+  box-shadow: 0 6px 14px -8px rgba(0,0,0,0.5);
+  pointer-events:none;
+}
+
+/* 底部圆点指示器：仅多图时出现，叠在照片底部 */
+.crm-imgcard-dots{
+  position:absolute; left:0; right:0; bottom:9px; z-index:24;
+  display:flex; align-items:center; justify-content:center;
+  gap:4px;
+  pointer-events:none;
+}
+.crm-imgcard.is-caption-open .crm-imgcard-dots{ opacity:0; }
+.crm-imgcard-dot{
+  width:4px; height:4px;
+  border-radius:50%;
+  background: rgba(255,255,255,0.4);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.crm-imgcard-dot.is-active{
+  background: rgba(255,255,255,0.95);
+  transform: scale(1.3);
+}
+
+/* 描述带不再单独挂一枚圆形按钮入口——直接点击照片本身展开/收起，
+   图卡第一眼始终是一张完整、干净的图 */
+
+/* 展开态：贴底浮在照片之上的磨砂玻璃描述带，而非另起一块矩形 */
+.crm-imgcard-caption{
+  position:absolute; left:0; right:0; bottom:0; z-index:26;
+  display:flex; align-items:flex-start; gap:7px;
+  padding: 12px 13px 12px;
+  max-height:0;
+  overflow:hidden;
+  opacity:0;
+  background: linear-gradient(180deg, transparent 0%, rgba(6,6,8,0.55) 35%, rgba(6,6,8,0.82) 100%);
+  backdrop-filter: blur(0px);
+  transition: max-height 0.32s cubic-bezier(.2,.8,.2,1), opacity 0.24s ease, padding-top 0.32s ease;
+}
+.crm-imgcard.is-caption-open .crm-imgcard-caption{
+  max-height:200px;
+  opacity:1;
+  padding-top: 30px;
+}
+
+.crm-imgcard-caption-seal{
+  flex:0 0 auto;
+  width:18px; height:18px;
+  margin-top:1px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.14);
+}
+
+.crm-imgcard-caption-col{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+
+.crm-imgcard-caption-text{
+  font-size:11.5px; line-height:1.5;
+  color: rgba(255,255,255,0.92);
+  display:-webkit-box;
+  -webkit-line-clamp:5;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+.crm-imgcard-caption-empty{
+  font-family:'Space Mono', monospace;
+  font-size:8.5px; letter-spacing:0.1em;
+  color: rgba(255,255,255,0.5);
+  text-transform:uppercase;
+  padding-top:2px;
+}
+
+/* 展开态下，右上角换一枚小小的"收起"箭头，替代原来那枚印记 */
+.crm-imgcard-caption-close{
+  position:absolute; right:9px; top:9px; z-index:27;
+  width:22px; height:22px;
+  display:none;
+  align-items:center; justify-content:center;
+  border-radius:50%;
+  color:#fff;
+  background: rgba(10,10,12,0.5);
+  border: 1px solid rgba(255,255,255,0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.crm-imgcard.is-caption-open .crm-imgcard-caption-close{ display:flex; }
+/* 多图时数量徽记与展开态收起键都在右上角，展开时暂避让 */
+.crm-imgcard.is-stack.is-caption-open .crm-imgcard-count{ opacity:0; }
+
+/* ---- 表情包气泡：与图卡同理跳过气泡壳，但尺寸更小更方——表情
+   包是轻量、诙谐的体裁，不该被当成正式照片一样占据大块版面。
+   通体黑白灰漆面/纸面质感，禁止暖米色、禁止 emoji；有文字标注时
+   贴底一条极窄的磨砂标签，无标注则完全不出现标签占位 ---- */
+.crm-stickercard{
+  position:relative;
+  display:inline-flex;
+  width: 104px;
+  max-width: 40vw;
+  border-radius: 18px;
+  overflow:hidden;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(155deg, #ffffff 0%, #f0f0f2 100%);
+  border: 1px solid rgba(18,18,26,0.10);
+  box-shadow: 0 14px 28px -18px rgba(18,18,26,0.4);
+}
+.crm-stickercard.is-me{ align-self:flex-end; }
+
+.crm-stickercard-img{
+  display:block;
+  width:100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  pointer-events:none;
+}
+
+.crm-stickercard-cap{
+  position:absolute; left:0; right:0; bottom:0; z-index:2;
+  padding: 6px 9px 7px;
+  font-size:10px; line-height:1.35;
+  color: rgba(255,255,255,0.94);
+  background: linear-gradient(180deg, transparent 0%, rgba(6,6,8,0.72) 100%);
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* ---- 4) 大图预览满屏页 ----
+   原来是纯黑背景 + 通用圆形返回键 + 底部纯渐变叠白字，偏简约单调。
+   现改为呼应全篇「墨玉×月光漆面」语言：背景加一层极克制的月光
+   晕影而非死黑；返回键换成与顶栏同款的漆面不对称圆角钮；图片
+   四周加一圈极细描边 + 柔光，避免图片贴着纯黑背景显得生硬；
+   底部由"渐变叠字"升级为独立的磨砂白玉图注卡片，带印章图标与
+   中英文标题，呼应图片描述弹窗的视觉词汇，禁止 emoji、禁止暖米色。
+   —— 多图：正文区改为横向轨道（.crm-imgview-track），与图卡内的
+     堆叠轨道同源写法，可左右滑动切换；底部圆点指示当前位置。
+   —— 顶栏新增两枚徽记：来源徽记（仅 AI 生成的"意象图"出现，四芒星
+     印记 + 极小字样，明确告知这不是真实照片）与多图页码徽记，
+     以及占位的「保存到相册」操作键，与截图页保存按钮同一套语汇 */
+.crm-imgview-veil{
+  position:absolute; inset:0; z-index:700;
+  background: rgba(6,6,7,0.5);
+  backdrop-filter: blur(4px);
+  opacity:0; pointer-events:none;
+  transition: opacity 0.26s ease;
+}
+.crm-imgview-veil.is-open{ opacity:1; pointer-events:auto; }
+
+.crm-imgview-page{
+  position:absolute; inset:0; z-index:701;
+  display:flex; flex-direction:column;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(150,160,190,0.10), transparent 55%),
+    radial-gradient(140% 70% at 50% 100%, rgba(150,160,190,0.06), transparent 60%),
+    linear-gradient(180deg, #0d0d10 0%, #08080a 50%, #0d0d10 100%);
+  opacity:0; pointer-events:none;
+  transform: scale(1.02);
+  transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.2,.8,.2,1);
+}
+.crm-imgview-page.is-open{ opacity:1; pointer-events:auto; transform: scale(1); }
+
+/* AI 生成图的大图页：背景晕影换成更冷的墨玉调，与用户真实照片的
+   大图页区分开——不靠文字提示才能分辨，第一眼氛围就不一样 */
+.crm-imgview-page.is-me-sent{
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(180,185,200,0.07), transparent 55%),
+    radial-gradient(140% 70% at 50% 100%, rgba(180,185,200,0.05), transparent 60%),
+    linear-gradient(180deg, #0b0b0d 0%, #060607 50%, #0b0b0d 100%);
+}
+
+.crm-imgview-top{
+  flex:0 0 auto;
+  position:relative;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px;
+  padding: calc(var(--status-h, 44px) + 8px) 16px 10px;
+}
+.crm-imgview-back{
+  position:relative;
+  flex:0 0 auto;
+  width:36px; height:36px;
+  display:flex; align-items:center; justify-content:center;
+  color: rgba(244,244,246,0.95);
+  border-radius: 11px 50% 50% 50%;
+  background: linear-gradient(155deg, #2c2c31 0%, #17171a 62%, #0a0a0c 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.12) inset,
+    0 0 0 1px rgba(255,255,255,0.07) inset,
+    0 10px 20px -12px rgba(0,0,0,0.6);
+  cursor:pointer;
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease;
+}
+.crm-imgview-back:active{ transform: scale(0.88); }
+
+/* 顶栏中央：来源徽记 + 页码徽记并排，都用同一套磨砂圆角药丸样式，
+   没有内容时各自靠 [hidden] 收起，不占位 */
+.crm-imgview-tags{
+  flex:1 1 auto;
+  display:flex; align-items:center; justify-content:center;
+  gap:8px;
+  min-width:0;
+}
+.crm-imgview-source-tag{
+  display:inline-flex; align-items:center; gap:5px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  color: rgba(244,244,246,0.92);
+  background: linear-gradient(155deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.035) 100%);
+  border: 1px solid rgba(255,255,255,0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family:'Space Mono', monospace;
+  font-size: 9px; letter-spacing:0.06em;
+  white-space:nowrap;
+}
+.crm-imgview-source-tag svg{ flex:0 0 auto; color: rgba(244,244,246,0.75); }
+.crm-imgview-source-tag[hidden]{ display:none; }
+
+.crm-imgview-count-tag{
+  padding: 6px 11px;
+  border-radius: 999px;
+  color: rgba(244,244,246,0.75);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  font-family:'Space Mono', monospace;
+  font-size: 9.5px; letter-spacing:0.04em;
+  white-space:nowrap;
+}
+.crm-imgview-count-tag[hidden]{ display:none; }
+
+.crm-imgview-save{
+  flex:0 0 auto;
+  width:36px; height:36px;
+  display:flex; align-items:center; justify-content:center;
+  color: rgba(244,244,246,0.95);
+  border-radius: 50% 50% 50% 11px;
+  background: linear-gradient(155deg, #2c2c31 0%, #17171a 62%, #0a0a0c 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.12) inset,
+    0 0 0 1px rgba(255,255,255,0.07) inset,
+    0 10px 20px -12px rgba(0,0,0,0.6);
+  cursor:pointer;
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease;
+}
+.crm-imgview-save:active{ transform: scale(0.88); }
+
+.crm-imgview-body{
+  flex:1 1 auto;
+  min-height:0;
+  display:flex; align-items:center; justify-content:center;
+  padding: 6px 0;
+  overflow:hidden;
+  touch-action: pan-y;
+}
+
+/* 横向滑动轨道：与图卡内堆叠轨道同源写法，每帧一张图 */
+.crm-imgview-track{
+  display:flex;
+  width:100%; height:100%;
+  transition: transform 0.34s cubic-bezier(.2,.8,.2,1);
+}
+.crm-imgview-track.is-dragging{ transition:none; }
+.crm-imgview-frame{
+  flex:0 0 100%;
+  width:100%; height:100%;
+  display:flex; align-items:center; justify-content:center;
+  padding: 0 18px;
+}
+.crm-imgview-img{
+  max-width:100%; max-height:100%;
+  object-fit:contain;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.08) inset,
+    0 30px 70px -24px rgba(0,0,0,0.65),
+    0 0 0 1px rgba(0,0,0,0.4);
+}
+
+/* 底部圆点指示器：仅多图时出现，位于正文与图注卡之间 */
+.crm-imgview-dots{
+  flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center;
+  gap:6px;
+  padding: 4px 0 14px;
+}
+.crm-imgview-dots[hidden]{ display:none; }
+.crm-imgview-dot{
+  width:5px; height:5px;
+  border-radius:50%;
+  background: rgba(255,255,255,0.28);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.crm-imgview-dot.is-active{
+  background: rgba(255,255,255,0.92);
+  transform: scale(1.35);
+}
+
+.crm-imgview-caption{
+  flex:0 0 auto;
+  padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+}
+.crm-imgview-caption-card{
+  position:relative;
+  display:flex; align-items:flex-start; gap:10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(155deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.035) 100%);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.10) inset, 0 20px 40px -22px rgba(0,0,0,0.5);
+}
+.crm-imgview-caption-seal{
+  flex:0 0 auto;
+  width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.16);
+  margin-top:1px;
+}
+.crm-imgview-caption-col{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.crm-imgview-caption-label{
+  font-family:'Space Mono', monospace; font-size:8.5px; letter-spacing:0.18em;
+  color: rgba(255,255,255,0.4); text-transform:uppercase;
+}
+.crm-imgview-caption-text{
+  font-size:13px; line-height:1.65;
+  color: rgba(255,255,255,0.92);
+  text-align:left;
+}
+.crm-imgview-caption[hidden]{ display:none; }
+
+/* ---- 5) 相册选择器满屏页 —— 与「我的相册」App 同一份 IndexedDB 数据，
+   在聊天室内部直接铺满呈现，不跳转、不新开窗口。壳内 absolute 铺满
+   写法与 .crm-imgview-page 同源；配色沿用纯黑白灰，浅色磨砂主体。
+   顶部状态栏（时间/电量/灵动岛）是全局唯一实例，本页不重复渲染，
+   只需保证自身层级不盖过它，由页面顶部内边距为其让出空间 ---- */
+.status-bar{ z-index:900; }
+
+.crm-albumpick-veil{
+  position:absolute; inset:0; z-index:700;
+  background: rgba(6,6,7,0.42);
+  backdrop-filter: blur(4px);
+  opacity:0; pointer-events:none;
+  transition: opacity 0.26s ease;
+}
+.crm-albumpick-veil.is-open{ opacity:1; pointer-events:auto; }
+
+.crm-albumpick-page{
+  position:absolute; inset:0; z-index:701;
+  display:flex; flex-direction:column;
+  background: linear-gradient(178deg, #fbfbfc 0%, #f2f2f5 55%, #e9e9ee 100%);
+  opacity:0; pointer-events:none;
+  transform: scale(1.02);
+  transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.2,.8,.2,1);
+}
+.crm-albumpick-page.is-open{ opacity:1; pointer-events:auto; transform: scale(1); }
+
+.crm-albumpick-top{
+  flex:0 0 auto;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px;
+  padding: calc(var(--status-h, 44px) + 8px) 14px 12px;
+  border-bottom: 1px solid rgba(18,18,26,0.08);
+}
+.crm-albumpick-back{
+  flex:0 0 auto;
+  width:32px; height:32px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color: var(--ink, #17171a);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(18,18,26,0.12);
+  cursor:pointer;
+}
+.crm-albumpick-back:active{ transform: scale(0.92); }
+.crm-albumpick-spacer{ flex:0 0 auto; width:32px; height:32px; }
+.crm-albumpick-title-row{
+  flex:1 1 auto; min-width:0;
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+}
+.crm-albumpick-title-cn{ font-size:14px; font-weight:700; color: var(--ink, #17171a); letter-spacing:0.02em; }
+.crm-albumpick-title-en{
+  font-family:'Space Mono', monospace; font-size:8.5px; letter-spacing:0.16em;
+  color: rgba(18,18,26,0.36); text-transform:uppercase;
+}
+
+.crm-albumpick-body{
+  position:relative;
+  flex:1 1 auto; min-height:0;
+  overflow-y:auto;
+  padding: 14px 14px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.crm-albumpick-group{ margin-bottom:18px; }
+.crm-albumpick-group-head{
+  display:flex; align-items:center; gap:8px;
+  margin-bottom:8px;
+  padding:0 2px;
+}
+.crm-albumpick-group-date{
+  font-size:11.5px; font-weight:700;
+  color: rgba(18,18,26,0.62);
+  letter-spacing:0.02em;
+}
+.crm-albumpick-group-rule{
+  flex:1 1 auto; height:1px;
+  background: rgba(18,18,26,0.10);
+}
+.crm-albumpick-group-count{
+  font-family:'Space Mono', monospace; font-size:9px; letter-spacing:0.08em;
+  color: rgba(18,18,26,0.34);
+}
+
+.crm-albumpick-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:6px;
+}
+.crm-albumpick-cell{
+  position:relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow:hidden;
+  cursor:pointer;
+  border: 1px solid rgba(18,18,26,0.10);
+  background: linear-gradient(155deg, #ececef 0%, #dcdce0 100%);
+  -webkit-tap-highlight-color: transparent;
+}
+.crm-albumpick-cell img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  transition: transform 0.35s cubic-bezier(.2,.8,.2,1);
+}
+.crm-albumpick-cell:active img{ transform: scale(1.06); }
+.crm-albumpick-cell:active{ border-color: rgba(18,18,26,0.24); }
+
+.crm-albumpick-empty{
+  display:none;
+  flex-direction:column; align-items:center; justify-content:center;
+  gap:18px;
+  padding: 90px 32px 40px;
+  text-align:center;
+}
+.crm-albumpick-empty[hidden]{ display:none; }
+.crm-albumpick-body.is-empty .crm-albumpick-empty{ display:flex; }
+
+/* 空状态的印玺勋章——沿用「十三簿」漆面卡的近黑光泽语言，作为本页
+   唯一的重笔墨：深漆底 + 顶部高光弧 + 内嵌相框刻纹，而非线框图标，
+   给"还没有照片"一个有分量的视觉落点，同时也是可点击的入口 */
+.crm-albumpick-empty-seal{
+  position:relative;
+  width:76px; height:76px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(155deg, var(--crm-lacquer-700, #232329) 0%, var(--crm-lacquer-900, #0a0a0c) 78%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.14) inset,
+    0 -12px 20px -14px rgba(255,255,255,0.10) inset,
+    0 18px 34px -16px rgba(8,8,11,0.55);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor:pointer;
+}
+.crm-albumpick-empty-seal::before{
+  content:'';
+  position:absolute; inset:6px;
+  border-radius:50%;
+  border: 1px solid rgba(255,255,255,0.14);
+}
+.crm-albumpick-empty-seal svg{ color: rgba(255,255,255,0.92); position:relative; z-index:1; }
+.crm-albumpick-empty-seal:active{ transform: scale(0.94); }
+
+.crm-albumpick-empty-title{
+  font-size:14.5px; font-weight:700;
+  color: var(--ink, #17171a);
+  letter-spacing:0.01em;
+}
+.crm-albumpick-empty-text{
+  font-size:11.5px; line-height:1.6;
+  color: rgba(18,18,26,0.44);
+  max-width:220px;
+}
+.crm-albumpick-empty-cta{
+  margin-top:2px;
+  display:inline-flex; flex-direction:column; align-items:center; gap:2px;
+  padding: 10px 20px 9px;
+  border-radius: 100px;
+  font-family:inherit;
+  color:#fff;
+  background: linear-gradient(155deg, var(--crm-lacquer-700, #232329) 0%, var(--crm-lacquer-900, #0a0a0c) 100%);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 10px 22px -12px rgba(8,8,11,0.55);
+  cursor:pointer;
+}
+.crm-albumpick-empty-cta span:first-child{ font-size:12px; font-weight:600; line-height:1.3; }
+.crm-albumpick-empty-cta:active{ transform: scale(0.96); }
+.crm-albumpick-empty-cta-en{
+  font-family:'Space Mono', monospace; font-size:8px; letter-spacing:0.14em;
+  color: rgba(255,255,255,0.5); text-transform:uppercase;
+}
+
+/* ==========================================================================
+   表情包选择器满屏页 —— 与 .crm-albumpick-page 同源同款的「壳内
+   absolute 铺满」写法，但多一层顶部分组横滑筛选（因为表情包按
+   分组组织，不是按日期），网格内每格还可能带一条文字标注的
+   贴底磨砂标签。通体黑白灰、偏冷白的漆面/纸面语言，禁止暖米色、
+   禁止 emoji，也禁止线条感很重的简约图标——空状态与图片选择器
+   的空状态共用同一枚近黑漆面印玺勋章语言，保持整套体系视觉统一。
+========================================================================== */
+.crm-stickerpick-veil{
+  position:absolute; inset:0; z-index:700;
+  background: rgba(6,6,7,0.42);
+  backdrop-filter: blur(4px);
+  opacity:0; pointer-events:none;
+  transition: opacity 0.26s ease;
+}
+.crm-stickerpick-veil.is-open{ opacity:1; pointer-events:auto; }
+
+.crm-stickerpick-page{
+  position:absolute; inset:0; z-index:701;
+  display:flex; flex-direction:column;
+  background: linear-gradient(178deg, #fbfbfc 0%, #f2f2f5 55%, #e9e9ee 100%);
+  opacity:0; pointer-events:none;
+  transform: scale(1.02);
+  transition: opacity 0.26s ease, transform 0.3s cubic-bezier(.2,.8,.2,1);
+}
+.crm-stickerpick-page.is-open{ opacity:1; pointer-events:auto; transform: scale(1); }
+
+.crm-stickerpick-top{
+  flex:0 0 auto;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px;
+  padding: calc(var(--status-h, 44px) + 8px) 14px 12px;
+  border-bottom: 1px solid rgba(18,18,26,0.08);
+}
+.crm-stickerpick-back,
+.crm-stickerpick-manage{
+  flex:0 0 auto;
+  width:32px; height:32px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  color: var(--ink, #17171a);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(18,18,26,0.12);
+  cursor:pointer;
+}
+.crm-stickerpick-back:active,
+.crm-stickerpick-manage:active{ transform: scale(0.92); }
+.crm-stickerpick-title-row{
+  flex:1 1 auto; min-width:0;
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+}
+.crm-stickerpick-title-cn{ font-size:14px; font-weight:700; color: var(--ink, #17171a); letter-spacing:0.02em; }
+.crm-stickerpick-title-en{
+  font-family:'Space Mono', monospace; font-size:8.5px; letter-spacing:0.16em;
+  color: rgba(18,18,26,0.36); text-transform:uppercase;
+}
+
+/* ---- 分组横滑筛选条：与详情页/编辑弹窗内的分组胶囊同一套语言，
+   当前选中项用近黑漆面填充，未选中项是纸面描边胶囊 ---- */
+.crm-stickerpick-tags{
+  flex:0 0 auto;
+  display:flex; align-items:center; gap:7px;
+  padding: 12px 14px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width:none;
+  border-bottom: 1px solid rgba(18,18,26,0.06);
+}
+.crm-stickerpick-tags::-webkit-scrollbar{ display:none; }
+.crm-stickerpick-tag{
+  flex:0 0 auto;
+  font-family:inherit; font-size:12px; font-weight:600;
+  white-space:nowrap;
+  padding: 7px 14px;
+  border-radius:999px;
+  color: rgba(18,18,26,0.56);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(18,18,26,0.10);
+  cursor:pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
+}
+.crm-stickerpick-tag:active{ transform: scale(0.96); }
+.crm-stickerpick-tag.is-current{
+  color:#fff;
+  background: linear-gradient(155deg, var(--crm-lacquer-700, #232329) 0%, var(--crm-lacquer-900, #0a0a0c) 100%);
+  border-color: rgba(255,255,255,0.10);
+  box-shadow: 0 8px 18px -12px rgba(8,8,11,0.5);
+}
+
+.crm-stickerpick-body{
+  position:relative;
+  flex:1 1 auto; min-height:0;
+  overflow-y:auto;
+  padding: 14px 14px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.crm-stickerpick-grid{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:10px;
+}
+.crm-stickerpick-cell{
+  position:relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  overflow:hidden;
+  cursor:pointer;
+  font-family:inherit;
+  padding:0;
+  border: 1px solid rgba(18,18,26,0.10);
+  background: linear-gradient(155deg, #ffffff 0%, #ececef 100%);
+  box-shadow: 0 10px 20px -16px rgba(18,18,26,0.4);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.crm-stickerpick-cell:active{
+  transform: scale(0.94);
+  border-color: rgba(18,18,26,0.22);
+}
+.crm-stickerpick-cell img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  pointer-events:none;
+}
+.crm-stickerpick-cell-cap{
+  position:absolute; left:0; right:0; bottom:0; z-index:2;
+  padding: 5px 6px 6px;
+  font-size:9px; line-height:1.3;
+  color: rgba(255,255,255,0.94);
+  background: linear-gradient(180deg, transparent 0%, rgba(6,6,8,0.74) 100%);
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  pointer-events:none;
+}
+
+.crm-stickerpick-empty{
+  display:none;
+  flex-direction:column; align-items:center; justify-content:center;
+  gap:18px;
+  padding: 90px 32px 40px;
+  text-align:center;
+}
+.crm-stickerpick-empty[hidden]{ display:none; }
+.crm-stickerpick-body.is-empty .crm-stickerpick-empty{ display:flex; }
+
+/* ---- 空状态印玺勋章：与 .crm-albumpick-empty-seal 同一套近黑
+   漆面语言，直接借用同款表情包线性图形（与十三簿卡上的表情包
+   图形印记同源），保持"这也是表情包相关入口"的可辨识度 ---- */
+.crm-stickerpick-empty-seal{
+  position:relative;
+  width:76px; height:76px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(155deg, var(--crm-lacquer-700, #232329) 0%, var(--crm-lacquer-900, #0a0a0c) 78%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.14) inset,
+    0 -12px 20px -14px rgba(255,255,255,0.10) inset,
+    0 18px 34px -16px rgba(8,8,11,0.55);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor:pointer;
+}
+.crm-stickerpick-empty-seal::before{
+  content:'';
+  position:absolute; inset:6px;
+  border-radius:50%;
+  border: 1px solid rgba(255,255,255,0.14);
+}
+.crm-stickerpick-empty-seal svg{ color: rgba(255,255,255,0.92); position:relative; z-index:1; }
+.crm-stickerpick-empty-seal:active{ transform: scale(0.94); }
+
+.crm-stickerpick-empty-title{
+  font-size:14.5px; font-weight:700;
+  color: var(--ink, #17171a);
+  letter-spacing:0.01em;
+}
+.crm-stickerpick-empty-text{
+  font-size:11.5px; line-height:1.6;
+  color: rgba(18,18,26,0.44);
+  max-width:220px;
+}
+.crm-stickerpick-empty-cta{
+  margin-top:2px;
+  display:inline-flex; flex-direction:column; align-items:center; gap:2px;
+  padding: 10px 20px 9px;
+  border-radius: 100px;
+  font-family:inherit;
+  color:#fff;
+  background: linear-gradient(155deg, var(--crm-lacquer-700, #232329) 0%, var(--crm-lacquer-900, #0a0a0c) 100%);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 10px 22px -12px rgba(8,8,11,0.55);
+  cursor:pointer;
+}
+.crm-stickerpick-empty-cta span:first-child{ font-size:12px; font-weight:600; line-height:1.3; }
+.crm-stickerpick-empty-cta:active{ transform: scale(0.96); }
+.crm-stickerpick-empty-cta-en{
+  font-family:'Space Mono', monospace; font-size:8px; letter-spacing:0.14em;
+  color: rgba(255,255,255,0.5); text-transform:uppercase;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .crm-img-src-mask, .crm-img-src-modal, .crm-imgview-veil, .crm-imgview-page, .crm-imgcard-media img,
+  .crm-albumpick-veil, .crm-albumpick-page,
+  .crm-stickerpick-veil, .crm-stickerpick-page{ transition:none; }
 }

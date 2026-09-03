@@ -1677,7 +1677,7 @@ function openApp(name) {
     'wallpaper': 'Wallpaper.html',
     // 后续加其他 app：
     'settings': 'settings.html',
-    'chat': 'chat.html',
+    'chat': 'chat/chat.html',
     'characters': 'characters.html',
     'worldbook': 'worldbook.html',
     'iconbeauty': 'iconbeauty.html',
@@ -1706,6 +1706,7 @@ function openApp(name) {
     'companion':'companion.html',
     'relationlib':'dossier.html',
     'gongduyu': '共读屿/gongduyu.html',
+    'huixianglu': '回想录/memoir.html', 
   }
 
   const url = routes[name];
@@ -2064,3 +2065,4 @@ document.addEventListener('DOMContentLoaded', () => applyCustomIcons());
 window.addEventListener('storage', e => {
   if (e.key === 'luna_icon_update') applyCustomIcons();
 });
+

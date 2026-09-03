@@ -136,6 +136,20 @@
       </button>
     </div>
 
+    <!-- ============ 图片待发送 · 输入栏小回执条 ============
+         悬浮弹窗点「完成」收起后，仍需要一处常驻提示：图片仍在候发，
+         点击可随时唤回悬浮弹窗继续编辑描述。与弹窗互为一体两态。 -->
+    <div class="crm-img-chip" id="crmImgChip" aria-hidden="true">
+      <span class="crm-img-chip-thumb"><img id="crmImgChipThumb" alt="" /></span>
+      <span class="crm-img-chip-text">
+        <span class="crm-img-chip-cn">图片已就绪</span>
+        <span class="crm-img-chip-en">TAP&nbsp;TO&nbsp;EDIT&nbsp;DESCRIPTION</span>
+      </span>
+      <button class="crm-img-chip-remove" id="crmImgChipRemove" type="button" aria-label="移除图片">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
     <div class="crm-input-row">
       <button class="crm-fn-btn" id="crmFnBtn" aria-label="更多功能">
         <span class="crm-fn-plus" aria-hidden="true">
@@ -156,6 +170,60 @@
       <button class="crm-send-btn" id="crmSendBtn" aria-label="发送" disabled>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4.5 19.5L19.5 12L4.5 4.5L7 12L4.5 19.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 12H14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       </button>
+    </div>
+  </div>
+
+  <!-- ============ 图片待发送 · 居中悬浮弹窗 ============
+       选图/拍照完成后，不再挤在输入栏上方一条窄条里，而是以居中
+       磨砂白玉弹窗呈现：大图预览 + 清晰的"AI 识图描述"说明区 +
+       可编辑文字域——因为对方是语言模型，无法直接"看见"图片本体，
+       需要靠这段文字描述让它理解图片内容，随图一并发出。
+       —— 置于 .phone-frame 顶层（与 .crm-input-bar 同级），而非
+       嵌套在输入栏内部：输入栏自身是 position:absolute 的短条，
+       若弹窗嵌在其中，left/top:50% 会以输入栏为参照系居中，导致
+       弹窗被压扁在底部而非居中于整个聊天室——这里改为顶层兄弟
+       节点，弹窗的 50%/50% 才会相对整个手机壳计算，真正居中。
+       结构沿用原有插槽逻辑：is-open 显隐、id 不变，chatroom.js
+       无需改动即可驱动这套新外观。 -->
+  <div class="crm-img-pending-veil" id="crmImgPendingVeil" aria-hidden="true"></div>
+  <div class="crm-img-pending" id="crmImgPending" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="crm-img-pending-card">
+      <span class="crm-img-pending-corner-a" aria-hidden="true"></span>
+      <span class="crm-img-pending-corner-b" aria-hidden="true"></span>
+
+      <button class="crm-img-pending-remove" id="crmImgPendingRemove" type="button" aria-label="移除图片">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="crm-img-pending-thumb">
+        <img id="crmImgPendingThumb" alt="" />
+      </div>
+
+      <div class="crm-img-pending-body">
+        <span class="crm-img-pending-label-row">
+          <span class="crm-img-pending-label-seal" aria-hidden="true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 5H14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M4 12H20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M4 19H17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="19.5" cy="5" r="2.1" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+          <span class="crm-img-pending-label-col">
+            <span class="crm-img-pending-label-cn">图片描述</span>
+            <span class="crm-img-pending-label-en">FOR&nbsp;AI&nbsp;TO&nbsp;READ</span>
+          </span>
+        </span>
+        <p class="crm-img-pending-hint" id="crmImgPendingHint">对方是语言模型，看不见图片本身——写清楚图中内容，TA 才能读懂这张图</p>
+        <textarea class="crm-img-pending-textarea" id="crmImgPendingTextarea" rows="3" maxlength="300" placeholder="描述一下这张图片……"></textarea>
+      </div>
+
+      <button class="crm-img-pending-skip" id="crmImgPendingSkipBtn" type="button">
+        <span class="crm-img-pending-skip-glyph" aria-hidden="true">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12H19M13 6L19 12L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span>无需描述，直接发送</span>
+      </button>
+
+      <div class="crm-img-pending-actions">
+        <button class="crm-img-pending-btn is-ghost" id="crmImgPendingCancelBtn" type="button">取消</button>
+        <button class="crm-img-pending-btn is-solid" id="crmImgPendingDoneBtn" type="button">完成</button>
+      </div>
     </div>
   </div>
 
@@ -212,6 +280,165 @@
       <span class="crm-panel-dismiss-text">收起</span>
       <span class="crm-panel-dismiss-bar" aria-hidden="true"></span>
     </button>
+  </div>
+
+  <!-- ============ 图片来源选择弹窗：居中磨砂白玉卡片 ============
+       点击十三簿「图片」卡后弹出，二选一：
+       · 相册 —— 在聊天室内部铺出选择器满屏页，直接读取与「我的相册」
+         App 同一份 IndexedDB 数据供点选，不跳转、不新开窗口
+       · 本地 —— 触发隐藏的 <input type="file"> 调起系统相册/文件选择
+       与修改/删除弹窗共用同一套视觉语言，纯黑白灰，无 emoji 无暖米色 -->
+  <div class="crm-img-src-mask" id="crmImgSrcMask" aria-hidden="true"></div>
+  <div class="crm-img-src-modal" id="crmImgSrcModal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="crm-img-src-seal" aria-hidden="true">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="14" rx="2.3" stroke="currentColor" stroke-width="1.4"/><circle cx="8.3" cy="9.6" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 16.8L9 12.2L12.2 15L16.3 10.4L19.6 15" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="crm-img-src-title-row">
+      <span class="crm-img-src-title-cn">选择图片来源</span>
+      <span class="crm-img-src-title-en">CHOOSE&nbsp;SOURCE</span>
+    </div>
+
+    <div class="crm-img-src-options">
+      <button class="crm-img-src-opt" id="crmImgSrcAlbumBtn" type="button">
+        <span class="crm-img-src-opt-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4" width="13" height="16" rx="2.2" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 15.5L8 11.3L11 13.8L15 9.8L16.5 11.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.6" cy="8" r="1.3" stroke="currentColor" stroke-width="1.2"/><path d="M17 7V17.5C17 18.9 15.9 20 14.5 20H8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </span>
+        <span class="crm-img-src-opt-col">
+          <span class="crm-img-src-opt-cn">相册</span>
+          <span class="crm-img-src-opt-en">FROM&nbsp;GALLERY</span>
+        </span>
+      </button>
+      <button class="crm-img-src-opt" id="crmImgSrcLocalBtn" type="button">
+        <span class="crm-img-src-opt-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="6.5" width="17" height="13" rx="2.3" stroke="currentColor" stroke-width="1.4"/><path d="M8 6.5L9.6 4H14.4L16 6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.1" stroke="currentColor" stroke-width="1.3"/></svg>
+        </span>
+        <span class="crm-img-src-opt-col">
+          <span class="crm-img-src-opt-cn">本地设备</span>
+          <span class="crm-img-src-opt-en">FROM&nbsp;THIS&nbsp;DEVICE</span>
+        </span>
+      </button>
+    </div>
+
+    <button class="crm-img-src-cancel" id="crmImgSrcCancelBtn" type="button">取消</button>
+  </div>
+
+  <!-- 隐藏的本地文件选择器：由「本地设备」选项触发 -->
+  <input type="file" id="crmImgLocalInput" accept="image/*" hidden aria-hidden="true" />
+
+  <!-- ============ 表情包选择器满屏页 ============
+       点击十三簿「表情包」卡后，不再跳转/新开窗口，而是在聊天室内部
+       直接铺出这一页——读取与「表情包」App（emoji-vault）同一份
+       IndexedDB（luna_chat_db / kv，键 stickers:list / stickers:groups），
+       顶部分组横滑筛选 + 下方网格，点选即直接发送为独立表情消息，
+       不经过图片流程的"来源选择→预览态→描述"三步，与真实微信/QQ
+       等即时通讯软件的表情包发送手感一致：点即发。
+       壳内 absolute 铺满写法，与 .crm-albumpick-page 同源同款 -->
+  <div class="crm-stickerpick-veil" id="crmStickerPickVeil" aria-hidden="true"></div>
+  <div class="crm-stickerpick-page" id="crmStickerPickPage" aria-hidden="true">
+    <div class="crm-stickerpick-top">
+      <button class="crm-stickerpick-back" id="crmStickerPickBackBtn" type="button" aria-label="返回">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="crm-stickerpick-title-row">
+        <span class="crm-stickerpick-title-cn">表情包</span>
+        <span class="crm-stickerpick-title-en">STICKERS</span>
+      </span>
+      <button class="crm-stickerpick-manage" id="crmStickerPickManageBtn" type="button" aria-label="管理表情包">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15.7 4.8L19.2 8.3L8.4 19.1L4 20L4.9 15.6L15.7 4.8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.4 7.1L16.9 10.6" stroke="currentColor" stroke-width="1.4"/></svg>
+      </button>
+    </div>
+
+    <nav class="crm-stickerpick-tags" id="crmStickerPickTags"></nav>
+
+    <div class="crm-stickerpick-body" id="crmStickerPickBody">
+      <div class="crm-stickerpick-grid" id="crmStickerPickGrid"></div>
+      <div class="crm-stickerpick-empty" id="crmStickerPickEmpty" hidden>
+        <button class="crm-stickerpick-empty-seal" id="crmStickerPickEmptySeal" type="button" aria-label="前往表情包管理页">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 8.5C4 6 6 4 8.5 4H15C17.5 4 19.5 6 19.5 8.5V13C19.5 13 19.5 16.5 16 16.5C13.4 16.5 13.5 16.5 13.5 16.5C13.5 16.5 13.7 20 10 20H8.5C6 20 4 18 4 15.5V8.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M13.5 16.5C13.5 16.5 19.4 16.5 19.5 13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8.7" cy="9.3" r="0.9" fill="currentColor"/><circle cx="14.3" cy="9.3" r="0.9" fill="currentColor"/></svg>
+        </button>
+        <div class="crm-stickerpick-empty-title">还没有表情包</div>
+        <div class="crm-stickerpick-empty-text">前往表情包管理页导入图片，收集好后即可在这里随时发送</div>
+        <button class="crm-stickerpick-empty-cta" id="crmStickerPickEmptyCta" type="button">
+          <span>前往管理</span>
+          <span class="crm-stickerpick-empty-cta-en">MANAGE&nbsp;STICKERS</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 相册选择器满屏页 ============
+       点击来源弹窗「相册」后，不再跳转/新开窗口，而是在聊天室内部
+       直接铺出这一页——读取与「我的相册」App 同一份 IndexedDB
+       （luna-gallery-db / photos），按日期分组的网格供直接点选。
+       壳内 absolute 铺满写法，与 .crm-imgview-page 同源同款 -->
+  <div class="crm-albumpick-veil" id="crmAlbumPickVeil" aria-hidden="true"></div>
+  <div class="crm-albumpick-page" id="crmAlbumPickPage" aria-hidden="true">
+    <div class="crm-albumpick-top">
+      <button class="crm-albumpick-back" id="crmAlbumPickBackBtn" type="button" aria-label="返回">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="crm-albumpick-title-row">
+        <span class="crm-albumpick-title-cn">我的相册</span>
+        <span class="crm-albumpick-title-en">SELECT&nbsp;A&nbsp;PHOTO</span>
+      </span>
+      <span class="crm-albumpick-spacer" aria-hidden="true"></span>
+    </div>
+    <div class="crm-albumpick-body" id="crmAlbumPickBody">
+      <div class="crm-albumpick-groups" id="crmAlbumPickGroups"></div>
+      <div class="crm-albumpick-empty" id="crmAlbumPickEmpty" hidden>
+        <button class="crm-albumpick-empty-seal" id="crmAlbumPickEmptySeal" type="button" aria-label="从本地设备添加照片">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4" width="13" height="16" rx="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 15.5L8 11.3L11 13.8L15 9.8L16.5 11.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.6" cy="8" r="1.3" stroke="currentColor" stroke-width="1.1"/></svg>
+        </button>
+        <div class="crm-albumpick-empty-title">相册里还没有照片</div>
+        <div class="crm-albumpick-empty-text">拍下的、存下的都会留在这里，随时挑一张带进对话</div>
+        <button class="crm-albumpick-empty-cta" id="crmAlbumPickEmptyCta" type="button">
+          <span>从本地设备添加</span>
+          <span class="crm-albumpick-empty-cta-en">ADD&nbsp;A&nbsp;PHOTO</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 图片大图预览满屏页 ============
+       单击图片小图后进入，独立铺满于手机壳内，沿用与 .crm-shot-page
+       一致的「壳内 absolute 铺满」写法。支持一组图片（多图消息）
+       在同一页内左右滑动查看（.crm-imgview-track，与图卡内堆叠
+       轨道同源写法），底部随图附上该条消息的描述文字（若有）。
+       顶部：来源徽记（仅 AI 生成的"意象图"出现，与用户真实照片
+       明确区分，不冒充真实照片）+ 多图时的页码徽记；底部：圆点
+       指示器（多图时）+ 图注卡 + 占位的「保存到相册」操作 ---- -->
+  <div class="crm-imgview-veil" id="crmImgViewVeil" aria-hidden="true"></div>
+  <div class="crm-imgview-page" id="crmImgViewPage" aria-hidden="true">
+    <div class="crm-imgview-top">
+      <button class="crm-imgview-back" id="crmImgViewBackBtn" type="button" aria-label="返回">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="crm-imgview-tags">
+        <span class="crm-imgview-source-tag" id="crmImgViewSourceTag" hidden>
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3L14.6 9.4L21 12L14.6 14.6L12 21L9.4 14.6L3 12L9.4 9.4L12 3Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          <span>AI 生成 · 意象</span>
+        </span>
+        <span class="crm-imgview-count-tag" id="crmImgViewCountTag" hidden></span>
+      </span>
+      <button class="crm-imgview-save" id="crmImgViewSaveBtn" type="button" aria-label="保存到相册">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 4V15.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7.2 11L12 15.8L16.8 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 17V18.5C4.5 19.6 5.4 20.5 6.5 20.5H17.5C18.6 20.5 19.5 19.6 19.5 18.5V17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="crm-imgview-body" id="crmImgViewBody">
+      <div class="crm-imgview-track" id="crmImgViewTrack"></div>
+    </div>
+    <div class="crm-imgview-dots" id="crmImgViewDots" hidden></div>
+    <div class="crm-imgview-caption" id="crmImgViewCaption" hidden>
+      <div class="crm-imgview-caption-card">
+        <span class="crm-imgview-caption-seal" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 5H14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M4 12H20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M4 19H17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="19.5" cy="5" r="2.1" stroke="currentColor" stroke-width="1.5"/></svg>
+        </span>
+        <span class="crm-imgview-caption-col">
+          <span class="crm-imgview-caption-label">IMAGE&nbsp;DESCRIPTION</span>
+          <span class="crm-imgview-caption-text" id="crmImgViewCaptionText"></span>
+        </span>
+      </div>
+    </div>
   </div>
 
   <!-- ============ 消息修改弹窗：水平垂直居中的磨砂白玉卡片 ============
@@ -437,6 +664,71 @@
       <span class="crm-fwd-top-spacer" aria-hidden="true"></span>
     </div>
     <div class="crm-bundle-scroll" id="crmBundleScroll"></div>
+  </div>
+
+  <!-- ============ 「重回」面板：重新生成最新一轮 AI 回复 ============
+       结构：遮罩 + 居中卡面。卡面分两态——
+       · 默认态：只有「直接重回」与「说明问题后重回」两枚入口；
+       · 展开态（点了"说明问题"）：滑出一枚意见输入框 + 一组
+         预置问题标签（OOC / 掉格式 / 没说完整 / 答非所问……
+         点选即追加到文字里，而非互斥单选），确认后一并重回。
+       纯黑白灰漆面卡片，四角錾刻直角托 + 细描边，与十三簿卡
+       同一套「牙牌」语汇，禁止 emoji、禁止暖米色。 ============ -->
+  <div class="crm-rewind-veil" id="crmRewindVeil" aria-hidden="true"></div>
+  <div class="crm-rewind-sheet" id="crmRewindSheet" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="crm-rewind-card">
+      <span class="crm-rewind-corner-a" aria-hidden="true"></span>
+      <span class="crm-rewind-corner-b" aria-hidden="true"></span>
+
+      <div class="crm-rewind-head">
+        <span class="crm-rewind-glyph" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5V2L7.5 5.5L12 9V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 6C16.4183 6 20 9.13401 20 13C20 16.866 16.4183 20 12 20C7.58172 20 4 16.866 4 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        <span class="crm-rewind-head-col">
+          <span class="crm-rewind-title-cn">重回</span>
+          <span class="crm-rewind-title-en">REWIND&nbsp;THIS&nbsp;TURN</span>
+        </span>
+      </div>
+
+      <p class="crm-rewind-desc" id="crmRewindDesc">
+        撤回最新一轮回复，让角色重新想一遍这段话再说一次。
+      </p>
+
+      <div class="crm-rewind-preview" id="crmRewindPreview" style="display:none">
+        <span class="crm-rewind-preview-bar" aria-hidden="true"></span>
+        <span class="crm-rewind-preview-text" id="crmRewindPreviewText"></span>
+      </div>
+
+      <!-- 说明问题展开区：默认收起，点「说明问题再重回」后展开 -->
+      <div class="crm-rewind-note" id="crmRewindNote">
+        <div class="crm-rewind-tags" id="crmRewindTags">
+          <button type="button" class="crm-rewind-tag" data-tag="人设 OOC，不像角色本人">人设 OOC</button>
+          <button type="button" class="crm-rewind-tag" data-tag="掉格式了，没有按要求分条/排版">掉格式</button>
+          <button type="button" class="crm-rewind-tag" data-tag="话没说完整，或者中途断掉了">没说完整</button>
+          <button type="button" class="crm-rewind-tag" data-tag="答非所问，没接住我说的内容">答非所问</button>
+          <button type="button" class="crm-rewind-tag" data-tag="语气太生硬，像在念稿子">语气生硬</button>
+          <button type="button" class="crm-rewind-tag" data-tag="重复了之前说过的话">重复啰嗦</button>
+        </div>
+        <textarea
+          class="crm-rewind-textarea"
+          id="crmRewindTextarea"
+          rows="3"
+          maxlength="220"
+          placeholder="也可以自己写：具体是哪里不对……"
+        ></textarea>
+      </div>
+
+      <div class="crm-rewind-actions">
+        <button type="button" class="crm-rewind-btn is-ghost" id="crmRewindCancelBtn">取消</button>
+        <button type="button" class="crm-rewind-btn is-line" id="crmRewindNoteToggleBtn">说明问题再重回</button>
+        <button type="button" class="crm-rewind-btn is-solid" id="crmRewindConfirmBtn">
+          <span class="crm-rewind-btn-icon" id="crmRewindConfirmIcon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5V2L7.5 5.5L12 9V6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 6C16.4183 6 20 9.13401 20 13C20 16.866 16.4183 20 12 20C7.58172 20 4 16.866 4 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </span>
+          <span id="crmRewindConfirmText">直接重回</span>
+        </button>
+      </div>
+    </div>
   </div>
 
 </div>

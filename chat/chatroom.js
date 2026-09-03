@@ -26,6 +26,26 @@
 
   var AI_CONTEXT_LIMIT = 24; // 送入 AI 的最近上下文条数上限，避免 prompt 过长
 
+  /* ---- 消息级图片数组归一化：早期数据/user 发送走的是单图
+     msg.image = { url, caption }；AI 发送与新版一律走
+     msg.images = [{ url, caption, generated }, ...] 的数组形态，
+     每张各自独立描述。这里统一收口成数组读法，其余渲染/上下文
+     拼装代码只需认 getMsgImages(msg)，不必分别判断两种历史形态 ---- */
+  function getMsgImages(msg) {
+    if (!msg) return null;
+    if (msg.images && msg.images.length) return msg.images;
+    if (msg.image) return [msg.image];
+    return null;
+  }
+
+  /* ---- 表情包消息读法：msg.sticker = { src, text } —— 独立于图片
+     消息，不走 getMsgImages/多图堆叠那一套，气泡渲染与 AI 上下文
+     组装都各自用这个专属读法判断 ---- */
+  function getMsgSticker(msg) {
+    if (!msg) return null;
+    return msg.sticker || null;
+  }
+
   document.addEventListener('DOMContentLoaded', init);
   if (document.readyState !== 'loading') init();
 
@@ -66,7 +86,20 @@
       quotePending: document.getElementById('crmQuotePending'),
       quotePendingWho: document.getElementById('crmQuotePendingWho'),
       quotePendingText: document.getElementById('crmQuotePendingText'),
-      quotePendingClose: document.getElementById('crmQuotePendingClose')
+      quotePendingClose: document.getElementById('crmQuotePendingClose'),
+      rewindVeil: document.getElementById('crmRewindVeil'),
+      rewindSheet: document.getElementById('crmRewindSheet'),
+      rewindDesc: document.getElementById('crmRewindDesc'),
+      rewindPreview: document.getElementById('crmRewindPreview'),
+      rewindPreviewText: document.getElementById('crmRewindPreviewText'),
+      rewindNote: document.getElementById('crmRewindNote'),
+      rewindTags: document.getElementById('crmRewindTags'),
+      rewindTextarea: document.getElementById('crmRewindTextarea'),
+      rewindCancelBtn: document.getElementById('crmRewindCancelBtn'),
+      rewindNoteToggleBtn: document.getElementById('crmRewindNoteToggleBtn'),
+      rewindConfirmBtn: document.getElementById('crmRewindConfirmBtn'),
+      rewindConfirmIcon: document.getElementById('crmRewindConfirmIcon'),
+      rewindConfirmText: document.getElementById('crmRewindConfirmText')
     };
 
     var myAvatarUrl = null;
@@ -228,7 +261,8 @@
         els.textarea.style.height = 'auto';
         els.textarea.style.height = Math.min(els.textarea.scrollHeight, 112) + 'px';
         var hasText = els.textarea.value.trim().length > 0;
-        els.sendBtn.disabled = !hasText;
+        // 待发送图片存在时，即使文字框留空也允许发送（图片本身即内容）
+        els.sendBtn.disabled = pendingImage ? false : !hasText;
       });
       els.textarea.addEventListener('focus', function () {
         closeFanPanel(els);
@@ -273,6 +307,669 @@
       els.quotePendingClose.addEventListener('click', clearPendingQuote);
     }
 
+    /* ============================================================
+       图片消息：来源选择 → 相册跨页回传 / 本地设备上传 → 预览态
+       （缩略图 + AI 识图描述）→ 发送为独立图卡消息 → 单击大图预览
+       ============================================================ */
+    var pendingImage = null; // { url } —— 当前准备随下一次发送带出的图片
+
+    /* ---- 识图能力判断：按当前 settings.js 里保存的 luna_api_model
+       名称做一次保守的关键词匹配——命中则认为该模型本身支持"看图"，
+       此时悬浮弹窗改为提示"可直接发送、描述可选"，而非要求必填。
+       未识别到型号，或型号不在已知的识图家族里，一律按纯文字模型
+       处理（更保守，保证图片始终带得上文字描述，不会读不懂图）---- */
+    function currentModelSeesImages() {
+      var model = '';
+      try {
+        model = (localStorage.getItem('luna_api_model') || '').toLowerCase();
+      } catch (e) { return false; }
+      if (!model) return false;
+      var visionFamilies = [
+        'gpt-4o', 'gpt-4.1', 'gpt-4-vision', 'gpt-5', 'o4', 'o3',
+        'claude-3', 'claude-4', 'claude-sonnet', 'claude-opus', 'claude-haiku', 'claude-fable', 'claude-mythos',
+        'gemini', 'qwen-vl', 'qwen2-vl', 'qwen2.5-vl', 'internvl', 'glm-4v', 'yi-vl',
+        'llava', 'pixtral', 'grok-vision', 'grok-4', 'moonshot-v1-vision'
+      ];
+      return visionFamilies.some(function (key) { return model.indexOf(key) !== -1; });
+    }
+
+    var imgEls = {
+      srcMask: document.getElementById('crmImgSrcMask'),
+      srcModal: document.getElementById('crmImgSrcModal'),
+      albumBtn: document.getElementById('crmImgSrcAlbumBtn'),
+      localBtn: document.getElementById('crmImgSrcLocalBtn'),
+      cancelBtn: document.getElementById('crmImgSrcCancelBtn'),
+      localInput: document.getElementById('crmImgLocalInput'),
+      pickVeil: document.getElementById('crmAlbumPickVeil'),
+      pickPage: document.getElementById('crmAlbumPickPage'),
+      pickBackBtn: document.getElementById('crmAlbumPickBackBtn'),
+      pickBody: document.getElementById('crmAlbumPickBody'),
+      pickGroups: document.getElementById('crmAlbumPickGroups'),
+      pickEmpty: document.getElementById('crmAlbumPickEmpty'),
+      pickEmptySeal: document.getElementById('crmAlbumPickEmptySeal'),
+      pickEmptyCta: document.getElementById('crmAlbumPickEmptyCta'),
+      pendingVeil: document.getElementById('crmImgPendingVeil'),
+      pending: document.getElementById('crmImgPending'),
+      pendingThumb: document.getElementById('crmImgPendingThumb'),
+      pendingRemove: document.getElementById('crmImgPendingRemove'),
+      pendingTextarea: document.getElementById('crmImgPendingTextarea'),
+      pendingCancelBtn: document.getElementById('crmImgPendingCancelBtn'),
+      pendingDoneBtn: document.getElementById('crmImgPendingDoneBtn'),
+      pendingHint: document.getElementById('crmImgPendingHint'),
+      pendingSkipBtn: document.getElementById('crmImgPendingSkipBtn'),
+      chip: document.getElementById('crmImgChip'),
+      chipThumb: document.getElementById('crmImgChipThumb'),
+      chipRemove: document.getElementById('crmImgChipRemove'),
+      viewVeil: document.getElementById('crmImgViewVeil'),
+      viewPage: document.getElementById('crmImgViewPage'),
+      viewBackBtn: document.getElementById('crmImgViewBackBtn'),
+      viewTrack: document.getElementById('crmImgViewTrack'),
+      viewCaption: document.getElementById('crmImgViewCaption'),
+      viewCaptionText: document.getElementById('crmImgViewCaptionText'),
+      viewSourceTag: document.getElementById('crmImgViewSourceTag'),
+      viewCountTag: document.getElementById('crmImgViewCountTag'),
+      viewDots: document.getElementById('crmImgViewDots'),
+      viewSaveBtn: document.getElementById('crmImgViewSaveBtn')
+    };
+    els.imgPendingTextarea = imgEls.pendingTextarea;
+
+    /* ---- 来源选择弹窗：由十三簿「图片」卡触发（见 initFanPanel 内） ---- */
+    function openImgSrcModal() {
+      if (!imgEls.srcMask) return;
+      imgEls.srcMask.classList.add('is-open');
+      imgEls.srcModal.classList.add('is-open');
+      imgEls.srcMask.setAttribute('aria-hidden', 'false');
+      imgEls.srcModal.setAttribute('aria-hidden', 'false');
+    }
+    function closeImgSrcModal() {
+      if (!imgEls.srcMask) return;
+      imgEls.srcMask.classList.remove('is-open');
+      imgEls.srcModal.classList.remove('is-open');
+      imgEls.srcMask.setAttribute('aria-hidden', 'true');
+      imgEls.srcModal.setAttribute('aria-hidden', 'true');
+    }
+    window.__crmOpenImgSourceModal = openImgSrcModal;
+    if (imgEls.srcMask) imgEls.srcMask.addEventListener('click', closeImgSrcModal);
+    if (imgEls.cancelBtn) imgEls.cancelBtn.addEventListener('click', closeImgSrcModal);
+
+    /* ---- 相册来源：不再新开窗口/跳转，直接在聊天室内部铺出选择器
+       满屏页，读取与「我的相册」App 完全同一份 IndexedDB
+       （luna-gallery-db / photos），按日期分组展示网格，点选即回填
+       预览态并关闭选择器——全程不离开聊天室 ---- */
+    var GALLERY_DB_NAME = 'luna-gallery-db';
+    var GALLERY_DB_VERSION = 1;
+    var GALLERY_STORE_PHOTOS = 'photos';
+
+    function galleryOpenDB() {
+      return new Promise(function (resolve, reject) {
+        if (!window.indexedDB) { reject(new Error('当前浏览器不支持 IndexedDB')); return; }
+        var req = indexedDB.open(GALLERY_DB_NAME, GALLERY_DB_VERSION);
+        req.onupgradeneeded = function () {
+          var db = req.result;
+          if (!db.objectStoreNames.contains(GALLERY_STORE_PHOTOS)) {
+            db.createObjectStore(GALLERY_STORE_PHOTOS, { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error); };
+      });
+    }
+    function galleryGetAllPhotos() {
+      return galleryOpenDB().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          var tx = db.transaction(GALLERY_STORE_PHOTOS, 'readonly');
+          var req = tx.objectStore(GALLERY_STORE_PHOTOS).getAll();
+          req.onsuccess = function () { resolve(req.result || []); };
+          req.onerror = function () { reject(req.error); };
+        });
+      });
+    }
+    function galleryFormatGroupDate(d) {
+      var now = new Date();
+      var isSameDay = d.toDateString() === now.toDateString();
+      var y = new Date(now); y.setDate(now.getDate() - 1);
+      var isYesterday = d.toDateString() === y.toDateString();
+      if (isSameDay) return '今天';
+      if (isYesterday) return '昨天';
+      var sameYear = d.getFullYear() === now.getFullYear();
+      return sameYear
+        ? (d.getMonth() + 1) + '月' + d.getDate() + '日'
+        : d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+    }
+    function galleryGroupByDate(list) {
+      var map = new Map();
+      var sorted = list.slice().sort(function (a, b) { return b.addedAt - a.addedAt; });
+      sorted.forEach(function (p) {
+        var key = new Date(p.addedAt).toDateString();
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(p);
+      });
+      var out = [];
+      map.forEach(function (items, key) { out.push({ key: key, date: new Date(key), items: items }); });
+      return out;
+    }
+
+    function renderAlbumPickGrid(photos) {
+      if (!imgEls.pickGroups) return;
+      imgEls.pickGroups.innerHTML = '';
+      var hasPhotos = photos && photos.length > 0;
+      if (imgEls.pickBody) imgEls.pickBody.classList.toggle('is-empty', !hasPhotos);
+      if (imgEls.pickEmpty) imgEls.pickEmpty.hidden = hasPhotos;
+      if (!hasPhotos) return;
+
+      var groups = galleryGroupByDate(photos);
+      groups.forEach(function (g) {
+        var wrap = document.createElement('div');
+        wrap.className = 'crm-albumpick-group';
+
+        var head = document.createElement('div');
+        head.className = 'crm-albumpick-group-head';
+        var dateSpan = document.createElement('span');
+        dateSpan.className = 'crm-albumpick-group-date';
+        dateSpan.textContent = galleryFormatGroupDate(g.date);
+        var rule = document.createElement('span');
+        rule.className = 'crm-albumpick-group-rule';
+        var countSpan = document.createElement('span');
+        countSpan.className = 'crm-albumpick-group-count';
+        countSpan.textContent = g.items.length + ' 张';
+        head.appendChild(dateSpan);
+        head.appendChild(rule);
+        head.appendChild(countSpan);
+        wrap.appendChild(head);
+
+        var grid = document.createElement('div');
+        grid.className = 'crm-albumpick-grid';
+        g.items.forEach(function (photo) {
+          var cell = document.createElement('div');
+          cell.className = 'crm-albumpick-cell';
+          var img = document.createElement('img');
+          img.src = photo.src;
+          img.alt = photo.name || '照片';
+          img.loading = 'lazy';
+          cell.appendChild(img);
+          cell.addEventListener('click', function () {
+            closeAlbumPicker();
+            setPendingImage(photo.src);
+            if (els.textarea) els.textarea.focus();
+          });
+          grid.appendChild(cell);
+        });
+        wrap.appendChild(grid);
+
+        imgEls.pickGroups.appendChild(wrap);
+      });
+    }
+
+    function openAlbumPicker() {
+      if (!imgEls.pickVeil) return;
+      imgEls.pickVeil.classList.add('is-open');
+      imgEls.pickPage.classList.add('is-open');
+      imgEls.pickVeil.setAttribute('aria-hidden', 'false');
+      imgEls.pickPage.setAttribute('aria-hidden', 'false');
+      galleryGetAllPhotos().then(function (photos) {
+        renderAlbumPickGrid(photos);
+      }).catch(function () {
+        renderAlbumPickGrid([]);
+      });
+    }
+    function closeAlbumPicker() {
+      if (!imgEls.pickVeil) return;
+      imgEls.pickVeil.classList.remove('is-open');
+      imgEls.pickPage.classList.remove('is-open');
+      imgEls.pickVeil.setAttribute('aria-hidden', 'true');
+      imgEls.pickPage.setAttribute('aria-hidden', 'true');
+    }
+    if (imgEls.albumBtn) {
+      imgEls.albumBtn.addEventListener('click', function () {
+        closeImgSrcModal();
+        openAlbumPicker();
+      });
+    }
+    if (imgEls.pickVeil) imgEls.pickVeil.addEventListener('click', closeAlbumPicker);
+    if (imgEls.pickBackBtn) imgEls.pickBackBtn.addEventListener('click', closeAlbumPicker);
+
+    /* 空状态本身即入口——印玺勋章与下方按钮都直接唤起本地设备选择，
+       让"还没有照片"成为一次可执行的邀请，而不是纯提示 */
+    function goPickFromLocalDevice() {
+      closeAlbumPicker();
+      if (imgEls.localInput) imgEls.localInput.click();
+    }
+    if (imgEls.pickEmptySeal) imgEls.pickEmptySeal.addEventListener('click', goPickFromLocalDevice);
+    if (imgEls.pickEmptyCta) imgEls.pickEmptyCta.addEventListener('click', goPickFromLocalDevice);
+
+    /* ---- 本地设备来源：触发隐藏 input[type=file]，读成 base64
+       Data URL（与本项目其余图片一律走 base64/本地存储的约定一致，
+       不依赖任何后端上传） ---- */
+    if (imgEls.localBtn) {
+      imgEls.localBtn.addEventListener('click', function () {
+        closeImgSrcModal();
+        if (imgEls.localInput) imgEls.localInput.click();
+      });
+    }
+    if (imgEls.localInput) {
+      imgEls.localInput.addEventListener('change', function () {
+        var file = imgEls.localInput.files && imgEls.localInput.files[0];
+        imgEls.localInput.value = '';
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          setPendingImage(String(reader.result));
+          if (els.textarea) els.textarea.focus();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /* ---- 预览态：图片小图 + 可编辑描述，与引用条共用输入栏上方
+       同一插槽——二者互斥，出现一个时自动收起另一个 ---- */
+    function openPendingImageModal() {
+      if (imgEls.pendingVeil) imgEls.pendingVeil.classList.add('is-open');
+      if (imgEls.pending) {
+        imgEls.pending.classList.add('is-open');
+        imgEls.pending.setAttribute('aria-hidden', 'false');
+      }
+      if (imgEls.chip) {
+        imgEls.chip.classList.remove('is-open');
+        imgEls.chip.setAttribute('aria-hidden', 'true');
+      }
+    }
+    function setPendingImage(url) {
+      pendingImage = { url: url };
+      clearPendingQuote();
+      if (imgEls.pendingThumb) imgEls.pendingThumb.src = url;
+      if (imgEls.pendingTextarea) imgEls.pendingTextarea.value = '';
+      if (imgEls.chipThumb) imgEls.chipThumb.src = url;
+
+      // 按当前模型是否支持识图，切换弹窗的提示语与描述框的必填感
+      var vision = currentModelSeesImages();
+      if (imgEls.pending) imgEls.pending.classList.toggle('is-vision-model', vision);
+      if (imgEls.pendingHint) {
+        imgEls.pendingHint.textContent = vision
+          ? '当前模型支持直接识图，描述可以不写——想让 TA 留意某个细节时再补充'
+          : '对方是语言模型，看不见图片本身——写清楚图中内容，TA 才能读懂这张图';
+      }
+      if (imgEls.pendingTextarea) {
+        imgEls.pendingTextarea.placeholder = vision ? '（可选）想让 TA 特别留意的地方……' : '描述一下这张图片……';
+      }
+
+      openPendingImageModal();
+      if (els.sendBtn) els.sendBtn.disabled = false;
+      // 悬浮弹窗打开后自动聚焦描述文字域，方便直接开始输入
+      if (imgEls.pendingTextarea && !vision) {
+        setTimeout(function () { imgEls.pendingTextarea.focus(); }, 260);
+      }
+    }
+    function clearPendingImage() {
+      pendingImage = null;
+      if (imgEls.pendingVeil) imgEls.pendingVeil.classList.remove('is-open');
+      if (imgEls.pending) {
+        imgEls.pending.classList.remove('is-open');
+        imgEls.pending.setAttribute('aria-hidden', 'true');
+      }
+      if (imgEls.pendingThumb) imgEls.pendingThumb.src = '';
+      if (imgEls.pendingTextarea) imgEls.pendingTextarea.value = '';
+      if (imgEls.chip) {
+        imgEls.chip.classList.remove('is-open');
+        imgEls.chip.setAttribute('aria-hidden', 'true');
+      }
+      if (imgEls.chipThumb) imgEls.chipThumb.src = '';
+      // 清空图片预览后，发送按钮是否可用改回看文字输入框
+      if (els.sendBtn && els.textarea) els.sendBtn.disabled = els.textarea.value.trim().length === 0;
+    }
+    // 「完成」：仅收起悬浮弹窗，保留已选图片与已写的描述，改由输入栏
+    // 上方的小回执条常驻提示——稍后从发送键正常发出；与「取消/移除/
+    // 点遮罩」的彻底清空语义区分开来
+    function dismissPendingImageModal() {
+      if (imgEls.pendingVeil) imgEls.pendingVeil.classList.remove('is-open');
+      if (imgEls.pending) {
+        imgEls.pending.classList.remove('is-open');
+        imgEls.pending.setAttribute('aria-hidden', 'true');
+      }
+      if (pendingImage && imgEls.chip) {
+        imgEls.chip.classList.add('is-open');
+        imgEls.chip.setAttribute('aria-hidden', 'false');
+      }
+    }
+    if (imgEls.pendingRemove) imgEls.pendingRemove.addEventListener('click', clearPendingImage);
+    if (imgEls.pendingCancelBtn) imgEls.pendingCancelBtn.addEventListener('click', clearPendingImage);
+    if (imgEls.pendingDoneBtn) imgEls.pendingDoneBtn.addEventListener('click', dismissPendingImageModal);
+    if (imgEls.pendingSkipBtn) {
+      imgEls.pendingSkipBtn.addEventListener('click', function () {
+        dismissPendingImageModal();
+        sendMessage();
+      });
+    }
+    if (imgEls.pendingVeil) imgEls.pendingVeil.addEventListener('click', dismissPendingImageModal);
+    if (imgEls.chip) {
+      imgEls.chip.addEventListener('click', function (e) {
+        if (e.target.closest('#crmImgChipRemove')) return;
+        openPendingImageModal();
+      });
+    }
+    if (imgEls.chipRemove) imgEls.chipRemove.addEventListener('click', clearPendingImage);
+
+    /* ---- 大图预览满屏页：由图卡单击触发（见 buildImageCard）。
+       支持一组图片（多图消息）在同一满屏页内左右滑动查看，页面
+       结构与图卡内的堆叠轨道同源（同一套 translateX 位移写法）。
+       —— AI 生成的"意象图"与用户真实照片在大图页里也要看得出
+       区别：顶部多一枚"AI 生成·意象"来源徽记，不假装是真实照片 ---- */
+    var viewerImages = [];
+    var viewerIdx = 0;
+    function renderViewerFrame() {
+      if (!imgEls.viewTrack) return;
+      imgEls.viewTrack.innerHTML = '';
+      viewerImages.forEach(function (im) {
+        var frame = document.createElement('div');
+        frame.className = 'crm-imgview-frame';
+        var img = document.createElement('img');
+        img.className = 'crm-imgview-img';
+        img.src = im && im.generated ? generatedImageDataUrl(im.caption) : (im && im.url) || '';
+        img.alt = '';
+        frame.appendChild(img);
+        imgEls.viewTrack.appendChild(frame);
+      });
+      updateViewerPosition();
+    }
+    function updateViewerPosition() {
+      if (!imgEls.viewTrack) return;
+      imgEls.viewTrack.style.transform = 'translateX(-' + (viewerIdx * 100) + '%)';
+      var cur = viewerImages[viewerIdx];
+      var caption = (cur && cur.caption || '').trim();
+      if (caption) {
+        imgEls.viewCaptionText.textContent = caption;
+        imgEls.viewCaption.hidden = false;
+      } else {
+        imgEls.viewCaption.hidden = true;
+      }
+      if (imgEls.viewSourceTag) {
+        imgEls.viewSourceTag.hidden = !(cur && cur.generated);
+      }
+      if (imgEls.viewCountTag) {
+        if (viewerImages.length > 1) {
+          imgEls.viewCountTag.hidden = false;
+          imgEls.viewCountTag.textContent = (viewerIdx + 1) + ' / ' + viewerImages.length;
+        } else {
+          imgEls.viewCountTag.hidden = true;
+        }
+      }
+      if (imgEls.viewDots) {
+        imgEls.viewDots.innerHTML = '';
+        if (viewerImages.length > 1) {
+          imgEls.viewDots.hidden = false;
+          viewerImages.forEach(function (_, i) {
+            var dot = document.createElement('span');
+            dot.className = 'crm-imgview-dot' + (i === viewerIdx ? ' is-active' : '');
+            imgEls.viewDots.appendChild(dot);
+          });
+        } else {
+          imgEls.viewDots.hidden = true;
+        }
+      }
+    }
+    function viewerGoTo(i) {
+      viewerIdx = Math.max(0, Math.min(viewerImages.length - 1, i));
+      updateViewerPosition();
+    }
+    function openImageViewer(images, startIdx, isMe) {
+      if (!imgEls.viewVeil) return;
+      viewerImages = Array.isArray(images) ? images : [images];
+      if (!viewerImages.length) return;
+      viewerIdx = Math.max(0, Math.min(viewerImages.length - 1, startIdx || 0));
+      imgEls.viewPage.classList.toggle('is-me-sent', !!isMe);
+      renderViewerFrame();
+      imgEls.viewVeil.classList.add('is-open');
+      imgEls.viewPage.classList.add('is-open');
+      imgEls.viewVeil.setAttribute('aria-hidden', 'false');
+      imgEls.viewPage.setAttribute('aria-hidden', 'false');
+    }
+    function closeImageViewer() {
+      if (!imgEls.viewVeil) return;
+      imgEls.viewVeil.classList.remove('is-open');
+      imgEls.viewPage.classList.remove('is-open');
+      imgEls.viewVeil.setAttribute('aria-hidden', 'true');
+      imgEls.viewPage.setAttribute('aria-hidden', 'true');
+    }
+    window.__crmOpenImageViewer = openImageViewer;
+    if (imgEls.viewVeil) imgEls.viewVeil.addEventListener('click', closeImageViewer);
+    if (imgEls.viewBackBtn) imgEls.viewBackBtn.addEventListener('click', closeImageViewer);
+    /* ---- 大图页左右滑动切换（多图时）：与图卡内同一套 pointer
+       手势判定逻辑，横向位移超过阈值才切页 ---- */
+    (function bindViewerSwipe() {
+      var body = document.getElementById('crmImgViewBody');
+      if (!body) return;
+      var startX = 0, startY = 0, dragging = false, moved = false;
+      body.addEventListener('pointerdown', function (evt) {
+        if (viewerImages.length <= 1) return;
+        startX = evt.clientX; startY = evt.clientY;
+        dragging = true; moved = false;
+        if (imgEls.viewTrack) imgEls.viewTrack.classList.add('is-dragging');
+      });
+      body.addEventListener('pointermove', function (evt) {
+        if (!dragging) return;
+        var dx = evt.clientX - startX, dy = evt.clientY - startY;
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) moved = true;
+        if (moved && imgEls.viewTrack) {
+          var pct = (dx / body.clientWidth) * 100;
+          imgEls.viewTrack.style.transform = 'translateX(calc(-' + (viewerIdx * 100) + '% + ' + pct + '%))';
+        }
+      });
+      function endDrag(evt) {
+        if (!dragging) return;
+        dragging = false;
+        if (imgEls.viewTrack) imgEls.viewTrack.classList.remove('is-dragging');
+        if (moved) {
+          var dx = evt.clientX - startX;
+          if (dx < -40) viewerGoTo(viewerIdx + 1);
+          else if (dx > 40) viewerGoTo(viewerIdx - 1);
+          else viewerGoTo(viewerIdx);
+        }
+      }
+      body.addEventListener('pointerup', endDrag);
+      body.addEventListener('pointercancel', endDrag);
+    })();
+    /* ---- 保存到相册：占位实现，与截图页 saveScreenshotToAlbum 同一
+       套占位策略——当前触发浏览器下载，后续接入真实"相册 App"后
+       只需替换这一处实现 ---- */
+    if (imgEls.viewSaveBtn) {
+      imgEls.viewSaveBtn.addEventListener('click', function () {
+        var cur = viewerImages[viewerIdx];
+        if (!cur) return;
+        var url = cur.generated ? generatedImageDataUrl(cur.caption) : cur.url;
+        if (!url) return;
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'luna-image-' + Date.now() + '.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showFlashToast('已保存到相册');
+      });
+    }
+
+    /* ---- 有图片预览时，文字输入框留空也允许发送键可用（合并进上方
+       输入框主监听逻辑，见 els.textarea 'input' 绑定处的 pendingImage
+       判断）；用户开始打字则维持原逻辑不受影响 ---- */
+
+    /* ============================================================
+       表情包消息：十三簿「表情包」卡 → 满屏选择器（复用 emoji-vault
+       同一份 IndexedDB 数据）→ 点选即直接发送为独立表情消息。
+       与图片消息的"来源选择→预览态→写描述→发送"四步不同，表情包
+       走的是真实微信/QQ 等即时通讯软件的手感——点即发，不经过任何
+       中间态；消息体为 msg.sticker = { src, text }，独立于
+       msg.text / msg.images，气泡渲染时与图片消息一样跳过气泡壳，
+       直接铺一枚小尺寸方形表情卡（比图卡更小更方，贴合"表情"这种
+       轻量、诙谐的体裁，而非当正式图片对待）。
+       ============================================================ */
+    var STICKER_DB_NAME = 'luna_chat_db';
+    var STICKER_DB_VERSION = 1;
+    var STICKER_TABLE = 'kv';
+    var stickerDbOpenPromise = null;
+
+    function stickerOpenDb() {
+      if (stickerDbOpenPromise) return stickerDbOpenPromise;
+      stickerDbOpenPromise = new Promise(function (resolve, reject) {
+        if (!window.indexedDB) { reject(new Error('no-indexeddb')); return; }
+        var req = indexedDB.open(STICKER_DB_NAME, STICKER_DB_VERSION);
+        req.onupgradeneeded = function () {
+          var db = req.result;
+          if (!db.objectStoreNames.contains(STICKER_TABLE)) {
+            db.createObjectStore(STICKER_TABLE, { keyPath: 'key' });
+          }
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error); };
+      });
+      return stickerDbOpenPromise;
+    }
+    function stickerDbRead(key) {
+      return stickerOpenDb().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          var tx = db.transaction(STICKER_TABLE, 'readonly');
+          var req = tx.objectStore(STICKER_TABLE).get(key);
+          req.onsuccess = function () { resolve(req.result ? req.result.value : undefined); };
+          req.onerror = function () { reject(req.error); };
+        });
+      }).catch(function () { return undefined; });
+    }
+    function loadStickerList() {
+      return stickerDbRead('stickers:list').then(function (v) { return Array.isArray(v) ? v : []; });
+    }
+    function loadStickerGroups() {
+      return stickerDbRead('stickers:groups').then(function (v) { return Array.isArray(v) ? v : []; });
+    }
+
+    var stickerEls = {
+      veil: document.getElementById('crmStickerPickVeil'),
+      page: document.getElementById('crmStickerPickPage'),
+      backBtn: document.getElementById('crmStickerPickBackBtn'),
+      manageBtn: document.getElementById('crmStickerPickManageBtn'),
+      tags: document.getElementById('crmStickerPickTags'),
+      body: document.getElementById('crmStickerPickBody'),
+      grid: document.getElementById('crmStickerPickGrid'),
+      empty: document.getElementById('crmStickerPickEmpty'),
+      emptySeal: document.getElementById('crmStickerPickEmptySeal'),
+      emptyCta: document.getElementById('crmStickerPickEmptyCta')
+    };
+
+    var stickerActiveFilter = '__all__';
+    var stickerAllList = [];
+    var stickerAllGroups = [];
+
+    function paintStickerTags() {
+      if (!stickerEls.tags) return;
+      stickerEls.tags.innerHTML = '';
+
+      var allChip = document.createElement('button');
+      allChip.type = 'button';
+      allChip.className = 'crm-stickerpick-tag' + (stickerActiveFilter === '__all__' ? ' is-current' : '');
+      allChip.textContent = '全部';
+      allChip.addEventListener('click', function () {
+        stickerActiveFilter = '__all__';
+        paintStickerTags();
+        paintStickerGrid();
+      });
+      stickerEls.tags.appendChild(allChip);
+
+      stickerAllGroups.forEach(function (g) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'crm-stickerpick-tag' + (stickerActiveFilter === g.id ? ' is-current' : '');
+        chip.textContent = g.name;
+        chip.addEventListener('click', function () {
+          stickerActiveFilter = g.id;
+          paintStickerTags();
+          paintStickerGrid();
+        });
+        stickerEls.tags.appendChild(chip);
+      });
+    }
+
+    function paintStickerGrid() {
+      if (!stickerEls.grid) return;
+      var filtered = stickerActiveFilter === '__all__'
+        ? stickerAllList
+        : stickerAllList.filter(function (s) { return s.groupId === stickerActiveFilter; });
+
+      stickerEls.grid.innerHTML = '';
+      var hasAny = filtered.length > 0;
+      if (stickerEls.body) stickerEls.body.classList.toggle('is-empty', !hasAny);
+      if (stickerEls.empty) stickerEls.empty.hidden = hasAny;
+      if (!hasAny) return;
+
+      filtered.forEach(function (s) {
+        var cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'crm-stickerpick-cell';
+        var img = document.createElement('img');
+        img.src = s.src;
+        img.alt = s.text || '表情';
+        img.loading = 'lazy';
+        cell.appendChild(img);
+        if (s.text) {
+          var cap = document.createElement('span');
+          cap.className = 'crm-stickerpick-cell-cap';
+          cap.textContent = s.text;
+          cell.appendChild(cap);
+        }
+        cell.addEventListener('click', function () {
+          closeStickerPicker();
+          sendStickerMessage(s);
+        });
+        stickerEls.grid.appendChild(cell);
+      });
+    }
+
+    function refreshStickerData() {
+      return Promise.all([loadStickerList(), loadStickerGroups()]).then(function (res) {
+        stickerAllList = res[0].slice().sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+        stickerAllGroups = res[1];
+        paintStickerTags();
+        paintStickerGrid();
+      });
+    }
+
+    function openStickerPicker() {
+      if (!stickerEls.veil) return;
+      stickerEls.veil.classList.add('is-open');
+      stickerEls.page.classList.add('is-open');
+      stickerEls.veil.setAttribute('aria-hidden', 'false');
+      stickerEls.page.setAttribute('aria-hidden', 'false');
+      refreshStickerData();
+    }
+    function closeStickerPicker() {
+      if (!stickerEls.veil) return;
+      stickerEls.veil.classList.remove('is-open');
+      stickerEls.page.classList.remove('is-open');
+      stickerEls.veil.setAttribute('aria-hidden', 'true');
+      stickerEls.page.setAttribute('aria-hidden', 'true');
+    }
+    window.__crmOpenStickerPicker = openStickerPicker;
+    if (stickerEls.veil) stickerEls.veil.addEventListener('click', closeStickerPicker);
+    if (stickerEls.backBtn) stickerEls.backBtn.addEventListener('click', closeStickerPicker);
+    if (stickerEls.manageBtn) {
+      stickerEls.manageBtn.addEventListener('click', function () {
+        window.location.href = 'emoji-vault.html';
+      });
+    }
+    if (stickerEls.emptySeal) stickerEls.emptySeal.addEventListener('click', function () { window.location.href = 'emoji-vault.html'; });
+    if (stickerEls.emptyCta) stickerEls.emptyCta.addEventListener('click', function () { window.location.href = 'emoji-vault.html'; });
+
+    /* ---- 发送：点选即发，不经过预览/描述中间态。与文字/图片消息
+       一样写入同一份消息列表，随后走同一套 renderAll / 通知逻辑 ---- */
+    function sendStickerMessage(sticker) {
+      clearPendingImage();
+      clearPendingQuote();
+      var msg = { from: 'me', ts: Date.now(), sticker: { src: sticker.src, text: sticker.text || '' } };
+      loadMessages(storeKey).then(function (list) {
+        list.push(msg);
+        return saveMessages(storeKey, list).then(function () { return list; });
+      }).then(function (list) {
+        renderAll(list, els, session);
+        scrollToBottom(els, true);
+        if (window.LunaMessagesBus) window.LunaMessagesBus.notify();
+      });
+    }
+
     /* ---- 点击气泡内的引用卡：回跳到被引用的原消息并短暂高亮，
        用时间戳 + 发送方精确定位；原消息已被删除时不做任何跳转 ---- */
     function jumpToQuoted(ts, from) {
@@ -280,7 +977,21 @@
         '.crm-bubble[data-msg-ts="' + ts + '"][data-msg-from="' + from + '"]'
       );
       if (!target) { showFlashToast('原消息已不存在'); return; }
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // 不用 scrollIntoView（它会把目标硬滚到视口正中，若目标在
+      // 消息列表末尾附近，会把 .crm-scroll-inner 底部预留给输入框的
+      // padding 一并露出来，形成一块空白）。改为手动算出「让目标居中」
+      // 所需的 scrollTop，并夹到 [0, maxScrollTop] 范围内，永远不会
+      // 超出真实内容高度。
+      var scroller = els.scroll;
+      var scrollerRect = scroller.getBoundingClientRect();
+      var targetRect = target.getBoundingClientRect();
+      var targetOffsetWithinScroller =
+        (targetRect.top - scrollerRect.top) + scroller.scrollTop;
+      var desiredTop =
+        targetOffsetWithinScroller - (scroller.clientHeight - target.offsetHeight) / 2;
+      var maxScrollTop = scroller.scrollHeight - scroller.clientHeight;
+      desiredTop = Math.max(0, Math.min(desiredTop, maxScrollTop));
+      scroller.scrollTo({ top: desiredTop, behavior: 'smooth' });
       target.classList.remove('is-quote-highlight');
       // 强制重排以重启动画
       void target.offsetWidth;
@@ -321,17 +1032,28 @@
     async function runAiReply() {
       if (aiGenerating) return;
       startAiThinking();
+      try {
+        await performAiGeneration(null);
+      } finally {
+        finishAiThinking();
+      }
+    }
 
+    /* ---- 重回核心：与 runAiReply 共用同一套「读人设 → 读世界书 →
+       读 user 人设 → 拼上下文 → 调接口 → 拆条写入」链路，唯一差异是
+       多接受一个 rewindNote（用户在重回面板里说明的"哪里不对"），
+       会被拼进 system prompt 的一个专属区块——同 buildDeletedNotesSection
+       一样，明确告知模型"这是内化信号，不要在回复里点破或道歉"，
+       避免模型直接把用户的吐槽当成台词念出来、显得刻意出戏 ---- */
+    async function performAiGeneration(rewindNote) {
       var consumedDeleteNotes = null;
-
       try {
         var history = await loadMessages(storeKey);
 
         var apiCfg = readApiConfig();
         if (!apiCfg) {
-          finishAiThinking();
           showAiToast('还没有配置 AI 接口，请先在设置里填写并选择模型');
-          return;
+          return false;
         }
 
         // ---- 最高指令：角色人设 / 世界书 / user 人设，三者必须精准读取 ----
@@ -352,29 +1074,225 @@
         // 解析阶段真正生效，绝不会每次回复都触发撤回 ----
         var recallAllowed = await isRecallTurnAllowed(storeKey);
 
-        var systemPrompt = buildSystemPrompt(charRecord, session, worldSection, userIdentity, myName, consumedDeleteNotes, quotableIndex, quoteAllowed, recallAllowed);
-        var chatMessages  = buildChatMessages(systemPrompt, history, myName);
+        // ---- 发图能力：与引用/撤回同一套"节流器 + 概率"机制兜底
+        // "系统层面允许"这一轮可以发图（避免模型把发图变成每轮固定
+        // 套路）；但用户在最后一条消息里明确要求"发张图/给我看看"
+        // 之类的指令时，这一层节流会被直接放行——不能让节流器挡住
+        // 用户的显式请求，那样体验上会显得"AI 拒绝发图" ----
+        var lastUserAskedImage = userLastMessageAsksForImage(history);
+        var imageAllowed = lastUserAskedImage || await isImageTurnAllowed(storeKey);
 
-        if (aiAbort) { finishAiThinking(); return; }
+        // ---- 表情包解读：仅当用户最后一条消息恰好是表情包时才成立，
+        // 用于决定是否在 system prompt 里插入"如何解读表情包"说明 ----
+        var lastUserSentSticker = userLastMessageIsSticker(history);
+
+        var systemPrompt = buildSystemPrompt(charRecord, session, worldSection, userIdentity, myName, consumedDeleteNotes, quotableIndex, quoteAllowed, recallAllowed, rewindNote, imageAllowed, lastUserAskedImage, lastUserSentSticker);
+        var chatMessages  = buildChatMessages(systemPrompt, history, myName, apiCfg);
+
+        if (aiAbort) return false;
 
         var replyText = await callAiApi(apiCfg, chatMessages);
-        if (aiAbort) { finishAiThinking(); return; }
+        if (aiAbort) return false;
         if (!replyText) {
-          finishAiThinking();
           showAiToast('AI 没有返回内容，请稍后再试');
           if (consumedDeleteNotes && consumedDeleteNotes.length) await requeueDeleteLog(storeKey, consumedDeleteNotes);
-          return;
+          return false;
         }
 
         var segments = splitIntoOddSegments(replyText);
-        await appendAiSegments(segments, quotableIndex, quoteAllowed, recallAllowed);
+        await appendAiSegments(segments, quotableIndex, quoteAllowed, recallAllowed, imageAllowed);
+        return true;
       } catch (err) {
         showAiToast('生成失败：' + (err && err.message ? err.message : '请检查网络与接口配置'));
         if (consumedDeleteNotes && consumedDeleteNotes.length) await requeueDeleteLog(storeKey, consumedDeleteNotes);
+        return false;
+      }
+    }
+
+    /* ---- 找出「最新一轮 AI 回复」在消息数组里的下标范围：
+       从末尾往前扫，只要还是 peer 消息（包含已撤回的，因为它也是
+       这一轮说过的话，理应一并撤回重说）就纳入这一轮，一旦遇到
+       第一条 me 消息（或到达数组开头）就停止。
+       返回 { start, end } 为左闭右开区间；找不到则返回 null ---- */
+    function findLatestAiTurnRange(list) {
+      if (!list || !list.length) return null;
+      var end = list.length;
+      var i = list.length - 1;
+      var hasPeer = false;
+      while (i >= 0 && list[i].from === 'peer') {
+        hasPeer = true;
+        i--;
+      }
+      if (!hasPeer) return null;
+      return { start: i + 1, end: end };
+    }
+
+    /* ---- 重回：撤回最新一轮 AI 回复的原文（从存储与画面中一并
+       移除，而不是仅仅标记撤回态——用户是要"重说"而非"留痕"），
+       再走一遍完整生成链路。rewindNote 为空则是「直接重回」，
+       否则会作为内化信号注入 system prompt ---- */
+    var rewinding = false;
+    async function runAiRewind(rewindNote) {
+      if (rewinding || aiGenerating) return false;
+      rewinding = true;
+      startAiThinking();
+      try {
+        var list = await loadMessages(storeKey);
+        var range = findLatestAiTurnRange(list);
+        if (!range) {
+          showAiToast('还没有可以重回的回复');
+          return false;
+        }
+        list.splice(range.start, range.end - range.start);
+        await saveMessages(storeKey, list);
+        renderAll(list, els, session);
+        if (window.LunaMessagesBus) window.LunaMessagesBus.notify();
+
+        var ok = await performAiGeneration(rewindNote || null);
+        return ok;
       } finally {
+        rewinding = false;
         finishAiThinking();
       }
     }
+    /* ==========================================================================
+       「重回」面板交互：打开时先算出最新一轮 AI 回复的预览文字；
+       用户可以直接确认「重回」，也可以展开说明区，点选预置标签
+       （可多选，标签文字会拼进文本框，而非互斥单选——问题往往
+       不止一个）或手写具体哪里不对，确认后一并带着重新生成。
+    ========================================================================== */
+    var rewindPickedTags = []; // 当前已点选的预置标签文案，保持点选顺序
+
+    function openRewindSheet() {
+      if (!els.rewindSheet) return;
+      closeAiSuggest();
+      rewindPickedTags = [];
+      if (els.rewindTextarea) els.rewindTextarea.value = '';
+      if (els.rewindTags) {
+        els.rewindTags.querySelectorAll('.crm-rewind-tag').forEach(function (btn) {
+          btn.classList.remove('is-picked');
+        });
+      }
+      collapseRewindNote();
+
+      loadMessages(storeKey).then(function (list) {
+        var range = findLatestAiTurnRange(list);
+        if (!range) {
+          if (els.rewindDesc) els.rewindDesc.textContent = '还没有可以重回的回复，先让角色说点什么吧。';
+          if (els.rewindPreview) els.rewindPreview.style.display = 'none';
+          setRewindConfirmDisabled(true);
+          return;
+        }
+        setRewindConfirmDisabled(false);
+        if (els.rewindDesc) els.rewindDesc.textContent = '撤回最新一轮回复，让角色重新想一遍这段话再说一次。';
+        var turnText = list.slice(range.start, range.end)
+          .map(function (m) { return (m.text || '').trim(); })
+          .filter(Boolean)
+          .join('  ');
+        if (els.rewindPreview && els.rewindPreviewText) {
+          if (turnText) {
+            els.rewindPreviewText.textContent = turnText;
+            els.rewindPreview.style.display = 'flex';
+          } else {
+            els.rewindPreview.style.display = 'none';
+          }
+        }
+      });
+
+      els.rewindVeil.classList.add('is-open');
+      els.rewindSheet.classList.add('is-open');
+      els.rewindVeil.setAttribute('aria-hidden', 'false');
+      els.rewindSheet.setAttribute('aria-hidden', 'false');
+      document.addEventListener('keydown', onRewindSheetKeydown);
+    }
+
+    function closeRewindSheet() {
+      if (!els.rewindSheet || !els.rewindSheet.classList.contains('is-open')) return;
+      els.rewindVeil.classList.remove('is-open');
+      els.rewindSheet.classList.remove('is-open');
+      els.rewindVeil.setAttribute('aria-hidden', 'true');
+      els.rewindSheet.setAttribute('aria-hidden', 'true');
+      document.removeEventListener('keydown', onRewindSheetKeydown);
+    }
+    function onRewindSheetKeydown(evt) {
+      if (evt.key === 'Escape') closeRewindSheet();
+    }
+
+    function expandRewindNote() {
+      if (!els.rewindNote) return;
+      els.rewindNote.classList.add('is-open');
+      if (els.rewindNoteToggleBtn) els.rewindNoteToggleBtn.style.display = 'none';
+      if (els.rewindConfirmText) els.rewindConfirmText.textContent = '说明问题并重回';
+      if (els.rewindTextarea) els.rewindTextarea.focus();
+    }
+    function collapseRewindNote() {
+      if (!els.rewindNote) return;
+      els.rewindNote.classList.remove('is-open');
+      if (els.rewindNoteToggleBtn) els.rewindNoteToggleBtn.style.display = '';
+      if (els.rewindConfirmText) els.rewindConfirmText.textContent = '直接重回';
+    }
+
+    function setRewindConfirmDisabled(disabled) {
+      if (els.rewindConfirmBtn) els.rewindConfirmBtn.disabled = !!disabled;
+    }
+    function setRewindBusy(busy) {
+      if (!els.rewindConfirmBtn) return;
+      els.rewindConfirmBtn.classList.toggle('is-thinking', !!busy);
+      els.rewindConfirmBtn.disabled = !!busy;
+      if (els.rewindCancelBtn) els.rewindCancelBtn.disabled = !!busy;
+      if (els.rewindNoteToggleBtn) els.rewindNoteToggleBtn.disabled = !!busy;
+    }
+
+    /* ---- 把用户手写的文字与已点选的标签合并成最终的 rewindNote：
+       标签在前（作为清晰的问题类别），手写内容在后（作为补充细节），
+       中间用句号分隔，读起来像一句完整的反馈而非生硬的标签堆砌 ---- */
+    function composeRewindNote() {
+      var parts = [];
+      if (rewindPickedTags.length) parts.push(rewindPickedTags.join('，'));
+      var manual = els.rewindTextarea ? els.rewindTextarea.value.trim() : '';
+      if (manual) parts.push(manual);
+      return parts.join('。');
+    }
+
+    if (els.rewindTags) {
+      els.rewindTags.querySelectorAll('.crm-rewind-tag').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var tagText = btn.getAttribute('data-tag') || btn.textContent;
+          var idx = rewindPickedTags.indexOf(tagText);
+          if (idx === -1) {
+            rewindPickedTags.push(tagText);
+            btn.classList.add('is-picked');
+          } else {
+            rewindPickedTags.splice(idx, 1);
+            btn.classList.remove('is-picked');
+          }
+        });
+      });
+    }
+
+    if (els.rewindNoteToggleBtn) {
+      els.rewindNoteToggleBtn.addEventListener('click', expandRewindNote);
+    }
+    if (els.rewindCancelBtn) {
+      els.rewindCancelBtn.addEventListener('click', closeRewindSheet);
+    }
+    if (els.rewindVeil) {
+      els.rewindVeil.addEventListener('click', closeRewindSheet);
+    }
+    if (els.rewindConfirmBtn) {
+      els.rewindConfirmBtn.addEventListener('click', async function () {
+        var noteOpen = els.rewindNote && els.rewindNote.classList.contains('is-open');
+        var note = noteOpen ? composeRewindNote() : '';
+        setRewindBusy(true);
+        try {
+          var ok = await runAiRewind(note);
+          if (ok !== false) closeRewindSheet();
+        } finally {
+          setRewindBusy(false);
+        }
+      });
+    }
+    window.__crmOpenRewindSheet = openRewindSheet;
 
     /* ---- 依次把拆好的多条短句作为角色的多条消息写入并渲染，
        条与条之间加一点错落的停顿，模拟真人连续发送的节奏。
@@ -391,13 +1309,129 @@
        翻成"撤回了一条消息"——这正是"撤回"的本质：曾经说过，
        只是反悔收回，而不是从一开始就不存在。同一轮最多只让
        一条命中撤回，且撤回动作在这一条之后才继续发送剩余的话，
-       模拟"发错了赶紧撤，然后正常接着往下说"的真实节奏 ---- */
-    async function appendAiSegments(segments, quotableIndex, quoteAllowed, recallAllowed) {
+       模拟"发错了赶紧撤，然后正常接着往下说"的真实节奏
+       —— 发图解析：只有 imageAllowed 为真时才解析段落开头连写的
+       [[image: 描述]] 标记（可以连着写好几个，对应"一次发一沓"）；
+       命中时这一条不再是普通文字消息，而是独立发出一条图片消息
+       （复用 msg.images 结构，generated:true 标记它是"意象图"而非
+       真实照片），标记之后若还有剩余文字，则作为这条图片消息的
+       描述/图注；同一整轮最多只让第一次命中的发图生效一次，
+       避免模型在同一轮里到处插标记、把每条都发成图 ---- */
+    async function appendAiSegments(segments, quotableIndex, quoteAllowed, recallAllowed, imageAllowed) {
       var quoteUsedThisTurn = false;
       var recallUsedThisTurn = false;
+      var imageUsedThisTurn = false;
       for (var i = 0; i < segments.length; i++) {
         if (aiAbort) return;
         var seg = segments[i];
+        if (!seg) continue;
+
+        if (imageAllowed && !imageUsedThisTurn) {
+          var imgParsed = extractImageTags(seg);
+          if (imgParsed) {
+            imageUsedThisTurn = true;
+            var imgMsg = {
+              from: 'peer',
+              ts: Date.now(),
+              images: imgParsed.images.map(function (im, idx) {
+                // 单图时优先用标记后的剩余文字作为图注（更像一句自然的
+                // 配文），没有剩余文字才退回标记内自带的描述；多图时
+                // 逐张各自的描述已经足够，不再拼接剩余文字
+                if (imgParsed.images.length === 1 && imgParsed.text) {
+                  return { caption: imgParsed.text, generated: true };
+                }
+                return { caption: im.caption, generated: true };
+              })
+            };
+            var list0 = await loadMessages(storeKey);
+            list0.push(imgMsg);
+            await saveMessages(storeKey, list0);
+            renderAll(list0, els, session);
+            scrollToBottom(els, true);
+            if (window.LunaMessagesBus) window.LunaMessagesBus.notify();
+            if (i < segments.length - 1) await wait(320 + Math.random() * 520);
+            continue;
+          }
+        }
+        // 未获准发图的这一轮，或标记解析失败：兜底剥除标记，
+        // 不让原始 [[image: ...]] 文本暴露给用户，按普通文字继续处理
+        seg = stripImageTag(seg);
+        if (!seg) continue;
+
+        // 兜底防线：模型没按 [[image:]] 标记语法走，而是自己用方括号/
+        // 圆括号包裹了一段"图片描述文字"（旁白式或伪标记式，见上方
+        // isFakeImageNarration 的注释）。这种情况说明模型的"发图意图"
+        // 和"图片描述内容"本身都是真实、完整的，只是外层符号用错了
+        // ——直接整条丢弃会导致图片彻底发不出来，把原始方括号文本
+        // 原样发出又会格式突兀、跳戏。因此这里做的不是丢弃，而是
+        // "补救"：只要这一轮还没用掉发图名额，就把方括号剥掉、掐头
+        // 去掉引导前缀后，剩余部分当成图片描述内容，按图片消息正常
+        // 渲染发出，效果等价于模型一开始就写对了 [[image:]] 语法。
+        // 模型有时会把"同一张图的完整描述"拆成好几条独立短句、每条
+        // 各自套一层伪标记/裸括号接着写细节（而不是把所有细节一次性
+        // 写进同一段描述里），这里向后扫描紧邻的连续短句，把它们的
+        // 内容拼接成同一张图的一整段描述，合并成一条图片消息发出，
+        // 而不是把每条续写细节各自发成一张互不相关的图 ---- */
+        if (imageAllowed && !imageUsedThisTurn) {
+          var fakeCaption = extractFakeImageNarrationCaption(seg);
+          if (fakeCaption) {
+            imageUsedThisTurn = true;
+            // 注意：这里合并出的续接段，绝大多数情况下是模型把"同一张
+            // 照片"的不同细节（穿着、姿势、表情、背景……）拆成了好几条
+            // 短句分别写，而不是真的想发好几张不同的照片——真正的多图
+            // 意图有专门语法（同一条里连写多个 [[image:]] 标记），走的
+            // 是上面 extractImageTags 那条分支。这里是"没按语法走、自己
+            // 编括号旁白"的兜底路径，所以把所有续接细节合并成同一张图
+            // 的一条完整描述，而不是拆成好几张互不相关的堆叠图片，这样
+            // 才是"补救成模型原本想要的效果"，而不是引入新的错误效果。
+            var fakeCaptionParts = [fakeCaption];
+            var lastConsumedIdx = i;
+            var j = i + 1;
+            while (j < segments.length) {
+              var nextSeg = segments[j];
+              if (!nextSeg) { j++; continue; }
+              // 续接段：不要求重新命中关键词/冒号前缀，只要仍是整条被
+              // 括号包裹的一段话，就当成同一张图描述的延续（见上方
+              // extractBareBracketCaption 注释），避免"白色圆领T恤……"
+              // 这类没有发图动词的续写细节被漏判成普通文字发出去
+              var nextCaption = extractFakeImageNarrationCaption(nextSeg) || extractBareBracketCaption(nextSeg);
+              if (!nextCaption) break; // 中间夹了别的内容（非括号包裹短句），停止合并
+              fakeCaptionParts.push(nextCaption);
+              lastConsumedIdx = j;
+              j++;
+            }
+            var mergedFakeCaption = fakeCaptionParts.join('，');
+            var fakeImgMsg = {
+              from: 'peer',
+              ts: Date.now(),
+              images: [{ caption: mergedFakeCaption, generated: true }]
+            };
+            var listFake = await loadMessages(storeKey);
+            listFake.push(fakeImgMsg);
+            await saveMessages(storeKey, listFake);
+            renderAll(listFake, els, session);
+            scrollToBottom(els, true);
+            if (window.LunaMessagesBus) window.LunaMessagesBus.notify();
+            i = lastConsumedIdx; // 跳过已被合并进这一组的短句，避免重复处理
+            if (i < segments.length - 1) await wait(320 + Math.random() * 520);
+            continue;
+          }
+        }
+        // 若这一轮发图名额已用掉，或没有获准发图：这种方括号图片旁白
+        // 不能再当图片补救，也不能原样发出去，只能整条丢弃，避免格式
+        // 突兀（比丢一句话更好的选择，因为原样发出的观感更差）
+        if (isFakeImageNarration(seg)) continue;
+
+        // 兜底防线：无论 system prompt 里怎么强调"禁止括号动作/心理
+        // 描写"，模型仍有概率手滑写出来（比如"（我听见手机震了一下……）"
+        // 这类整条都是旁白的短句，或者"啊|（叹气）"这类夹在一句话
+        // 中间的旁白片段）。这不是聊天软件该有的内容——真人打字发
+        // 消息不会给自己配一段第三人称旁白，必须在代码层面强制清掉，
+        // 不能只靠 prompt 层的自觉性。
+        // 这里只清"纯旁白/动作/心理"性质的括号内容，不会误伤已经在
+        // 前面分支被识别、处理并 continue 掉的图片相关括号语法，
+        // 二者互斥、不会重复处理同一段文本。
+        seg = stripActionNarrationBrackets(seg);
         if (!seg) continue;
 
         var msg = { from: 'peer', text: seg, ts: Date.now() };
@@ -470,6 +1504,8 @@
       else await bumpQuoteTurnCounter(storeKey);
       if (recallUsedThisTurn) await markRecallTurnUsed(storeKey);
       else await bumpRecallTurnCounter(storeKey);
+      if (imageUsedThisTurn) await markImageTurnUsed(storeKey);
+      else await bumpImageTurnCounter(storeKey);
     }
 
     function wait(ms) {
@@ -499,8 +1535,21 @@
 
     function sendMessage() {
       var text = els.textarea.value.trim();
-      if (!text) return;
-      var msg = { from: 'me', text: text, ts: Date.now() };
+      if (!pendingImage && !text) return;
+
+      var msg;
+      if (pendingImage) {
+        /* 图片消息：caption 取预览态描述输入框的当前值（可为空，
+           为空时气泡渲染成"NO DESCRIPTION"占位，而不是阻止发送）。
+           文本输入框此时若也写了字，忽略——图片与文字二选一，
+           一次只发一条，语义更清晰，也避免"文字去哪了"的疑惑 */
+        var caption = els.imgPendingTextarea ? els.imgPendingTextarea.value.trim() : '';
+        msg = { from: 'me', ts: Date.now(), images: [{ url: pendingImage.url, caption: caption }] };
+        clearPendingImage();
+      } else {
+        msg = { from: 'me', text: text, ts: Date.now() };
+      }
+
       if (pendingQuote) {
         msg.quote = pendingQuote;
         clearPendingQuote();
@@ -689,6 +1738,125 @@
       };
 
       msgs.forEach(function (msg, idx) {
+        /* ---- 图片消息：不走气泡壳，独立成图卡 ----
+           按要求"图片不应该用气泡包裹"，这里整条分支跳过
+           .crm-bubble/.crm-bubble-inner 的创建，直接把 .crm-imgcard
+           挂进消息行——图片贴边 + 下方图注条，读法仿 IG/微信图片
+           消息，而不是对话气泡。单击进大图预览，双击唤出与文字
+           消息共用的同一套操作面板（复制/引用/转发/删除等） */
+        /* ---- 表情包消息：与图片消息同理不走气泡壳，独立成一枚
+           小尺寸方形表情卡——比图卡更小更方，贴合"表情"这种轻量、
+           诙谐的体裁；有文字标注时贴底一条极窄的磨砂标签，没有则
+           完全不显示标签（不像图片消息那样常驻"描述/无描述"标签，
+           表情包的标注本就是可选的点缀，没有就不必强调"没有"）---- */
+        if (getMsgSticker(msg)) {
+          var stkRow = document.createElement('div');
+          stkRow.className = 'crm-msel-row';
+          stkRow.setAttribute('data-msg-ts', String(msg.ts));
+
+          var stkCheck = document.createElement('span');
+          stkCheck.className = 'crm-msel-check';
+          stkCheck.setAttribute('aria-hidden', 'true');
+          stkCheck.innerHTML = '<span class="crm-msel-check-ring"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 12.5L10 17.5L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+          stkCheck.addEventListener('click', function (evt) {
+            evt.stopPropagation();
+            toggleMselPick(msg, stkCheck, ctx);
+          });
+
+          var stkWrap = document.createElement('div');
+          stkWrap.className = 'crm-bubble-wrap';
+
+          var stkCard = buildStickerCard(msg, isMe, ctx, stkCheck);
+
+          var stkTime = document.createElement('div');
+          stkTime.className = 'crm-msg-time';
+          stkTime.textContent = formatAmPm(new Date(msg.ts));
+
+          stkWrap.appendChild(stkCard);
+          stkWrap.appendChild(stkTime);
+
+          if (isMe) {
+            stkRow.appendChild(stkCheck);
+            stkRow.appendChild(stkWrap);
+          } else {
+            stkRow.appendChild(stkWrap);
+            stkRow.appendChild(stkCheck);
+          }
+          stream.appendChild(stkRow);
+          return;
+        }
+
+        if (getMsgImages(msg)) {
+          var imgRow = document.createElement('div');
+          imgRow.className = 'crm-msel-row';
+          imgRow.setAttribute('data-msg-ts', String(msg.ts));
+
+          var imgCheck = document.createElement('span');
+          imgCheck.className = 'crm-msel-check';
+          imgCheck.setAttribute('aria-hidden', 'true');
+          imgCheck.innerHTML = '<span class="crm-msel-check-ring"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 12.5L10 17.5L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+          imgCheck.addEventListener('click', function (evt) {
+            evt.stopPropagation();
+            toggleMselPick(msg, imgCheck, ctx);
+          });
+
+          var imgWrap = document.createElement('div');
+          imgWrap.className = 'crm-bubble-wrap';
+
+          var card = buildImageCard(msg, isMe, ctx, imgCheck);
+
+          var imgTime = document.createElement('div');
+          imgTime.className = 'crm-msg-time crm-msg-time-row';
+
+          var imgTimeText = document.createElement('span');
+          imgTimeText.textContent = formatAmPm(new Date(msg.ts));
+          imgTime.appendChild(imgTimeText);
+
+          // 「描述」标签：与时间戳同排，图片消息一律显示，不因为
+          // 没写描述就整个隐藏——创作者需要一眼看出"这张图有没有配
+          // 描述"，而不是靠瞎点去试。有描述时正常字色，没描述时
+          // 用弱化的颜色 + 文案变为"无描述"，点击展开后卡片内的
+          // 描述带本身也会显示 NO DESCRIPTION 占位。多图切换时
+          // 随当前图是否有描述实时切换文案/样式 -->
+          if (card.crmHasCaption) {
+            var capDot = document.createElement('span');
+            capDot.className = 'crm-msg-time-dot';
+            capDot.setAttribute('aria-hidden', 'true');
+
+            var capLink = document.createElement('button');
+            capLink.type = 'button';
+            capLink.className = 'crm-msg-time-caption-link';
+            capLink.addEventListener('click', function (evt) {
+              evt.stopPropagation();
+              card.crmToggleCaption();
+            });
+
+            imgTime.appendChild(capDot);
+            imgTime.appendChild(capLink);
+
+            var syncCapTag = function () {
+              var has = card.crmHasCaption();
+              capLink.textContent = has ? '描述' : '无描述';
+              capLink.classList.toggle('is-empty', !has);
+            };
+            syncCapTag();
+            if (card.crmOnCaptionChange) card.crmOnCaptionChange(syncCapTag);
+          }
+
+          imgWrap.appendChild(card);
+          imgWrap.appendChild(imgTime);
+
+          if (isMe) {
+            imgRow.appendChild(imgCheck);
+            imgRow.appendChild(imgWrap);
+          } else {
+            imgRow.appendChild(imgWrap);
+            imgRow.appendChild(imgCheck);
+          }
+          stream.appendChild(imgRow);
+          return;
+        }
+
         var bubble = document.createElement('div');
         bubble.className = 'crm-bubble' + (msg.text && msg.text.length > 60 ? ' has-divider' : '');
         if (idx === 0) bubble.classList.add('is-first');
@@ -868,12 +2036,430 @@
       return tag;
     }
 
+    /* ---- AI 占位图生成：文字模型尚未接生图能力，但需要能"发图片"，
+       所以这里根据 AI 写下的描述文字，现场画一张抽象的月光漆面
+       印鉴图卡（SVG data URL）作为占位视觉——不是伪装成真实照片，
+       而是坦然呈现"这是一段被译成图像的描述"，与用户从相册/本地
+       选出的真实照片在气质上明确区分开（见 .is-generated 相关样式：
+       克制的墨玉底纹 + 一枚居中大印记 + 角落绘一圈经纬引导线，
+       纯黑白灰，不含 emoji、不含暖米色）。同一段描述文字每次生成
+       的纹样固定（用文字做简单哈希取种子），刷新/重渲染不会跳变 ---- */
+    function hashSeed(str) {
+      var h = 0;
+      str = String(str || '');
+      for (var i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; }
+      return Math.abs(h);
+    }
+    function generatedImageDataUrl(caption) {
+      var seed = hashSeed(caption || 'crm-generated-image');
+      var rand = function (i) { return ((Math.sin(seed + i * 12.9898) * 43758.5453) % 1 + 1) % 1; };
+      var w = 480, h = 600;
+      var lines = [];
+      // 底纹：三道极克制的斜向漆面渐变带，角度与位置由种子决定
+      for (var i = 0; i < 3; i++) {
+        var y1 = (rand(i) * h).toFixed(1);
+        var y2 = (rand(i + 10) * h).toFixed(1);
+        lines.push('<line x1="0" y1="' + y1 + '" x2="' + w + '" y2="' + y2 + '" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>');
+      }
+      // 四角经纬引导线，呼应全篇「印鉴」语汇
+      var corner = 34;
+      lines.push('<path d="M' + corner + ' 20 H20 V' + corner + '" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1.2"/>');
+      lines.push('<path d="M' + (w - corner) + ' 20 H' + (w - 20) + ' V' + corner + '" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1.2"/>');
+      lines.push('<path d="M' + corner + ' ' + (h - 20) + ' H20 V' + (h - corner) + '" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1.2"/>');
+      lines.push('<path d="M' + (w - corner) + ' ' + (h - 20) + ' H' + (w - 20) + ' V' + (h - corner) + '" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1.2"/>');
+      // 居中环形印记 + 内部细分割弧，纯几何、无文字，避免语义误导
+      var cx = w / 2, cy = h / 2 - 10;
+      var svg =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '">' +
+          '<defs>' +
+            '<linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">' +
+              '<stop offset="0%" stop-color="#1c1c20"/>' +
+              '<stop offset="55%" stop-color="#101012"/>' +
+              '<stop offset="100%" stop-color="#08080a"/>' +
+            '</linearGradient>' +
+            '<radialGradient id="g2" cx="50%" cy="42%" r="60%">' +
+              '<stop offset="0%" stop-color="rgba(230,232,238,0.14)"/>' +
+              '<stop offset="100%" stop-color="rgba(230,232,238,0)"/>' +
+            '</radialGradient>' +
+          '</defs>' +
+          '<rect width="' + w + '" height="' + h + '" fill="url(#g1)"/>' +
+          '<rect width="' + w + '" height="' + h + '" fill="url(#g2)"/>' +
+          lines.join('') +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="58" fill="none" stroke="rgba(255,255,255,0.30)" stroke-width="1.3"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="44" fill="none" stroke="rgba(255,255,255,0.20)" stroke-width="1"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="rgba(255,255,255,0.55)"/>' +
+          '<path d="M' + (cx - 58) + ' ' + cy + ' H' + (cx - 70) + '" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>' +
+          '<path d="M' + (cx + 58) + ' ' + cy + ' H' + (cx + 70) + '" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>' +
+          '<path d="M' + cx + ' ' + (cy - 58) + ' V' + (cy - 74) + '" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>' +
+          '<path d="M' + cx + ' ' + (cy + 58) + ' V' + (cy + 74) + '" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>' +
+        '</svg>';
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+
+    /* ---- 独立图卡：图片消息本体 —— 贴边小图 + 下方图注条，
+       不借用气泡壳。支持一条消息携带多张图片：以"层叠堆叠感"呈现
+       （后面几张的边缘从主图右下方露出一角，模拟一沓照片摞在一起），
+       右上角圆形数量徽记标出总张数；左右滑动在同一张卡内切换查看，
+       底部小圆点指示当前位置。单击当前这张进大图预览页；双击唤出与
+       文字消息共用的同一套操作面板（openSelectMenu）---- */
+    function buildImageCard(msg, isMe, ctx, checkEl) {
+      var images = getMsgImages(msg) || [];
+      if (!images.length) images = [{ url: '', caption: '' }];
+
+      var card = document.createElement('div');
+      card.className = 'crm-imgcard' + (isMe ? ' is-me' : '') + (images.length > 1 ? ' is-stack' : '');
+      card.setAttribute('data-msg-ts', String(msg.ts));
+      card.setAttribute('data-msg-from', msg.from);
+
+      var activeIdx = 0;
+
+      var media = document.createElement('div');
+      media.className = 'crm-imgcard-media';
+
+      /* ---- 卡组式堆叠：每张图片各自一个绝对定位的 .crm-imgcard-frame，
+         全部叠在同一个位置，靠 layoutStack() 按"与当前顶牌的距离"算出
+         每张牌的 transform/opacity/z-index，摆成手持照片的扇形——越
+         靠后的牌越往两侧偏、越缩小、越透明、旋转角度越大。切换时不是
+         平移取景框，而是把最上面这张牌沿滑动方向"抽走"（放大位移+
+         旋转，透明度归零），其余牌同时往前顶一位、扇形重新收拢，做出
+         真实的翻牌手感 ---- */
+      var FAN_STEP_X = 10;      // 每退后一层，左右偏移增加多少 px
+      var FAN_STEP_Y = 6;       // 每退后一层，往下沉多少 px（更像叠放而非漂浮）
+      var FAN_STEP_ROT = 6;     // 每退后一层，旋转角度增加多少度
+      var FAN_STEP_SCALE = 0.045; // 每退后一层，缩小比例
+      var FAN_MAX_DEPTH = 3;    // 超过这个层数后视觉上不再继续退远，避免最后几张挤成一团
+
+      var frames = images.map(function (im, i) {
+        var frame = document.createElement('div');
+        frame.className = 'crm-imgcard-frame';
+        var isGenerated = !!(im && im.generated);
+        if (isGenerated) frame.classList.add('is-generated');
+        var img = document.createElement('img');
+        img.src = im && im.generated ? generatedImageDataUrl(im.caption) : (im && im.url) || '';
+        img.alt = im && im.caption ? im.caption.slice(0, 40) : '图片';
+        img.loading = 'lazy';
+        frame.appendChild(img);
+        if (isGenerated) {
+          var genMark = document.createElement('span');
+          genMark.className = 'crm-imgcard-gen-mark';
+          genMark.setAttribute('aria-hidden', 'true');
+          genMark.innerHTML =
+            '<span class="crm-imgcard-gen-mark-badge">' +
+              '<svg width="8" height="8" viewBox="0 0 24 24" fill="none">' +
+                '<path d="M12 3L14.6 9.4L21 12L14.6 14.6L12 21L9.4 14.6L3 12L9.4 9.4L12 3Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>' +
+              '</svg>' +
+            '</span>' +
+            '<span class="crm-imgcard-gen-mark-div" aria-hidden="true"></span>' +
+            '<span class="crm-imgcard-gen-mark-text">意象</span>';
+          frame.appendChild(genMark);
+        }
+        media.appendChild(frame);
+        return frame;
+      });
+      card.appendChild(media);
+
+      // 奇偶交替左右偏转，扇形才有"摊开"的感觉，而不是单侧堆叠
+      function fanSign(depth) { return (depth % 2 === 0) ? 1 : -1; }
+
+      /* 摆好每张牌在"未拖拽"状态下该在的 transform：depth 是这张牌
+         排在当前顶牌之后第几位（0 = 顶牌本身，摆正；depth 越大越靠
+         后）。已经被翻过去的牌（排在 activeIdx 之前的）直接挪到最
+         底层且完全透明，翻回来时也能瞬间归位不留痕迹 ---- */
+      function applyFrameTransform(frame, depth) {
+        if (depth < 0) {
+          // 已经翻过去的牌：藏到最底下，不透明度归零、不阻挡点击
+          frame.style.transform = 'translate(0px, -14px) rotate(0deg) scale(0.9)';
+          frame.style.opacity = '0';
+          frame.style.zIndex = '0';
+          frame.style.pointerEvents = 'none';
+          return;
+        }
+        var d = Math.min(depth, FAN_MAX_DEPTH);
+        var sign = fanSign(d);
+        var tx = d === 0 ? 0 : sign * (FAN_STEP_X + (d - 1) * FAN_STEP_X * 0.7);
+        var ty = d * FAN_STEP_Y;
+        var rot = d === 0 ? 0 : sign * (FAN_STEP_ROT + (d - 1) * FAN_STEP_ROT * 0.55);
+        var scale = 1 - d * FAN_STEP_SCALE;
+        frame.style.transform = 'translate(' + tx + 'px, ' + ty + 'px) rotate(' + rot + 'deg) scale(' + scale + ')';
+        frame.style.opacity = d <= FAN_MAX_DEPTH ? String(Math.max(0.35, 1 - d * 0.22)) : '0';
+        frame.style.zIndex = String(20 - d);
+        frame.style.pointerEvents = d === 0 ? '' : 'none';
+      }
+
+      function layoutStack() {
+        frames.forEach(function (frame, i) {
+          var depth = i - activeIdx;
+          applyFrameTransform(frame, depth);
+        });
+      }
+      layoutStack();
+
+      var topFrame = function () { return frames[activeIdx]; };
+
+      // 右上角数量徽记：仅多图时出现，圆形描边、居中数字
+      var countBadge = null;
+      if (images.length > 1) {
+        countBadge = document.createElement('span');
+        countBadge.className = 'crm-imgcard-count';
+        countBadge.textContent = '1/' + images.length;
+        card.appendChild(countBadge);
+      }
+
+      // 底部圆点指示器：仅多图时出现
+      var dotsWrap = null;
+      if (images.length > 1) {
+        dotsWrap = document.createElement('div');
+        dotsWrap.className = 'crm-imgcard-dots';
+        images.forEach(function (_, i) {
+          var dot = document.createElement('span');
+          dot.className = 'crm-imgcard-dot' + (i === 0 ? ' is-active' : '');
+          dotsWrap.appendChild(dot);
+        });
+        card.appendChild(dotsWrap);
+      }
+
+      function goToIndex(i) {
+        activeIdx = Math.max(0, Math.min(images.length - 1, i));
+        layoutStack();
+        if (countBadge) countBadge.textContent = (activeIdx + 1) + '/' + images.length;
+        if (dotsWrap) {
+          Array.prototype.forEach.call(dotsWrap.children, function (dot, i2) {
+            dot.classList.toggle('is-active', i2 === activeIdx);
+          });
+        }
+        card.classList.toggle('is-first', activeIdx === 0);
+        card.classList.toggle('is-last', activeIdx === images.length - 1);
+      }
+      card.classList.add('is-first');
+      if (images.length === 1) card.classList.add('is-last');
+
+      var curImg = function () { return images[activeIdx] || images[0]; };
+      var hasCaption = function () { return !!(curImg() && curImg().caption && curImg().caption.trim()); };
+      var captionChangeListeners = [];
+
+      /* 默认只露出图片本身，没有单独的圆形按钮——直接点击照片就
+         能展开/收起底部描述带，图卡第一眼始终是一张完整、干净的
+         图片。切换到没有描述的那一张时自动隐藏描述带 */
+
+      var closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'crm-imgcard-caption-close';
+      closeBtn.setAttribute('aria-label', '收起图片描述');
+      closeBtn.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+      card.appendChild(closeBtn);
+
+      var caption = document.createElement('div');
+      caption.className = 'crm-imgcard-caption';
+
+      var capSeal = document.createElement('span');
+      capSeal.className = 'crm-imgcard-caption-seal';
+      capSeal.setAttribute('aria-hidden', 'true');
+      capSeal.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M4 5H14.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 12H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 19H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="19.5" cy="5" r="2.3" stroke="currentColor" stroke-width="1.6"/></svg>';
+      caption.appendChild(capSeal);
+
+      var capCol = document.createElement('div');
+      capCol.className = 'crm-imgcard-caption-col';
+      var capText = document.createElement('div');
+      capText.className = 'crm-imgcard-caption-text';
+      var capEmpty = document.createElement('div');
+      capEmpty.className = 'crm-imgcard-caption-empty';
+      capEmpty.textContent = 'NO DESCRIPTION';
+      capCol.appendChild(capText);
+      capCol.appendChild(capEmpty);
+      caption.appendChild(capCol);
+      card.appendChild(caption);
+
+      function refreshCaptionUi() {
+        var has = hasCaption();
+        capText.style.display = has ? '' : 'none';
+        capEmpty.style.display = has ? 'none' : '';
+        if (has) capText.textContent = curImg().caption.trim();
+        if (!has) card.classList.remove('is-caption-open');
+        captionChangeListeners.forEach(function (fn) { fn(); });
+      }
+      refreshCaptionUi();
+
+      function toggleCaption(evt) {
+        if (evt) evt.stopPropagation();
+        card.classList.toggle('is-caption-open');
+      }
+      closeBtn.addEventListener('click', toggleCaption);
+
+      /* ---- 抽牌式滑动：仅多图时绑定，只有当前顶牌可拖拽（其余牌
+         pointer-events:none，天然被挡在后面碰不到）。拖拽中顶牌
+         跟手位移+按位移比例旋转；松手后位移超过阈值，顶牌沿滑动
+         方向加速飞出（更大的位移、更大的旋转、透明度归零），飞出
+         动画结束后再真正切到下一张、扇形重新收拢；位移不够则弹回
+         原位，与"抽了一半又按回去"的实体牌手感一致。往回翻（比如
+         已经翻到第 2 张，向右滑想回到第 1 张）时移动的是"上一张"，
+         让它从底部飞回顶部归位，同样有动画，不是瞬间切换 ---- */
+      if (images.length > 1) {
+        var dragStartX = 0, dragStartY = 0, dragging = false, dragMoved = false;
+        var SWIPE_THRESHOLD = 60;
+        var EXIT_DISTANCE = 420;
+        media.addEventListener('pointerdown', function (evt) {
+          if (isMultiSelectOn()) return;
+          var tf = topFrame();
+          if (!tf) return;
+          dragStartX = evt.clientX; dragStartY = evt.clientY;
+          dragging = true; dragMoved = false;
+          tf.classList.add('is-dragging');
+        });
+        media.addEventListener('pointermove', function (evt) {
+          if (!dragging) return;
+          var tf = topFrame();
+          if (!tf) return;
+          var dx = evt.clientX - dragStartX;
+          var dy = evt.clientY - dragStartY;
+          if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) dragMoved = true;
+          if (dragMoved) {
+            var rot = Math.max(-16, Math.min(16, dx / 10));
+            tf.style.transform = 'translate(' + dx + 'px, ' + (dy * 0.15) + 'px) rotate(' + rot + 'deg) scale(1)';
+            tf.style.opacity = String(Math.max(0.55, 1 - Math.abs(dx) / 300));
+          }
+        });
+        function endDrag(evt) {
+          if (!dragging) return;
+          dragging = false;
+          var tf = topFrame();
+          if (tf) tf.classList.remove('is-dragging');
+          if (dragMoved && tf) {
+            var dx = evt.clientX - dragStartX;
+            if (dx <= -SWIPE_THRESHOLD && activeIdx < images.length - 1) {
+              flyAwayAndAdvance(tf, dx < 0 ? -1 : 1, activeIdx + 1);
+            } else if (dx >= SWIPE_THRESHOLD && activeIdx > 0) {
+              flyAwayAndAdvance(tf, dx < 0 ? -1 : 1, activeIdx - 1);
+            } else {
+              // 没达到阈值：弹回原位，交还给 layoutStack 的 transition 去补间
+              layoutStack();
+            }
+          }
+        }
+        // 顶牌飞出离场，动画结束后再真正切换 activeIdx 并重新摆放整组
+        function flyAwayAndAdvance(tf, dir, nextIdx) {
+          tf.classList.add('is-exiting');
+          var flyRot = dir < 0 ? -22 : 22;
+          tf.style.transform = 'translate(' + (dir * EXIT_DISTANCE) + 'px, ' + (-30) + 'px) rotate(' + flyRot + 'deg) scale(0.92)';
+          tf.style.opacity = '0';
+          var done = false;
+          function finish() {
+            if (done) return;
+            done = true;
+            tf.classList.remove('is-exiting');
+            goToIndex(nextIdx);
+          }
+          tf.addEventListener('transitionend', finish, { once: true });
+          setTimeout(finish, 380); // 兜底：万一 transitionend 因某些环境没触发
+        }
+        media.addEventListener('pointerup', endDrag);
+        media.addEventListener('pointercancel', endDrag);
+        media.addEventListener('pointerleave', function (evt) { if (dragging && !dragMoved) endDrag(evt); });
+      }
+
+      /* 单击 vs 双击：不依赖原生 dblclick（触屏上不总可靠），改为
+         在 click 内部用时间窗口手动判定——300ms 内的第二次点击视为
+         双击，唤出操作面板；否则延时后视为单击，进大图预览。
+         多图切换手势后触发的 click 会带上位移，这里用 dragMoved
+         标记（闭包内的滑动状态）避免误触发单击 */
+      var lastTapAt = 0;
+      var singleTapTimer = null;
+      card.addEventListener('click', function (evt) {
+        evt.stopPropagation();
+        if (isMultiSelectOn()) {
+          toggleMselPick(msg, checkEl, ctx);
+          return;
+        }
+        // 描述带展开时，点击照片本身先收起描述，不直接跳大图预览
+        if (card.classList.contains('is-caption-open')) {
+          card.classList.remove('is-caption-open');
+          return;
+        }
+        var now = Date.now();
+        if (now - lastTapAt < 300) {
+          lastTapAt = 0;
+          if (singleTapTimer) { clearTimeout(singleTapTimer); singleTapTimer = null; }
+          openSelectMenu(card, msg, isMe, ctx);
+          return;
+        }
+        lastTapAt = now;
+        singleTapTimer = setTimeout(function () {
+          singleTapTimer = null;
+          openImageViewer(images, activeIdx, isMe);
+        }, 300);
+      });
+
+      // 图片切换后同步描述带内容
+      var origGoToIndex = goToIndex;
+      goToIndex = function (i) { origGoToIndex(i); refreshCaptionUi(); };
+
+      bindLongPressToMultiSelect(card, msg, ctx, checkEl);
+
+      // 暴露给外层（时间戳旁的「描述」标签）用来判断是否显示入口 + 触发展开
+      card.crmHasCaption = hasCaption;
+      card.crmToggleCaption = toggleCaption;
+      card.crmRefreshCaptionUi = refreshCaptionUi;
+      card.crmOnCaptionChange = function (fn) { captionChangeListeners.push(fn); };
+
+      return card;
+    }
+
+    /* ---- 表情包气泡：小尺寸方形卡，不带边框裁切的相框感，纯粹
+       只是一张贴纸——单击进大图预览（复用图片消息同一套大图页/
+       手势），双击唤出与文字/图片消息共用的同一套操作面板 ---- */
+    function buildStickerCard(msg, isMe, ctx, checkEl) {
+      var sticker = getMsgSticker(msg) || { src: '', text: '' };
+
+      var card = document.createElement('div');
+      card.className = 'crm-stickercard' + (isMe ? ' is-me' : '');
+      card.setAttribute('data-msg-ts', String(msg.ts));
+      card.setAttribute('data-msg-from', msg.from);
+
+      var img = document.createElement('img');
+      img.className = 'crm-stickercard-img';
+      img.src = sticker.src || '';
+      img.alt = sticker.text ? sticker.text.slice(0, 40) : '表情';
+      img.loading = 'lazy';
+      card.appendChild(img);
+
+      if (sticker.text) {
+        var cap = document.createElement('span');
+        cap.className = 'crm-stickercard-cap';
+        cap.textContent = sticker.text;
+        card.appendChild(cap);
+      }
+
+      var lastTapAt = 0;
+      var singleTapTimer = null;
+      card.addEventListener('click', function (evt) {
+        evt.stopPropagation();
+        if (isMultiSelectOn()) {
+          toggleMselPick(msg, checkEl, ctx);
+          return;
+        }
+        var now = Date.now();
+        if (now - lastTapAt < 300) {
+          lastTapAt = 0;
+          if (singleTapTimer) { clearTimeout(singleTapTimer); singleTapTimer = null; }
+          openSelectMenu(card, msg, isMe, ctx);
+          return;
+        }
+        lastTapAt = now;
+        singleTapTimer = setTimeout(function () {
+          singleTapTimer = null;
+          openImageViewer([{ url: sticker.src, caption: sticker.text || '' }], 0, isMe);
+        }, 300);
+      });
+
+      bindLongPressToMultiSelect(card, msg, ctx, checkEl);
+
+      return card;
+    }
+
     /* ---- 批量转发 · 合并气泡内容："聊天记录"标题 + 前两条摘要 +
        "共 N 条消息"，点击整条气泡（在外层 bubble.click 里）会打开
        只读详情页，不在这里绑定任何交互 ---- */
     function buildBundleCard(bundle) {
       var card = document.createElement('div');
-      card.className = 'crm-bundle-card';
 
       var head = document.createElement('div');
       head.className = 'crm-bundle-card-head';
@@ -985,8 +2571,20 @@
       card.appendChild(frame);
 
       card.addEventListener('click', function () {
-        /* 占位：具体业务逻辑后续接入，这里先居中该卡并统一收起面板 */
         closeFanPanel(els);
+        if (folio.key === 'rewind') {
+          if (window.__crmOpenRewindSheet) window.__crmOpenRewindSheet();
+          return;
+        }
+        if (folio.key === 'photo') {
+          if (window.__crmOpenImgSourceModal) window.__crmOpenImgSourceModal();
+          return;
+        }
+        if (folio.key === 'sticker') {
+          if (window.__crmOpenStickerPicker) window.__crmOpenStickerPicker();
+          return;
+        }
+        /* 占位：其余功能后续接入，这里先居中该卡并统一收起面板 */
       });
 
       els.fanTrack.appendChild(card);
@@ -3406,10 +5004,16 @@
   function buildUserPersonaBlock(userIdentity, myName) {
     if (!userIdentity) {
       return '【用户人设】\n当前未绑定任何用户身份卡，仅知道用户昵称为「' + (myName || '我') +
-        '」，不要凭空假设用户的性别、职业、性格等具体信息。';
+        '」，不要凭空假设用户的性别、职业、性格等具体信息。称呼对方时就用这个昵称，绝不能把任何占位词或英文变量名（比如 user）当成称呼说出来。';
     }
     var lines = ['【用户人设 —— 这是你正在对话的这个人，请据此理解 ta 的身份与说话立场】'];
     lines.push('昵称：' + (userIdentity.name || myName || '我'));
+    var callChar = userIdentity.callChar || userIdentity.addressChar;
+    if (callChar) {
+      lines.push('对方希望你（角色）这样称呼 ta：' + callChar + '——这是最高优先级的称呼依据，正文里如果要称呼对方，必须使用这个称呼，绝不能使用「昵称」字段、绝不能使用任何占位词或英文变量名（比如 user、ta、对方 之类）来称呼对方。');
+    } else {
+      lines.push('对方尚未设置希望被如何称呼，此时用「昵称」这个值来称呼即可，如果昵称本身也是空的，就用日常口语化的称呼方式（比如你、你呀），绝不能把任何占位词或英文变量名（比如 user）当成称呼说出来。');
+    }
     if (userIdentity.gender) lines.push('性别：' + userIdentity.gender);
     if (userIdentity.birthday) lines.push('生日：' + userIdentity.birthday);
     if (userIdentity.location) lines.push('居住地：' + userIdentity.location);
@@ -3427,17 +5031,23 @@
      再补一段「短句多条 / 拟人节奏」的格式要求，最后交代当前在线状态、
      禁止自我暴露 AI 身份等既有开关。deletedNotes 非空时额外插入一段
      "被删线索"，让模型知道自己刚才有话被用户删掉了 ---- */
-  function buildSystemPrompt(charRecord, session, worldSection, userIdentity, myName, deletedNotes, quotableIndex, quoteAllowed, recallAllowed) {
+  function buildSystemPrompt(charRecord, session, worldSection, userIdentity, myName, deletedNotes, quotableIndex, quoteAllowed, recallAllowed, rewindNote, imageAllowed, imageRequestedByUser, lastUserSentSticker) {
     var parts = [];
     parts.push(buildCharPersonaBlock(charRecord, session));
     if (worldSection) parts.push(worldSection);
     parts.push(buildUserPersonaBlock(userIdentity, myName));
     var deletedSection = buildDeletedNotesSection(deletedNotes);
     if (deletedSection) parts.push(deletedSection);
+    var rewindSection = buildRewindNoteSection(rewindNote);
+    if (rewindSection) parts.push(rewindSection);
     var quoteSection = buildQuotableIndexPromptSection(quotableIndex, quoteAllowed);
     if (quoteSection) parts.push(quoteSection);
     var recallSection = buildRecallPromptSection(recallAllowed);
     if (recallSection) parts.push(recallSection);
+    var imageSection = buildImagePromptSection(imageAllowed, imageRequestedByUser);
+    if (imageSection) parts.push(imageSection);
+    var stickerSection = buildStickerPromptSection(lastUserSentSticker);
+    if (stickerSection) parts.push(stickerSection);
 
     var lang = (charRecord && charRecord.lang) || '中文';
     var pov = (charRecord && charRecord.pov) || '第一人称';
@@ -3451,9 +5061,12 @@
     if (noBreak) rules.push('- 全程保持角色人设，绝不能跳出角色、绝不能 OOC，也不要提及你在"扮演"或"生成回复"。');
     if (noDisclaimer) rules.push('- 不要添加免责声明、系统提示或"作为 AI"之类的话。');
     rules.push('- 直接给出角色要说的话本身，不要输出任何前缀说明、标签、引号、星号动作或 markdown 格式。');
+    rules.push('- 【绝对禁止】这是聊天软件里的文字对话，不是小说或剧本，任何用中文圆括号（）、英文圆括号()、方括号[]或【】包起来的动作描写、神态描写、心理描写、旁白、场景描述都绝对不能出现在回复里的任何一条短句中——不管是整条都是括号内容，还是括号内容夹在一句话中间。角色如果想表达一个动作或心理活动，只能把它转化成角色本人会说出口的话本身（比如想表达"叹气"就直接说"唉"或者带叹气感的语气词，而不是写"（叹了口气）"），绝不能用旁白式的括号去描述"角色正在做什么/在想什么"。这条规则没有任何例外情况，不因为角色人设、场景氛围或用户要求而放松。');
+    rules.push('- 只能依据上面提供的真实历史消息判断对方做过什么、说过什么，绝不能凭空编造对方的动作或行为去指责或调侃（比如编造"你撤回消息了""你刚才把照片放大又缩小"这类没有出现在真实历史里的事情）；如果历史里确实没有相关内容，就不要提这件事，正常接着当下的话题说下去。');
     rules.push('');
     rules.push('【分条格式 —— 必须遵守，这是硬性输出格式而不是排版建议】');
-    rules.push('把要说的话拆成多条独立的短句，条数完全由你这次实际想说多少话自然决定，可以是 2 条，也可以是 6 条、8 条甚至更多，不设固定条数，条与条之间必须用竖线 ||| 分隔（不要用换行、不要用句号顿号代替）。');
+    rules.push('把要说的话拆成多条独立的短句，条数完全由你这次实际想说多少话自然决定，可能很少，也可能很多，完全不设上限也不设下限，条与条之间必须用竖线 ||| 分隔（不要用换行、不要用句号顿号代替）。');
+    rules.push('绝不要为了凑数或者为了"看起来简短"而刻意固定成差不多的条数，每一轮真实想说多少就切多少条，条数应该随着这一轮实际的内容量自然浮动，忽多忽少才是真实的活人打字状态，如果连续好几轮条数都差不多，说明你在按套路凑数而不是真实表达，需要立刻打破这种习惯。');
     rules.push('每一条控制在一句话以内，不要在一条里塞多个意思，想到什么就单独一条发出来，越碎越像真人打字。');
     rules.push('不要把 ||| 漏掉写成不分割的整段话，除非你这次真的只想说一句极短的话。');
     rules.push('正确示例：没有呀|||也不晚呀|||这会儿都准备去睡觉了呢|||你不是也应该要睡了嘛');
@@ -3484,6 +5097,44 @@
     return lines.join('\n');
   }
 
+  /* ---- 拼装"重回指正"区块：用户点了「重回」重新生成这一轮，
+     并可选地说明了刚才具体哪里出了问题（人设 OOC / 掉格式 / 没说
+     完整 / 答非所问 / 语气生硬 / 重复啰嗦，或自己手写的一段话）。
+     与"被删线索"同一套语气——内化为调整信号，绝不能在回复里
+     提及"重新生成""刚才不好""重回"之类的元层面词汇，那样反而
+     会让角色显得在讨论自己是不是 AI，比原来的问题更出戏。
+     rewindNote 为空（用户选的是「直接重回」而非「说明问题再重回」）
+     时不返回任何区块——此时纯粹是"再想一遍重说一次"，不额外
+     暗示"上一版有什么具体错误"，避免无中生有地误导模型 ---- */
+  function buildRewindNoteSection(rewindNote) {
+    var text = (rewindNote || '').trim();
+    if (!text) return '';
+    if (text.length > 200) text = text.slice(0, 200) + '…';
+    var lines = [];
+    lines.push('【重要背景信号 —— 仅供你internal参考，绝不能在回复里提及或点破】');
+    lines.push('你刚才作为角色说的上一轮回复被用户直接撤回了，用户还指出了具体问题：');
+    lines.push(text);
+    lines.push('这是这一轮唯一需要吸收的反馈：请针对性地避开用户指出的这个问题，重新组织这一轮要说的话，仍然要完全代入角色本人、符合人设与说话习惯。');
+    lines.push('绝对不要在回复里提到"重新生成""重回""上一次""刚才说错了"之类的元层面表述，也不要道歉或解释自己为什么变了，就当作角色这次自然地重新组织语言、正常往下说即可。');
+    return lines.join('\n');
+  }
+
+  /* ---- 识图能力判断（顶层版本，供 buildChatMessages 调用）：
+     与输入栏内 currentModelSeesImages 同一套关键词表，只是这里需要
+     在组装发给 API 的消息时使用，与那个用于弹窗文案切换的版本不在
+     同一层级作用域，因此在顶层保留一份同源实现，避免跨作用域引用 ---- */
+  function apiModelSeesImages(cfg) {
+    var model = ((cfg && cfg.model) || '').toLowerCase();
+    if (!model) return false;
+    var visionFamilies = [
+      'gpt-4o', 'gpt-4.1', 'gpt-4-vision', 'gpt-5', 'o4', 'o3',
+      'claude-3', 'claude-4', 'claude-sonnet', 'claude-opus', 'claude-haiku', 'claude-fable', 'claude-mythos',
+      'gemini', 'qwen-vl', 'qwen2-vl', 'qwen2.5-vl', 'internvl', 'glm-4v', 'yi-vl',
+      'llava', 'pixtral', 'grok-vision', 'grok-4', 'moonshot-v1-vision'
+    ];
+    return visionFamilies.some(function (key) { return model.indexOf(key) !== -1; });
+  }
+
   /* ---- 组装发给 API 的 messages：system + 最近历史（映射 from:'me'→user，
      from:'peer'→assistant）。历史条数超过上限时只取最近一段，
      避免 prompt 无限增长。
@@ -3491,12 +5142,94 @@
      对话继续往下走时不该把这句已被收回的话当成仍然生效的发言去
      延续，否则模型会顺着一句自己"没说过"（在对话语境里）的话
      继续接话，显得前后矛盾——这与已删除消息不进入 buildChatMessages
-     是同一套道理 ---- */
-  function buildChatMessages(systemPrompt, history, myName) {
+     是同一套道理
+     —— 图片消息：过去这里只取 m.text，图片消息的 m.text 恒为空，
+     导致发给模型的是一句空白 user 消息——模型对图片内容一无所知，
+     却仍要接话，回复自然驴唇不对马嘴。现在按当前模型是否支持识图
+     分两种组装方式：
+     ① 识图模型：content 组装成多模态数组，把图片以 image_url 形式
+        真正传给模型，若用户还写了描述，一并作为文字提示附上；
+     ② 非识图模型：模型看不到图，只能改用文字——把这条图片消息的
+        描述文字当作这一轮的发言内容传过去；若用户当时没写描述，
+        用一句明确的旁白告诉模型"这里发了一张图但没有文字描述"，
+        至少不会让模型对着一句空字符串强行接话。
+     —— 多图消息：同一条消息可能携带多张图片（数组 m.images），
+        按顺序逐张组装，多模态场景下多张 image_url 一并放进同一条
+        content 数组；纯文字场景下把各张描述合并成一句列举式旁白。
+     —— AI 自己发过的"意象图"（generated:true）：这类图没有真实
+        url，无论是否识图模型都只能走文字通道——把描述文字原样
+        回填进历史，让模型记得自己"刚才发过一张关于……的图"，
+        不会因为看不到图片本体而在下一轮里自相矛盾 ---- */
+  function buildChatMessages(systemPrompt, history, myName, apiCfg) {
     var msgs = [{ role: 'system', content: systemPrompt }];
+    var vision = apiModelSeesImages(apiCfg);
     var trimmed = (history || []).slice(-AI_CONTEXT_LIMIT).filter(function (m) { return !m.recalled; });
     trimmed.forEach(function (m) {
-      msgs.push({ role: m.from === 'me' ? 'user' : 'assistant', content: m.text || '' });
+      var role = m.from === 'me' ? 'user' : 'assistant';
+      var sticker = getMsgSticker(m);
+      if (sticker) {
+        /* ---- 表情包消息：与图片消息同理按当前模型是否支持识图分两种
+           组装方式，而不是一律退化成文字——表情包本身就是一张图，
+           识图模型完全有能力"看懂"这张表情在表达什么情绪/梗，如果
+           只喂一句"[发送了一个表情包]"，模型等于完全瞎猜，回复自然
+           答非所问。
+           ① 识图模型：把表情包图片以 image_url 形式真正传给模型，
+              文字标注（若有）作为补充说明一并附上，并提醒模型这是
+              一枚表情包而非真实照片，理解其情绪/含义即可，不要把它
+              当成一张写实照片去描述画面细节；
+           ② 非识图模型：模型看不到图，只能靠文字标注——有标注就把
+              标注当作这条消息的表达内容传过去；没有标注时，明确
+              告诉模型"对方发了一个表情包但看不出具体内容"，引导
+              模型用一句自然、轻松的话接住这个动作（比如打趣一句、
+              顺着当下语境接话），而不是被迫针对空内容强行分析 ---- */
+        var stkText = (sticker.text || '').trim();
+        if (vision && sticker.src) {
+          var stkContent = [{ type: 'image_url', image_url: { url: sticker.src } }];
+          stkContent.push({
+            type: 'text',
+            text: '（这是我发的一个表情包/贴纸，不是真实照片，是用来表达情绪或玩梗的——请你看图理解这枚表情想传达的情绪或意思，据此自然回应，不需要像描述真实照片那样描述画面细节）' + (stkText ? ('（配的文字：' + stkText + '）') : '')
+          });
+          msgs.push({ role: role, content: stkContent });
+        } else {
+          msgs.push({
+            role: role,
+            content: stkText ? ('[发送了一个表情包，表达的意思大致是：' + stkText + ']') : '[发送了一个表情包，但看不出具体画面内容，只能感觉到对方想用这个动作表达点什么情绪或玩个梗]'
+          });
+        }
+        return;
+      }
+      var images = getMsgImages(m);
+      if (images) {
+        var realImgs = images.filter(function (im) { return im && im.url && !im.generated; });
+        if (vision && realImgs.length) {
+          var content = [];
+          realImgs.forEach(function (im) {
+            content.push({ type: 'image_url', image_url: { url: im.url } });
+          });
+          var capLines = images.map(function (im, i) {
+            var c = (im.caption || '').trim();
+            if (im.generated) return '（第 ' + (i + 1) + ' 张是你自己发过的意象图，描述：' + (c || '无描述') + '）';
+            return c ? ('（第 ' + (i + 1) + ' 张附加说明：' + c + '）') : '';
+          }).filter(Boolean);
+          content.push({
+            type: 'text',
+            text: (images.length > 1 ? ('（这是我发的 ' + images.length + ' 张图片）') : '（这是我发的一张图片）') + (capLines.length ? ' ' + capLines.join(' ') : '，请你直接看图回应')
+          });
+          msgs.push({ role: role, content: content });
+        } else {
+          var parts = images.map(function (im, i) {
+            var c = (im && im.caption || '').trim();
+            var prefix = images.length > 1 ? ('第 ' + (i + 1) + ' 张：') : '';
+            return c ? (prefix + c) : (prefix + '（无文字描述）');
+          });
+          msgs.push({
+            role: role,
+            content: '[发了' + (images.length > 1 ? images.length + ' 张图片' : '一张图片') + '，' + parts.join('；') + ']'
+          });
+        }
+        return;
+      }
+      msgs.push({ role: role, content: m.text || '' });
     });
     if (!trimmed.length) {
       msgs.push({ role: 'user', content: '（对话刚刚开始，请你先自然地开口说点什么）' });
@@ -3736,6 +5469,298 @@
      剥除，绝不把 [[recall]] 原始标记文本暴露给用户 ---- */
   function stripRecallTag(seg) {
     return seg.replace(RECALL_TAG_RE_G, '').trim();
+  }
+
+  /* ==========================================================================
+     AI 发图能力 —— 文字模型本身不具备生图能力，所以这里不是真的
+     "生成一张照片"，而是让角色像真人一样，在合适的时候用文字描述
+     "发一张图给你"，前端把这段描述译成一张抽象的月光漆面意象图卡
+     （见 generatedImageDataUrl），坦然呈现"这是被译成图像的描述"，
+     不冒充真实照片。
+     两条独立的触发路径，二者不互斥：
+     ① 用户在最后一条消息里明确要求（"发张图/给我看看/来张照片"
+        之类）——此时直接放行这一轮，不受节流器限制，因为这是
+        用户的显式请求，节流器不该挡住它；
+     ② 完全没有明确要求时，仍与引用/撤回同一套"最小间隔 + 概率"
+        节流器兜底，让角色偶尔"自主判断该发张图了"，但不会每轮
+        都发、也不会连续发。
+     语法允许一次回复里出现多个 [[image: 描述]] 标记（拆进同一条
+     短句里），对应"一次发一沓、可左右滑动查看"的堆叠图卡效果——
+     与撤回/引用"每轮最多一次"不同，发图这个动作本身就包含
+     "一次发几张"的自然变化，交给模型自己决定这次发 1 张还是几张。
+  ========================================================================== */
+  var IMAGE_MIN_GAP_TURNS = 2;    // 距离上一次成功发图，至少要隔这么多次 AI 生成轮次（不含用户显式请求触发的那几次）
+  var IMAGE_BASE_CHANCE = 0.16;   // 满足间隔条件后，这一轮仍只有这个概率真正允许自主发图
+  var IMAGE_MAX_PER_TURN = 6;     // 单轮最多解析这么多个 [[image:]] 标记，避免异常输出堆出过长的图组
+
+  function imageStateKey(storeKey) { return 'chatroomImageState:' + storeKey; }
+
+  function loadImageState(storeKey) {
+    if (window.LunaDB) {
+      return window.LunaDB.get(imageStateKey(storeKey)).then(function (v) {
+        return v || { turnsSinceImage: IMAGE_MIN_GAP_TURNS };
+      });
+    }
+    return Promise.resolve({ turnsSinceImage: IMAGE_MIN_GAP_TURNS });
+  }
+  function saveImageState(storeKey, state) {
+    if (window.LunaDB) return window.LunaDB.set(imageStateKey(storeKey), state);
+    return Promise.resolve(false);
+  }
+  function isImageTurnAllowed(storeKey) {
+    return loadImageState(storeKey).then(function (state) {
+      var turnsSince = (state && state.turnsSinceImage) || 0;
+      if (turnsSince < IMAGE_MIN_GAP_TURNS) return false;
+      return Math.random() < IMAGE_BASE_CHANCE;
+    });
+  }
+  function markImageTurnUsed(storeKey) {
+    return saveImageState(storeKey, { turnsSinceImage: 0 });
+  }
+  function bumpImageTurnCounter(storeKey) {
+    return loadImageState(storeKey).then(function (state) {
+      var turnsSince = (state && state.turnsSinceImage) || 0;
+      return saveImageState(storeKey, { turnsSinceImage: turnsSince + 1 });
+    });
+  }
+
+  /* ---- 判断历史里最后一条用户消息是否在明确索要图片：命中一组
+     常见口语化表达即可，不追求覆盖穷尽——命中时这一轮的发图节流
+     直接放行，交由 prompt 层去引导模型"这次应当发图"，未命中不
+     代表不能发图，只是退回节流器判定 ---- */
+  var IMAGE_REQUEST_KEYWORDS = [
+    '发张图', '发个图', '发照片', '发张照片', '发图', '来张图', '来张照片',
+    '给我看看', '给我看下', '给我瞧瞧', '看看图', '看下图', '拍张照',
+    '拍照片', '拍个照', '来看看', '发我看看', '发我瞧瞧', '发我一张',
+    '发一张', '发一下图', '有图吗', '有照片吗', '晒一张', '晒个图',
+    '给我发', '想看看你', '想看看那', '你那边什么样', '现场什么样',
+    '不能只发一张', '不许只发一张', '只发一张', '不能只发', '多发几张',
+    '多发点', '多发一张', '再发一张', '再发张', '再拍一张', '再拍张',
+    '还没给我发', '还没发给我', '还没拍', '快点发', '快发', '还不发',
+    '怎么还没', '为什么还没给我', '你要是不多发', '不发我就', '不给我发'
+  ];
+  function userLastMessageAsksForImage(history) {
+    if (!history || !history.length) return false;
+    for (var i = history.length - 1; i >= 0; i--) {
+      var m = history[i];
+      if (m.recalled) continue;
+      if (m.from !== 'me') return false; // 最后一条不是用户发的，谈不上"用户刚要求"
+      var text = (m.text || '').trim();
+      if (!text) return false; // 最后一条是图片消息等非文字内容，不算索要
+      return IMAGE_REQUEST_KEYWORDS.some(function (kw) { return text.indexOf(kw) !== -1; });
+    }
+    return false;
+  }
+
+  /* ---- 判断历史里最后一条未撤回消息是否是用户刚发的表情包：
+     命中时才在 system prompt 里插入"如何解读表情包"的说明区块，
+     避免每一轮不管用没用得上都固定塞一段规则，稀释其余规则的
+     权重、也白白占用 prompt 长度 ---- */
+  function userLastMessageIsSticker(history) {
+    if (!history || !history.length) return false;
+    for (var i = history.length - 1; i >= 0; i--) {
+      var m = history[i];
+      if (m.recalled) continue;
+      return m.from === 'me' && !!getMsgSticker(m);
+    }
+    return false;
+  }
+
+  /* ---- 表情包解读区块：仅在用户最后一条消息是表情包时才出现，
+     教模型把表情包当成"情绪/态度的表达动作"而非一张需要被写实
+     描述的照片——这条规则与 buildChatMessages 里表情包消息本身
+     组装成的 image_url/文字旁白配合使用：这里管"该怎么理解与
+     回应"，那边管"模型到底能看到什么内容" ---- */
+  function buildStickerPromptSection(lastIsSticker) {
+    if (!lastIsSticker) return '';
+    var lines = [];
+    lines.push('【关于对方刚发的表情包】');
+    lines.push('对方最后发来的是一枚表情包（贴纸），不是真实照片——即使你（识图模型）能直接看到这张图，也不要把它当成一张写实照片去逐个描述画面构图、光线这类细节，那样会显得很奇怪。');
+    lines.push('表情包的作用是传达情绪、态度或玩一个梗，你需要理解的是"对方此刻用这枚表情想表达什么"（比如卖萌、调侃、无语、撒娇、庆祝、拒绝等），然后结合上下文自然地接住这个情绪去回应，而不是去讨论表情包本身长什么样。');
+    lines.push('如果这枚表情包配了文字标注，标注通常就是对方想强调的重点或想说的话，可以直接顺着标注的意思接话；如果没有标注、你也看不出具体内容，就用一句轻松自然的话接住这个动作即可（比如顺着当下聊天的气氛打趣一句、追问一句"这是什么意思呀"之类的），不要因为"看不懂表情包内容"就卡住不回应或者生硬地说"我看不到图片"。');
+    return lines.join('\n');
+  }
+
+  /* ---- 发图语法的 prompt 说明：imageAllowed 为真时才出现——区分
+     两种放行原因，措辞略有不同，让模型清楚"这次为什么可以发图"，
+     从而更准确判断"是不是真该发"而不是机械触发 ---- */
+  function buildImagePromptSection(imageAllowed, requestedByUser) {
+    if (!imageAllowed) return '';
+    var lines = [];
+    lines.push('【本轮可以发送图片 —— 仅这一轮生效，且完全由你自行判断是否使用】');
+    if (requestedByUser) {
+      lines.push('对方刚刚明确要求你发一张图片/照片给 ta 看，这种情况下通常应当顺应请求发一张图，除非结合人设与情境，角色本人此刻确实没有理由或没有能力拍/发（比如手头没有相机、正处在不方便拍照的场景），若是这种情况就正常用文字说明原因即可，不必强行发图。');
+    } else {
+      lines.push('系统已经判定这一轮偶尔主动发一张图是合适的（"不能每次都发"这条约束由系统在轮次层面控制，你不需要刻意克制），但这只是"允许"，不是"必须"——大多数情况下你依然应该只用文字说话，完全不使用这个功能。只有当当前语境确实很适合"顺手拍一张/翻出一张图分享给对方看"时才使用，比如描述了某个具体场景、物件、自拍此刻的状态等自然会想配图的情境。');
+    }
+    lines.push('你并不具备真正的拍照/生图能力，所以"发图片"的方式是：在你想发图的那一条短句的最前面加上 [[image: 具体描述这张图里有什么]] 标记，系统会把这段描述转换成一张图发给对方——描述要尽量具体、有画面感（光线、构图、内容细节），因为这段文字本身就决定了对方会"看到"什么。');
+    lines.push('写这段描述之前，先自己判断一下这次要发的是什么性质的图，再决定怎么描述，不要每次都套同一种写法：如果这张图里角色本人是被拍摄的对象（比如对方要求"自拍"、"给我看看你"、"拍下你现在的样子"），就要用第一人称、手持自拍视角去写——把镜头当成是自己举着/靠在手边拍自己，可以带一点自拍常见的构图特征（角度、镜头距离、露出的范围），并结合人设自身的外貌与此刻情境去描述"我"入镜的样子，而不是写成"一个人坐在xx"这种像监控探头或陌生人在旁边看着的客观描述；如果这张图拍的是角色周围的场景、物件、风景（角色本人不在画面里），就是"我拿手机看向xx拍下来"的视角，自然不需要出现角色自己的样子。具体是哪一种，由你结合对方这句话的意思和当下情境自己判断，不必套用固定模板。');
+    lines.push('一次最多可以连续使用 ' + IMAGE_MAX_PER_TURN + ' 个 [[image:]] 标记发送一组图片（比如连拍的几张、同一场景的不同角度），也可以只用一个只发一张；标记只能出现在短句最前面，每个标记对应发送一张图。');
+    lines.push('带有该标记的这条短句不需要再额外写别的文字内容（标记后面如果还有话，会被当成这张图的说明一并保留），如果这一条你只是想单纯发图，标记后面可以留空。');
+    lines.push('【重要】"多个 [[image:]] 标记"指的是真的想让对方一次看到好几张不同的照片（比如换了角度、换了姿势、拍了不同的物件各拍一张）。如果你只是想发同一张照片，但想把这张照片里的细节写得更丰富（比如同时描述穿着、姿势、表情、背景），这些细节全部属于同一张图，必须写进同一个 [[image: ...]] 标记的描述文字里，用逗号或分句连起来，而不是拆成好几个 [[image:]] 标记，更不能拆成好几条不同的短句分别去写"这张图还有……""这张图角色的脸……"这种续写方式——那样系统会把它们渲染成好几张不相关的图，而不是一张信息丰富的图。简单说：内容不同的东西各自一个标记，同一张图的不同细节挤进同一个标记的描述里。');
+    lines.push('例如只发一张（细节丰富也只用一个标记）：这是我刚拍的|||[[image: 我举着手机站在房间靠门边自拍，白色圆领T恤配炭灰色束脚运动裤，光线偏暖，能看到身后床角和没叠的被子]]');
+    lines.push('例如连发两张（两张确实不同的图，各自一个标记，写在同一条短句里）：等我找找啊|||[[image: 书桌一角，摊开的笔记本和一支钢笔]][[image: 窗外的天空，夕阳橙红色]]你看');
+    lines.push('【硬性限制，必须遵守】这一整轮回复里，[[image:]] 标记只能在唯一一条短句里集中使用一次（即便是要连发好几张，也必须把所有 [[image: ...]][[image: ...]] 连续写在同一条短句最前面一次性给出）。除了这一条短句之外，本轮其余任何一条短句都绝不能再出现 [[image:]] 标记，也绝不能用任何其他方式去"另外表达自己又发了一张图"——比如绝不能用方括号、圆括号或旁白式的文字去描述"（又拍了一张）"、"[发来一张照片]"这类内容，这种写法系统不会当成真的图片来渲染，只会变成一句奇怪的文字消息发出去，非常突兀。同理也绝不能把同一张图的描述拆成好几条短句、每条各自套一层方括号接着往下写细节（比如第一条写"[发了一张照片，我站在门边自拍]"，下一条又单独写"[白色T恤，黑色裤子]"，再下一条又写"[脸部特写……]"）——这种"续写式旁白"和上面的伪标记是同一类错误，只会被拆成好几条互不相关的怪异文字消息或图片，而不是一张完整的图。所有关于这张图的细节，必须一次性写完、放进同一个 [[image: ...]] 标记里。如果聊到后面又想再放一张图，这一轮就不要临时追加了，克制住，把这个念头留到之后允许发图的轮次再说；同理也不要用文字去描述"图片里有什么"来代替真正的标记，那样对方根本看不到图，只会看到一段奇怪的方括号旁白。');
+    lines.push('如果这次真的没有什么值得配图的内容，就完全不要使用这个标记，正常说话即可，不要为了凑效果而生硬地制造一个"该发图"的话题。');
+    return lines.join('\n');
+  }
+
+  /* ---- 从一条模型输出的短句里解析开头连续出现的 [[image: 描述]]
+     标记（可以有 1~IMAGE_MAX_PER_TURN 个连写在一起，对应一次发送
+     一组堆叠图片）。命中时返回 { images: [{caption}], text }，
+     text 为标记之后剩余的正文（可能为空）；未命中返回 null。
+     与引用/撤回同一套"标记前允许少量手滑前缀"的宽松匹配策略 ---- */
+  var IMAGE_TAG_RE_SINGLE = /\[\[image:\s*([^\]]{1,300}?)\s*\]\]/i;
+  var IMAGE_TAG_RE_G = /\[\[image:\s*([^\]]{1,300}?)\s*\]\]/gi;
+  var IMAGE_TAG_LEADING_SLACK = 6;
+  function extractImageTags(seg) {
+    var m = IMAGE_TAG_RE_SINGLE.exec(seg);
+    if (!m || m.index > IMAGE_TAG_LEADING_SLACK) return null;
+    var images = [];
+    var cursor = m.index;
+    IMAGE_TAG_RE_G.lastIndex = cursor;
+    var mm;
+    while ((mm = IMAGE_TAG_RE_G.exec(seg)) && images.length < IMAGE_MAX_PER_TURN) {
+      if (mm.index !== cursor) break; // 只吃"从头连续排列"的标记，中间夹了别的字符就停止
+      var caption = (mm[1] || '').trim();
+      if (caption) images.push({ caption: caption, generated: true });
+      cursor = mm.index + mm[0].length;
+    }
+    if (!images.length) return null;
+    var rest = seg.slice(cursor).trim();
+    return { images: images, text: rest };
+  }
+  /* 未获准发图的这一轮，或标记解析失败时的兜底：把标记本身干净
+     剥除，绝不把 [[image: ...]] 原始标记文本暴露给用户 ---- */
+  function stripImageTag(seg) {
+    return seg.replace(IMAGE_TAG_RE_G, '').trim();
+  }
+
+  /* ---- 兜底防线：模型有时不按 [[image:]] 语法走，而是自己编一段
+     被方括号/圆括号整体包裹的伪造图片描述发出来，这种文本一旦当
+     成普通消息发出去，既没有真的图片渲染，又格式突兀、跳戏严重。
+     目前观察到模型至少有两种"编格式"的路数，分别识别：
+     ① 旁白式："[又发了一张照片，这次是……]"——特征是含有"发了/
+        拍了一张"这类明确的发图动词短语；
+     ② 伪标记式："[图片：手机举得有点高，俯拍视角……]"——特征是
+        整条一开始就是"图片：/图："这种冒号前缀，明显是在模仿
+        [[image: ...]] 的语法结构，只是符号用错了。
+     这两种任一命中都判定为"假图片描述"，不去动人设里本来就允许
+     的其它方括号/圆括号动作神态描写（那些既不含发图动词，也不是
+     冒号前缀结构，所以不受影响）---- */
+  var FAKE_IMAGE_NARRATION_BRACKET_RE = /^[\[（(【][^\]）)】]{2,200}[\]）)】]$/;
+  var FAKE_IMAGE_NARRATION_KEYWORDS = [
+    '发了一张', '发了张', '又发了', '发来一张', '发来了一张', '发了几张',
+    '拍了一张', '拍了张', '又拍了', '拍下了', '拍了几张',
+    '发送了一张', '发送了图片', '传了一张', '传了张照片',
+    '发了张照片', '发了张图', '发了个图片', '发来一张照片', '发来了照片'
+  ];
+  // 伪标记式：内容开头（掐掉最外层括号后）就是"图片：""图:""照片："
+  // 这类前缀，等价于模型试图写 [[image: ...]] 但外层符号写错了
+  var FAKE_IMAGE_TAG_PREFIX_RE = /^(图片|照片|图)\s*[:：]/;
+  function isFakeImageNarration(seg) {
+    if (!seg) return false;
+    var trimmed = seg.trim();
+    if (!FAKE_IMAGE_NARRATION_BRACKET_RE.test(trimmed)) return false;
+    var inner = trimmed.slice(1, -1).trim();
+    if (FAKE_IMAGE_TAG_PREFIX_RE.test(inner)) return true;
+    return FAKE_IMAGE_NARRATION_KEYWORDS.some(function (kw) { return trimmed.indexOf(kw) !== -1; });
+  }
+  /* ---- 从命中 isFakeImageNarration 的方括号旁白里，剥掉外层括号和
+     引导前缀，取剩余部分作为图片描述使用：
+     ① 伪标记式（"图片：xxx"）——冒号前缀本身就是明确的切分点，
+        直接取冒号之后的全部内容；
+     ② 旁白式（"发了一张照片，xxx"）——用"发了一张/拍了张……"这
+        类关键词作为切分点，取其后内容，说明见下方注释。
+     若切不出有意义的剩余内容，返回 null，交由上层按普通丢弃处理，
+     不发一张空洞无物的图 ---- */
+  function extractFakeImageNarrationCaption(seg) {
+    if (!isFakeImageNarration(seg)) return null;
+    var trimmed = seg.trim();
+    var inner = trimmed.slice(1, -1).trim(); // 剥掉最外层的括号
+    if (!inner) return null;
+
+    // 优先处理伪标记式："图片：xxx" / "图: xxx"，冒号后就是描述正文
+    var prefixMatch = FAKE_IMAGE_TAG_PREFIX_RE.exec(inner);
+    if (prefixMatch) {
+      var afterColon = inner.slice(prefixMatch[0].length).trim();
+      if (afterColon.length >= 4) return afterColon;
+    }
+
+    var kw = FAKE_IMAGE_NARRATION_KEYWORDS.find(function (k) { return inner.indexOf(k) !== -1; });
+    if (kw) {
+      var idx = inner.indexOf(kw);
+      var afterKw = inner.slice(idx + kw.length);
+      // 引导语后面常跟着逗号/顿号再接真正描述，把这个分隔符也去掉
+      afterKw = afterKw.replace(/^[，,、\s]+/, '').trim();
+      // 关键词切分点有时卡在"一张/张"和"图片/照片/图"之间，导致剩余
+      // 部分开头还留了个孤立的名词尾巴（比如"图片，他站在……"），
+      // 顺手把这类常见尾巴也清掉，取真正的场景描述作为图片描述
+      afterKw = afterKw.replace(/^(图片|照片|图)[，,、\s]*/, '').trim();
+      if (afterKw.length >= 4) return afterKw; // 剩余内容足够具体，才当描述用
+    }
+    // 没找到关键词紧跟切分点，或剩余内容太短：整段本身如果已经
+    // 足够长、有描述细节，就直接把整段（去掉纯引导词后）当描述
+    if (inner.length >= 8) return inner;
+    return null;
+  }
+
+  /* ---- 续接段兜底：模型把"一张图的完整描述"拆成好几条独立短句，
+     第一条命中 isFakeImageNarration（含"发了一张/图片："这类引导
+     词），但后续几条只是纯场景/穿着/构图细节的方括号（比如
+     "白色圆领T恤下摆有点皱……"），既没有发图动词也没有冒号前缀，
+     原本会被 isFakeImageNarration 判定为 false 而当成普通文字漏出
+     去——这正是用户反馈"掉格式，跳出一堆方括号旁白"的直接成因。
+     这里的策略是：只要上一条已经确认在描述同一张图（调用方只在
+     命中第一条后才会用这个函数去扫描"紧邻的下一条"），后续只要
+     整条依然是方括号/圆括号包裹的一段话，就直接认定它是同一张图
+     描述的延续，不再要求重新命中关键词——因为分条本身就是模型的
+     输出习惯（受 ||| 分条规则影响），不代表内容换了主题。
+     仍然保留最基本的形状校验（必须整条被同一种括号包裹、内容不能
+     短到没有描述量），避免误吞真正无关的下一句话 ---- */
+  var BARE_BRACKET_RE = /^[\[（(【][^\]）)】]{2,200}[\]）)】]$/;
+  function extractBareBracketCaption(seg) {
+    if (!seg) return null;
+    var trimmed = seg.trim();
+    if (!BARE_BRACKET_RE.test(trimmed)) return null;
+    var inner = trimmed.slice(1, -1).trim();
+    if (inner.length < 4) return null;
+    return inner;
+  }
+
+  /* ---- 兜底剥除：聊天软件里不该出现的括号动作/神态/心理旁白。
+     这条防线在 isFakeImageNarration 判定为"不是假图片描述"之后
+     才会跑到，专门处理剩下的、纯粹是旁白性质的括号内容——
+     即使 system prompt 三令五申禁止，模型仍有概率手滑写出来，
+     必须在代码层面强制清掉，不能只靠 prompt 层的自觉性。
+     处理两种形态：
+     ① 整条短句就是一段被括号整体包裹的旁白（比如"（我听见手机
+        震了一下，她把那张照片点开，又缩小，一直没退出去。）"）——
+        这种整条直接丢弃，丢弃比清空后发一条空消息更自然，因为
+        原本这条短句的全部内容就是这段旁白，没有留白的必要；
+     ② 一句真实的对话中间夹带了一段括号旁白（比如"啊（叹气）真的
+        很烦"），这种只挖掉夹在中间的括号片段，保留括号前后的
+        对话正文，拼接后如果两侧有真实文字则继续发出，全部被挖空
+        则按①处理整条丢弃。
+     四种括号全部覆盖：中文圆括号（）、英文圆括号()、方括号[]、
+     【】——不局限于某一种，因为模型混用的情况都存在。
+     不会误伤已经被 isFakeImageNarration/extractImageTags 等分支
+     识别并提前 continue 掉的图片相关语法，调用时机在那些分支
+     之后，处理的是两者都未命中的剩余文本。 ---- */
+  var ACTION_NARRATION_WHOLE_RE = /^[\[（(【][^\]）)】]{1,300}[\]）)】]$/;
+  var ACTION_NARRATION_INLINE_RE = /[\[（(【][^\]）)】]{1,300}[\]）)】]/g;
+  function stripActionNarrationBrackets(seg) {
+    if (!seg) return seg;
+    var trimmed = seg.trim();
+    if (!trimmed) return trimmed;
+    // 整条即旁白：直接整条丢弃
+    if (ACTION_NARRATION_WHOLE_RE.test(trimmed)) return '';
+    // 夹在句子中间的旁白片段：只挖掉括号本身及其内容，保留前后正文，
+    // 相邻片段之间补一个空格避免生硬地贴在一起变成读不断的长词
+    var stripped = trimmed.replace(ACTION_NARRATION_INLINE_RE, ' ').replace(/\s+/g, ' ').trim();
+    // 挖空后如果只剩标点或空白，等同于整条都是旁白，一并丢弃
+    if (!stripped || !/[\u4e00-\u9fa5a-zA-Z0-9]/.test(stripped)) return '';
+    return stripped;
   }
 
   /* ---- 把模型返回的文本拆成多条短句气泡 ----
