@@ -440,6 +440,7 @@ M.nav=function(name,data){
   const sc=$('.scroll',next)||$('.play-scroll',next);
   if(sc&&!(data&&data.keepScroll)) sc.scrollTop=0;
   current=next; M.currentView=name; paintIcons(next);
+  if(name==='home'&&M.HomeTab) requestAnimationFrame(()=>M.HomeTab.initGlass());
 };
 M.back=function(){
   const prev=stack.pop();
@@ -448,6 +449,7 @@ M.back=function(){
   if(current) current.classList.remove('active');
   prev.el.classList.remove('behind'); void prev.el.offsetWidth; prev.el.classList.add('active');
   current=prev.el; M.currentView=prev.name;
+  if(prev.name==='home'&&M.HomeTab) requestAnimationFrame(()=>M.HomeTab.initGlass());
 };
 M.resetTo=function(name){
   stack.length=0;
@@ -455,6 +457,7 @@ M.resetTo=function(name){
   $$('.view').forEach(v=>{ if(v!==t){v.classList.remove('active');v.classList.add('behind');} });
   t.classList.remove('behind'); void t.offsetWidth; t.classList.add('active');
   current=t; M.currentView=name;
+  if(name==='home'&&M.HomeTab) requestAnimationFrame(()=>M.HomeTab.initGlass());
 };
 M.exit=function(){
   document.body.style.transition='opacity .3s ease';
@@ -693,6 +696,7 @@ M.Home={
     $('#homeDerv').innerHTML=Object.keys(M.DERV).map(k=>{
       const d=M.DERV[k], n=ents.filter(e=>e.type===k).length;
       return `<div class="dcell" data-act="d-${k}">
+        <div class="dcell-seal">${d.seal}</div>
         <div class="dcell-en">${d.en}</div>
         <div class="dcell-t"><b>${d.name}</b><span>${n||''}</span></div>
         <div class="dcell-d">${d.d}</div></div>`;
@@ -705,6 +709,59 @@ M.Home={
   },
 };
 Object.keys(M.DERV).forEach(k=>{ M.actions['d-'+k]=()=>M.Extras.start(k); });
+
+/* ═══════════ 首页 · 底部导航（正篇 / 衍生 / 其他） ═══════════ */
+M.HomeTab=(function(){
+  const order=['principal','derivatives','misc'];
+  let curIdx=0;
+
+  function placeGlass(idx,animate){
+    const tab=$('#homeTab'); if(!tab) return;
+    const items=$$('.mtab-item',tab);
+    const it=items[idx]; if(!it) return;
+    const glass=$('#mtabGlass'); if(!glass) return;
+    const tr=tab.getBoundingClientRect(), ir=it.getBoundingClientRect();
+    const pad=6;
+    const left=ir.left-tr.left+pad, width=ir.width-pad*2;
+    if(!animate){ glass.style.transition='none'; }
+    glass.style.left=left+'px';
+    glass.style.width=width+'px';
+    if(!animate){ void glass.offsetWidth; glass.style.transition=''; }
+  }
+
+  function go(pane,opts){
+    opts=opts||{};
+    const idx=order.indexOf(pane); if(idx<0) return;
+    const panes=$$('.hpane'); const items=$$('.mtab-item',$('#homeTab'));
+    const dir=idx>curIdx?1:(idx<curIdx?-1:0);
+    panes.forEach((p,i)=>{
+      p.classList.remove('exit-l','exit-r');
+      if(i===idx){ p.classList.add('on'); }
+      else if(p.classList.contains('on')){
+        p.classList.remove('on');
+        p.classList.add(dir>=0?'exit-l':'exit-r');
+      }
+    });
+    items.forEach((it,i)=>{
+      it.classList.toggle('on',i===idx);
+      it.classList.remove('stamp');
+      if(i===idx){ void it.offsetWidth; it.classList.add('stamp'); }
+    });
+    placeGlass(idx,!opts.silent);
+    curIdx=idx;
+    const sc=panes[idx] && panes[idx].querySelector('.scroll');
+    if(sc && !opts.keepScroll) sc.scrollTop=0;
+  }
+
+  function initGlass(){ placeGlass(curIdx,false); }
+
+  return{ go, initGlass, get idx(){return curIdx;}, get order(){return order;} };
+})();
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-pane-act]'); if(!el) return;
+  M.HomeTab.go(el.dataset.paneAct);
+});
+window.addEventListener('resize',()=>{ if(M.currentView==='home') M.HomeTab.initGlass(); });
 
 /* ═══════════ 说明书 · 册页 ═══════════ */
 const MANUAL=[
@@ -871,6 +928,7 @@ M.boot=async function(){
   await M.Archive.init();
   M.Play.init(); M.Extras.init();
   M.resetTo('home'); M.Home.render();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>M.HomeTab.initGlass()));
   document.addEventListener('keydown',ev=>{
     if(ev.key==='Escape'){ if(sheetRes) closeSheet(null); else M.back(); }
   });
