@@ -22,6 +22,9 @@
   <div class="rd-ic" id="rdTimerBtn" title="本次阅读计时">
     <span id="rdTimer" style="font-family:var(--mono);font-size:10px;letter-spacing:.04em;">0m</span>
   </div>
+  <div class="rd-ic" id="rdFinBtn" title="标记已看完" onclick="toggleFinished()">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
   <div class="rd-ic" onclick="openSet()">
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
       <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -47,9 +50,20 @@
 
     <div id="rdText"></div>
 
+    <div class="rd-finish-bar" id="rdFinishBar" onclick="toggleFinished()">
+      <div class="stamp">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="tx">
+        <b id="rdFinTitle">标 记 已 看 完</b>
+        <span id="rdFinSub">读到这里，给这篇盖个章</span>
+      </div>
+    </div>
+
     <div class="rd-end" id="rdEnd">
       <div class="t">全 文 完</div>
       <div class="s" id="rdEndMeta">—</div>
+      <div id="rdEndSeal"></div>
     </div>
 
     <div class="rd-call" id="rdCall">
@@ -103,6 +117,7 @@
         <div class="set-row"><div class="lb">字距</div><input type="range" id="sLs" min="-2" max="12" step="1"><div class="vl" id="vLs"></div></div>
         <div class="set-row"><div class="lb">段距</div><input type="range" id="sPs" min="80" max="300" step="10"><div class="vl" id="vPs"></div></div>
         <div class="set-row"><div class="lb">边距</div><input type="range" id="sPad" min="16" max="52" step="2"><div class="vl" id="vPad"></div></div>
+        <div class="set-row"><div class="lb">字重</div><input type="range" id="sFw" min="300" max="700" step="100"><div class="vl" id="vFw"></div></div>
         <div class="gd-chips" id="layoutRow" style="margin-top:6px;">
           <div class="gd-chip" data-k="indent">首行缩进两字</div>
           <div class="gd-chip" data-k="justify">两端对齐</div>
@@ -114,7 +129,17 @@
       <div class="set-group">
         <div class="gd-label"><b>纸面</b><span>SURFACE</span></div>
         <div class="theme-row" id="themeRow"></div>
-        <div style="display:flex;gap:9px;margin-top:28px;flex-wrap:wrap;">
+
+        <div style="margin-top:24px;">
+          <div class="gd-label"><b>背景适用范围</b><span>SCOPE</span></div>
+          <div class="gd-chips" id="bgScopeRow">
+            <div class="gd-chip" data-k="work">仅这一篇</div>
+            <div class="gd-chip" data-k="global">全局阅读器背景</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--ink-5);margin-top:9px;line-height:1.7;" id="bgScopeHint"></div>
+        </div>
+
+        <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap;">
           <div class="font-sw" id="bgUpload">＋ 上传背景图</div>
           <div class="font-sw" id="bgClear">清除背景</div>
         </div>
@@ -126,7 +151,17 @@
 
       <div class="set-group">
         <div class="gd-label"><b>字色</b><span>INK</span></div>
-        <div class="ink-row" id="inkRow"></div>
+        <div class="ink-wheel-wrap">
+          <div class="ink-wheel" id="inkWheel">
+            <div class="iw-dot" id="inkWheelDot"></div>
+            <div class="iw-core" id="inkWheelCore">拖动取色</div>
+          </div>
+          <div class="ink-wheel-side">
+            <div class="ink-wheel-val"><div class="sw" id="inkValSw"></div><span id="inkValTx">#191c21</span></div>
+            <div class="ink-wheel-hint">环上拖动或点击，按亮度从纯黑取到纯白。跟随色环的选取会覆盖下方主题预设字色，点两次环心可复位到当前纸面默认字色。</div>
+          </div>
+        </div>
+        <div class="ink-row" id="inkRow" style="margin-top:16px;"></div>
       </div>
 
       <div class="set-group">
@@ -141,6 +176,11 @@
       </div>
 
       <button class="gd-btn ghost" style="width:100%" id="resetSet">恢复默认排版</button>
+
+      <div class="set-group" style="margin-top:30px;">
+        <div class="gd-label"><b>危险操作</b><span>DANGER ZONE</span></div>
+        <div class="danger-btn" id="delWorkBtn">移出粮仓 · 删除这篇</div>
+      </div>
     </div>
   </div>
 </div>

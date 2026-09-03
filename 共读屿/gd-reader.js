@@ -6,12 +6,13 @@ let WORK = null, CMTS = [], REPLY_TO = null;
 let SESSION_MS = 0, MAX_PROG = 0, _tickT = null, _visible = true;
 
 const DEF_SET = {
-  fs: 18, lh: 212, ls: 1.5, ps: 155, pad: 28,
+  fs: 18, lh: 212, ls: 1.5, ps: 155, pad: 28, fw: 400,
   font: 'serif', theme: 'plain',
   veil: 42, blur: 0, gray: 30,
-  inkIdx: -1,
+  inkIdx: -1, inkCustom: '',
   indent: 0, justify: 1, num: 0, dlgBlock: 1,
-  marks: { q: 1, p: 1, n: 1, w: 1, d: 1 }, customFont: ''
+  marks: { q: 1, p: 1, n: 1, w: 1, d: 1 }, customFont: '',
+  bgScope: 'work' // 'work' = 仅当前这篇；'global' = 所有篇目共用同一张背景
 };
 const FONTS = [
   { k: 'serif', n: '宋 · 书页', css: `'Noto Serif SC','Songti SC',serif` },
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   buildSettingsUI();
   renderHero();
   renderText();
+  renderFinished();
   bindScroll();
   bindComments();
   startTimer();
@@ -198,6 +200,23 @@ function applyMarks() {
    ========================================================== */
 function saveSet() { GD.LS.set('gd_reader_set_v2', SET); }
 
+/* 背景图按范围存放：
+   - 全局：所有篇目共用一张，key 固定为 reader_bg_global（沿用旧版 reader_bg 的数据）
+   - 仅这一篇：每篇一个独立 key，互不影响 */
+const BG_GLOBAL_KEY = 'reader_bg_global';
+function bgKeyFor(scope) {
+  return scope === 'global' ? BG_GLOBAL_KEY : `reader_bg_work_${WORK.id}`;
+}
+async function currentBg() {
+  // 兼容旧版数据：旧版只有一个全局 key "reader_bg"，迁移一次到 reader_bg_global
+  let bg = await GD.assetGet(bgKeyFor(SET.bgScope));
+  if (!bg && SET.bgScope === 'global') {
+    const legacy = await GD.assetGet('reader_bg');
+    if (legacy) { await GD.assetPut(BG_GLOBAL_KEY, legacy); await GD.assetPut('reader_bg', null); bg = legacy; }
+  }
+  return bg;
+}
+
 async function applySettings(initial) {
   const r = document.documentElement.style;
   r.setProperty('--rd-fs', SET.fs + 'px');
@@ -206,12 +225,13 @@ async function applySettings(initial) {
   r.setProperty('--rd-ps', (SET.ps / 100).toFixed(2) + 'em');
   r.setProperty('--rd-pad', SET.pad + 'px');
   r.setProperty('--rd-indent', SET.indent ? '2em' : '0em');
+  r.setProperty('--rd-fw', SET.fw || 400);
 
   const f = FONTS.find(x => x.k === SET.font);
   r.setProperty('--rd-font', SET.font === 'custom' ? `'GDUserFont',serif` : (f ? f.css : FONTS[0].css));
 
   const th = THEMES.find(x => x.k === SET.theme) || THEMES[0];
-  const ink = SET.inkIdx >= 0 ? INKS[SET.inkIdx] : th.ink;
+  const ink = SET.inkCustom ? SET.inkCustom : (SET.inkIdx >= 0 ? INKS[SET.inkIdx] : th.ink);
   r.setProperty('--rd-bg', th.bg);
   r.setProperty('--rd-ink', ink);
   r.setProperty('--rd-line', rgba(ink, .16));
@@ -219,7 +239,7 @@ async function applySettings(initial) {
   document.body.classList.toggle('noj', !SET.justify);
   GD.setStatusDark(isLight(ink) ? true : false);
 
-  const bg = await GD.assetGet('reader_bg');
+  const bg = await currentBg();
   const img = document.getElementById('rdBgImg'), veil = document.getElementById('rdBgVeil');
   if (bg) {
     img.style.backgroundImage = `url(${bg})`;
@@ -259,16 +279,18 @@ function buildSettingsUI() {
   });
 
   document.getElementById('inkRow').innerHTML =
-    `<div class="ink-sw ${SET.inkIdx === -1 ? 'on' : ''}" data-i="-1"
+    `<div class="ink-sw ${!SET.inkCustom && SET.inkIdx === -1 ? 'on' : ''}" data-i="-1"
        style="background:linear-gradient(135deg,#fff 48%,#191c21 52%)"></div>` +
-    INKS.map((c, i) => `<div class="ink-sw ${SET.inkIdx === i ? 'on' : ''}" data-i="${i}" style="background:${c}"></div>`).join('');
+    INKS.map((c, i) => `<div class="ink-sw ${!SET.inkCustom && SET.inkIdx === i ? 'on' : ''}" data-i="${i}" style="background:${c}"></div>`).join('');
   document.querySelectorAll('.ink-sw').forEach(el => el.onclick = () => {
-    SET.inkIdx = parseInt(el.dataset.i); saveSet(); applySettings(); buildSettingsUI();
+    SET.inkIdx = parseInt(el.dataset.i); SET.inkCustom = ''; saveSet(); applySettings(); buildSettingsUI();
   });
+  buildInkWheel();
 
   const R = [['sFs', 'vFs', 'fs', v => v + 'px'], ['sLh', 'vLh', 'lh', v => (v / 100).toFixed(2)],
              ['sLs', 'vLs', 'ls', v => (v / 100).toFixed(2)], ['sPs', 'vPs', 'ps', v => (v / 100).toFixed(2)],
-             ['sPad', 'vPad', 'pad', v => v + 'px'], ['sVeil', 'vVeil', 'veil', v => v + '%'],
+             ['sPad', 'vPad', 'pad', v => v + 'px'], ['sFw', 'vFw', 'fw', v => String(v)],
+             ['sVeil', 'vVeil', 'veil', v => v + '%'],
              ['sBlur', 'vBlur', 'blur', v => v + 'px'], ['sGray', 'vGray', 'gray', v => v + '%']];
   R.forEach(([sid, vid, key, fmt]) => {
     const s = document.getElementById(sid); if (!s) return;
@@ -305,21 +327,189 @@ function buildSettingsUI() {
     try { const ff = new FontFace('GDUserFont', `url(${data})`); await ff.load(); document.fonts.add(ff); } catch (err) {}
     applySettings(); buildSettingsUI(); GD.toast('字体已启用');
   };
+  document.querySelectorAll('#bgScopeRow .gd-chip').forEach(el => {
+    el.classList.toggle('on', SET.bgScope === el.dataset.k);
+    el.onclick = () => {
+      if (SET.bgScope === el.dataset.k) return;
+      SET.bgScope = el.dataset.k; saveSet();
+      applySettings(); buildSettingsUI();
+    };
+  });
+  const scopeHint = document.getElementById('bgScopeHint');
+  if (scopeHint) {
+    scopeHint.textContent = SET.bgScope === 'global'
+      ? '当前上传/清除会替换所有篇目共用的背景图。'
+      : '当前上传/清除只影响《' + (WORK ? WORK.title : '这一篇') + '》，其他篇目不受影响。';
+  }
+
   document.getElementById('bgUpload').onclick = () => document.getElementById('bgFile').click();
   document.getElementById('bgFile').onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
-    await GD.assetPut('reader_bg', await GD.readImage(f, 1600, 0.9));
+    await GD.assetPut(bgKeyFor(SET.bgScope), await GD.readImage(f, 1600, 0.9));
     e.target.value = '';
     if (SET.veil > 60) SET.veil = 42;
-    saveSet(); applySettings(); buildSettingsUI(); GD.toast('背景已更换');
+    saveSet(); applySettings(); buildSettingsUI();
+    GD.toast(SET.bgScope === 'global' ? '全局背景已更换' : '这一篇的背景已更换');
   };
-  document.getElementById('bgClear').onclick = async () => { await GD.assetPut('reader_bg', null); applySettings(); };
+  document.getElementById('bgClear').onclick = async () => {
+    await GD.assetPut(bgKeyFor(SET.bgScope), null);
+    applySettings();
+    GD.toast(SET.bgScope === 'global' ? '全局背景已清除' : '这一篇的背景已清除');
+  };
   document.getElementById('resetSet').onclick = () => {
     SET = Object.assign({}, DEF_SET, { customFont: SET.customFont });
     SET.marks = Object.assign({}, DEF_SET.marks);
     saveSet(); applySettings(); buildSettingsUI(); renderText(); GD.toast('已恢复默认');
   };
+
+  const delBtn = document.getElementById('delWorkBtn');
+  if (delBtn) delBtn.onclick = () => { document.getElementById('setMask').classList.remove('show'); deleteWorkFromReader(); };
 }
+/* ==========================================================
+   字色环（灰阶亮度环，纯 CSS/JS 自绘，不使用 <input type=color>）
+   ----------------------------------------------------------
+   环上任意一点只对应一个"灰度值"：以 12 点钟方向为纯黑(0)，
+   顺时针走到 6 点钟方向为纯白(255)，再继续走回 12 点钟方向
+   又回到纯黑——跟 CSS 里 conic-gradient 的黑→白→黑完全对应，
+   保证指针停在哪里，取到的颜色就是环上那一点看到的颜色，
+   不会出现"选中点"和"环上颜色"对不上的问题。
+   ========================================================== */
+function curInkHex() {
+  if (SET.inkCustom) return SET.inkCustom;
+  if (SET.inkIdx >= 0) return INKS[SET.inkIdx];
+  const th = THEMES.find(x => x.k === SET.theme) || THEMES[0];
+  return th.ink;
+}
+function grayToHex(g) {
+  g = Math.max(0, Math.min(255, Math.round(g)));
+  const h = g.toString(16).padStart(2, '0');
+  return `#${h}${h}${h}`;
+}
+function hexToGray(hex) {
+  const [r, g, b] = hex2rgb(hex);
+  return Math.round((r + g + b) / 3);
+}
+/* 灰度 -> 环上角度（0deg = 12点方向，顺时针）。0/255 都落在 12 点，
+   刻意让黑落在 [0,180) 半环、白落在 [180,360) 半环，跟 CSS 的
+   0%→50%→100% 黑白黑一一对应。 */
+function grayToAngle(g) { return (g / 255) * 180; }
+function angleToGray(deg) {
+  deg = ((deg % 360) + 360) % 360;
+  const half = deg <= 180 ? deg : 360 - deg;
+  return Math.round((half / 180) * 255);
+}
+function buildInkWheel() {
+  const wheel = document.getElementById('inkWheel');
+  const dot = document.getElementById('inkWheelDot');
+  const core = document.getElementById('inkWheelCore');
+  const sw = document.getElementById('inkValSw');
+  const tx = document.getElementById('inkValTx');
+  if (!wheel) return;
+
+  const paint = () => {
+    const hex = curInkHex();
+    const g = hexToGray(hex);
+    const ang = grayToAngle(g);
+    const rad = (ang - 0) * Math.PI / 180;
+    const R = 46; // 环半径（wheel 132px，取内圈中线）
+    const x = 66 + R * Math.sin(rad);
+    const y = 66 - R * Math.cos(rad);
+    dot.style.left = x + 'px'; dot.style.top = y + 'px';
+    dot.style.setProperty('--iw-c', hex);
+    sw.style.setProperty('--iw-c', hex);
+    core.textContent = hex.toUpperCase();
+    tx.textContent = hex.toUpperCase();
+  };
+  paint();
+
+  let dragging = false;
+  const setFromEvent = e => {
+    const r = wheel.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const p = e.touches ? e.touches[0] : e;
+    const dx = p.clientX - cx, dy = p.clientY - cy;
+    let ang = Math.atan2(dx, -dy) * 180 / Math.PI; // 0deg = 12点，顺时针为正
+    if (ang < 0) ang += 360;
+    const g = angleToGray(ang);
+    SET.inkCustom = grayToHex(g);
+    SET.inkIdx = -1;
+    saveSet(); applySettings(); paint();
+    document.querySelectorAll('.ink-sw').forEach(el => el.classList.remove('on'));
+  };
+  wheel.onpointerdown = e => { dragging = true; wheel.setPointerCapture(e.pointerId); setFromEvent(e); };
+  wheel.onpointermove = e => { if (dragging) setFromEvent(e); };
+  wheel.onpointerup = () => { dragging = false; };
+  wheel.onpointercancel = () => { dragging = false; };
+  core.ondblclick = () => { SET.inkCustom = ''; saveSet(); applySettings(); buildSettingsUI(); };
+}
+
+/* ==========================================================
+   已看完 · 标记与展示
+   ----------------------------------------------------------
+   与阅读进度联动但可手动覆盖：progress>=0.92 视为"自然读完"，
+   同时允许随时手动标记/取消（WORK.finishedManual），
+   两者任一为真即视为"已看完"，優先展示手动状态的措辞。
+   ========================================================== */
+function isFinished() { return !!WORK.finishedManual || (WORK.progress || 0) >= 0.92; }
+function toggleFinished() {
+  WORK.finishedManual = !isFinished();
+  if (!WORK.finishedManual && (WORK.progress || 0) >= 0.92) {
+    // 进度本身已经过线，单纯"取消手动标记"无法让状态回到未读完，
+    // 这里不悄悄拦下用户的操作，而是明确告诉他们为什么按了没反应。
+    GD.toast('阅读进度已超过 92%，无法取消已看完');
+    WORK.finishedManual = true;
+    return;
+  }
+  GD.workPut(WORK);
+  renderFinished();
+  GD.toast(WORK.finishedManual ? '已盖章标记为看完' : '已取消标记');
+}
+function finSealSVG() {
+  return `<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function renderFinished() {
+  const fin = isFinished();
+  const btn = document.getElementById('rdFinBtn');
+  if (btn) { btn.classList.toggle('finished', fin); btn.title = fin ? '已看完（点击取消手动标记）' : '标记已看完'; }
+
+  const bar = document.getElementById('rdFinishBar');
+  if (bar) {
+    bar.classList.toggle('on', fin);
+    document.getElementById('rdFinTitle').textContent = fin ? '已 盖 章 · 看 完 了' : '标 记 已 看 完';
+    document.getElementById('rdFinSub').textContent = fin
+      ? (WORK.finishedManual ? '手动标记 · 再点一次可取消' : '阅读进度已超过 92%，自动盖章')
+      : '读到这里，给这篇盖个章';
+  }
+
+  const seal = document.getElementById('rdEndSeal');
+  if (seal) {
+    seal.innerHTML = fin
+      ? `<div class="finish-seal on">${finSealSVG()}已 看 完</div>`
+      : `<div class="finish-seal" onclick="toggleFinished()" style="cursor:pointer">${finSealSVG()}标记已看完</div>`;
+  }
+
+  const heroTitle = document.querySelector('#rdHero h1');
+  if (heroTitle) {
+    const already = heroTitle.querySelector('.fin-tag');
+    if (already) already.remove();
+    if (fin) heroTitle.insertAdjacentHTML('beforeend', `<span class="fin-tag">${finSealSVG()}已看完</span>`);
+  }
+}
+
+/* ==========================================================
+   移出粮仓（在阅读器内直接删除这篇：正文/封面/评论/阅读记录）
+   ========================================================== */
+async function deleteWorkFromReader() {
+  const ok = await GD.confirmBox('移出粮仓？', '这篇的正文、封面、评论与阅读记录都会被清除，且无法恢复。', '移出');
+  if (!ok) return;
+  persist();
+  await GD.workDel(WORK.id);
+  const cs = await GD.commentsAll();
+  await Promise.all(cs.filter(c => c.workId == WORK.id).map(c => GD.commentDel(c.id)));
+  GD.toast('已移出粮仓');
+  setTimeout(() => GD.go('gongduyu.html'), 500);
+}
+
 function openSet() { buildSettingsUI(); document.getElementById('setMask').classList.add('show'); }
 
 /* ==========================================================
@@ -356,7 +546,7 @@ function persist() {
   if (MAX_PROG > prev) {
     const st = GD.stats();
     st.words += Math.round((WORK.wordCount || 0) * (MAX_PROG - prev));
-    if (prev < 0.92 && MAX_PROG >= 0.92) st.finished += 1;
+    if (prev < 0.92 && MAX_PROG >= 0.92) { st.finished += 1; renderFinished(); }
     GD.setStats(st);
     WORK.progress = MAX_PROG;
   }

@@ -13,6 +13,7 @@
   --rd-font:'Noto Serif SC','Songti SC',serif;
   --rd-line:rgba(25,28,33,.14);
   --rd-soft:rgba(25,28,33,.55);
+  --rd-fw:400;
 }
 html.rd, body.reader{ background:var(--rd-bg); }
 body.reader{ overscroll-behavior:none; }
@@ -114,7 +115,7 @@ body.reader{ overscroll-behavior:none; }
   position:relative; margin:0 0 var(--rd-ps);
   font-family:var(--rd-font); font-size:var(--rd-fs); line-height:var(--rd-lh);
   letter-spacing:var(--rd-ls); color:var(--rd-ink); text-align:justify;
-  text-indent:var(--rd-indent); word-break:normal;
+  text-indent:var(--rd-indent); word-break:normal; font-weight:var(--rd-fw);
 }
 .rd-p.lead{ text-indent:0; }
 .rd-p.lead::before{
@@ -502,3 +503,105 @@ body.noj .rd-p{ text-align:left; }
   font-size:13.5px; letter-spacing:.06em; color:var(--ink-2);
 }
 .font-sw.on{ background:var(--graphite); color:#fff; border-color:transparent; }
+
+/* ==========================================================
+   字色环（灰阶亮度环）—— 自绘 CSS，不使用浏览器原生 <input type=color>
+   ----------------------------------------------------------
+   产品限定"只能黑白灰色系"，所以这不是十二色相环，而是一枚
+   "亮度环"：外圈是从纯黑到纯白再回到纯黑的连续灰阶渐变
+   （conic-gradient 只用黑白两个色标，物理上不可能带出彩色），
+   顺时针拖动/点击选取任意一级灰度当作字色；环心显示当前选中色，
+   环外一圈小刻度对应下方 INKS 预设，点亮当前命中的一格。 */
+.ink-wheel-wrap{ display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
+.ink-wheel{
+  position:relative; width:132px; height:132px; flex:0 0 132px; cursor:pointer;
+  border-radius:50%; touch-action:none;
+  background:conic-gradient(from 0deg,
+    #050505 0%, #4d4d4d 25%, #ffffff 50%, #4d4d4d 75%, #050505 100%);
+  box-shadow:0 0 0 1px var(--line-2), inset 0 0 0 1px rgba(255,255,255,.4);
+}
+.ink-wheel::before{
+  content:''; position:absolute; inset:20px; border-radius:50%;
+  background:var(--paper, #fff); box-shadow:inset 0 0 0 1px var(--line-2);
+}
+.ink-wheel .iw-core{
+  position:absolute; inset:20px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:9px; letter-spacing:.08em; color:var(--ink-3);
+  pointer-events:none; text-transform:uppercase;
+}
+.ink-wheel .iw-dot{
+  position:absolute; width:15px; height:15px; margin:-7.5px 0 0 -7.5px;
+  border-radius:50%; background:var(--iw-c, #191c21);
+  box-shadow:0 0 0 2.5px var(--card), 0 0 0 3.5px var(--ink-2), 0 2px 6px rgba(0,0,0,.28);
+  left:50%; top:0; pointer-events:none;
+}
+.ink-wheel-side{ flex:1; min-width:120px; display:flex; flex-direction:column; gap:10px; }
+.ink-wheel-val{
+  display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.04em;
+}
+.ink-wheel-val .sw{ width:22px; height:22px; border-radius:4px; box-shadow:0 0 0 1px var(--line-2); background:var(--iw-c,#191c21); flex:0 0 22px; }
+.ink-wheel-hint{ font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; color:var(--ink-5); line-height:1.7; }
+
+/* ---- 字重滑块（沿用 set-row 结构，额外给数值一个字重预览） ---- */
+.weight-preview{
+  font-family:var(--rd-font, var(--serif)); transition:font-weight .12s;
+}
+
+/* ==========================================================
+   已看完 · 徽章与庆典条
+   ----------------------------------------------------------
+   全部黑白灰：用双线描边 + 45° 斜纹背景 + 一枚旋转的手绘感印章
+   代替任何彩色"完成勾"，保持产品调性统一，同时足够醒目。 */
+.rd-ic.finished{
+  color:var(--card); background:var(--ink-2); border-color:transparent;
+}
+.rd-finish-bar{
+  margin:0 calc(var(--rd-pad) * -1) 0; padding:16px 24px;
+  display:flex; align-items:center; gap:12px; cursor:pointer;
+  border-top:1px solid var(--rd-line); border-bottom:1px solid var(--rd-line);
+  background:repeating-linear-gradient(135deg,
+    color-mix(in srgb, var(--rd-ink) 4%, transparent) 0 7px,
+    transparent 7px 14px);
+}
+.rd-finish-bar .stamp{
+  flex:0 0 40px; width:40px; height:40px; border-radius:50%;
+  border:1.4px solid var(--rd-ink); position:relative; opacity:.88;
+  transform:rotate(-9deg); display:flex; align-items:center; justify-content:center;
+}
+.rd-finish-bar .stamp::before{
+  content:''; position:absolute; inset:4px; border-radius:50%; border:1px dashed var(--rd-ink); opacity:.55;
+}
+.rd-finish-bar .stamp svg{ width:16px; height:16px; }
+.rd-finish-bar .tx{ flex:1; min-width:0; }
+.rd-finish-bar .tx b{ font-family:var(--rd-font); font-size:13.5px; letter-spacing:.14em; color:var(--rd-ink); display:block; }
+.rd-finish-bar .tx span{ font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; color:var(--rd-soft); display:block; margin-top:4px; }
+.rd-finish-bar.on{ background:var(--rd-ink); border-color:var(--rd-ink); }
+.rd-finish-bar.on .stamp{ border-color:var(--rd-bg); }
+.rd-finish-bar.on .stamp::before{ border-color:var(--rd-bg); opacity:.5; }
+.rd-finish-bar.on .stamp svg{ stroke:var(--rd-bg); }
+.rd-finish-bar.on .tx b, .rd-finish-bar.on .tx span{ color:var(--rd-bg); }
+
+.rd-end .finish-seal{
+  display:inline-flex; align-items:center; gap:8px; margin-top:16px;
+  padding:7px 16px; border:1px solid var(--rd-line); font-family:var(--mono);
+  font-size:9.5px; letter-spacing:.22em; color:var(--rd-soft);
+}
+.rd-end .finish-seal svg{ width:11px; height:11px; flex:0 0 11px; }
+.rd-end .finish-seal.on{ color:var(--rd-ink); border-color:var(--rd-ink); }
+
+/* 卷首扉页上的已读完小角标 */
+.rd-hero .fin-tag{
+  display:inline-flex; align-items:center; gap:6px; margin-left:10px;
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.16em; color:var(--rd-ink);
+  border:1px solid var(--rd-ink); padding:4px 8px 4px 6px; vertical-align:middle;
+}
+.rd-hero .fin-tag svg{ width:10px; height:10px; }
+
+/* ---------------- 危险操作（移出粮仓） ---------------- */
+.set-group .danger-btn{
+  width:100%; padding:13px; text-align:center; cursor:pointer;
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; color:var(--ink-3);
+  border:1px solid var(--line-2); background:transparent;
+}
+.set-group .danger-btn:active{ background:var(--ink-2); color:#fff; border-color:transparent; }
