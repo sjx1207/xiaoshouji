@@ -1,0 +1,168 @@
+<!-- ==========================================================================
+     chatroomcall-connected.html —— 视频通话 · 接通页 v4
+     参考稿：由 chatroomcall-connected.js 以字符串模板直接注入。
+
+     浅色高级玻璃系重制版：
+     1. 主画面转为雾面浅灰渐变，告别死黑压暗；顶部改用柔和光晕
+        呼吸动画制造逆光高级感。
+     2. 自拍小窗做成真正立体的白玻璃卡片，带清晰投影、顶部反光
+        带、入场动效，不再是黑方块。
+     3. 气泡改为高对比度的白玻璃／深炭黑两色对话，投影与高光都
+        大幅加强，"质感"真正可见。
+     4. 底部三键全面放大（挂断 76px，两侧 56px），SVG 图标换成
+        线宽 2px、更饱满的几何造型。
+========================================================================== -->
+<div class="ccv3-page" id="ccv3Page" aria-hidden="true">
+
+  <div class="ccv3-stage" id="ccv3Stage">
+
+    <!-- 全屏视频画面：对方头像/画面铺满整个舞台 -->
+    <div class="ccv3-video" id="ccv3Video" aria-hidden="true"></div>
+    <div class="ccv3-video-grain" aria-hidden="true"></div>
+    <div class="ccv3-video-veil-top" aria-hidden="true"></div>
+    <div class="ccv3-video-veil-bottom" aria-hidden="true"></div>
+    <div class="ccv3-aura" aria-hidden="true"></div>
+
+    <!-- 状态栏 -->
+    <div class="status-bar ccv3-status">
+      <div class="status-time" id="ccv3StatusTime">9:41</div>
+      <div class="status-island">
+        <div class="si-capsule si-minimal-capsule"></div>
+      </div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="ccv3BatPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="ccv3BatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 贴顶极简信息条：头像徽标 + 昵称 + 已接通计时。头像徽标取用
+         对方(session.avatar)同一张头像，与大背景呼应，同时填补
+         昵称胶囊左侧原本空荡的留白，自身带呼吸光圈 -->
+    <div class="ccv3-topbar">
+      <div class="ccv3-topbar-row">
+        <div class="ccv3-peer-chip-wrap">
+          <div class="ccv3-peer-chip-halo" aria-hidden="true"></div>
+          <div class="ccv3-peer-chip-ring" aria-hidden="true"></div>
+          <div class="ccv3-peer-chip" id="ccv3PeerChip" aria-hidden="true">
+            <span class="ccv3-peer-chip-glyph" id="ccv3PeerChipGlyph"></span>
+          </div>
+        </div>
+      </div>
+      <div class="ccv3-topbar-text">
+        <div class="ccv3-topbar-name" id="ccv3Name">好友昵称</div>
+        <div class="ccv3-topbar-status">
+          <span class="ccv3-live-dot" aria-hidden="true"></span>
+          <span>已接通</span>
+          <span class="ccv3-timer" id="ccv3Timer">00:00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 用户自拍小窗口：悬浮右上角，白玻璃卡片，带描边、投影、呼吸光
+         效与入场动效；未接入真实摄像头时显示人形剪影占位，而非空白 -->
+    <div class="ccv3-selfie-halo" aria-hidden="true"></div>
+    <div class="ccv3-selfie" id="ccv3Selfie" aria-hidden="true">
+      <span class="ccv3-selfie-spark" aria-hidden="true"></span>
+      <div class="ccv3-selfie-inner" id="ccv3SelfieInner">
+        <div class="ccv3-selfie-placeholder">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.5" r="3.6" fill="currentColor"/><path d="M5 19.2c0-3.4 3.1-5.7 7-5.7s7 2.3 7 5.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>NO SIGNAL</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文字面板：屏幕中部偏下，可滚动 -->
+    <div class="ccv3-transcript" id="ccv3Transcript">
+      <div class="ccv3-transcript-inner" id="ccv3TranscriptInner">
+        <!-- 消息条目由 JS 动态插入，示例结构如下：
+             旁白/动作描述 —— 无气泡容器，两端引导线 + 菱形分隔符
+             对话（对方）—— 左侧带头像标，白玻璃气泡，左下尖角
+             对话（自己）—— 右侧无头像标，深炭气泡，右下尖角
+             输入中提示 —— 与对话气泡同材质的三点跳动 -->
+
+        <div class="ccv3-line ccv3-line--narration">
+          <div class="ccv3-narration-wrap">
+            <span class="ccv3-narration-rule"></span>
+            <span class="ccv3-narration-mark"></span>
+            <p class="ccv3-narration-text">窗外的雨声忽然轻了下来，像是有人把音量悄悄调低。</p>
+            <span class="ccv3-narration-mark"></span>
+            <span class="ccv3-narration-rule"></span>
+          </div>
+        </div>
+
+        <div class="ccv3-line ccv3-line--speech ccv3-line--in">
+          <div class="ccv3-speech-avatar"></div>
+          <div class="ccv3-bubble">
+            <p class="ccv3-bubble-text">刚才那阵风，你也听见了吗。</p>
+          </div>
+        </div>
+
+        <div class="ccv3-line ccv3-line--narration">
+          <div class="ccv3-narration-wrap">
+            <span class="ccv3-narration-rule"></span>
+            <span class="ccv3-narration-mark"></span>
+            <p class="ccv3-narration-text">她的声音里带着一点笑意，尾音微微上扬。</p>
+            <span class="ccv3-narration-mark"></span>
+            <span class="ccv3-narration-rule"></span>
+          </div>
+        </div>
+
+        <div class="ccv3-line ccv3-line--speech ccv3-line--out">
+          <div class="ccv3-bubble">
+            <p class="ccv3-bubble-text">听见了，还以为是你在那边故意制造气氛。</p>
+          </div>
+        </div>
+
+        <div class="ccv3-line ccv3-line--speech ccv3-line--in">
+          <div class="ccv3-speech-avatar"></div>
+          <div class="ccv3-bubble ccv3-bubble--typing">
+            <div class="ccv3-typing-dots"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 展开式输入条：默认收起（高度 0），点击底部键盘图标后展开，
+         浮在固定操作行上方。内含系统 <input> + 发送 + AI 占位 -->
+    <div class="ccv3-input-bar" id="ccv3InputBar">
+      <div class="ccv3-input-wrap" id="ccv3InputWrap">
+        <input class="ccv3-input" id="ccv3Input" type="text" placeholder="说点什么……" aria-label="输入内容" />
+      </div>
+      <button class="ccv3-send-btn" id="ccv3SendBtn" type="button" aria-label="发送">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M3.5 12L21 3.5L14.5 20.5C14.15 21.35 12.9 21.3 12.62 20.43L10.5 13.5L3.5 12Z" fill="currentColor"/><path d="M10.5 13.5L21 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+      <!-- AI 回复占位按钮：只在输入条展开时出现，先占位，逻辑留给后续接入 -->
+      <button class="ccv3-ai-btn" id="ccv3AiBtn" type="button" aria-label="AI 回复">
+        <span class="ccv3-ai-btn-mark" aria-hidden="true"></span>
+        <span class="ccv3-ai-btn-label">AI</span>
+      </button>
+    </div>
+
+    <!-- 底部固定操作行：键盘（左）— 挂断（居中，最大最重）— 设置（右） -->
+    <div class="ccv3-dock" id="ccv3Dock">
+      <button class="ccv3-dock-btn" id="ccv3KbToggle" type="button" aria-label="展开输入">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="19" height="13" rx="3.5" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="11" r="1.15" fill="currentColor"/><circle cx="11" cy="11" r="1.15" fill="currentColor"/><circle cx="15" cy="11" r="1.15" fill="currentColor"/><circle cx="17.5" cy="11" r="1.15" fill="currentColor"/><path d="M6.5 14.6h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+
+      <button class="ccv3-hangup-btn" id="ccv3HangupBtn" type="button" aria-label="挂断">
+        <span class="ccv3-hangup-ring" aria-hidden="true"></span>
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+          <path d="M2.5 8.6C7.2 4 16.8 4 21.5 8.6C21.9 9 21.9 9.6 21.5 10L18.6 12.4C18.2 12.7 17.7 12.7 17.3 12.4L15.1 10.7C14.8 10.4 14.3 10.4 13.9 10.6C13.3 10.9 12.65 11.05 12 11.05C11.35 11.05 10.7 10.9 10.1 10.6C9.7 10.4 9.2 10.4 8.9 10.7L6.7 12.4C6.3 12.7 5.8 12.7 5.4 12.4L2.5 10C2.1 9.6 2.1 9 2.5 8.6Z" fill="currentColor" transform="rotate(135 12 10.3)"/>
+        </svg>
+      </button>
+
+      <button class="ccv3-dock-btn" id="ccv3SettingsBtn" type="button" aria-label="设置">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1M18.5 18.5l-2.1-2.1M7.6 7.6L5.5 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+  </div>
+
+</div>

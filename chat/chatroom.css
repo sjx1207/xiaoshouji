@@ -721,43 +721,53 @@ body[data-crm-guard="blocked"] .crm-input-bar{ display:none; }
 /* ==========================================================================
    引用气泡内嵌卡 —— 气泡内文字上方的一枚「回音签」
    —— 全局黑白灰、偏浅色系：不管外层气泡是墨玉（我方）还是月光纸面
-      （对方），内嵌的引用卡本身统一使用一枚极浅的磨砂白玉质感，
-      靠"浅色卡片嵌在深色/浅色气泡里"这层反差本身去区分层级，
-      不需要额外的彩色提示。左侧一条极细的竖线（引用惯用符号的
-      抽象化，而非引号图标），右侧压缩显示原消息的「谁 · 说了什么」，
-      点击可回跳并高亮原消息，呼应"这是能追溯的引用"而非纯装饰 ---- */
+      （对方），内嵌的引用卡本身统一使用一枚更沉的磨砂灰玉质感，
+      靠"灰色卡片嵌在深色/浅色气泡里"这层反差本身去区分层级。
+      2026-09-05 二次修正：上一版把对方气泡（浅色纸面底，接近纯白
+      #fff→#f7f7f9）里的引用签背景设成了 rgba(18,18,26,0.07)，实际
+      混合结果只比纸面深一两个色阶（约 #eeeeef），在真机小屏幕上
+      依然完全看不出这是一枚独立卡片，跟正文文字混在一起——本质是
+      "在近纯白背景上无论怎么调半透明叠色，反差都不可能做够"，
+      不是叠色深浅的问题，而是这个思路本身在浅色气泡下不成立。
+      现改为：对方气泡下的引用签改用与「独立引用签」同款的实底深色
+      卡片（不再是叠色），直接在白色气泡里嵌入一块深灰实底，形成
+      真正强烈、不需要凑近看就能一眼分辨的层级反差；我方气泡下继续
+      沿用半透明白叠色的思路（那个方向本来对比度就够）。左侧一条
+      竖线（引用惯用符号的抽象化，而非引号图标），右侧压缩显示原
+      消息的「谁 · 说了什么」，点击可回跳并高亮原消息，呼应"这是
+      能追溯的引用"而非纯装饰 ---- */
 .crm-quote-ref{
   position:relative;
   display:flex;
   align-items:flex-start;
-  gap:8px;
+  gap:9px;
   width:100%;
   margin-bottom:8px;
-  padding:7px 10px 7px 9px;
+  padding:8px 11px 8px 10px;
   border-radius:12px;
   text-align:left;
   cursor:pointer;
-  background: rgba(255,255,255,0.55);
+  background: rgba(24,24,27,0.9);
   box-shadow:
-    0 1px 0 0 rgba(255,255,255,0.7) inset,
-    0 0 0 1px rgba(18,18,26,0.06);
+    0 1px 0 0 rgba(255,255,255,0.1) inset,
+    0 0 0 1px rgba(18,18,26,0.14);
   transition: background 0.15s ease, transform 0.15s cubic-bezier(.34,1.56,.64,1);
 }
 .crm-msg-group.is-me .crm-quote-ref{
-  background: rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.26);
   box-shadow:
-    0 1px 0 0 rgba(255,255,255,0.14) inset,
-    0 0 0 1px rgba(255,255,255,0.14);
+    0 1px 0 0 rgba(255,255,255,0.1) inset,
+    0 0 0 1px rgba(255,255,255,0.2);
 }
 .crm-quote-ref:active{ transform: scale(0.98); }
 .crm-quote-ref-bar{
   flex-shrink:0;
-  width:2px;
+  width:3px;
   align-self:stretch;
-  border-radius:1px;
-  background: rgba(18,18,26,0.22);
+  border-radius:1.5px;
+  background: rgba(255,255,255,0.42);
 }
-.crm-msg-group.is-me .crm-quote-ref-bar{ background: rgba(255,255,255,0.32); }
+.crm-msg-group.is-me .crm-quote-ref-bar{ background: rgba(255,255,255,0.55); }
 .crm-quote-ref-body{
   min-width:0;
   display:flex;
@@ -766,23 +776,38 @@ body[data-crm-guard="blocked"] .crm-input-bar{ display:none; }
 }
 .crm-quote-ref-who{
   font-size:10.5px;
-  font-weight:600;
+  font-weight:700;
   letter-spacing:0.02em;
-  color: rgba(18,18,26,0.45);
+  color: rgba(255,255,255,0.62);
 }
-.crm-msg-group.is-me .crm-quote-ref-who{ color: rgba(255,255,255,0.5); }
+.crm-msg-group.is-me .crm-quote-ref-who{ color: rgba(255,255,255,0.68); }
 .crm-quote-ref-text{
   font-size:12px;
   line-height:1.35;
-  color: rgba(18,18,26,0.62);
+  color: rgba(255,255,255,0.8);
   display:-webkit-box;
   -webkit-line-clamp:2;
   -webkit-box-orient:vertical;
   overflow:hidden;
   word-break:break-word;
 }
-.crm-msg-group.is-me .crm-quote-ref-text{ color: rgba(255,255,255,0.68); }
+.crm-msg-group.is-me .crm-quote-ref-text{ color: rgba(255,255,255,0.85); }
 .crm-quote-ref-text.is-missing{ font-style:italic; }
+
+/* 独立引用签：图片消息没有气泡壳可依附，这里的引用卡需要自带
+   一层实底磨砂背景（而不是依赖气泡本身的墨玉/纸面色），保持与
+   气泡内嵌版本（对方分支）同样的实底深色方案，只是叠加层数略有
+   差异（standalone 场景本身就在深色图片蒙层上，再稍微加一层） ---- */
+.crm-quote-ref-standalone{
+  background: rgba(24,24,27,0.86);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.08) inset,
+    0 0 0 1px rgba(255,255,255,0.08);
+  margin-bottom:6px;
+}
+.crm-quote-ref-standalone .crm-quote-ref-bar{ background: rgba(255,255,255,0.5); }
+.crm-quote-ref-standalone .crm-quote-ref-who{ color: rgba(255,255,255,0.68); }
+.crm-quote-ref-standalone .crm-quote-ref-text{ color: rgba(255,255,255,0.85); }
 
 /* 引用来源消息被临时定位/高亮时的呼吸态：在原消息气泡外圈
    浮一层极浅的月光光晕，短暂出现后自然淡出，替代生硬的"闪一下背景色" */
@@ -845,6 +870,120 @@ body[data-crm-guard="blocked"] .crm-input-bar{ display:none; }
 }
 
 .crm-msg-time-caption-link:active{ opacity:0.6; }
+
+/* ==========================================================================
+   语音气泡 —— 沿用与文字气泡完全同一套 .crm-bubble 渐变漆面外壳
+   （对方＝白灰浅色系渐变 --crm-bubble-peer，我方＝深漆黑渐变
+   --crm-bubble-me，二者贯穿渐变的对位逻辑已经由 .crm-bubble 基类
+   处理，这里不重复定义任何背景色，只负责内部「声纹 + 时长」排版
+   与展开态转写文字的样式）
+========================================================================== */
+.crm-voicebubble{
+  min-width:132px;
+  max-width:220px;
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.crm-voicebubble-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.crm-voicebubble-glyph{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0.85;
+}
+.crm-msg-group:not(.is-me) .crm-voicebubble-glyph{ color: var(--ink, #16161a); }
+.crm-msg-group.is-me .crm-voicebubble-glyph{ color:#f5f5f7; }
+
+/* 声纹条：等宽排布的竖条，高度按 buildVoiceWaveBars 算出的百分比
+   逐条设置（内联 style），这里只负责条本身的宽度/圆角/底色与
+   「播放中」态的律动动画 ---- */
+.crm-voicebubble-wave{
+  flex:1 1 auto;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:2.5px;
+  height:22px;
+}
+.crm-voicebubble-wave i{
+  display:block;
+  flex:1 1 auto;
+  min-width:1.6px;
+  max-width:3px;
+  border-radius:2px;
+  transform-origin:center;
+}
+.crm-msg-group:not(.is-me) .crm-voicebubble-wave i{ background: rgba(18,18,26,0.42); }
+.crm-msg-group.is-me .crm-voicebubble-wave i{ background: rgba(255,255,255,0.5); }
+
+/* 单击后短暂进入「播放中」态：给声纹条一段轻微律动动画，
+   营造正在播放的观感（即使这一刻还没有真实音频在响），错落的
+   animation-delay 让相邻条不整齐划一，看起来更接近真实声波 ---- */
+.crm-voicebubble.is-playing .crm-voicebubble-wave i{
+  animation: crmVoiceWaveBeat 0.9s ease-in-out infinite;
+}
+.crm-voicebubble-wave i:nth-child(3n){ animation-delay: -0.15s; }
+.crm-voicebubble-wave i:nth-child(3n+1){ animation-delay: -0.45s; }
+.crm-voicebubble-wave i:nth-child(3n+2){ animation-delay: -0.75s; }
+@keyframes crmVoiceWaveBeat{
+  0%, 100%{ transform: scaleY(0.85); }
+  50%{ transform: scaleY(1.12); }
+}
+
+.crm-voicebubble-dur{
+  flex:0 0 auto;
+  font-family:'Space Mono', monospace;
+  font-size:11.5px;
+  letter-spacing:0.02em;
+  opacity:0.75;
+}
+.crm-msg-group:not(.is-me) .crm-voicebubble-dur{ color: var(--ink, #16161a); }
+.crm-msg-group.is-me .crm-voicebubble-dur{ color:#f5f5f7; }
+
+/* 展开态转写文字：默认收起（height:0 + 溢出隐藏），单击气泡后
+   展开成一段辅助阅读的小字，与声纹行之间留一条极淡的分隔线，
+   呼应长文字消息的 .has-divider 分隔线质感但更克制（转写文字
+   终究是辅助信息，不应比正文更显眼）---- */
+.crm-voicebubble-text{
+  max-height:0;
+  overflow:hidden;
+  opacity:0;
+  font-size:12.5px;
+  line-height:1.5;
+  letter-spacing:0.01em;
+  transition: max-height 0.32s cubic-bezier(.22,1,.36,1), opacity 0.24s ease, margin-top 0.32s cubic-bezier(.22,1,.36,1), padding-top 0.32s cubic-bezier(.22,1,.36,1);
+}
+.crm-msg-group:not(.is-me) .crm-voicebubble-text{ color: rgba(18,18,26,0.66); }
+.crm-msg-group.is-me .crm-voicebubble-text{ color: rgba(245,245,247,0.66); }
+
+.crm-voicebubble.is-expanded .crm-voicebubble-text{
+  max-height:240px;
+  opacity:1;
+  margin-top:9px;
+  padding-top:9px;
+}
+.crm-msg-group:not(.is-me) .crm-voicebubble.is-expanded .crm-voicebubble-text{
+  border-top:1px solid rgba(18,18,26,0.1);
+}
+.crm-msg-group.is-me .crm-voicebubble.is-expanded .crm-voicebubble-text{
+  border-top:1px solid rgba(255,255,255,0.14);
+}
+
+/* ---- 播放角标：贴在时间戳同排（与图片消息「描述」入口共用
+   .crm-msg-time-caption-link 基础样式），这里只加一枚区分性的
+   小喇叭符号前缀感与「禁用/合成中」态的弱化处理 ---- */
+.crm-voice-playbadge{
+  white-space:nowrap;
+}
+.crm-voice-playbadge.is-empty{
+  cursor:pointer; /* 未配置语音模型时仍可点（用于弹出提示），与图片「无描述」的纯展示态不同，这里不去掉指针提示 */
+}
 
 /* ==========================================================================
    撤回提示行 —— 黑白双印：我方撤回＝黑色渐变，靠右站位，原文卡展开在
@@ -3474,6 +3613,213 @@ body[data-crm-msel="on"] .crm-scroll{ padding-bottom: 96px; }
 
 @media (prefers-reduced-motion: reduce){
   .crm-rewind-veil, .crm-rewind-sheet, .crm-rewind-card, .crm-rewind-note, .crm-rewind-tag, .crm-rewind-btn{ transition:none; }
+}
+/* ==========================================================================
+   「语音消息」居中悬浮弹窗 —— 十三簿「语音」卡片接入
+   与 .crm-rewind-* 同一套「细描边 + 錾刻直角托」白玉牙牌语汇：
+   居中遮罩 + 漆面卡片 + 四角直角托，纯黑白灰，杜绝暖米色与 emoji。
+   结构对照 chatroom.html 里的 .crm-voice-pending-*：
+   veil（遮罩）→ 卡片（角标 + 印玺行 + 提示语 + 文本框 + 声纹预览 + 操作条）
+========================================================================== */
+.crm-voice-pending-veil{
+  position:fixed; inset:0;
+  background: rgba(10,10,13,0.46);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity:0; pointer-events:none;
+  transition: opacity 0.26s ease;
+  z-index: 60;
+}
+.crm-voice-pending-veil.is-open{ opacity:1; pointer-events:auto; }
+
+.crm-voice-pending{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  padding: 0 22px;
+  opacity:0; pointer-events:none;
+  transition: opacity 0.28s ease;
+  z-index: 61;
+}
+.crm-voice-pending.is-open{ opacity:1; pointer-events:auto; }
+
+.crm-voice-pending-card{
+  position:relative;
+  width:100%; max-width:340px;
+  border-radius: 10px 30px 30px 30px;
+  padding: 22px 20px 18px;
+  background-image:
+    linear-gradient(130deg,
+      rgba(255,255,255,0.98) 0%,
+      rgba(255,255,255,0.55) 18%,
+      rgba(255,255,255,0) 40%,
+      rgba(255,255,255,0) 80%,
+      rgba(255,255,255,0.3) 100%),
+    linear-gradient(178deg, #ffffff 0%, #f6f6f8 55%, #eaeaee 100%);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.95) inset,
+    0 -1.5px 0 0 rgba(18,18,26,0.06) inset,
+    0 40px 70px -28px rgba(8,8,11,0.55),
+    0 0 0 1px rgba(18,18,26,0.07);
+  border: 1px solid rgba(18,18,26,0.1);
+  transform: translateY(10px) scale(0.96);
+  transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+}
+.crm-voice-pending.is-open .crm-voice-pending-card{ transform: translateY(0) scale(1); }
+
+.crm-voice-pending-corner-a,
+.crm-voice-pending-corner-b{
+  content:''; position:absolute;
+  width:11px; height:11px;
+  pointer-events:none;
+}
+.crm-voice-pending-corner-a{ top:-1px; right:-1px; border-top:1.4px solid rgba(18,18,26,0.32); border-right:1.4px solid rgba(18,18,26,0.32); }
+.crm-voice-pending-corner-b{ bottom:-1px; left:-1px; border-bottom:1.4px solid rgba(18,18,26,0.32); border-left:1.4px solid rgba(18,18,26,0.32); }
+
+.crm-voice-pending-label-row{
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:12px;
+}
+.crm-voice-pending-label-seal{
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:50%;
+  flex-shrink:0;
+  color: var(--ink);
+  background: linear-gradient(178deg, #ffffff 0%, #eeeef1 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 0 0 1px rgba(18,18,26,0.08),
+    0 6px 14px -8px rgba(18,18,26,0.35);
+}
+.crm-voice-pending-label-col{ display:flex; flex-direction:column; gap:2px; }
+.crm-voice-pending-label-cn{ font-size:16.5px; font-weight:800; color: var(--ink); letter-spacing:0.02em; }
+.crm-voice-pending-label-en{ font-size:9.5px; font-weight:600; color: var(--ink-soft, #8a8a92); letter-spacing:0.16em; }
+
+.crm-voice-pending-hint{
+  margin: 0 0 14px;
+  font-size:13px; line-height:1.65;
+  color: var(--ink-soft, #6d6d76);
+}
+
+.crm-voice-pending-textarea{
+  width:100%;
+  min-height:84px;
+  resize:none;
+  font-family:inherit;
+  font-size:13px; line-height:1.6;
+  color: var(--ink);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(18,18,26,0.14);
+  background: rgba(255,255,255,0.75);
+  outline:none;
+  margin-bottom:14px;
+}
+.crm-voice-pending-textarea::placeholder{ color: rgba(18,18,26,0.32); }
+.crm-voice-pending-textarea:focus{
+  border-color: rgba(18,18,26,0.32);
+  box-shadow: 0 0 0 3px rgba(18,18,26,0.05);
+}
+
+/* 声纹预览条：左侧箭头小图标 + 中段声纹柱状条 + 右侧时长，
+   未输入内容时整体偏灰、柱子矮而扁；输入后（.has-text）转深、
+   柱子按种子高度错落起来，给到"这条语音大概长什么样"的直觉反馈 */
+.crm-voice-pending-preview{
+  display:flex; align-items:center; gap:9px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(18,18,26,0.035);
+  color: rgba(18,18,26,0.28);
+  transition: color 0.22s ease, background 0.22s ease;
+}
+.crm-voice-pending-preview.has-text{
+  color: var(--ink);
+  background: rgba(18,18,26,0.06);
+}
+.crm-voice-pending-preview-glyph{
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+  width:20px; height:20px;
+  border-radius:50%;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 0 0 1px rgba(18,18,26,0.08);
+  color: inherit;
+}
+.crm-voice-pending-preview-bars{
+  flex:1 1 auto;
+  display:flex; align-items:center; gap:2px;
+  height:18px;
+  overflow:hidden;
+}
+.crm-voice-pending-preview-bars i{
+  flex:1 1 auto;
+  min-width:1.5px;
+  border-radius:2px;
+  background: currentColor;
+  opacity:0.45;
+  height:30%;
+  transition: height 0.22s ease, opacity 0.22s ease;
+}
+.crm-voice-pending-preview.has-text .crm-voice-pending-preview-bars i{ opacity:0.85; }
+/* 每根柱子固定一个高度百分比，模拟声纹错落感，避免所有柱子等高显得死板 */
+.crm-voice-pending-preview-bars i:nth-child(1){ height:38%; }
+.crm-voice-pending-preview-bars i:nth-child(2){ height:62%; }
+.crm-voice-pending-preview-bars i:nth-child(3){ height:44%; }
+.crm-voice-pending-preview-bars i:nth-child(4){ height:80%; }
+.crm-voice-pending-preview-bars i:nth-child(5){ height:52%; }
+.crm-voice-pending-preview-bars i:nth-child(6){ height:70%; }
+.crm-voice-pending-preview-bars i:nth-child(7){ height:34%; }
+.crm-voice-pending-preview-bars i:nth-child(8){ height:58%; }
+.crm-voice-pending-preview-bars i:nth-child(9){ height:90%; }
+.crm-voice-pending-preview-bars i:nth-child(10){ height:48%; }
+.crm-voice-pending-preview-bars i:nth-child(11){ height:66%; }
+.crm-voice-pending-preview-bars i:nth-child(12){ height:40%; }
+.crm-voice-pending-preview-bars i:nth-child(13){ height:76%; }
+.crm-voice-pending-preview-bars i:nth-child(14){ height:56%; }
+.crm-voice-pending-preview-bars i:nth-child(15){ height:32%; }
+.crm-voice-pending-preview-bars i:nth-child(16){ height:64%; }
+.crm-voice-pending-preview-bars i:nth-child(17){ height:46%; }
+.crm-voice-pending-preview-dur{
+  flex-shrink:0;
+  font-size:11.5px; font-weight:700;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+
+.crm-voice-pending-actions{
+  display:flex; flex-wrap:wrap; gap:8px;
+}
+.crm-voice-pending-btn{
+  font-family:inherit;
+  font-weight:700;
+  cursor:pointer;
+  border:none;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.2s ease;
+}
+.crm-voice-pending-btn:active{ transform: scale(0.97); }
+.crm-voice-pending-btn.is-ghost{
+  flex:0 0 auto;
+  font-size:12.5px;
+  color: var(--ink-soft, #8a8a92);
+  background: transparent;
+  padding: 11px 14px;
+}
+.crm-voice-pending-btn.is-solid{
+  flex:1 1 auto;
+  font-size:13px;
+  color:#fff;
+  background: linear-gradient(155deg, var(--crm-lacquer-700, #232329) 0%, var(--crm-lacquer-800, #16161a) 55%, var(--crm-lacquer-900, #0a0a0c) 100%);
+  border-radius: 22px;
+  padding: 11px 16px;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.12) inset,
+    0 10px 20px -12px rgba(8,8,11,0.6);
+}
+.crm-voice-pending-btn.is-solid:disabled{ opacity:0.5; pointer-events:none; }
+
+@media (prefers-reduced-motion: reduce){
+  .crm-voice-pending-veil, .crm-voice-pending, .crm-voice-pending-card, .crm-voice-pending-preview, .crm-voice-pending-preview-bars i, .crm-voice-pending-btn{ transition:none; }
 }
 /* ==========================================================================
    图片消息功能 —— 「图片」十三簿卡片接入

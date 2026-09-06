@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>叙 · Dialogue Novel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Space+Mono:wght@400;700&family=Noto+Serif+SC:wght@300;400;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="dn-base.css" />
+<link rel="stylesheet" href="dn-pages.css" />
+<link rel="stylesheet" href="dn-read.css" />
+</head>
+<body>
+
+<!-- 全局自定义背景层（阅读器背景 / 个人中心背景，全屏共用，含状态栏区域） -->
+<div id="dnGlobalBg" class="dn-globalbg"></div>
+<div class="dn-grain"></div>
+
+<!-- 状态栏（与 index 同步） -->
+<div class="status-bar" id="dnStatusBar">
+  <div class="status-time" id="statusTime">9:41</div>
+  <div class="status-island"></div>
+  <div class="status-right">
+    <div class="signal"><i></i><i></i><i></i><i></i></div>
+    <div class="battery">
+      <span class="bat-pct" id="batPct">76</span>
+      <div class="bat-shell">
+        <div class="bat-inner" id="batInner"></div>
+        <div class="bat-nub"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 主容器：三个 Tab ============ -->
+<main class="dn-main" id="dnMain">
+
+  <!-- ---------- 书架 ---------- -->
+  <section class="dn-view" id="view-shelf">
+    <header class="dn-head">
+      <div class="dn-head-sub">COLLECTION</div>
+      <h1 class="dn-head-title">书 架</h1>
+      <div class="dn-head-line"></div>
+    </header>
+
+    <!-- 续读主位 -->
+    <div class="shelf-hero" id="shelfHero"></div>
+
+    <div class="shelf-bar">
+      <div class="shelf-filters" id="shelfFilters">
+        <span class="sf-chip active" data-f="all">全部</span>
+        <span class="sf-chip" data-f="reading">在读</span>
+        <span class="sf-chip" data-f="done">已完结</span>
+      </div>
+      <div class="shelf-count" id="shelfCount">0</div>
+    </div>
+
+    <div class="shelf-stack" id="shelfStack"></div>
+    <div class="dn-empty" id="shelfEmpty">
+      <div class="dn-empty-ring"></div>
+      <p>书架尚空</p>
+      <span>在作品详情页轻点「收入书架」</span>
+    </div>
+  </section>
+
+  <!-- ---------- 创作工坊 ---------- -->
+  <section class="dn-view" id="view-workshop">
+    <header class="dn-head">
+      <div class="dn-head-sub">ATELIER</div>
+      <h1 class="dn-head-title">创作工坊</h1>
+      <div class="dn-head-line"></div>
+    </header>
+
+    <!-- 非按钮交互：长按印章启印 -->
+    <div class="seal-zone">
+      <div class="seal-wrap" id="sealWrap">
+        <svg class="seal-ring" viewBox="0 0 120 120">
+          <circle class="sr-track" cx="60" cy="60" r="52"/>
+          <circle class="sr-prog" id="sealProg" cx="60" cy="60" r="52"/>
+        </svg>
+        <div class="seal-core">
+          <div class="seal-glyph">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
+              <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="8.6" stroke="currentColor" stroke-width="0.8" opacity=".5"/>
+            </svg>
+          </div>
+          <div class="seal-label">按 住 启 印</div>
+        </div>
+        <div class="seal-halo"></div>
+      </div>
+      <p class="seal-tip">长按 · 开启新的对话小说建档流程</p>
+    </div>
+
+    <div class="ws-divider"><span>ARCHIVES</span></div>
+    <div class="ws-grid" id="wsGrid"></div>
+    <div class="dn-empty" id="wsEmpty">
+      <div class="dn-empty-ring"></div>
+      <p>尚无归档</p>
+      <span>长按上方印章开始建档</span>
+    </div>
+  </section>
+
+  <!-- ---------- 个人中心 ---------- -->
+  <section class="dn-view" id="view-me">
+    <div class="me-cover" id="meCover">
+      <div class="me-cover-veil"></div>
+      <div class="me-cover-edit" id="meCoverEdit">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M4 17.5V20h2.5L18 8.5 15.5 6 4 17.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        <span>更换背景</span>
+      </div>
+      <div class="me-id">
+        <div class="me-avatar" id="meAvatar"><div class="me-avatar-ph">叙</div></div>
+        <div class="me-idtext">
+          <div class="me-name" id="meName">未命名读者</div>
+          <div class="me-sign" id="meSign">轻触以编辑署名</div>
+        </div>
+      </div>
+    </div>
+    <div class="me-body">
+
+      <!-- 读者等级 -->
+      <div class="me-level" id="meLevel"></div>
+
+      <div class="me-stats" id="meStats"></div>
+
+      <!-- 成就墙 -->
+      <div class="me-panel">
+        <div class="me-panel-t">徽 记 · ACHIEVEMENTS <span class="mp-side" id="meBadgeCount"></span></div>
+        <div class="me-badges" id="meBadges"></div>
+      </div>
+
+      <!-- 口味图谱 -->
+      <div class="me-panel">
+        <div class="me-panel-t">口 味 图 谱 · PALATE</div>
+        <div class="me-radar"><svg id="meRadarSvg" viewBox="0 0 260 200"></svg></div>
+      </div>
+
+      <div class="me-panel">
+        <div class="me-panel-t">阅 读 轨 迹 · 7 DAYS <span class="mp-side" id="meStreak"></span></div>
+        <div class="me-bars" id="meBars"></div>
+      </div>
+
+      <div class="me-panel">
+        <div class="me-panel-t">最 近 翻 阅</div>
+        <div class="me-recent" id="meRecent"></div>
+      </div>
+    </div>
+    <input type="file" accept="image/*" id="meAvatarFile" hidden />
+    <input type="file" accept="image/*" id="meCoverFile" hidden />
+  </section>
+
+</main>
+
+<!-- ============ 底部导航：熔银游标 ============ -->
+<nav class="dn-nav" id="dnNav">
+  <div class="nav-slab">
+    <div class="nav-flux"></div>
+    <div class="nav-blob" id="navBlob"><span class="nb-ring"></span></div>
+    <div class="nav-items">
+      <div class="nav-item active" data-tab="shelf">
+        <span class="ni-mark">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 4.5h4.2v15H5zM10.6 4.5h3.4v15h-3.4z" stroke="currentColor" stroke-width="1.15" stroke-linejoin="round"/><path d="M16.1 5.4l3.1.8-3.3 13.5-3.1-.8z" stroke="currentColor" stroke-width="1.15" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="ni-text">书架</span>
+      </div>
+      <div class="nav-item" data-tab="workshop">
+        <span class="ni-mark">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 19.5l1-4.1L15.3 5.1a1.9 1.9 0 012.7 0l.9.9a1.9 1.9 0 010 2.7L8.6 18.5l-4.6 1z" stroke="currentColor" stroke-width="1.15" stroke-linejoin="round"/><path d="M13.6 6.9l3.5 3.5" stroke="currentColor" stroke-width="1.15"/></svg>
+        </span>
+        <span class="ni-text">工坊</span>
+      </div>
+      <div class="nav-item" data-tab="me">
+        <span class="ni-mark">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.4" r="3.7" stroke="currentColor" stroke-width="1.15"/><path d="M4.8 19.6c.7-3.7 3.6-5.7 7.2-5.7s6.5 2 7.2 5.7" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>
+        </span>
+        <span class="ni-text">我的</span>
+      </div>
+    </div>
+  </div>
+  <div class="nav-home" id="navHome"></div>
+</nav>
+
+<!-- ============ 建档流程（七步） ============ -->
+<section class="dn-page" id="page-wizard">
+  <div class="wz-top">
+    <div class="dn-back" data-close="page-wizard">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="wz-title" id="wzTitle">建档 · 第一步</div>
+    <div class="wz-idx"><span id="wzIdx">1</span><i>/</i>7</div>
+  </div>
+  <div class="wz-rail" id="wzRail"></div>
+  <div class="wz-scroll" id="wzScroll">
+
+    <!-- 步骤1 简介 -->
+    <div class="wz-step" data-step="1">
+      <div class="wz-lead"><h2>故事的雏形</h2><p>先让世界有一个轮廓。三种方式，任选其一。</p></div>
+      <div class="mode-rack" data-group="introMode">
+        <div class="mode-card active" data-v="self"><b>自撰</b><span>我已有完整简介</span></div>
+        <div class="mode-card" data-v="polish"><b>润色</b><span>我说梗概，AI 丰富</span></div>
+        <div class="mode-card" data-v="free"><b>放养</b><span>我给主题，AI 发挥</span></div>
+      </div>
+      <div class="fld">
+        <label id="introLabel">简介正文</label>
+        <textarea id="introInput" rows="7" placeholder="写下你的故事简介……"></textarea>
+      </div>
+      <div class="fld-row" id="introExtra">
+        <div class="fld half"><label>题材关键词</label><input id="introTags" placeholder="如：民国、双向暗恋、豪门" /></div>
+        <div class="fld half"><label>期望篇幅感</label><input id="introScale" placeholder="如：细腻慢热、强剧情" /></div>
+      </div>
+      <div class="act-line" id="introActLine">
+        <div class="ink-act" id="introGenBtn"><span class="ia-fill"></span><b>让 AI 生成简介</b></div>
+      </div>
+      <div class="ai-out" id="introOut"></div>
+    </div>
+
+    <!-- 步骤2 书名 -->
+    <div class="wz-step" data-step="2">
+      <div class="wz-lead"><h2>为它命名</h2><p>自己落笔，或从五个候选里挑一个。</p></div>
+      <div class="fld"><label>书名</label><input id="titleInput" placeholder="输入书名……" /></div>
+      <div class="fld">
+        <label>命名调性（可多选，影响钩子方向）</label>
+        <div class="tone-rack" id="toneRack">
+          <span class="tone" data-v="古言雅致">古言雅致</span>
+          <span class="tone" data-v="现代都市">现代都市</span>
+          <span class="tone" data-v="甜宠轻快">甜宠轻快</span>
+          <span class="tone" data-v="虐恋BE感">虐恋BE感</span>
+          <span class="tone" data-v="悬疑张力">悬疑张力</span>
+          <span class="tone" data-v="台词口语">台词口语</span>
+        </div>
+      </div>
+      <div class="act-line">
+        <div class="ink-act" id="titleGenBtn"><span class="ia-fill"></span><b>生成五个候选</b></div>
+      </div>
+      <div class="name-grid" id="nameGrid"></div>
+    </div>
+
+    <!-- 步骤3 文风 -->
+    <div class="wz-step" data-step="3">
+      <div class="wz-lead"><h2>文风的骨相</h2><p>对话小说的节奏，取决于此。可自定义，也可让 AI 拟三套。</p></div>
+      <div class="mode-rack" data-group="styleMode">
+        <div class="mode-card active" data-v="self"><b>自定义</b><span>我来描述文风</span></div>
+        <div class="mode-card" data-v="ai"><b>AI 拟稿</b><span>生成三套备选</span></div>
+      </div>
+      <div class="fld" id="styleSelfBox">
+        <label>文风描述</label>
+        <textarea id="styleInput" rows="5" placeholder="如：句子短促、对白密集、旁白冷静克制、大量留白……"></textarea>
+      </div>
+      <div class="act-line" id="styleActLine" style="display:none">
+        <div class="ink-act" id="styleGenBtn"><span class="ia-fill"></span><b>生成文风备选</b></div>
+      </div>
+      <div class="style-list" id="styleList"></div>
+    </div>
+
+    <!-- 步骤4 CP与角色 -->
+    <div class="wz-step" data-step="4">
+      <div class="wz-lead"><h2>关系的基数</h2><p>先定人数与 CP 对数，再生成人物档案。</p></div>
+      <div class="num-row">
+        <div class="num-cell">
+          <label>重要角色数</label>
+          <div class="stepper"><span data-act="dec" data-t="roleCount">–</span><b id="roleCount">2</b><span data-act="inc" data-t="roleCount">+</span></div>
+          <small>含男女主</small>
+        </div>
+        <div class="num-cell">
+          <label>CP 对数</label>
+          <div class="stepper"><span data-act="dec" data-t="cpCount">–</span><b id="cpCount">1</b><span data-act="inc" data-t="cpCount">+</span></div>
+          <small>1 对 = 2 人</small>
+        </div>
+      </div>
+      <div class="calc-strip" id="calcStrip"></div>
+      <!-- 用户已提供 / 从简介识别出的角色（名字锁定，AI 不得更改） -->
+      <div class="lock-box">
+        <div class="lock-h">
+          <span>已锁定角色</span>
+          <em id="lockMeta">AI 将补足其余名额</em>
+        </div>
+        <div class="lock-list" id="lockList"></div>
+        <div class="lock-acts">
+          <div class="lock-btn" id="lockExtract">从简介识别角色</div>
+          <div class="lock-btn" id="lockAdd">＋ 自己添加</div>
+        </div>
+      </div>
+
+      <div class="fld"><label>人物设定倾向（可留空）</label><textarea id="charWish" rows="4" placeholder="如：女主是清冷医生，男主是偏执少帅，另有一位暗恋女主的挚友……"></textarea></div>
+      <div class="act-line">
+        <div class="ink-act" id="charGenBtn"><span class="ia-fill"></span><b>生成人物档案</b></div>
+      </div>
+      <div class="redo-box" id="charRedo">
+        <label>不满意？告诉 AI 要改什么</label>
+        <textarea id="charFeedback" rows="3" placeholder="如：女主别写成柔弱型，改成掌权者；配角年龄再小一点……"></textarea>
+        <div class="redo-btn" id="charRedoBtn">按意见重新生成</div>
+      </div>
+      <div class="char-wrap" id="charWrap"></div>
+      <input type="file" accept="image/*" id="charAvatarFile" hidden />
+    </div>
+
+    <!-- 步骤5 关系网 -->
+    <div class="wz-step" data-step="5">
+      <div class="wz-lead"><h2>关系的经纬</h2><p>生成关系网后可双指缩放、拖拽查看，卡片与图谱实时同步。</p></div>
+      <div class="act-line">
+        <div class="ink-act" id="relGenBtn"><span class="ia-fill"></span><b>生成关系网</b></div>
+      </div>
+      <div class="rel-stage" id="relStage">
+        <div class="rel-hint">尚未生成</div>
+        <svg id="relSvg" viewBox="0 0 600 460"></svg>
+        <div class="rel-zoom">
+          <span data-z="in">+</span><span data-z="out">–</span><span data-z="fit">◎</span>
+        </div>
+        <div class="rel-expand" id="relExpand">放大查看</div>
+      </div>
+      <div class="rel-cards" id="relCards"></div>
+    </div>
+
+    <!-- 步骤6 封面与参数 -->
+    <div class="wz-step" data-step="6">
+      <div class="wz-lead"><h2>封面与体量</h2><p>上传封面，自定每轮字数区间与章节数。</p></div>
+      <div class="cover-pick" id="coverPick">
+        <div class="cp-inner"><div class="cp-plus">＋</div><span>上传封面</span></div>
+      </div>
+      <input type="file" accept="image/*" id="coverFile" hidden />
+      <div class="fld">
+        <label>每轮输出字数区间</label>
+        <div class="range-duo">
+          <div class="rd-cell"><input id="wordMin" type="number" min="50" step="10" value="180" /><small>最少</small></div>
+          <div class="rd-dash"></div>
+          <div class="rd-cell"><input id="wordMax" type="number" min="80" step="10" value="420" /><small>最多</small></div>
+        </div>
+      </div>
+      <div class="fld">
+        <label>章节数量</label>
+        <div class="chap-slider">
+          <input id="chapCount" type="number" min="1" max="200" value="12" />
+          <div class="cs-quick"><span data-n="6">6</span><span data-n="12">12</span><span data-n="24">24</span><span data-n="40">40</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 步骤7 归档 -->
+    <div class="wz-step" data-step="7">
+      <div class="wz-lead"><h2>归档</h2><p>核对无误后落章封存，作品将同步至创作工坊。</p></div>
+      <div class="final-card" id="finalCard"></div>
+      <div class="act-line">
+        <div class="ink-act solid" id="archiveBtn"><span class="ia-fill"></span><b>落 章 · 归 档</b></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="wz-foot">
+    <div class="wz-prev" id="wzPrev">上一步</div>
+    <div class="wz-next" id="wzNext"><span>下一步</span><i></i></div>
+  </div>
+</section>
+
+<!-- ============ 作品详情 ============ -->
+<section class="dn-page" id="page-detail">
+  <div class="det-hero" id="detHero">
+    <div class="dn-back light" data-close="page-detail">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="det-hero-bg" id="detHeroBg"></div>
+    <div class="det-hero-fade"></div>
+    <div class="det-hero-in">
+      <div class="det-cover" id="detCover"></div>
+      <div class="det-meta">
+        <h2 id="detTitle">—</h2>
+        <div class="det-style" id="detStyle">—</div>
+        <div class="det-tags" id="detTags"></div>
+      </div>
+    </div>
+  </div>
+  <div class="det-body">
+    <div class="det-stats" id="detStats"></div>
+    <div class="det-acts">
+      <div class="det-act" id="detShelfAct"><span>收入书架</span></div>
+      <div class="det-act" id="detStatAct"><span>生成热度与书评</span></div>
+    </div>
+
+    <!-- 目录：封缄卷轴 -->
+    <div class="cat-band" id="catBand">
+      <div class="cb-spine"><i></i><i></i><i></i></div>
+      <div class="cb-mid">
+        <div class="cb-t">目 录</div>
+        <div class="cb-s" id="catBandSub">—</div>
+      </div>
+      <div class="cb-seal">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="cb-sheen"></div>
+    </div>
+
+    <div class="det-sec"><div class="ds-t">简介</div><p class="ds-p" id="detIntro">—</p></div>
+    <div class="det-sec"><div class="ds-t">重要角色 · 轻点展开档案</div><div class="det-chars" id="detChars"></div></div>
+    <div class="det-sec"><div class="ds-t">关系图谱</div><div class="det-rel" id="detRel"><svg id="detRelSvg" viewBox="0 0 600 400"></svg></div></div>
+
+    <div class="det-sec rvsec">
+      <div class="ds-t">最热书评</div>
+      <div class="det-reviews" id="detReviews"></div>
+      <div class="ink-act ghost" id="moreReviewBtn"><span class="ia-fill"></span><b>让 AI 再写几条</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- 目录抽屉 -->
+<div class="cat-mask" id="catMask"></div>
+<div class="cat-sheet" id="catSheet">
+  <div class="cs-grip" id="csGrip"></div>
+  <div class="cs-x" id="csClose">✕</div>
+  <div class="cs-head">
+    <div class="cs-headL">
+      <div class="cs-title">目录</div>
+      <div class="cs-sub" id="catSub">—</div>
+    </div>
+    <div class="ink-act tiny" id="catGenBtn"><span class="ia-fill"></span><b>生成章节标题</b></div>
+  </div>
+  <div class="cs-jump" id="csJump"></div>
+  <div class="cs-list" id="catList"></div>
+</div>
+
+<!-- ============ 视角选择 ============ -->
+<section class="dn-page" id="page-pov">
+  <div class="pov-bg"></div>
+  <div class="dn-back light" data-close="page-pov">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="pov-head">
+    <div class="pov-sub">PERSPECTIVE</div>
+    <h2>以谁的眼睛去看</h2>
+    <p id="povChapName">—</p>
+  </div>
+  <div class="pov-deck" id="povDeck"></div>
+  <div class="pov-go" id="povGo"><span>以此视角开始</span></div>
+</section>
+
+<!-- ============ 阅读器 ============ -->
+<section class="dn-page" id="page-reader">
+  <div class="rd-topcard" id="rdTopCard">
+    <div class="dn-back light" data-close="page-reader">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="rt-shine"></div>
+    <div class="rt-cover" id="rtCover"></div>
+    <div class="rt-info">
+      <div class="rt-book" id="rtBook">—</div>
+      <div class="rt-chap" id="rtChap">—</div>
+      <div class="rt-pov" id="rtPov">—</div>
+    </div>
+    <div class="rt-corner tl"></div><div class="rt-corner tr"></div>
+    <div class="rt-corner bl"></div><div class="rt-corner br"></div>
+  </div>
+
+  <div class="rd-flow" id="rdFlow"></div>
+
+  <div class="rd-tap" id="rdTap">
+    <div class="rt-ring"><span></span><span></span></div>
+    <div class="rt-label" id="rdTapLabel">轻 触 · 继 续</div>
+  </div>
+
+  <!-- 章末评论 -->
+  <div class="cm-zone" id="cmZone">
+    <div class="cm-divider"><span>本章评论</span></div>
+    <div class="cm-list" id="cmList"></div>
+    <div class="cm-input">
+      <div class="cmi-av"></div>
+      <input id="cmInput" placeholder="说点什么……" />
+      <div class="cmi-send" id="cmSend">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M4 12l16-7-7 16-2.2-6.8L4 12z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="cm-next" id="cmNext"><span>下一章</span></div>
+  </div>
+
+  <!-- 设置：侧边书签拉手（非按钮） -->
+  <div class="rs-bookmark" id="rsBookmark">
+    <span>设</span><span>置</span>
+  </div>
+</section>
+
+<!-- 阅读设置面板 -->
+<div class="rs-panel" id="rsPanel">
+  <div class="rs-grip"></div>
+  <div class="rs-head">阅读设置</div>
+  <div class="rs-scope" id="rsScope">
+    <div class="rsc-opt active" data-scope="book">仅本书</div>
+    <div class="rsc-opt" data-scope="global">全局</div>
+    <div class="rsc-slide"></div>
+  </div>
+  <div class="rs-sec">
+    <div class="rs-t">阅读背景</div>
+    <div class="rs-bg-row">
+      <div class="rs-bg-up" id="rsBgUp">上传背景</div>
+      <div class="rs-bg-clear" id="rsBgClear">清除</div>
+    </div>
+    <input type="file" accept="image/*" id="rsBgFile" hidden />
+  </div>
+  <div class="rs-sec">
+    <div class="rs-t">字号 <b id="rsSizeVal">16</b></div>
+    <div class="rs-slider" id="rsSize"><div class="rss-track"><div class="rss-fill"></div><div class="rss-knob"></div></div></div>
+  </div>
+  <div class="rs-sec">
+    <div class="rs-t">字体</div>
+    <div class="rs-fonts" id="rsFonts">
+      <span class="rf active" data-f="'Noto Serif SC',serif">思源宋</span>
+      <span class="rf" data-f="'Inter',system-ui,sans-serif">Inter</span>
+      <span class="rf" data-f="'Cormorant Garamond',serif">Cormorant</span>
+      <span class="rf" data-f="'Space Mono',monospace">Mono</span>
+    </div>
+  </div>
+  <div class="rs-sec">
+    <div class="rs-t">文字颜色</div>
+    <div class="rs-color">
+      <div class="rc-wheel" id="rcWheel"><div class="rc-inner"></div><div class="rc-knob" id="rcKnob"></div></div>
+      <div class="rc-side">
+        <div class="rc-preview" id="rcPreview">Aa 叙</div>
+        <div class="rc-lslider" id="rcLight"><div class="rcl-track"><div class="rcl-knob"></div></div></div>
+        <div class="rc-hex" id="rcHex">#2A2A31</div>
+      </div>
+    </div>
+  </div>
+  <div class="rs-done" id="rsDone">完成</div>
+</div>
+
+<!-- 书评详情 -->
+<section class="dn-page" id="page-review">
+  <div class="dn-back" data-close="page-review">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="rv-head"><div class="rv-sub">REVIEW</div><h2 id="rvTitle">—</h2></div>
+  <div class="rv-body" id="rvBody"></div>
+  <div class="rv-cm" id="rvCm"></div>
+  <div class="cm-input inpage">
+    <div class="cmi-av"></div>
+    <input id="rvInput" placeholder="回应这篇书评……" />
+    <div class="cmi-send" id="rvSend">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M4 12l16-7-7 16-2.2-6.8L4 12z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+</section>
+
+<!-- 关系网放大 -->
+<div class="rel-full" id="relFull">
+  <div class="rf-close" id="rfClose">✕</div>
+  <svg id="relFullSvg" viewBox="0 0 600 460"></svg>
+</div>
+
+<!-- 角色档案弹窗 -->
+<div class="ch-modal" id="chModal">
+  <div class="chm-card">
+    <div class="chm-x" id="chmClose">✕</div>
+    <div class="chm-head">
+      <div class="chm-av" id="chmAv"></div>
+      <div class="chm-hi">
+        <div class="chm-n" id="chmName">—</div>
+        <div class="chm-r" id="chmRole">—</div>
+      </div>
+    </div>
+    <div class="chm-tags" id="chmTags"></div>
+    <div class="chm-body" id="chmBody"></div>
+    <div class="chm-rel" id="chmRel"></div>
+  </div>
+</div>
+
+<!-- 通用提示 / 加载 -->
+<div class="dn-toast" id="dnToast"></div>
+<div class="dn-load" id="dnLoad"><div class="dl-orb"><i></i><i></i><i></i></div><div class="dl-txt" id="dnLoadTxt">生成中</div></div>
+
+<!-- 输入弹层 -->
+<div class="dn-modal" id="dnModal">
+  <div class="dm-card">
+    <div class="dm-title" id="dmTitle">编辑</div>
+    <input id="dmInput" />
+    <div class="dm-acts"><span id="dmCancel">取消</span><span id="dmOk" class="ok">确定</span></div>
+  </div>
+</div>
+
+<script src="dn-store.js"></script>
+<script src="dn-ai.js"></script>
+<script src="dn-app.js"></script>
+<script src="dn-wizard.js"></script>
+<script src="dn-relation.js"></script>
+<script src="dn-book.js"></script>
+<script src="dn-reader.js"></script>
+</body>
+</html>

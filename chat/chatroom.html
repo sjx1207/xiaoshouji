@@ -13,6 +13,8 @@
 <link rel="stylesheet" href="chat.css" />
 <link rel="stylesheet" href="chatroom.css" />
 <link rel="stylesheet" href="chatsetting.css" />
+<link rel="stylesheet" href="chatroomcall.css" />
+<link rel="stylesheet" href="chatroomcall-connected.css" />
 </head>
 <body data-crm-guard="pending">
 
@@ -227,6 +229,51 @@
     </div>
   </div>
 
+  <!-- ============ 语音消息 · 居中悬浮弹窗 ============
+       点击十三簿「语音」卡后弹出：不接入真实录音，而是让用户输入
+       这段语音「说的内容」（文字转写），发出后渲染成语音气泡模拟
+       消息——与图片走"文字描述"通路同一套思路：气泡本身只显示
+       声纹 + 时长，点击后才展开转写文字，双击（或点击气泡本体）
+       唤出与文字/图片消息共用的同一套操作面板。
+       与 .crm-img-pending 同一套居中磨砂白玉「牙牌」语言，纯黑白灰，
+       禁止 emoji、禁止暖米色 -->
+  <div class="crm-voice-pending-veil" id="crmVoicePendingVeil" aria-hidden="true"></div>
+  <div class="crm-voice-pending" id="crmVoicePending" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="crm-voice-pending-card">
+      <span class="crm-voice-pending-corner-a" aria-hidden="true"></span>
+      <span class="crm-voice-pending-corner-b" aria-hidden="true"></span>
+
+      <div class="crm-voice-pending-label-row">
+        <span class="crm-voice-pending-label-seal" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="9.3" y="3.5" width="5.4" height="10" rx="2.7" stroke="currentColor" stroke-width="1.5"/><path d="M6 11.5C6 14.8 8.7 17.5 12 17.5C15.3 17.5 18 14.8 18 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 17.5V20.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        <span class="crm-voice-pending-label-col">
+          <span class="crm-voice-pending-label-cn">语音消息</span>
+          <span class="crm-voice-pending-label-en">VOICE&nbsp;MESSAGE</span>
+        </span>
+      </div>
+
+      <p class="crm-voice-pending-hint">对方是语言模型，听不到真实的声音——写下这段语音要说的内容，时长会按字数自动估算</p>
+
+      <textarea class="crm-voice-pending-textarea" id="crmVoicePendingTextarea" rows="4" maxlength="500" placeholder="想通过语音说些什么……"></textarea>
+
+      <div class="crm-voice-pending-preview" id="crmVoicePendingPreview">
+        <span class="crm-voice-pending-preview-glyph" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12H19M13 6L19 12L13 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="crm-voice-pending-preview-bars" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </span>
+        <span class="crm-voice-pending-preview-dur" id="crmVoicePendingPreviewDur">0''</span>
+      </div>
+
+      <div class="crm-voice-pending-actions">
+        <button class="crm-voice-pending-btn is-ghost" id="crmVoicePendingCancelBtn" type="button">取消</button>
+        <button class="crm-voice-pending-btn is-solid" id="crmVoicePendingSendBtn" type="button">发送</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ 多选模式 · 底部批量操作条 ============
        与输入栏共用插槽（二者互斥显示），三枚等宽操作键：
        截图 · 转发 · 删除——删除键使用同一套黑白灰语言，
@@ -365,6 +412,12 @@
       </div>
     </div>
   </div>
+
+  <!-- ============ 视频通话 · 拨通页 ============
+       已拆分为独立文件：chatroomcall.html / .css / .js
+       （见文档末尾 <script src="chatroomcall.js">），运行时由该脚本
+       自动把标记注入本壳内，此处不再写死旧版结构，避免新旧两套
+       实现同时存在导致冲突。 ---- -->
 
   <!-- ============ 相册选择器满屏页 ============
        点击来源弹窗「相册」后，不再跳转/新开窗口，而是在聊天室内部
@@ -736,5 +789,7 @@
 
 <script src="chat.js"></script>
 <script src="chatroom.js"></script>
+<script src="chatroomcall.js"></script>
+<script src="chatroomcall-connected.js"></script>
 </body>
 </html>

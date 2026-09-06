@@ -2578,3 +2578,160 @@ button.cst-bond-fact-pair-item{ width:auto; }
   display:flex; align-items:center; justify-content:center;
   color: var(--grey-3);
 }
+
+/* ==========================================================================
+   清空聊天记录 · 危险操作牙牌条 —— 与上方「记录设置」两枚可跳转导航条
+   同宽同高、同一套牙牌语汇，但不作为可点即跳转的普通条目，而是加了
+   一圈更沉的錾刻描边、标题改用重墨色以示区分，且整条即按钮，点击后
+   永远先经过二次确认弹层，不会一点即清空。与全篇「不用红色报警，
+   用墨色加重表达警戒」的克制配色原则保持一致，不引入品牌之外的颜色。
+========================================================================== */
+.cst-record-row--danger{
+  width:100%;
+  font-family:inherit;
+  cursor:pointer;
+  margin-top:2px;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 18px 34px -24px rgba(18,18,26,0.24),
+    0 5px 12px -9px rgba(18,18,26,0.12),
+    0 0 0 1.4px rgba(18,18,26,0.16);
+}
+.cst-record-row--danger:active{ transform: scale(0.98); }
+
+.cst-record-row-icon--danger{
+  background: linear-gradient(155deg, var(--crm-lacquer-700, #232329) 0%, var(--crm-lacquer-900, #0a0a0c) 100%);
+}
+
+.cst-record-row-title-cn--danger{
+  color: var(--ink);
+  font-weight:800;
+}
+
+.cst-record-row-arrow--danger{
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   清空聊天记录 · 二次确认弹层 —— 与聊天室「重回本轮」确认弹层
+   （.crm-rewind-veil / .crm-rewind-sheet / .crm-rewind-card）完全同源
+   的白玉牙牌语汇，class 前缀改为 cst- 以归属本页，视觉参数一致，
+   确保「清空」这一破坏性操作在两处呈现同一套克制、庄重的确认体验。
+========================================================================== */
+.cst-clear-veil{
+  position:fixed; inset:0;
+  background: rgba(10,10,13,0.46);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity:0; pointer-events:none;
+  transition: opacity 0.26s ease;
+  z-index: 60;
+}
+.cst-clear-veil.is-open{ opacity:1; pointer-events:auto; }
+
+.cst-clear-sheet{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  padding: 0 22px;
+  opacity:0; pointer-events:none;
+  transition: opacity 0.28s ease;
+  z-index: 61;
+}
+.cst-clear-sheet.is-open{ opacity:1; pointer-events:auto; }
+
+.cst-clear-card{
+  position:relative;
+  width:100%; max-width:340px;
+  border-radius: 10px 30px 30px 30px;
+  padding: 22px 20px 18px;
+  background-image:
+    linear-gradient(130deg,
+      rgba(255,255,255,0.98) 0%,
+      rgba(255,255,255,0.55) 18%,
+      rgba(255,255,255,0) 40%,
+      rgba(255,255,255,0) 80%,
+      rgba(255,255,255,0.3) 100%),
+    linear-gradient(178deg, #ffffff 0%, #f6f6f8 55%, #eaeaee 100%);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.95) inset,
+    0 -1.5px 0 0 rgba(18,18,26,0.06) inset,
+    0 40px 70px -28px rgba(8,8,11,0.55),
+    0 0 0 1px rgba(18,18,26,0.07);
+  border: 1px solid rgba(18,18,26,0.1);
+  transform: translateY(10px) scale(0.96);
+  transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+}
+.cst-clear-sheet.is-open .cst-clear-card{ transform: translateY(0) scale(1); }
+
+.cst-clear-corner-a,
+.cst-clear-corner-b{
+  content:''; position:absolute;
+  width:11px; height:11px;
+  pointer-events:none;
+}
+.cst-clear-corner-a{ top:-1px; right:-1px; border-top:1.4px solid rgba(18,18,26,0.32); border-right:1.4px solid rgba(18,18,26,0.32); }
+.cst-clear-corner-b{ bottom:-1px; left:-1px; border-bottom:1.4px solid rgba(18,18,26,0.32); border-left:1.4px solid rgba(18,18,26,0.32); }
+
+.cst-clear-head{
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:12px;
+}
+.cst-clear-glyph{
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:50%;
+  flex-shrink:0;
+  color: var(--ink);
+  background: linear-gradient(178deg, #ffffff 0%, #eeeef1 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 0 0 1px rgba(18,18,26,0.08),
+    0 6px 14px -8px rgba(18,18,26,0.35);
+}
+.cst-clear-head-col{ display:flex; flex-direction:column; gap:2px; }
+.cst-clear-title-cn{ font-size:16.5px; font-weight:800; color: var(--ink); letter-spacing:0.02em; }
+.cst-clear-title-en{ font-family:'Space Mono', monospace; font-size:9.5px; font-weight:600; color: var(--ink-soft, #8a8a92); letter-spacing:0.16em; }
+
+.cst-clear-desc{
+  margin: 0 0 16px;
+  font-size:13px; line-height:1.65;
+  color: var(--ink-soft, #6d6d76);
+}
+
+.cst-clear-actions{
+  display:flex; flex-wrap:wrap; gap:8px;
+}
+.cst-clear-btn{
+  font-family:inherit;
+  font-weight:700;
+  cursor:pointer;
+  border:none;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.2s ease;
+}
+.cst-clear-btn:active{ transform: scale(0.97); }
+
+.cst-clear-btn.is-ghost{
+  flex:1 1 auto;
+  font-size:12.5px;
+  color: var(--ink);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(18,18,26,0.16);
+  border-radius: 22px;
+  padding: 11px 14px;
+}
+.cst-clear-btn.is-danger{
+  flex:1 1 auto;
+  font-size:13px;
+  color:#fff;
+  background: linear-gradient(155deg, var(--crm-lacquer-700, #232329) 0%, var(--crm-lacquer-800, #16161a) 55%, var(--crm-lacquer-900, #0a0a0c) 100%);
+  border-radius: 22px;
+  padding: 11px 16px;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.12) inset,
+    0 10px 20px -12px rgba(8,8,11,0.6);
+}
+.cst-clear-btn-icon{ display:flex; }
+
+@media (prefers-reduced-motion: reduce){
+  .cst-clear-veil, .cst-clear-sheet, .cst-clear-card{ transition:none; }
+}

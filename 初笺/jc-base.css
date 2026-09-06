@@ -1,0 +1,276 @@
+/* ==========================================================================
+   角初笺 · JUECHUJIAN — jc-base.css
+   全站共用：设计令牌 / 状态栏（与 index.html 完全同款）/ 顶栏 / 纸面 /
+   印章式交互件 / 弹层 / 页面转场
+   黑白灰浅色纸面 · 錾刻徽记语言 · 禁 emoji · 禁米色 · 禁细线条简约风
+========================================================================== */
+
+:root{
+  --ink:        #17171b;
+  --ink-soft:   #3c3c43;
+  --grey-1:     #6f6f78;
+  --grey-2:     #9b9ba3;
+  --grey-3:     #c6c6cc;
+  --grey-4:     #e2e2e6;
+  --grey-5:     #edeef0;
+  --paper:      #f6f6f8;
+  --paper-2:    #ffffff;
+  --hair:       rgba(20,20,26,0.09);
+  --hair-strong: rgba(20,20,30,.18);
+  --hair-soft:  rgba(20,20,26,0.055);
+
+  /* 统一纸面：状态栏/顶栏/内容/底栏共用，杜绝色块断层 */
+  --sheet: linear-gradient(180deg, #fbfbfc 0%, #f5f5f7 38%, #eeeef1 100%);
+
+  --status-h: 52px;
+  --topbar-h: 54px;
+  --tabbar-h: 78px;
+
+  --shadow-soft:  0 18px 40px -20px rgba(20,20,30,0.18);
+  --shadow-lift:  0 22px 46px -22px rgba(20,20,30,0.26), 0 2px 0 rgba(255,255,255,0.9) inset;
+  --shadow-press: 0 6px 16px -10px rgba(20,20,30,0.3);
+
+  --ease-silk: cubic-bezier(.22,.9,.24,1);
+  --ease-back: cubic-bezier(.34,1.56,.44,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+
+html,body{
+  height:100%;
+  background:#0c0c0e;
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;
+  color: var(--ink);
+}
+button,input,textarea,select{ font-family:inherit; color:inherit; }
+button{ border:none; background:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+input,textarea{ border:none; outline:none; background:none; }
+::-webkit-scrollbar{ width:0; height:0; }
+
+/* ============ 外框 ============ */
+.phone-wrap{
+  width:100vw; height:100vh; height:100dvh;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.phone-frame{
+  position:relative;
+  width:100vw; height:100vh; height:100dvh;
+  overflow:hidden;
+  background: var(--sheet);
+  isolation:isolate;
+}
+
+/* 纸面辉光底 */
+.bg-glow{
+  position:absolute; inset:-20%; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 40% 30% at 20% 8%, rgba(255,255,255,0.9) 0%, transparent 62%),
+    radial-gradient(ellipse 46% 36% at 82% 92%, rgba(178,178,190,0.3) 0%, transparent 62%);
+  filter: blur(30px);
+  animation: jcGlow 26s ease-in-out infinite alternate;
+}
+@keyframes jcGlow{ 0%{ background-position:0% 0%,100% 100%; } 100%{ background-position:30% 20%,60% 70%; } }
+
+/* 纸纹：极细网格 + 斑驳，避免"扁平简约" */
+.paper-grain{
+  position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.55;
+  background-image:
+    linear-gradient(rgba(20,20,26,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20,20,26,0.028) 1px, transparent 1px),
+    radial-gradient(circle at 30% 20%, rgba(20,20,30,0.03), transparent 55%);
+  background-size: 40px 40px, 40px 40px, 100% 100%;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 0%, transparent 100%);
+          mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 0%, transparent 100%);
+}
+
+/* ==========================================================================
+   状态栏 —— 与 index.html / chat.html 完全同构，透明融入纸面
+========================================================================== */
+.status-bar{
+  position:absolute; top:0; left:0; right:0;
+  height: var(--status-h);
+  display:flex; align-items:flex-end; justify-content:space-between;
+  padding: 0 24px 10px;
+  z-index:200; background:transparent; pointer-events:none;
+}
+.status-time{ font-size:15px; font-weight:600; color: var(--ink); letter-spacing:.2px; }
+.status-island{
+  position:absolute; left:50%; transform:translateX(-50%); bottom:6px;
+  display:flex; align-items:center; justify-content:center; pointer-events:none;
+}
+.si-minimal-capsule{ width:110px; height:32px; background:#000; border-radius:24px; }
+.status-right{ display:flex; align-items:center; gap:7px; }
+.signal{ display:flex; align-items:flex-end; gap:2px; height:13px; }
+.signal i{ display:block; width:2.5px; border-radius:1px; background: var(--ink-soft); opacity:.85; }
+.signal i:nth-child(1){ height:4px; }
+.signal i:nth-child(2){ height:7px; }
+.signal i:nth-child(3){ height:10px; }
+.signal i:nth-child(4){ height:13px; }
+.battery{ display:flex; align-items:center; gap:3px; }
+.bat-pct{ font-size:14px; font-weight:600; color: var(--ink-soft); opacity:.85; }
+.bat-shell{ width:24px; height:12px; border:1.5px solid rgba(20,20,28,.42); border-radius:3.5px; padding:1.5px; position:relative; }
+.bat-inner{ width:76%; height:100%; border-radius:1.5px; background: linear-gradient(90deg, var(--ink-soft), var(--ink)); }
+.bat-nub{ position:absolute; right:-4px; top:50%; transform:translateY(-50%); width:2.5px; height:5px; background:rgba(20,20,28,.35); border-radius:0 2px 2px 0; }
+
+/* 深色横幅（我的页 / 详情页顶部大图）下的状态栏反白 */
+.is-dark-chrome .status-time,
+.is-dark-chrome .bat-pct{ color:#fff; opacity:.94; }
+.is-dark-chrome .signal i{ background:#fff; opacity:.94; }
+.is-dark-chrome .bat-inner{ background: linear-gradient(90deg, rgba(255,255,255,.82), #fff); }
+.is-dark-chrome .bat-shell{ border-color: rgba(255,255,255,.58); }
+.is-dark-chrome .bat-nub{ background: rgba(255,255,255,.52); }
+
+/* ==========================================================================
+   顶栏 —— 徽记式标题（罗马数字 + 中文 + 英文小字），透明底
+========================================================================== */
+.top-bar{
+  position:absolute; top: var(--status-h); left:0; right:0;
+  height: var(--topbar-h);
+  display:flex; align-items:center; padding: 0 16px;
+  z-index:70; background:transparent; pointer-events:none;
+}
+.top-bar > *{ pointer-events:auto; }
+
+.top-seal{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  display:flex; align-items:center; gap:9px;
+  padding: 7px 16px 7px 12px;
+  background: var(--paper-2);
+  border-radius: 16px 22px 16px 22px;
+  box-shadow: 0 10px 26px -16px rgba(20,20,30,.4), 0 0 0 1px var(--hair-soft), 0 1px 0 rgba(255,255,255,.9) inset;
+}
+.tts-num{ font-family:'Space Mono', monospace; font-size:10px; letter-spacing:1px; color: var(--grey-3); }
+.tts-divider{ width:1px; height:18px; background: linear-gradient(180deg, transparent, var(--hair) 30%, var(--hair) 70%, transparent); }
+.tts-col{ display:flex; flex-direction:column; line-height:1.05; }
+.tts-cn{ font-size:14px; font-weight:650; letter-spacing:2px; color: var(--ink); }
+.tts-en{ font-family:'Space Mono', monospace; font-size:8px; letter-spacing:1.6px; color: var(--grey-2); margin-top:2px; }
+
+/* 返回：斜切徽记，非常见圆形箭头 */
+.jc-back{
+  position:relative; display:flex; align-items:center; justify-content:center;
+  width:36px; height:36px; flex-shrink:0; color: var(--ink-soft);
+  background: var(--paper-2);
+  border-radius: 12px 18px 12px 18px;
+  box-shadow: 0 10px 22px -14px rgba(20,20,30,.42), 0 0 0 1px var(--hair-soft), 0 1px 0 rgba(255,255,255,.92) inset;
+  transition: transform .34s var(--ease-back), box-shadow .3s;
+}
+.jc-back::after{
+  content:''; position:absolute; inset:4px; border-radius:9px 14px 9px 14px;
+  border:1px solid var(--hair-soft); pointer-events:none;
+}
+.jc-back:active{ transform: scale(.9) rotate(-4deg); box-shadow: var(--shadow-press); }
+.top-right-slot{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+
+/* ==========================================================================
+   通用：錾刻小节标题 / 卡面 / 印章按钮
+========================================================================== */
+.jc-eyebrow{
+  display:flex; align-items:center; gap:9px; margin: 0 0 12px;
+}
+.jc-eyebrow-rule{ flex:1; height:1px; background: linear-gradient(90deg, var(--hair), transparent); }
+.jc-eyebrow-cn{ font-size:12.5px; font-weight:650; letter-spacing:2.4px; color: var(--ink-soft); }
+.jc-eyebrow-en{ font-family:'Space Mono', monospace; font-size:8px; letter-spacing:1.6px; color: var(--grey-2); }
+.jc-eyebrow-dot{ width:5px; height:5px; border-radius:50%; background: var(--ink); box-shadow: 0 0 0 3px rgba(20,20,30,.07); }
+
+.jc-panel{
+  position:relative;
+  background: linear-gradient(168deg, #ffffff 0%, #fafafb 52%, #f3f3f6 100%);
+  border-radius: 20px 26px 20px 26px;
+  box-shadow: 0 20px 44px -26px rgba(20,20,30,.34), 0 0 0 1px var(--hair-soft), 0 1px 0 rgba(255,255,255,.95) inset;
+  padding: 16px 16px 18px;
+  overflow:hidden;
+}
+/* 四角錾刻角标，替代"细边框简约"语言 */
+.jc-panel::before,
+.jc-panel::after{
+  content:''; position:absolute; width:16px; height:16px; pointer-events:none;
+  border:1.4px solid rgba(20,20,30,.16);
+}
+.jc-panel::before{ left:9px; top:9px; border-right:0; border-bottom:0; border-radius:5px 0 0 0; }
+.jc-panel::after{ right:9px; bottom:9px; border-left:0; border-top:0; border-radius:0 0 5px 0; }
+
+/* 印章式主行动件（非常规按钮）：多层压印环 + 扫光 */
+.jc-seal{
+  position:relative; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:50%; color:var(--ink);
+  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #f4f4f7 46%, #e6e6ea 100%);
+  box-shadow:
+    0 20px 40px -20px rgba(20,20,30,.45),
+    0 0 0 1px rgba(20,20,30,.08),
+    0 2px 0 rgba(255,255,255,.95) inset,
+    0 -10px 22px -14px rgba(20,20,30,.22) inset;
+  transition: transform .4s var(--ease-back), box-shadow .35s;
+}
+.jc-seal:active{ transform: scale(.94); }
+.jc-seal-ring{
+  position:absolute; inset:6px; border-radius:50%;
+  border:1px solid rgba(20,20,30,.13);
+}
+.jc-seal-ring2{
+  position:absolute; inset:12px; border-radius:50%;
+  border:1px dashed rgba(20,20,30,.16);
+  animation: jcSpin 26s linear infinite;
+}
+@keyframes jcSpin{ to{ transform: rotate(360deg); } }
+
+/* ============ 弹层 ============ */
+.jc-sheet-mask{
+  position:absolute; inset:0; z-index:400;
+  background: rgba(24,24,30,.34);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  opacity:0; pointer-events:none; transition: opacity .42s var(--ease-silk);
+}
+.jc-sheet-mask.on,
+.jc-sheet-mask.open{ opacity:1; pointer-events:auto; }
+.jc-sheet{
+  position:absolute; left:0; right:0; bottom:0; z-index:401;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f9 62%, #f1f1f4 100%);
+  border-radius: 30px 30px 0 0;
+  box-shadow: 0 -26px 60px -28px rgba(20,20,30,.5), 0 -1px 0 rgba(255,255,255,.9) inset;
+  padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
+  transform: translateY(102%);
+  transition: transform .52s var(--ease-silk);
+  max-height: 86%;
+  overflow-y:auto;
+}
+.jc-sheet.on,
+.jc-sheet.open{ transform: translateY(0); }
+.jc-grip{ width:44px; height:4px; border-radius:3px; background: var(--grey-3); margin: 2px auto 14px; }
+
+/* ============ 提示条 ============ */
+.jc-toast{
+  position:absolute; left:50%; top: calc(var(--status-h) + 12px);
+  transform: translate(-50%, -22px); z-index:900;
+  padding: 10px 18px; max-width:78%;
+  background: rgba(23,23,27,.94); color:#fff;
+  font-size:12.5px; letter-spacing:.4px; border-radius: 14px 20px 14px 20px;
+  box-shadow: 0 18px 40px -20px rgba(0,0,0,.6);
+  opacity:0; pointer-events:none;
+  transition: opacity .34s, transform .42s var(--ease-back);
+}
+.jc-toast.show{ opacity:1; transform: translate(-50%, 0); }
+
+/* ============ 页面转场（丝滑跳转） ============ */
+.jc-veil{
+  position:fixed; inset:0; z-index:9999; pointer-events:none;
+  background: var(--sheet);
+  opacity:0; transition: opacity .34s var(--ease-silk);
+}
+.jc-veil.on{ opacity:1; pointer-events:auto; }
+body.jc-enter .phone-frame{ animation: jcEnter .52s var(--ease-silk) both; }
+@keyframes jcEnter{
+  from{ opacity:0; transform: translateY(14px) scale(.985); }
+  to  { opacity:1; transform:none; }
+}
+
+/* 载入骨架的墨滴 */
+.jc-ink-load{ display:inline-flex; gap:5px; align-items:center; }
+.jc-ink-load i{ width:6px; height:6px; border-radius:50%; background: var(--grey-2); animation: jcInk 1.1s var(--ease-silk) infinite; }
+.jc-ink-load i:nth-child(2){ animation-delay:.14s; }
+.jc-ink-load i:nth-child(3){ animation-delay:.28s; }
+@keyframes jcInk{ 0%,100%{ transform: translateY(0); opacity:.4; } 50%{ transform: translateY(-6px); opacity:1; } }
+
+.jc-hide{ display:none !important; }

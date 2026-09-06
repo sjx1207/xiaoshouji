@@ -95,15 +95,31 @@
     var lastFocused = null;
     var openToken = 0; // 防止异步查库回来时用户已切换到另一个好友，导致背景图串台
 
-    /* ---- 事件委托：仅从好友清单区的 .flist-item 点击进入资料页，
-       且必须点击到真实好友条目（而非分组头/空态），杜绝其它入口 ---- */
+    /* ---- 事件委托：好友页点击好友条目 → 直接进入单聊，不再强制
+       先停留在资料页。写入与原「进入聊天」按钮一致结构/一致 key 的
+       会话令牌后直接跳转 chatroom.html，chatroom.js 的 readSession()
+       读取方式不变。资料页相关函数（openProfile 等）保留在文件中
+       未删除，只是不再作为好友列表进入聊天的必经关卡 ---- */
     listEl.addEventListener('click', function (evt) {
       var item = evt.target.closest ? evt.target.closest('.flist-item') : null;
       if (!item || !listEl.contains(item)) return;
       var friend = readFriendFromItem(item);
       if (!friend) return;
-      openProfile(friend);
+      goToChat(friend);
     });
+
+    function goToChat(friend) {
+      try {
+        sessionStorage.setItem('luna_chat_session', JSON.stringify({
+          name: friend.name || '好友',
+          charId: friend.charId != null ? friend.charId : null,
+          avatar: friend.avatar || '',
+          online: !!friend.online,
+          color: 'ink'
+        }));
+      } catch (e) {}
+      window.location.href = 'chatroom.html';
+    }
 
     function readFriendFromItem(item) {
       var nameEl = item.querySelector('.flist-name');

@@ -1,0 +1,704 @@
+/* ==========================================================================
+   chatroomcall-connected.css —— 视频通话 · 接通页 v4
+   浅色高级玻璃系重制版。
+
+   本轮重做要点：
+   1. 全面转为偏白浅灰的高级玻璃质感，弃用深黑压暗视频层，改用
+      雾面浅灰渐变 + 顶部强光晕，让整页在"浅色系"里依然有电影感
+      的明暗层次，而不是死白一片。
+   2. 自拍小窗改为真正立体的白玻璃卡片：清晰的多层投影、顶部强
+      反光带、细描边，彻底告别"黑方块"的观感。
+   3. 气泡材质重做：加大对比度与投影强度，让白玻璃的分层真正
+      "看得出来"——顶部高光带更宽更亮，底部投影更深更远，边缘
+      描边带一点冷灰反光。
+   4. 交互控件全面放大：挂断键 76px，两侧功能键 56px，图标线宽
+      加粗到 2px 并采用更饱满的几何造型，不再是纤细线条图标。
+   5. 新增开场光晕呼吸动画与自拍窗入场动效，作为"唯一一处"精心
+      编排的非交互动效焦点，其余动效克制、只响应用户操作。
+========================================================================== */
+
+.ccv3-page{
+  position:absolute; inset:0; z-index:822;
+  overflow:hidden;
+  opacity:0; pointer-events:none;
+  transform: scale(1.03);
+  transition: opacity 0.5s cubic-bezier(.22,.9,.32,1), transform 0.6s cubic-bezier(.19,1,.22,1);
+}
+.ccv3-page.is-open{ opacity:1; pointer-events:auto; transform:scale(1); }
+
+.ccv3-stage{
+  position:relative;
+  width:100%; height:100%;
+  overflow:hidden;
+  background:#EDEBE6;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+}
+
+/* ---------------------------------------------------------------------
+   全屏视频画面（对方）—— 雾面浅灰，非死黑压暗
+--------------------------------------------------------------------- */
+.ccv3-video{
+  position:absolute; inset:0;
+  background-size:cover; background-position:center;
+  background-color:#E7E4DE;
+  background-image:
+    radial-gradient(130% 78% at 50% 18%, #FBFAF8 0%, #E9E6E0 46%, #D9D6CE 100%);
+  transform: scale(1.02);
+  transition: transform 8s cubic-bezier(.19,1,.22,1);
+}
+.ccv3-page.is-open .ccv3-video{ transform: scale(1.06); }
+.ccv3-video.has-image{ background-color:#e9e6e0; }
+
+.ccv3-video-grain{
+  position:absolute; inset:0;
+  opacity:0.05; mix-blend-mode:multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events:none;
+}
+
+/* 顶部：柔和光晕代替暗角，制造"逆光高级感"而非压暗 */
+.ccv3-video-veil-top{
+  position:absolute; top:-10%; left:-10%; right:-10%; height:280px;
+  background: radial-gradient(60% 100% at 50% 0%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.28) 46%, transparent 78%);
+  pointer-events:none;
+  animation: ccv3GlowBreathe 7s ease-in-out infinite;
+}
+@keyframes ccv3GlowBreathe{
+  0%,100%{ opacity:0.75; }
+  50%{ opacity:1; }
+}
+/* 底部：极浅的暖灰渐隐，托住文字区可读性，不做重黑压边 */
+.ccv3-video-veil-bottom{
+  position:absolute; bottom:0; left:0; right:0; height:48%;
+  background: linear-gradient(0deg, rgba(230,227,220,0.92) 0%, rgba(233,230,223,0.5) 44%, transparent 100%);
+  pointer-events:none;
+}
+
+/* ---------------------------------------------------------------------
+   顶部氛围光晕 —— 呼应呼叫页的「蚀环」语言：以昵称为圆心向外辐射
+   的极细金棕色光束，缓慢自转，让接通页与呼叫页共享同一套"信号"
+   意象，而不是呼叫页华丽、接通页突然素净的割裂感
+--------------------------------------------------------------------- */
+.ccv3-aura{
+  position:absolute; z-index:2;
+  top: -170px; left:50%;
+  width:520px; height:520px;
+  margin-left:-260px;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(56,54,47,0.09) 0deg 1deg,
+    transparent 1deg 8deg
+  );
+  -webkit-mask-image: radial-gradient(circle at 50% 34%, rgba(0,0,0,0.9) 0%, transparent 42%);
+  mask-image: radial-gradient(circle at 50% 34%, rgba(0,0,0,0.9) 0%, transparent 42%);
+  animation: ccv3AuraSpin 90s linear infinite;
+  pointer-events:none;
+}
+@keyframes ccv3AuraSpin{ to{ transform: rotate(360deg); } }
+
+.ccv3-status{
+  position:relative; z-index:6;
+  padding-top: 2px;
+}
+.ccv3-status .status-time,
+.ccv3-status .bat-pct{
+  color: #38362F;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+}
+.ccv3-status .signal i{ background: #38362F; }
+.ccv3-status .bat-shell{ border-color: rgba(56,54,47,0.55); }
+.ccv3-status .bat-inner{ background: #38362F; }
+.ccv3-status .bat-nub{ background: rgba(56,54,47,0.55); }
+.ccv3-status .si-minimal-capsule{ background:#151412; border:1px solid rgba(255,255,255,0.1); }
+
+/* ---------------------------------------------------------------------
+   贴顶极简信息条 —— 深灰文字承托在浅色底上，衬线昵称提升气质
+--------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------
+   贴顶信息条 —— 整体固定在左上角，头像在正上方、昵称胶囊与计时
+   紧贴其下方，纵向堆叠成一个整体，与右上角自拍卡片分居两侧
+--------------------------------------------------------------------- */
+.ccv3-topbar{
+  position:absolute; z-index:5;
+  top: 66px; left: 0; width: 100%;
+  display:flex; flex-direction:column; align-items:center; gap:9px;
+}
+.ccv3-topbar-row{
+  position:relative;
+  display:flex; flex-direction:row; align-items:center;
+}
+/* 头像徽标容器：固定尺寸的定位锚点，内部叠放头像本体、双层呼吸
+   光晕与外圈刻度点缀。加大到 108px（约为上一版的两倍），角落
+   自成一块视觉焦点 */
+.ccv3-peer-chip-wrap{
+  position:relative;
+  flex:none;
+  width:108px; height:108px;
+}
+.ccv3-peer-chip-halo{
+  position:absolute; z-index:1;
+  left:50%; top:50%;
+  width:148px; height:148px;
+  margin: -74px 0 0 -74px;
+  pointer-events:none;
+}
+.ccv3-peer-chip-halo::before,
+.ccv3-peer-chip-halo::after{
+  content:'';
+  position:absolute; inset:0;
+  border-radius:50%;
+  border: 1.5px solid rgba(56,54,47,0.4);
+  opacity:0;
+}
+.ccv3-page.is-open .ccv3-peer-chip-halo::before{
+  animation: ccv3ChipHaloPulse 3s ease-out infinite;
+}
+.ccv3-page.is-open .ccv3-peer-chip-halo::after{
+  animation: ccv3ChipHaloPulse 3s ease-out infinite 1.5s;
+}
+@keyframes ccv3ChipHaloPulse{
+  0%{ opacity:0.65; transform:scale(0.82); }
+  70%{ opacity:0; transform:scale(1.3); }
+  100%{ opacity:0; transform:scale(1.3); }
+}
+/* 装饰性刻度环：常驻不淡出的虚线圆环，缓慢自转，围绕头像一整圈，
+   与呼吸脉冲圈叠加，构成"信号刻度盘"式的持续装饰，而不是只有
+   一闪而过的呼吸效果 */
+.ccv3-peer-chip-ring{
+  position:absolute; z-index:1;
+  left:50%; top:50%;
+  width:130px; height:130px;
+  margin: -65px 0 0 -65px;
+  border-radius:50%;
+  border: 1px dashed rgba(56,54,47,0.3);
+  pointer-events:none;
+  animation: ccv3ChipRingSpin 22s linear infinite;
+}
+@keyframes ccv3ChipRingSpin{ to{ transform: rotate(360deg); } }
+.ccv3-peer-chip{
+  position:absolute; z-index:2;
+  inset:0;
+  border-radius:50%;
+  overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background-size:cover; background-position:center;
+  background-image: linear-gradient(155deg, #EDEBE6 0%, #D9D6CE 100%);
+  border: 3px solid rgba(255,255,255,0.95);
+  box-shadow:
+    0 2px 0 0 rgba(255,255,255,0.9) inset,
+    0 18px 32px -13px rgba(58,55,46,0.42);
+  animation: ccv3ChipBreathe 3.6s ease-in-out infinite;
+}
+@keyframes ccv3ChipBreathe{
+  0%,100%{ transform:scale(1); }
+  50%{ transform:scale(1.045); }
+}
+.ccv3-peer-chip.has-image .ccv3-peer-chip-glyph{ display:none; }
+.ccv3-peer-chip-glyph{
+  font-family:'Songti SC','Noto Serif SC','Playfair Display',serif;
+  font-size:42px; font-weight:800;
+  color: rgba(58,55,46,0.55);
+  line-height:1;
+}
+/* 昵称牌 + 计时行：与头像并排放置在角落名片的右侧，纵向堆叠 */
+.ccv3-topbar-text{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+/* 昵称牌：不再是裸文字，改为一枚与自拍卡片同源的白玻璃铭牌，
+   两侧配呼吸的微光点，与呼叫页铭牌的材质语言正式对齐 */
+.ccv3-topbar-name{
+  position:relative;
+  display:flex; align-items:center; gap:8px;
+  padding: 7px 20px;
+  border-radius:999px;
+  background: linear-gradient(155deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.42) 100%);
+  border: 1px solid rgba(255,255,255,0.95);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.95) inset,
+    0 10px 22px -12px rgba(58,55,46,0.28);
+  backdrop-filter: blur(10px) saturate(1.3);
+  -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  font-family:'Songti SC','Noto Serif SC','Playfair Display',serif;
+  font-size:17.5px; font-weight:700; color:#2C2A25;
+  letter-spacing:0.02em;
+}
+.ccv3-topbar-name::before,
+.ccv3-topbar-name::after{
+  content:'';
+  width:5px; height:5px; border-radius:50%;
+  background: radial-gradient(circle at 35% 30%, #8f8d86, #4c4a44 70%);
+  box-shadow: 0 0 7px 1.5px rgba(56,54,47,0.4);
+  animation: ccv3NameFleckPulse 2.6s ease-in-out infinite;
+}
+.ccv3-topbar-name::after{ animation-delay: 1.1s; }
+@keyframes ccv3NameFleckPulse{
+  0%,100%{ opacity:0.35; transform:scale(0.8); }
+  50%{ opacity:1; transform:scale(1.15); }
+}
+.ccv3-topbar-status{
+  display:flex; align-items:center; gap:7px;
+  padding-left: 4px;
+  font-size:11.5px; font-weight:600; color: rgba(60,58,51,0.62);
+  font-family:'Space Mono', monospace; letter-spacing:0.03em;
+}
+.ccv3-live-dot{
+  width:5px; height:5px; border-radius:50%;
+  background: #6B6355;
+  box-shadow: 0 0 6px 1.5px rgba(107,99,85,0.4);
+  animation: ccv3LiveDotPulse 1.8s ease-in-out infinite;
+}
+@keyframes ccv3LiveDotPulse{
+  0%,100%{ opacity:0.45; transform:scale(0.85); }
+  50%{ opacity:1; transform:scale(1.12); }
+}
+.ccv3-timer{ color: rgba(60,58,51,0.42); }
+
+/* ---------------------------------------------------------------------
+   用户自拍小窗口 —— 真正立体的白玻璃卡片：多层投影 + 顶部强反光
+   带 + 冷灰描边，与主画面并列的"第二块玻璃"
+--------------------------------------------------------------------- */
+/* 外层光环容器：包住卡片本体，独立负责呼吸脉冲圈，不与卡片本身
+   的入场动效冲突——解决"自拍窗四周空荡、没有呼吸效果"的问题 */
+.ccv3-selfie-halo{
+  position:absolute; z-index:5;
+  top: 218px; right: 10px;
+  width: 120px; height: 164px;
+  pointer-events:none;
+}
+.ccv3-selfie-halo::before,
+.ccv3-selfie-halo::after{
+  content:'';
+  position:absolute; inset:8px;
+  border-radius: 26px;
+  border: 1.25px solid rgba(56,54,47,0.4);
+  opacity:0;
+}
+.ccv3-page.is-open .ccv3-selfie-halo::before{
+  animation: ccv3SelfieHaloPulse 3.2s ease-out infinite;
+}
+.ccv3-page.is-open .ccv3-selfie-halo::after{
+  animation: ccv3SelfieHaloPulse 3.2s ease-out infinite 1.6s;
+}
+@keyframes ccv3SelfieHaloPulse{
+  0%{ opacity:0.65; transform:scale(0.94); }
+  70%{ opacity:0; transform:scale(1.14); }
+  100%{ opacity:0; transform:scale(1.14); }
+}
+.ccv3-selfie{
+  position:absolute; z-index:5;
+  top: 226px; right: 18px;
+  width: 104px; height: 148px;
+  border-radius: 20px;
+  overflow:hidden;
+  background: linear-gradient(165deg, #FDFCFA 0%, #EEEBE5 55%, #DEDBD3 100%);
+  border: 1.5px solid rgba(255,255,255,0.9);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.95) inset,
+    0 -18px 24px -16px rgba(255,255,255,0.6) inset,
+    0 20px 40px -14px rgba(60,56,44,0.32),
+    0 6px 14px -6px rgba(60,56,44,0.22),
+    0 0 0 1px rgba(60,56,44,0.06);
+  transform: translateY(-14px) scale(0.9);
+  opacity:0;
+  transition: transform 0.7s cubic-bezier(.19,1,.22,1) 0.15s, opacity 0.5s ease 0.15s, box-shadow 2.6s ease-in-out infinite;
+}
+.ccv3-page.is-open .ccv3-selfie{
+  transform: translateY(0) scale(1);
+  opacity:1;
+  animation: ccv3SelfieBreathe 3.4s ease-in-out infinite;
+}
+/* 卡片顶角一枚常亮的金棕色信号点，呼应呼叫页蚀环的星尘光点，
+   让卡片本身也有一处"精心编排的焦点"而非纯留白玻璃面 */
+.ccv3-selfie-spark{
+  position:absolute; z-index:6;
+  top:9px; left:11px;
+  width:6px; height:6px; border-radius:50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #6a6862 70%);
+  box-shadow: 0 0 8px 2px rgba(56,54,47,0.5);
+  animation: ccv3SparkTwinkle 2.2s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes ccv3SparkTwinkle{
+  0%,100%{ opacity:0.5; transform:scale(0.85); }
+  50%{ opacity:1; transform:scale(1.2); }
+}
+@keyframes ccv3SelfieBreathe{
+  0%,100%{
+    box-shadow:
+      0 1.5px 0 0 rgba(255,255,255,0.95) inset,
+      0 -18px 24px -16px rgba(255,255,255,0.6) inset,
+      0 20px 40px -14px rgba(60,56,44,0.32),
+      0 6px 14px -6px rgba(60,56,44,0.22),
+      0 0 0 1px rgba(60,56,44,0.06);
+  }
+  50%{
+    box-shadow:
+      0 1.5px 0 0 rgba(255,255,255,1) inset,
+      0 -18px 24px -16px rgba(255,255,255,0.75) inset,
+      0 22px 44px -14px rgba(60,56,44,0.4),
+      0 6px 16px -6px rgba(60,56,44,0.28),
+      0 0 0 1.5px rgba(255,255,255,0.5);
+  }
+}
+.ccv3-selfie-inner{
+  position:absolute; inset:0;
+  background-size:cover; background-position:center;
+  background-image:
+    radial-gradient(140% 95% at 50% 14%, #FBFAF8 0%, #E6E3DC 55%, #D3D0C7 100%);
+  display:flex; align-items:center; justify-content:center;
+}
+.ccv3-selfie-inner.has-image{ background-image:none; }
+.ccv3-selfie-inner.has-image .ccv3-selfie-placeholder{ display:none; }
+/* 摄像头未接入时的占位剪影：柔和的人形轮廓 + 状态小字，外加一圈
+   细描边"取景框"，让占位状态本身也像"设计过的空态"而非纯留白 */
+.ccv3-selfie-placeholder{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(58,55,46,0.22);
+}
+.ccv3-selfie-placeholder svg{
+  color: rgba(58,55,46,0.4);
+  filter: drop-shadow(0 1px 2px rgba(255,255,255,0.6));
+}
+.ccv3-selfie-placeholder span{
+  font-family:'Space Mono', monospace;
+  font-size:8px; font-weight:600; letter-spacing:0.06em;
+  color: rgba(58,55,46,0.46);
+}
+.ccv3-selfie::after{
+  content:'';
+  position:absolute; inset:0;
+  background: linear-gradient(195deg, rgba(255,255,255,0.55) 0%, transparent 38%);
+  pointer-events:none;
+}
+.ccv3-selfie::before{
+  content:'';
+  position:absolute; left:10px; right:10px; top:8px; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+  z-index:2;
+}
+
+/* ---------------------------------------------------------------------
+   文字面板 + 白玻璃气泡 —— 加大对比与投影强度，让分层真正可见
+--------------------------------------------------------------------- */
+.ccv3-transcript{
+  position:absolute; left:0; right:0; z-index:3;
+  bottom: 132px;
+  top: 46%;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 100%);
+}
+.ccv3-transcript::-webkit-scrollbar{ display:none; }
+.ccv3-transcript-inner{
+  display:flex; flex-direction:column; gap:15px;
+  padding: 16px 18px 6px;
+  min-height:100%;
+  justify-content:flex-end;
+}
+
+.ccv3-line{ display:flex; width:100%; }
+
+/* -----------------------------------------------------------------
+   旁白／动作描述行 —— 刻意与对话气泡拉开材质差异：不用气泡容器，
+   不用玻璃质感，而是"印在画面上的文字"——两端配极细引导线与
+   一对钻石分隔符，像电影字幕卡的排版逻辑。这样旁白和对话即使
+   连续出现，读者也能第一眼分辨"这是描述"还是"这是台词"。
+------------------------------------------------------------------ */
+.ccv3-line--narration{
+  justify-content:center;
+  padding: 6px 8px;
+}
+.ccv3-narration-wrap{
+  display:flex; align-items:center; gap:9px;
+  max-width: 78%;
+  padding: 5px 4px;
+}
+/* 引导线改为渐变金棕色细线，末端带小小的光点收束，替代原本纯灰
+   色、观感单薄的直线——让旁白行本身也具备一点材质感 */
+.ccv3-narration-rule{
+  flex:1 1 auto;
+  height:1px; min-width:10px;
+  background: linear-gradient(90deg, transparent, rgba(56,54,47,0.4));
+}
+.ccv3-line--narration .ccv3-narration-rule:last-child{
+  background: linear-gradient(90deg, rgba(56,54,47,0.4), transparent);
+}
+/* 双菱形分隔符：内层实心 + 外层描边光晕，比单一纯色菱形更有
+   "工艺感"，呼应呼叫页蚀环的星尘点缀语言 */
+.ccv3-narration-mark{
+  position:relative;
+  flex:none;
+  width:6px; height:6px;
+  transform: rotate(45deg);
+  background: linear-gradient(155deg, #9a9890, #4c4a44);
+  box-shadow: 0 0 6px 1.5px rgba(56,54,47,0.35), 0 1px 0 rgba(255,255,255,0.7) inset;
+}
+.ccv3-narration-mark::before{
+  content:'';
+  position:absolute; inset:-3px;
+  border: 1px solid rgba(56,54,47,0.3);
+}
+.ccv3-narration-text{
+  flex:none;
+  margin:0;
+  text-align:center;
+  font-family:'Songti SC','Noto Serif SC','Playfair Display',serif;
+  font-style: italic;
+  font-weight:500;
+  font-size:13.5px;
+  line-height:1.6;
+  letter-spacing:0.02em;
+  color: rgba(74,64,42,0.72);
+  text-shadow: 0 1px 10px rgba(255,255,255,0.6);
+}
+
+.ccv3-line--in{ justify-content:flex-start; }
+.ccv3-line--out{ justify-content:flex-end; }
+
+/* -----------------------------------------------------------------
+   对话气泡行 —— 加入方向感头像标（仅 in 侧），让"谁在说话"和
+   旁白的"画外音"形成结构性对比，而不只是颜色不同
+------------------------------------------------------------------ */
+.ccv3-line--speech{ align-items:flex-end; gap:8px; }
+.ccv3-speech-avatar{
+  flex:none;
+  width:26px; height:26px; border-radius:50%;
+  background-size:cover; background-position:center;
+  background-color:#DEDBD3;
+  background-image: radial-gradient(120% 120% at 30% 20%, #F7F5F0 0%, #D9D6CD 100%);
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 4px 10px -4px rgba(58,55,46,0.35);
+}
+.ccv3-line--out .ccv3-speech-avatar{ display:none; }
+
+.ccv3-bubble{
+  position:relative;
+  max-width: 74%;
+  padding: 12px 17px;
+  border-radius: 20px;
+  isolation:isolate;
+  background:
+    linear-gradient(160deg, #FFFFFF 0%, #F1EFEA 52%, #E6E3DB 100%);
+  border: 1px solid rgba(255,255,255,0.95);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,1) inset,
+    0 -14px 22px -16px rgba(255,255,255,0.9) inset,
+    0 18px 32px -14px rgba(58,55,46,0.28),
+    0 4px 10px -4px rgba(58,55,46,0.16),
+    0 0 0 1px rgba(58,55,46,0.05);
+}
+.ccv3-bubble::before{
+  content:'';
+  position:absolute; left:14px; right:14px; top:2px; height:1.5px;
+  border-radius:2px;
+  background: linear-gradient(90deg, transparent, rgba(56,54,47,0.42) 50%, transparent);
+  pointer-events:none;
+}
+/* 气泡尾角：用小三角强化"这是一句话"的对话属性 */
+.ccv3-bubble::after{
+  content:'';
+  position:absolute; bottom:0; width:10px; height:10px;
+  background: inherit;
+  pointer-events:none;
+}
+.ccv3-line--in .ccv3-bubble{ border-bottom-left-radius:7px; }
+.ccv3-line--in .ccv3-bubble::after{
+  left:-4px;
+  border-radius: 0 0 0 8px;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+.ccv3-line--out .ccv3-bubble{
+  border-bottom-right-radius:7px;
+  background:
+    linear-gradient(160deg, #3A3730 0%, #29271F 52%, #1C1A15 100%);
+  border-color: rgba(255,255,255,0.14);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.16) inset,
+    0 18px 32px -14px rgba(28,26,21,0.4),
+    0 4px 10px -4px rgba(28,26,21,0.28),
+    0 0 0 1px rgba(255,255,255,0.06);
+}
+.ccv3-line--out .ccv3-bubble::before{
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3) 50%, transparent);
+}
+.ccv3-line--out .ccv3-bubble::after{
+  right:-4px;
+  border-radius: 0 0 8px 0;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+.ccv3-bubble-text{
+  margin:0;
+  font-size:15px; font-weight:500; line-height:1.5;
+  color: #2E2C26;
+}
+.ccv3-line--out .ccv3-bubble-text{ color: #F3F1EC; }
+
+/* -----------------------------------------------------------------
+   输入中提示气泡 —— 三点跳动动画，材质与 speech 气泡一致，避免
+   宿主系统插入默认样式时出现无装饰的黑色残缺方块
+------------------------------------------------------------------ */
+.ccv3-bubble--typing{
+  padding: 14px 18px;
+  display:flex; align-items:center;
+}
+.ccv3-typing-dots{
+  display:flex; align-items:center; gap:4.5px;
+}
+.ccv3-typing-dots span{
+  width:6px; height:6px; border-radius:50%;
+  background: rgba(58,55,46,0.55);
+  animation: ccv3TypingBounce 1.2s ease-in-out infinite;
+}
+.ccv3-line--out .ccv3-typing-dots span{ background: rgba(243,241,236,0.7); }
+.ccv3-typing-dots span:nth-child(2){ animation-delay: 0.15s; }
+.ccv3-typing-dots span:nth-child(3){ animation-delay: 0.3s; }
+@keyframes ccv3TypingBounce{
+  0%, 60%, 100%{ transform: translateY(0); opacity:0.5; }
+  30%{ transform: translateY(-4px); opacity:1; }
+}
+
+/* ---------------------------------------------------------------------
+   展开式输入条 —— 同一套白玻璃语言，尺寸随主控件一并放大
+--------------------------------------------------------------------- */
+.ccv3-input-bar{
+  position:absolute; left:0; right:0; z-index:7;
+  bottom: 92px;
+  display:flex; align-items:center; gap:10px;
+  margin: 0 16px;
+  max-height:0;
+  overflow:hidden;
+  opacity:0;
+  transform: translateY(10px);
+  transition: max-height 0.32s cubic-bezier(.22,.9,.32,1), opacity 0.24s ease, transform 0.32s cubic-bezier(.22,.9,.32,1);
+}
+.ccv3-input-bar.is-open{
+  max-height:72px;
+  opacity:1;
+  transform: translateY(0);
+}
+.ccv3-input-wrap{
+  flex:1; min-width:0;
+  display:flex; align-items:center;
+  border-radius: 24px;
+  padding: 2px 4px;
+  background: linear-gradient(160deg, #FFFFFF 0%, #EEEBE4 100%);
+  border: 1px solid rgba(255,255,255,0.95);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,1) inset,
+    0 14px 26px -14px rgba(58,55,46,0.28);
+}
+.ccv3-input{
+  width:100%;
+  border:none; outline:none;
+  background:transparent;
+  padding: 12px 15px;
+  font-size:15px; font-weight:500; line-height:1.3;
+  color: #2E2C26;
+}
+.ccv3-input::placeholder{ color: rgba(58,55,46,0.4); }
+
+.ccv3-send-btn{
+  flex:none;
+  width:48px; height:48px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(160deg, #3A3730 0%, #1C1A15 100%);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: #F6F4EF;
+  box-shadow: 0 14px 26px -12px rgba(28,26,21,0.5);
+  cursor:pointer;
+  transition: transform 0.15s ease;
+}
+.ccv3-send-btn:active{ transform: scale(0.92); }
+
+.ccv3-ai-btn{
+  flex:none;
+  width:52px; height:48px; border-radius:22px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px;
+  background: linear-gradient(160deg, #FFFFFF 0%, #EEEBE4 100%);
+  border: 1.5px dashed rgba(58,55,46,0.32);
+  color: rgba(58,55,46,0.8);
+  cursor:pointer;
+  transition: transform 0.15s ease;
+}
+.ccv3-ai-btn:active{ transform: scale(0.94); }
+.ccv3-ai-btn-mark{
+  width:6px; height:6px; border-radius:50%;
+  background: #3A3730;
+  box-shadow: 0 0 6px 1.5px rgba(58,55,46,0.35);
+}
+.ccv3-ai-btn-label{
+  font-family:'Space Mono', monospace;
+  font-size:9px; font-weight:700; letter-spacing:0.08em;
+  color: rgba(58,55,46,0.72);
+}
+
+/* ---------------------------------------------------------------------
+   底部固定操作行 —— 键盘（左）— 挂断（居中，最大最重）— 设置（右）
+   全部放大，图标改为更饱满的几何造型，不再是纤细线条
+--------------------------------------------------------------------- */
+.ccv3-dock{
+  position:absolute; left:0; right:0; bottom:0; z-index:6;
+  display:flex; align-items:center; justify-content:center;
+  gap: 46px;
+  padding: 14px 24px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+}
+.ccv3-dock-btn{
+  flex:none;
+  width:56px; height:56px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(160deg, #FFFFFF 0%, #EAE7E0 100%);
+  border: 1px solid rgba(255,255,255,0.95);
+  color: #38362F;
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,1) inset,
+    0 14px 26px -12px rgba(58,55,46,0.3),
+    0 3px 8px -3px rgba(58,55,46,0.18);
+  cursor:pointer;
+  transition: transform 0.15s ease;
+}
+.ccv3-dock-btn:active{ transform: scale(0.92); }
+.ccv3-dock-btn.is-active{
+  background: linear-gradient(160deg, #3A3730 0%, #1C1A15 100%);
+  color:#F6F4EF;
+  border-color: rgba(255,255,255,0.14);
+}
+
+.ccv3-hangup-btn{
+  position:relative;
+  flex:none;
+  width:76px; height:76px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(160deg, #4A4740 0%, #26241D 55%, #16140F 100%);
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow:
+    0 1.5px 0 0 rgba(255,255,255,0.22) inset,
+    0 22px 40px -14px rgba(22,20,15,0.5),
+    0 6px 14px -4px rgba(22,20,15,0.32);
+  color: #F6F4EF;
+  cursor:pointer;
+  transition: transform 0.15s ease;
+}
+.ccv3-hangup-ring{
+  position:absolute; inset:-13px;
+  border-radius:50%;
+  border: 1.5px solid rgba(58,55,46,0.22);
+  animation: ccv3HangupRingPulse 2.6s ease-in-out infinite;
+}
+@keyframes ccv3HangupRingPulse{
+  0%,100%{ opacity:0.55; transform:scale(0.94); }
+  50%{ opacity:0.05; transform:scale(1.16); }
+}
+.ccv3-hangup-btn:active{ transform: scale(0.93); }
+
+@media (prefers-reduced-motion: reduce){
+  .ccv3-page, .ccv3-live-dot, .ccv3-hangup-ring, .ccv3-input-bar, .ccv3-video, .ccv3-video-veil-top, .ccv3-selfie,
+  .ccv3-aura, .ccv3-topbar-name::before, .ccv3-topbar-name::after,
+  .ccv3-selfie-halo::before, .ccv3-selfie-halo::after, .ccv3-selfie-spark,
+  .ccv3-peer-chip-halo::before, .ccv3-peer-chip-halo::after, .ccv3-peer-chip-ring, .ccv3-peer-chip{ transition:none; animation:none; }
+}

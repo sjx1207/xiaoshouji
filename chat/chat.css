@@ -39,15 +39,24 @@ html,body{
 
 button{ font-family:inherit; border:none; background:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
 
-/* ============ 手机外框 ============ */
+/* ============ 手机外框 ============
+   —— 高度必须用动态视口单位（dvh），不能只用 100vh：
+   100vh 在移动端浏览器里是按"地址栏收起后的最大可视高度"算的
+   静态值，键盘弹出、地址栏展开/收起时并不会跟着变化。这会导致
+   固定在 .phone-frame 底部的输入栏、待发送引用条、长按菜单等一切
+   以 .phone-frame 尺寸为基准定位的元素，在真实手机上被地址栏或
+   键盘遮挡/裁切，或在它们弹出的瞬间发生一次跳变（先出现在按 100vh
+   算出的位置，随后视口尺寸变化，看起来像"闪一下就消失"）。
+   dvh 会随浏览器 UI 展开/收起、键盘弹出实时更新，因此改用 dvh 作为
+   主定义，同时保留 100vh 作为不支持 dvh 的旧浏览器兜底 ---- */
 .phone-wrap{
-  width:100vw; height:100vh;
+  width:100vw; height:100vh; height:100dvh;
   display:flex; align-items:center; justify-content:center;
   overflow:hidden;
 }
 .phone-frame{
   position:relative;
-  width:100vw; height:100vh;
+  width:100vw; height:100vh; height:100dvh;
   overflow:hidden;
   background: var(--sheet);
 }

@@ -1707,6 +1707,7 @@ function openApp(name) {
     'relationlib':'dossier.html',
     'gongduyu': '共读屿/gongduyu.html',
     'huixianglu': '回想录/memoir.html', 
+    'chatnovel':'对话小说/dialognovel.html',
   }
 
   const url = routes[name];

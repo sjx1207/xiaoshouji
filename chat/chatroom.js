@@ -46,6 +46,246 @@
     return msg.sticker || null;
   }
 
+  /* ---- 语音消息读法：msg.voice = { text, dur } —— text 为这段
+     语音的转写文字（唯一真实数据来源，没有真实音频），dur 为按
+     文字长度估算出的秒数，气泡渲染/AI 上下文组装都用这个读法 ---- */
+  function getMsgVoice(msg) {
+    if (!msg) return null;
+    return msg.voice || null;
+  }
+
+  /* ---- 语音时长估算：按中文口语语速粗略换算，而不是给一个和字数
+     无关的固定值——中文正常语速约 4~5 字/秒，这里取 4.2 字/秒，
+     并给一个不因为"just a few characters"就离谱地长的下限（1 秒）
+     和一个避免超长文本把气泡撑成几分钟的上限（60 秒）。
+     统计口径：中文字符按 1 记，其余字符（含标点、字母、数字）按
+     0.55 折算，避免纯英文/数字内容被过度拉长 ---- */
+  function estimateVoiceDuration(text) {
+    var t = (text || '').trim();
+    if (!t) return 1;
+    var weighted = 0;
+    for (var i = 0; i < t.length; i++) {
+      var code = t.charCodeAt(i);
+      var isCjk = (code >= 0x4e00 && code <= 0x9fff) || (code >= 0x3000 && code <= 0x303f) || (code >= 0xff00 && code <= 0xffef);
+      weighted += isCjk ? 1 : 0.55;
+    }
+    var seconds = weighted / 4.2;
+    seconds = Math.max(1, Math.min(60, Math.round(seconds)));
+    return seconds;
+  }
+
+  /* ---- 声纹条生成：按时长换算条数（时长越长，声纹越长，与真实
+     语音条"越长的语音、波形越长"直觉一致），每条高度用带种子的
+     伪随机错落排布，同一条消息每次渲染出的波形保持一致（种子取自
+     文字内容本身的简单 hash，而非 Math.random，避免同一条消息
+     每次重渲染波形都跳来跳去）---- */
+  function buildVoiceWaveBars(seedText, dur) {
+    var barCount = Math.max(10, Math.min(34, 10 + Math.round(dur * 0.9)));
+    var seed = 0;
+    var s = seedText || '';
+    for (var i = 0; i < s.length; i++) {
+      seed = (seed * 31 + s.charCodeAt(i)) >>> 0;
+    }
+    var bars = [];
+    for (var k = 0; k < barCount; k++) {
+      seed = (seed * 1103515245 + 12345) >>> 0;
+      var pct = 28 + (seed % 1000) / 1000 * 68; // 28%~96% 高度区间，避免出现看不清的细线
+      bars.push(pct);
+    }
+    return bars;
+  }
+
+  /* ==========================================================================
+     语音模型可用性 / 绑定读取 —— 对齐 settings.js 「语音模型」页
+     （MiniMax T2A）真实落的存储契约，而不是自造一套：
+     - luna_voice_catalog：账号音色目录缓存，{system,voice_cloning,voice_generation}
+       各自是 [{voice_id, voice_name}]，由「语音模型」页拉取账号音色
+       列表时写入，为空即视为"完全没配置语音模型"；
+     - luna_voice_current：{ groupId, apiKey, voiceId }，账号级凭证 +
+       当前选中的音色，「语音模型」页测试合成 / 应用预设时都会回写
+       这个 key，是唯一权威来源；
+     - luna_voice_model：纯字符串，如 'speech-2.8-hd'，T2A 请求体里
+       的 model 字段；
+     - luna_voice_region：'cn' | 'global'，决定请求打到
+       api.minimaxi.com（中国版）还是 api.minimax.io（国际版）；
+     - LunaDB 里的 voiceLink:global / voiceLink:char-<id>（或
+       name-<name>）：chatsetting.js 落的"这个聊天室具体用哪一枚
+       音色" voice_id，未单独设置时跟随全局，全局也未绑定时跟随
+       luna_voice_current 里当前选中的 voiceId（即"系统默认"）---- */
+  var VOICE_HOSTS = { cn: 'https://api.minimaxi.com', global: 'https://api.minimax.io' };
+
+  function readVoiceCatalog() {
+    try {
+      var raw = localStorage.getItem('luna_voice_catalog');
+      if (!raw) return { system: [], voice_cloning: [], voice_generation: [] };
+      var parsed = JSON.parse(raw);
+      return {
+        system: parsed.system || [],
+        voice_cloning: parsed.voice_cloning || [],
+        voice_generation: parsed.voice_generation || []
+      };
+    } catch (e) { return { system: [], voice_cloning: [], voice_generation: [] }; }
+  }
+  function voiceCatalogAll(catalog) {
+    return catalog.system.concat(catalog.voice_cloning, catalog.voice_generation);
+  }
+  /* 账号级凭证：groupId + apiKey 缺一都视为未配置；voiceId 允许为空
+     （届时靠 resolveVoiceForSession 从目录/绑定里补齐），model/region
+     各自有默认值兜底，与「语音模型」页自身的默认值保持一致 ---- */
+  function readVoiceApiConfig() {
+    try {
+      var cur = JSON.parse(localStorage.getItem('luna_voice_current') || '{}');
+      if (!cur.groupId || !cur.apiKey) return null;
+      var model = localStorage.getItem('luna_voice_model') || 'speech-2.8-hd';
+      var region = localStorage.getItem('luna_voice_region') || 'cn';
+      return { groupId: cur.groupId, apiKey: cur.apiKey, voiceId: cur.voiceId || '', model: model, host: VOICE_HOSTS[region] || VOICE_HOSTS.cn };
+    } catch (e) { return null; }
+  }
+  /* 判断"这个聊天室当前是否有可用的语音模型"：目录非空 + 账号级
+     凭证已配置，二者缺一都视为不可用——只要不可用，AI 发语音的
+     节流器整体都不会被打开（见 performAiGeneration 里的
+     voiceModelReady），从根源上避免生成"发不出声音"的语音消息 ---- */
+  function isVoiceModelConfigured(session) {
+    var catalog = readVoiceCatalog();
+    if (!voiceCatalogAll(catalog).length) return false;
+    return !!readVoiceApiConfig();
+  }
+  /* 解析"这个聊天室实际应当使用哪一个 voice_id"：仅此角色绑定 →
+     全局绑定 → luna_voice_current 里当前选中的 voiceId（系统默认）
+     → 目录第一个，与 chatsetting.js 里 initVoiceLink 的解析优先级
+     完全一致，只是最后一级兜底从"目录第一个"细化为"当前选中的
+     系统默认"，因为真实数据里系统默认就是 luna_voice_current.voiceId ---- */
+  function resolveVoiceForSession(session) {
+    var catalog = readVoiceCatalog();
+    var all = voiceCatalogAll(catalog);
+    if (!all.length) return Promise.resolve(null);
+    var charKey = 'voiceLink:' + (session && session.charId != null ? ('char-' + session.charId) : ('name-' + (session && session.name)));
+    var globalKey = 'voiceLink:global';
+    function findVoice(voiceId) {
+      if (!voiceId) return null;
+      for (var i = 0; i < all.length; i++) { if (all[i].voice_id === voiceId) return all[i]; }
+      return null;
+    }
+    function systemDefault() {
+      var apiCfg = readVoiceApiConfig();
+      return (apiCfg && findVoice(apiCfg.voiceId)) || all[0];
+    }
+    if (!window.LunaDB) return Promise.resolve(systemDefault());
+    return window.LunaDB.get(charKey).then(function (charBind) {
+      if (charBind && charBind.unbound) return systemDefault(); // 明确解绑，不跟随全局，直接落到系统默认
+      if (charBind && charBind.voiceId) return findVoice(charBind.voiceId) || systemDefault();
+      return window.LunaDB.get(globalKey).then(function (globalBind) {
+        if (globalBind && globalBind.voiceId) return findVoice(globalBind.voiceId) || systemDefault();
+        return systemDefault();
+      });
+    });
+  }
+
+  /* ==========================================================================
+     语音气泡 · 真实音频缓存 —— 只有用户点开某条语音气泡旁的播放
+     角标时，才会触发一次真正的 T2A 合成请求；一旦成功，音频转成
+     可长期持久化的 base64 data URL 回写进这条消息自身
+     （msg.voice.audioUrl），随消息一起存进 LunaDB，之后每次播放都
+     直接读这份缓存，绝不会对同一条消息重复调用语音模型——避免
+     不必要的账号开销 ---- */
+  var VOICE_AUDIO_MEM_CACHE = Object.create(null); // ts+from 复合键 -> 正在进行中的合成 Promise，防止用户连点触发并发重复请求
+
+  function voiceAudioCacheKey(msg) {
+    return msg.from + ':' + msg.ts;
+  }
+
+  /* hex 字符串 → base64：MiniMax T2A 返回的音频是 hex 编码
+     （data.data.audio），与 settings.js 试听页 hexToAudioUrl() 走的
+     是同一份原始数据，只是这里不用 Blob/ObjectURL（那种 URL 刷新
+     页面就失效，没法安全地存进消息记录里长期复用），而是转成
+     base64 data URL，能和普通消息一样正常序列化进 LunaDB ---- */
+  function hexToBase64(hex) {
+    var bytes = new Uint8Array(hex.length / 2);
+    for (var i = 0; i < bytes.length; i++) {
+      bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    var binary = '';
+    for (var j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
+    return btoa(binary);
+  }
+
+  /* 真正的 T2A 请求：POST {host}/v1/t2a_v2?GroupId=xxx，与 settings.js
+     sendVoiceTest() 完全同源同请求体，返回 hex 音频转成 mp3 的
+     base64 data URL。MiniMax 用 HTTP 200 + body 里的
+     base_resp.status_code 表达业务层错误（网关层可能仍返回 200），
+     必须额外检查这一层，否则账号余额不足/参数错误这类失败会被
+     误判成"成功但音频是空的" ---- */
+  function requestTtsAudio(text, voiceEntry, apiCfg) {
+    var voiceId = (voiceEntry && voiceEntry.voice_id) || apiCfg.voiceId;
+    if (!voiceId) return Promise.reject(new Error('还没有选定音色，请先在语音模型页选择一个 Voice ID'));
+    var url = apiCfg.host.replace(/\/$/, '') + '/v1/t2a_v2?GroupId=' + encodeURIComponent(apiCfg.groupId);
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiCfg.apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: apiCfg.model,
+        text: text,
+        stream: false,
+        voice_setting: { voice_id: voiceId, speed: 1.0, vol: 1.0, pitch: 0 },
+        audio_setting: { sample_rate: 32000, bitrate: 128000, format: 'mp3' }
+      })
+    }).then(function (resp) {
+      if (!resp.ok) throw new Error('语音接口返回 HTTP ' + resp.status);
+      return resp.json();
+    }).then(function (data) {
+      if (data.base_resp && data.base_resp.status_code !== 0) {
+        throw new Error(data.base_resp.status_msg || '语音合成失败');
+      }
+      var hex = data.data && data.data.audio;
+      if (!hex) throw new Error('语音接口未返回音频数据');
+      return 'data:audio/mp3;base64,' + hexToBase64(hex);
+    });
+  }
+
+  /* 确保某条语音消息拥有可播放的音频：已缓存直接返回；未缓存则
+     发起一次合成，成功后把 audioUrl 写回这条消息并持久化，之后
+     不会再重复调用。并发防抖：同一条消息如果已有合成请求在途，
+     后续调用直接复用同一个 Promise，不会因为用户连点而并发发起
+     好几次相同的请求。 ---- */
+  function ensureVoiceAudio(storeKey, msg, session) {
+    var voice = getMsgVoice(msg);
+    if (!voice) return Promise.reject(new Error('不是语音消息'));
+    if (voice.audioUrl) return Promise.resolve(voice.audioUrl);
+
+    var cacheKey = voiceAudioCacheKey(msg);
+    if (VOICE_AUDIO_MEM_CACHE[cacheKey]) return VOICE_AUDIO_MEM_CACHE[cacheKey];
+
+    var apiCfg = readVoiceApiConfig();
+    if (!apiCfg) return Promise.reject(new Error('还没有配置语音模型，请先在设置里配置'));
+
+    var task = resolveVoiceForSession(session).then(function (voiceEntry) {
+      if (!voiceEntry && !apiCfg.voiceId) throw new Error('还没有配置语音模型，请先在设置里配置');
+      return requestTtsAudio(voice.text || '', voiceEntry, apiCfg);
+    }).then(function (audioUrl) {
+      return loadMessages(storeKey).then(function (list) {
+        var idx = list.findIndex(function (m) { return m.ts === msg.ts && m.from === msg.from; });
+        if (idx !== -1) {
+          var target = list[idx];
+          var v = getMsgVoice(target);
+          if (v) {
+            v.audioUrl = audioUrl;
+            target.voice = v;
+            list[idx] = target;
+          }
+        }
+        return saveMessages(storeKey, list).then(function () { return audioUrl; });
+      });
+    }).finally(function () {
+      delete VOICE_AUDIO_MEM_CACHE[cacheKey];
+    });
+
+    VOICE_AUDIO_MEM_CACHE[cacheKey] = task;
+    return task;
+  }
+
   document.addEventListener('DOMContentLoaded', init);
   if (document.readyState !== 'loading') init();
 
@@ -114,11 +354,24 @@
     });
 
     var storeKey = 'chatroom:' + (session.charId != null ? ('char-' + session.charId) : ('name-' + session.name));
+    var readKey = 'chatread:' + storeKey.slice('chatroom:'.length);
 
     loadMessages(storeKey).then(function (list) {
       renderAll(list, els, session);
       scrollToBottom(els, false);
     });
+
+    /* ---- 进入聊天室即视为"已读到现在"：与消息页（chat.js）共用同一套
+       chatread:<suffix> 记录，值为标记时刻的时间戳。消息页的未读角标
+       据此清零，不再要求用户必须"回复过"才算已读——只要真正打开过
+       这个会话就应当清角标。写完后复用 chat.js 已有的 LunaMessagesBus
+       广播（与发消息后的通知走同一条通道），若消息页当前恰好在
+       另一个标签/窗口打开，也能立即同步刷新 ---- */
+    if (window.LunaDB) {
+      LunaDB.set(readKey, Date.now()).then(function () {
+        if (window.LunaMessagesBus) window.LunaMessagesBus.notify();
+      });
+    }
 
     /* ---- 聊天背景：与 chatsetting.js 共用同一套 key 约定——
        优先读取「仅此角色」专属背景，未设置则退化读取全局背景，
@@ -970,6 +1223,88 @@
       });
     }
 
+    /* ==========================================================================
+       语音消息 · 输入弹窗 —— 不接入真实录音，让用户直接写下这段语音
+       要说的内容（转写文本），发出后渲染成语音气泡模拟消息。
+       与图片消息共用"文字描述"这层思路，但少一步来源选择，点击
+       十三簿「语音」卡后直接弹出这一层 ---- */
+    var voiceEls = {
+      veil: document.getElementById('crmVoicePendingVeil'),
+      modal: document.getElementById('crmVoicePending'),
+      textarea: document.getElementById('crmVoicePendingTextarea'),
+      preview: document.getElementById('crmVoicePendingPreview'),
+      previewDur: document.getElementById('crmVoicePendingPreviewDur'),
+      cancelBtn: document.getElementById('crmVoicePendingCancelBtn'),
+      sendBtn: document.getElementById('crmVoicePendingSendBtn')
+    };
+
+    function syncVoicePreview() {
+      if (!voiceEls.textarea) return;
+      var text = voiceEls.textarea.value || '';
+      var trimmed = text.trim();
+      var dur = estimateVoiceDuration(trimmed);
+      if (voiceEls.previewDur) voiceEls.previewDur.textContent = (trimmed ? dur : 0) + "''";
+      if (voiceEls.preview) voiceEls.preview.classList.toggle('has-text', !!trimmed);
+      if (voiceEls.sendBtn) voiceEls.sendBtn.disabled = !trimmed;
+    }
+
+    function openVoiceModal() {
+      if (!voiceEls.veil) return;
+      if (voiceEls.textarea) voiceEls.textarea.value = '';
+      syncVoicePreview();
+      voiceEls.veil.classList.add('is-open');
+      voiceEls.modal.classList.add('is-open');
+      voiceEls.veil.setAttribute('aria-hidden', 'false');
+      voiceEls.modal.setAttribute('aria-hidden', 'false');
+      setTimeout(function () { if (voiceEls.textarea) voiceEls.textarea.focus(); }, 260);
+    }
+    function closeVoiceModal() {
+      if (!voiceEls.veil) return;
+      voiceEls.veil.classList.remove('is-open');
+      voiceEls.modal.classList.remove('is-open');
+      voiceEls.veil.setAttribute('aria-hidden', 'true');
+      voiceEls.modal.setAttribute('aria-hidden', 'true');
+    }
+    window.__crmOpenVoiceModal = openVoiceModal;
+
+    if (voiceEls.textarea) voiceEls.textarea.addEventListener('input', syncVoicePreview);
+    if (voiceEls.veil) voiceEls.veil.addEventListener('click', closeVoiceModal);
+    if (voiceEls.cancelBtn) voiceEls.cancelBtn.addEventListener('click', closeVoiceModal);
+    if (voiceEls.sendBtn) {
+      voiceEls.sendBtn.addEventListener('click', function () {
+        var text = (voiceEls.textarea && voiceEls.textarea.value || '').trim();
+        if (!text) return;
+        closeVoiceModal();
+        sendVoiceMessage(text);
+      });
+    }
+
+    /* ---- 发送：写入 msg.voice = { text, dur }，与文字/图片/表情包
+       消息一样入库，随后走同一套 renderAll / 通知逻辑 ---- */
+    function sendVoiceMessage(text) {
+      clearPendingImage();
+      clearPendingQuote();
+      var dur = estimateVoiceDuration(text);
+      var msg = { from: 'me', ts: Date.now(), voice: { text: text, dur: dur } };
+      loadMessages(storeKey).then(function (list) {
+        list.push(msg);
+        return saveMessages(storeKey, list).then(function () { return list; });
+      }).then(function (list) {
+        renderAll(list, els, session);
+        scrollToBottom(els, true);
+        if (window.LunaMessagesBus) window.LunaMessagesBus.notify();
+      });
+    }
+
+    /* ==========================================================================
+       视频通话 · 拨通页 —— 已拆分为独立文件 chatroomcall.html / .css / .js。
+       window.__crmOpenCallPage 由 chatroomcall.js 在页面加载时注册；
+       这里只需要把当前 session 挂到 window.__crmChatroomSession，
+       供它读取肖像/称呼。面板本身的收起已经在卡片点击处统一处理
+       （见 initFanPanel 里 card.addEventListener('click', ...) 开头
+       的 closeFanPanel(els) 调用），不需要在这里重复关闭 ---- */
+    window.__crmChatroomSession = session;
+
     /* ---- 点击气泡内的引用卡：回跳到被引用的原消息并短暂高亮，
        用时间戳 + 发送方精确定位；原消息已被删除时不做任何跳转 ---- */
     function jumpToQuoted(ts, from) {
@@ -1086,21 +1421,92 @@
         // 用于决定是否在 system prompt 里插入"如何解读表情包"说明 ----
         var lastUserSentSticker = userLastMessageIsSticker(history);
 
-        var systemPrompt = buildSystemPrompt(charRecord, session, worldSection, userIdentity, myName, consumedDeleteNotes, quotableIndex, quoteAllowed, recallAllowed, rewindNote, imageAllowed, lastUserAskedImage, lastUserSentSticker);
+        // ---- 发语音能力：与发图同一套"节流器"机制，但额外多一道
+        // 前置闸门——只有这个聊天室"当前确实有可用的语音模型"（见
+        // chatsetting.js 的语音设置绑定）时，才会让节流器有机会放行，
+        // 没配置语音模型时这一轮直接判定不允许，模型也就压根不会被
+        // 告知"可以发语音"，避免生成一堆发不出声音、点了角标只会
+        // 提示去配置的语音消息 ----
+        var voiceModelReady = isVoiceModelConfigured(session);
+        var lastUserAskedVoice = userLastMessageAsksForVoice(history);
+        var voiceAllowed = voiceModelReady && (lastUserAskedVoice || await isVoiceTurnAllowed(storeKey));
+
+        var systemPrompt = buildSystemPrompt(charRecord, session, worldSection, userIdentity, myName, consumedDeleteNotes, quotableIndex, quoteAllowed, recallAllowed, rewindNote, imageAllowed, lastUserAskedImage, lastUserSentSticker, voiceAllowed, lastUserAskedVoice, voiceModelReady);
         var chatMessages  = buildChatMessages(systemPrompt, history, myName, apiCfg);
 
         if (aiAbort) return false;
 
-        var replyText = await callAiApi(apiCfg, chatMessages);
+        var apiResult = await callAiApi(apiCfg, chatMessages);
         if (aiAbort) return false;
+        var replyText = apiResult && apiResult.text;
         if (!replyText) {
           showAiToast('AI 没有返回内容，请稍后再试');
           if (consumedDeleteNotes && consumedDeleteNotes.length) await requeueDeleteLog(storeKey, consumedDeleteNotes);
           return false;
         }
 
+        /* ---- 自动续写：接口把这一轮回复截断在 max_tokens 上限时
+           （finish_reason === 'length'），不能就这么把半截话展示
+           出来、指望用户再点一次按钮去接上——那样"点一次就该说完"
+           这个基本预期就被破坏了。这里改成在同一次按钮点击内部
+           循环续写：把已经生成的这部分内容当作 assistant 的一轮
+           发言接回对话历史，再追加一条明确的"接着刚才没说完的话
+           继续往下说，不要重复、不要重新开头"的指令，重新请求接口，
+           拿到续写内容后直接拼接在原文后面；如此反复直到某一次
+           不再被截断为止，全程只对内部拼接负责，不会向用户呈现
+           任何"还没说完"的中间状态，最终效果等价于接口一次性就把
+           完整内容吐出来了。
+           设置一个安全上限（避免万一某次接口无论怎样都返回
+           finish_reason=length，导致无限循环、无限计费）——正常情况
+           下一两次续写就足够覆盖绝大多数长回复，达到上限仍未结束的
+           极端情况才会退回"提示用户"的兜底，不再继续硬等 ---- */
+        var CONTINUATION_MAX_ROUNDS = 4;
+        var continuationRounds = 0;
+        var stillTruncated = apiResult.truncated;
+        var runningMessages = chatMessages;
+        while (stillTruncated && continuationRounds < CONTINUATION_MAX_ROUNDS) {
+          if (aiAbort) return false;
+          continuationRounds++;
+          runningMessages = runningMessages.concat([
+            { role: 'assistant', content: replyText },
+            { role: 'user', content: '（系统提示：你上一条回复因为长度限制被截断了，不是你自己想停在这里。请直接从刚才没说完的地方继续往下说，把这一轮原本想说的内容说完整——不要重复已经说过的部分，也不要重新开头或加任何说明，直接接着往下写，同样遵守分条 ||| 格式）' }
+          ]);
+          var continuationResult = await callAiApi(apiCfg, runningMessages);
+          if (aiAbort) return false;
+          var continuationText = (continuationResult && continuationResult.text) || '';
+          if (!continuationText) break; // 续写请求本身没内容，不再硬等，就用已经拿到的部分
+          // 拼接处判断：截断可能发生在两种位置——① 恰好卡在两条短句
+          // 之间（上一段以句末标点/｜｜｜结尾，续写从新内容开头写起），
+          // 这种情况需要在中间补一个 ||| 才能让分条阶段正确切开，
+          // 否则前后两条会被融合成一条；② 卡在同一个词/标记内部
+          // （比如 [[voice: 内容被从中间截断，或者一个字被从中间切开），
+          // 这种情况绝不能在中间强行插入 |||，那样反而会把一个完整的
+          // 标记或词语切裂——已经加过的"缝合被切碎的标记"逻辑
+          // （mergeSeveredTagSegments）正是用来兜住这类情况的，前提是
+          // 这里不要越俎代庖抢先插入分隔符破坏掉标记的连续性。
+          // 判断依据：只有当上一段结尾已经是"完整的一句"（以句末
+          // 标点、｜｜｜或右方括号结尾），且不是停在一个禁止出现内部
+          // 空格的标记中途，才补 |||；否则原样拼接，交给分条与
+          // 标记缝合的兜底逻辑去处理 ---- */
+          var priorTail = replyText.replace(/\s+$/, '');
+          var looksLikeCleanBoundary = /[。！？!?~…]$/.test(priorTail) || /\|\|\|$/.test(priorTail) || /\]\]$/.test(priorTail);
+          var nextHead = continuationText.replace(/^\s+/, '');
+          if (looksLikeCleanBoundary && nextHead.indexOf('|||') !== 0) {
+            replyText = priorTail + '|||' + nextHead;
+          } else {
+            replyText = replyText + continuationText;
+          }
+          stillTruncated = !!(continuationResult && continuationResult.truncated);
+        }
+
         var segments = splitIntoOddSegments(replyText);
-        await appendAiSegments(segments, quotableIndex, quoteAllowed, recallAllowed, imageAllowed);
+        await appendAiSegments(segments, quotableIndex, quoteAllowed, recallAllowed, imageAllowed, voiceAllowed);
+        // 只有触达安全上限、接口依然报告"还在截断"这种极端情况，
+        // 才会走到这里提醒用户——正常的截断都已经在上面的循环里
+        // 自动续完了，用户感知不到发生过截断
+        if (stillTruncated) {
+          showAiToast('这条回复实在有点长，已经尽量续写了，可以再点一次继续说完');
+        }
         return true;
       } catch (err) {
         showAiToast('生成失败：' + (err && err.message ? err.message : '请检查网络与接口配置'));
@@ -1317,14 +1723,71 @@
        真实照片），标记之后若还有剩余文字，则作为这条图片消息的
        描述/图注；同一整轮最多只让第一次命中的发图生效一次，
        避免模型在同一轮里到处插标记、把每条都发成图 ---- */
-    async function appendAiSegments(segments, quotableIndex, quoteAllowed, recallAllowed, imageAllowed) {
+    async function appendAiSegments(segments, quotableIndex, quoteAllowed, recallAllowed, imageAllowed, voiceAllowed) {
       var quoteUsedThisTurn = false;
       var recallUsedThisTurn = false;
       var imageUsedThisTurn = false;
+      var voiceUsedThisTurn = false;
       for (var i = 0; i < segments.length; i++) {
         if (aiAbort) return;
         var seg = segments[i];
         if (!seg) continue;
+
+        // ---- 语音消息：与发图同一优先级层级，先于普通文字分支判断。
+        // 二者互斥（同一条短句不会同时命中 [[voice:]] 与 [[image:]]，
+        // system prompt 里也明确要求模型不要把两者揉进同一条短句），
+        // 这里按先到先得处理——谁先出现在这条短句里就按谁解析，
+        // 不做额外抢占判断，因为 prompt 层已经约束了不会真的撞车 ----
+        if (voiceAllowed && !voiceUsedThisTurn) {
+          var voiceParsed = extractVoiceTag(seg);
+          if (voiceParsed) {
+            voiceUsedThisTurn = true;
+            var voiceMsg = { from: 'peer', ts: Date.now(), voice: { text: voiceParsed.text, dur: voiceParsed.dur } };
+            var listV = await loadMessages(storeKey);
+            listV.push(voiceMsg);
+            await saveMessages(storeKey, listV);
+            renderAll(listV, els, session);
+            scrollToBottom(els, true);
+            if (window.LunaMessagesBus) window.LunaMessagesBus.notify();
+            if (i < segments.length - 1) await wait(320 + Math.random() * 520);
+            continue;
+          }
+        }
+        // 未获准发语音的这一轮，或标记解析失败：兜底剥除标记，
+        // 不让原始 [[voice: ...]] 文本暴露给用户，按普通文字继续处理
+        seg = stripVoiceTag(seg);
+        if (!seg) continue;
+
+        // 兜底防线：模型没按 [[voice:]] 标记语法走，而是自己用方括号/
+        // 圆括号包裹了一段"发语音"旁白（旁白式或伪标记式，见上方
+        // isFakeVoiceNarration 的注释）。这种情况说明模型的"发语音
+        // 意图"和"这条语音要说的话"本身都是真实、完整的，只是外层
+        // 符号用错了——直接整条丢弃会导致语音彻底发不出来，把原始
+        // 括号文本原样发出又会格式突兀、跳戏（正是用户反馈的"总是
+        // 掉格式"）。因此这里做的不是丢弃，而是"补救"：只要这一轮
+        // 还没用掉发语音名额，就把括号剥掉、掐头去掉引导前缀和"说的
+        // 内容是："这类衔接语后，剩余部分当成这条语音真正要说的话，
+        // 按语音消息正常渲染发出，效果等价于模型一开始就写对了
+        // [[voice:]] 语法 ---- */
+        if (voiceAllowed && !voiceUsedThisTurn) {
+          var fakeVoiceText = extractFakeVoiceNarrationText(seg);
+          if (fakeVoiceText) {
+            voiceUsedThisTurn = true;
+            var fakeVoiceMsg = { from: 'peer', ts: Date.now(), voice: { text: fakeVoiceText, dur: estimateVoiceDuration(fakeVoiceText) } };
+            var listFakeV = await loadMessages(storeKey);
+            listFakeV.push(fakeVoiceMsg);
+            await saveMessages(storeKey, listFakeV);
+            renderAll(listFakeV, els, session);
+            scrollToBottom(els, true);
+            if (window.LunaMessagesBus) window.LunaMessagesBus.notify();
+            if (i < segments.length - 1) await wait(320 + Math.random() * 520);
+            continue;
+          }
+        }
+        // 若这一轮发语音名额已用掉，或没有获准发语音：这种方括号语音
+        // 旁白不能再当语音补救，也不能原样发出去，只能整条丢弃，避免
+        // 格式突兀（比丢一句话更好的选择，因为原样发出的观感更差）
+        if (isFakeVoiceNarration(seg)) continue;
 
         if (imageAllowed && !imageUsedThisTurn) {
           var imgParsed = extractImageTags(seg);
@@ -1334,13 +1797,22 @@
               from: 'peer',
               ts: Date.now(),
               images: imgParsed.images.map(function (im, idx) {
-                // 单图时优先用标记后的剩余文字作为图注（更像一句自然的
-                // 配文），没有剩余文字才退回标记内自带的描述；多图时
-                // 逐张各自的描述已经足够，不再拼接剩余文字
+                // 2026-09-05 修正：此前单图场景会用「标记后的剩余文字」
+                // （模型顺手写的一句自然配文，比如"你看这色，润不润"）
+                // 整个替换掉标记内本该更具体、有画面感的描述文字，导致
+                // 「图片描述」这个展示区域看到的是一句空泛聊天用语，
+                // 而模型真正写的画面细节反而被丢弃、从未展示给用户。
+                // 现改为：标记内的描述始终是图片描述的主体（决定"这张
+                // 图长什么样"），如果标记后还有剩余文字，就当成随图
+                // 附带的一句配文，拼接在画面描述之后，两者都保留、
+                // 不再互相取代。
+                var sceneDesc = (im.caption || '').trim();
                 if (imgParsed.images.length === 1 && imgParsed.text) {
-                  return { caption: imgParsed.text, generated: true };
+                  var chat = imgParsed.text.trim();
+                  var combined = sceneDesc ? (sceneDesc + (chat ? '——' + chat : '')) : chat;
+                  return { caption: combined, generated: true };
                 }
-                return { caption: im.caption, generated: true };
+                return { caption: sceneDesc, generated: true };
               })
             };
             var list0 = await loadMessages(storeKey);
@@ -1422,6 +1894,17 @@
         // 突兀（比丢一句话更好的选择，因为原样发出的观感更差）
         if (isFakeImageNarration(seg)) continue;
 
+        // 兜底防线：voice/image 标记如果被模型写歪（漏了一半括号、
+        // 或者标记内容跨越了 ||| 切分边界），上面几层tag解析都不会
+        // 命中，切分器又已经按标点位置切开了，片段边缘就可能留下
+        // 一个没有配对的 ]、】 之类孤立符号。这里在进入旁白清理之前
+        // 先清掉这些残留符号，避免用户看到"]来，"这类无意义的碎片。
+        seg = stripOrphanBracketFragments(seg);
+        if (!seg) continue;
+        seg = stripLeftoverTagLabel(seg);
+        if (!seg) continue;
+        if (isBareEffectNarration(seg)) continue;
+
         // 兜底防线：无论 system prompt 里怎么强调"禁止括号动作/心理
         // 描写"，模型仍有概率手滑写出来（比如"（我听见手机震了一下……）"
         // 这类整条都是旁白的短句，或者"啊|（叹气）"这类夹在一句话
@@ -1458,8 +1941,17 @@
             // （编号非法、引用目标缺失，或标记没能精确出现在这一条
             // 短句的最前面，比如模型在标记前多打了字/标点）——无论
             // 哪种情况，都不能把 [[quote:N]] 原始标记暴露给用户，
-            // 必须兜底剥掉，只是不消耗本轮的引用名额
+            // 必须兜底剥掉，只是不消耗本轮的引用名额。剥掉之后如果
+            // 仍能在段首侦测到"看起来像没解析成功的引用标记残留"
+            // （比如孤立的方括号 + 数字这种模式），打一条 console
+            // 诊断日志，把原始段落原样记下来——这类问题目前只能靠
+            // 复现时抓到原始文本来判断具体是哪种写法没被规则覆盖，
+            // 而不是继续凭空猜测新的正则变体
+            var beforeStrip = seg;
             msg.text = stripQuoteTag(seg);
+            if (looksLikeUnparsedTagResidue(msg.text)) {
+              console.warn('[chatroom quote] 疑似未能解析的引用标记残留，原始片段：', JSON.stringify(beforeStrip));
+            }
           }
         } else {
           // 未获准引用的这一轮：即使模型写了标记，也只是把标记本身
@@ -1506,6 +1998,10 @@
       else await bumpRecallTurnCounter(storeKey);
       if (imageUsedThisTurn) await markImageTurnUsed(storeKey);
       else await bumpImageTurnCounter(storeKey);
+      if (voiceAllowed) {
+        if (voiceUsedThisTurn) await markVoiceTurnUsed(storeKey);
+        else await bumpVoiceTurnCounter(storeKey);
+      }
     }
 
     function wait(ms) {
@@ -1786,6 +2282,69 @@
           return;
         }
 
+        /* ---- 语音消息：与文字消息一样走气泡壳（保留同一套贯穿渐变
+           漆面/纸面质感），但气泡内容换成「声纹 + 时长」，默认收起
+           转写文字——单击展开/收起转写，双击（300ms 内的第二次点击）
+           唤出与文字/图片消息共用的同一套操作面板 ---- */
+        var voice = getMsgVoice(msg);
+        if (voice) {
+          var vRow = document.createElement('div');
+          vRow.className = 'crm-msel-row';
+          vRow.setAttribute('data-msg-ts', String(msg.ts));
+
+          var vCheck = document.createElement('span');
+          vCheck.className = 'crm-msel-check';
+          vCheck.setAttribute('aria-hidden', 'true');
+          vCheck.innerHTML = '<span class="crm-msel-check-ring"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 12.5L10 17.5L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+          vCheck.addEventListener('click', function (evt) {
+            evt.stopPropagation();
+            toggleMselPick(msg, vCheck, ctx);
+          });
+
+          var vWrap = document.createElement('div');
+          vWrap.className = 'crm-bubble-wrap';
+
+          var vBubble = buildVoiceBubble(msg, isMe, ctx, vCheck, idx, msgs.length);
+
+          /* ---- 时间戳同排追加「播放」角标：与图片消息的"描述"入口
+             同一套视觉与挂载方式（同排、圆点分隔），但只在这个聊天室
+             存在可用语音模型时才允许真的触发合成；没有语音模型时
+             同样显示这枚角标（用户需求：无论有没有都要有），只是
+             点击后只弹提示、不会真的发起请求 ---- */
+          var vTime = document.createElement('div');
+          vTime.className = 'crm-msg-time crm-msg-time-row';
+
+          var vTimeText = document.createElement('span');
+          vTimeText.textContent = formatAmPm(new Date(msg.ts));
+          vTime.appendChild(vTimeText);
+
+          var vDot = document.createElement('span');
+          vDot.className = 'crm-msg-time-dot';
+          vDot.setAttribute('aria-hidden', 'true');
+
+          var vPlayBtn = document.createElement('button');
+          vPlayBtn.type = 'button';
+          vPlayBtn.className = 'crm-msg-time-caption-link crm-voice-playbadge';
+
+          vTime.appendChild(vDot);
+          vTime.appendChild(vPlayBtn);
+
+          wireVoicePlayBadge(vPlayBtn, msg, ctx);
+
+          vWrap.appendChild(vBubble);
+          vWrap.appendChild(vTime);
+
+          if (isMe) {
+            vRow.appendChild(vCheck);
+            vRow.appendChild(vWrap);
+          } else {
+            vRow.appendChild(vWrap);
+            vRow.appendChild(vCheck);
+          }
+          stream.appendChild(vRow);
+          return;
+        }
+
         if (getMsgImages(msg)) {
           var imgRow = document.createElement('div');
           imgRow.className = 'crm-msel-row';
@@ -1802,6 +2361,12 @@
 
           var imgWrap = document.createElement('div');
           imgWrap.className = 'crm-bubble-wrap';
+
+          if (msg.quote) {
+            var imgQuoteChip = buildQuoteRefChip(msg.quote);
+            imgQuoteChip.classList.add('crm-quote-ref-standalone');
+            imgWrap.appendChild(imgQuoteChip);
+          }
 
           var card = buildImageCard(msg, isMe, ctx, imgCheck);
 
@@ -2455,6 +3020,179 @@
       return card;
     }
 
+    /* ---- 语音播放角标：贴在时间戳同排，与图片消息「描述」入口
+       同一套外观（同款字号/字体/下划线），三种状态：
+       ① 未配置语音模型 —— 角标始终存在（用户需求：无论有没有都要
+          显示），文案为「点击播放」，点击只弹 toast 提示去设置里
+          配置，不跳转、不发起任何请求；
+       ② 已配置但这条消息还没合成过音频 —— 文案「点击播放」，点击后
+          先切到「合成中…」禁用态，成功后自动播放并把音频缓存进这
+          条消息本身（ensureVoiceAudio 内部完成持久化），之后不会
+          再重复调用语音模型；
+       ③ 已缓存音频 —— 文案随播放状态在「播放」/「暂停」间切换，
+          点击直接播放本地缓存的音频，不再触发任何网络请求。
+       失败态：toast 提示失败原因，角标恢复成可再次点击重试 ---- */
+    function wireVoicePlayBadge(btn, msg, ctx) {
+      var audioEl = null;
+      var busy = false;
+
+      function setLabel(text, opts) {
+        btn.textContent = text;
+        btn.classList.toggle('is-empty', !!(opts && opts.muted));
+      }
+
+      function syncIdleLabel() {
+        var voice = getMsgVoice(msg) || {};
+        if (!isVoiceModelConfigured(ctx.session)) {
+          setLabel('点击播放', { muted: true });
+          return;
+        }
+        setLabel(voice.audioUrl ? '播放' : '点击播放');
+      }
+      syncIdleLabel();
+
+      btn.addEventListener('click', function (evt) {
+        evt.stopPropagation();
+        if (busy) return;
+
+        if (!isVoiceModelConfigured(ctx.session)) {
+          showFlashToast('还没有配置语音模型，请先去设置里配置');
+          return;
+        }
+
+        // 已有正在播放的音频：点击即暂停，不重复发起合成
+        if (audioEl && !audioEl.paused) {
+          audioEl.pause();
+          return;
+        }
+        if (audioEl && audioEl.paused && audioEl.currentTime > 0 && !audioEl.ended) {
+          audioEl.play();
+          return;
+        }
+
+        var cached = (getMsgVoice(msg) || {}).audioUrl;
+        if (cached) {
+          playCachedAudio(cached);
+          return;
+        }
+
+        busy = true;
+        setLabel('合成中…', { muted: true });
+        ensureVoiceAudio(ctx.storeKey, msg, ctx.session).then(function (audioUrl) {
+          busy = false;
+          var v = getMsgVoice(msg) || {};
+          v.audioUrl = audioUrl;
+          msg.voice = v;
+          playCachedAudio(audioUrl);
+        }).catch(function (err) {
+          busy = false;
+          syncIdleLabel();
+          showFlashToast('语音生成失败：' + (err && err.message ? err.message : '请稍后重试'));
+        });
+      });
+
+      function playCachedAudio(audioUrl) {
+        if (!audioEl) {
+          audioEl = new Audio(audioUrl);
+          audioEl.addEventListener('play', function () { setLabel('暂停'); });
+          audioEl.addEventListener('pause', function () { setLabel('播放'); });
+          audioEl.addEventListener('ended', function () { setLabel('播放'); });
+        }
+        audioEl.play().catch(function () {
+          showFlashToast('音频播放失败，请重试');
+        });
+      }
+    }
+
+    /* ---- 语音气泡：沿用与文字气泡同一套 .crm-bubble 渐变漆面/纸面
+       外壳（贯穿渐变对位逻辑按 class 选择器自动生效，无需额外接线），
+       内容替换成「声纹 + 时长」。默认收起转写文字——单击展开/收起，
+       双击（300ms 内的第二次点击）唤出与文字/图片消息共用的同一套
+       操作面板。时长/声纹长度均由 estimateVoiceDuration /
+       buildVoiceWaveBars 按转写文字长度换算，不会出现"两三个字却
+       十秒"的失真 ---- */
+    function buildVoiceBubble(msg, isMe, ctx, checkEl, idx, groupLen) {
+      var voice = getMsgVoice(msg) || { text: '', dur: 1 };
+
+      var bubble = document.createElement('div');
+      bubble.className = 'crm-bubble crm-voicebubble';
+      if (idx === 0) bubble.classList.add('is-first');
+      if (idx === groupLen - 1) bubble.classList.add('is-last');
+      bubble.setAttribute('data-msg-ts', String(msg.ts));
+      bubble.setAttribute('data-msg-from', msg.from);
+
+      var inner = document.createElement('div');
+      inner.className = 'crm-bubble-inner';
+
+      if (msg.quote) {
+        inner.appendChild(buildQuoteRefChip(msg.quote));
+      }
+
+      var row = document.createElement('div');
+      row.className = 'crm-voicebubble-row';
+
+      var glyph = document.createElement('span');
+      glyph.className = 'crm-voicebubble-glyph';
+      glyph.setAttribute('aria-hidden', 'true');
+      glyph.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9.3" y="3.5" width="5.4" height="10" rx="2.7" stroke="currentColor" stroke-width="1.6"/><path d="M6 11.5C6 14.8 8.7 17.5 12 17.5C15.3 17.5 18 14.8 18 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 17.5V20.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+
+      var wave = document.createElement('span');
+      wave.className = 'crm-voicebubble-wave';
+      var bars = buildVoiceWaveBars(voice.text, voice.dur);
+      bars.forEach(function (pct) {
+        var bar = document.createElement('i');
+        bar.style.height = pct.toFixed(1) + '%';
+        wave.appendChild(bar);
+      });
+
+      var dur = document.createElement('span');
+      dur.className = 'crm-voicebubble-dur';
+      dur.textContent = (voice.dur || 1) + "''";
+
+      row.appendChild(glyph);
+      row.appendChild(wave);
+      row.appendChild(dur);
+
+      var textEl = document.createElement('div');
+      textEl.className = 'crm-voicebubble-text';
+      textEl.textContent = voice.text || '';
+
+      inner.appendChild(row);
+      inner.appendChild(textEl);
+      bubble.appendChild(inner);
+
+      /* 单击 vs 双击：与图片/表情包气泡同一套手动判定——300ms 内的
+         第二次点击视为双击，唤出操作面板；否则单击展开/收起转写文字 */
+      var lastTapAt = 0;
+      var singleTapTimer = null;
+      bubble.addEventListener('click', function (evt) {
+        evt.stopPropagation();
+        if (isMultiSelectOn()) {
+          toggleMselPick(msg, checkEl, ctx);
+          return;
+        }
+        var now = Date.now();
+        if (now - lastTapAt < 300) {
+          lastTapAt = 0;
+          if (singleTapTimer) { clearTimeout(singleTapTimer); singleTapTimer = null; }
+          bubble.classList.remove('is-expanded');
+          openSelectMenu(bubble, msg, isMe, ctx);
+          return;
+        }
+        lastTapAt = now;
+        singleTapTimer = setTimeout(function () {
+          singleTapTimer = null;
+          bubble.classList.add('is-playing');
+          bubble.classList.toggle('is-expanded');
+          setTimeout(function () { bubble.classList.remove('is-playing'); }, 900);
+        }, 300);
+      });
+
+      bindLongPressToMultiSelect(bubble, msg, ctx, checkEl);
+
+      return bubble;
+    }
+
     /* ---- 批量转发 · 合并气泡内容："聊天记录"标题 + 前两条摘要 +
        "共 N 条消息"，点击整条气泡（在外层 bubble.click 里）会打开
        只读详情页，不在这里绑定任何交互 ---- */
@@ -2582,6 +3320,14 @@
         }
         if (folio.key === 'sticker') {
           if (window.__crmOpenStickerPicker) window.__crmOpenStickerPicker();
+          return;
+        }
+        if (folio.key === 'voice') {
+          if (window.__crmOpenVoiceModal) window.__crmOpenVoiceModal();
+          return;
+        }
+        if (folio.key === 'video') {
+          if (window.__crmOpenCallPage) window.__crmOpenCallPage();
           return;
         }
         /* 占位：其余功能后续接入，这里先居中该卡并统一收起面板 */
@@ -2841,7 +3587,16 @@
        手机壳的圆角边框裁掉，看起来像"最后一行不见了"）。
        同时要把顶栏、输入栏的真实高度也算进安全区，
        不能让菜单被这两条固定栏挡住或压在它们后面 ---- */
-    requestAnimationFrame(function () {
+    /* ---- 定位函数抽出来单独定义，除了首次打开时调用一次，还要在
+       视口尺寸发生变化时（地址栏展开/收起、键盘弹出/收起）重新算一次。
+       移动端的 100vh 是静态值，不会随这些变化实时更新，.phone-frame
+       的 getBoundingClientRect() 在这些时刻之间可能对不上真实可视
+       区域，导致菜单定位在一个已经过期的坐标系上——不重新定位的话，
+       视口一变，菜单就会像是被瞬间顶飞/裁掉了一样"闪一下就消失"。
+       用 visualViewport（存在时）实时监听，比 window resize 更精确，
+       因为它专门反映键盘/地址栏引起的可视区域变化 ---- */
+    function positionSelectMenu() {
+      if (!menu.isConnected) return;
       var frameEl = bubbleEl.closest('.phone-frame') || document.body;
       var frameRect = frameEl.getBoundingClientRect();
       var topBarEl = document.getElementById('crmTopBar');
@@ -2859,6 +3614,7 @@
         menu.classList.add('is-below');
       } else {
         top = rect.top - menuH - gap;
+        menu.classList.remove('is-below');
       }
       /* 极端情况：气泡本身很高，上下都放不下完整菜单——退而求其次，
          贴着安全区顶部对齐，并让菜单自身滚动而不是裁切内容 */
@@ -2867,13 +3623,19 @@
         top = safeTop;
         menu.style.maxHeight = (safeBottom - safeTop) + 'px';
         menu.style.overflowY = 'auto';
+      } else {
+        menu.style.maxHeight = '';
+        menu.style.overflowY = '';
       }
 
       var left = rect.left + rect.width / 2 - menuW / 2;
       left = Math.max(frameRect.left + 10, Math.min(left, frameRect.right - menuW - 10));
       menu.style.left = left + 'px';
       menu.style.top = top + 'px';
+    }
 
+    requestAnimationFrame(function () {
+      positionSelectMenu();
       mask.classList.add('is-open');
       cloneWrap.classList.add('is-open');
       menu.classList.add('is-open');
@@ -2881,11 +3643,23 @@
 
     bubbleEl.style.visibility = 'hidden';
 
-    selectState = { mask: mask, clone: cloneWrap, menu: menu, sourceBubble: bubbleEl };
+    selectState = { mask: mask, clone: cloneWrap, menu: menu, sourceBubble: bubbleEl, reposition: positionSelectMenu };
 
     document.addEventListener('keydown', onSelectKeydown);
     window.addEventListener('scroll', closeSelectMenuFromScroll, true);
-    window.addEventListener('resize', closeSelectMenuPlain);
+    // 不再一变化就直接关闭菜单——地址栏展开/收起、键盘弹出都会触发
+    // resize/visualViewport resize，但用户并没有做出任何会取消操作的
+    // 动作，直接关闭只会让菜单显得"莫名其妙消失了"。改为重新定位，
+    // 只有真正的用户交互（点遮罩、按 Esc、滚动列表）才关闭菜单
+    window.addEventListener('resize', onSelectViewportChange);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onSelectViewportChange);
+      window.visualViewport.addEventListener('scroll', onSelectViewportChange);
+    }
+  }
+
+  function onSelectViewportChange() {
+    if (selectState && selectState.reposition) selectState.reposition();
   }
 
   function closeSelectMenuFromScroll() { closeSelectMenu(); }
@@ -2897,7 +3671,11 @@
     selectState = null;
     document.removeEventListener('keydown', onSelectKeydown);
     window.removeEventListener('scroll', closeSelectMenuFromScroll, true);
-    window.removeEventListener('resize', closeSelectMenuPlain);
+    window.removeEventListener('resize', onSelectViewportChange);
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', onSelectViewportChange);
+      window.visualViewport.removeEventListener('scroll', onSelectViewportChange);
+    }
 
     if (st.sourceBubble) st.sourceBubble.style.visibility = '';
 
@@ -2921,7 +3699,8 @@
      复制消息 —— 把气泡原文写入系统剪贴板，成功/失败都给出轻量反馈胶囊
   ========================================================================== */
   function handleCopyAction(msg) {
-    var text = (msg && msg.text) || '';
+    var voice = msg && getMsgVoice(msg);
+    var text = (voice ? voice.text : (msg && msg.text)) || '';
     var done = function (ok) {
       showFlashToast(ok ? '已复制' : '复制失败，请手动选择文字');
     };
@@ -4985,8 +5764,8 @@
     if (charRecord.speechStyle) lines.push('说话风格：' + charRecord.speechStyle);
     if (Array.isArray(charRecord.catchphrases) && charRecord.catchphrases.length) lines.push('口头禅：' + charRecord.catchphrases.join('、'));
     if (charRecord.relation) lines.push('与用户的关系定位：' + charRecord.relation);
-    if (charRecord.callUser) lines.push('对用户的称呼：' + charRecord.callUser);
     if (charRecord.relationDetail) lines.push('关系细节：' + charRecord.relationDetail);
+    lines.push('自称与被称呼：正文里提到你自己或希望对方喊你时，只能使用「' + charRecord.name + '」这个名字本身，或与之明确一致的昵称/爱称（如人设里写明的口头禅式自称），绝不能中途改口换成另一个不相关的名字，也不能把用户的名字或称呼词误用在自己身上。');
     if (Array.isArray(charRecord.neverList) && charRecord.neverList.length) lines.push('绝对不会做的事：' + charRecord.neverList.join('、'));
     if (charRecord.boundaries) lines.push('边界与底线：' + charRecord.boundaries);
     if (charRecord.prompt) lines.push('\n补充设定/系统提示词：\n' + charRecord.prompt);
@@ -5000,20 +5779,48 @@
   }
 
   /* ---- 拼装 user 人设文本：没有绑定身份时明确写「未设定」，
-     禁止模型把角色自己的设定误当成用户的设定去回应 ---- */
-  function buildUserPersonaBlock(userIdentity, myName) {
+     禁止模型把角色自己的设定误当成用户的设定去回应。
+     ---- 称呼方向修复说明（2026-09-05）----
+     此前这里把 userIdentity.callChar（字面含义是「user 称呼 char」，
+     即 user 喊角色时用什么称呼，写入的是「用户身份卡 · 用户称」那一栏）
+     误当成了「char 该怎么称呼 user」在用，并赋予其最高优先级去覆盖
+     charRecord.callUser（这才是真正代表「角色称呼用户」的字段，
+     对应设置页「彼此称呼 · 角色称」那一栏）。结果就是 AI 回复里
+     喊用户用的是用户称呼角色的那个词，而角色本该用来称呼用户的
+     称呼从未生效。现改为：
+       - 「char 该怎么称呼 user」只认 charRecord.callUser；
+       - userIdentity.callChar 单独告知模型「对方称呼你时会用的词」，
+         帮模型听懂用户喊出这个词时是在称呼角色自己，不再张冠李戴。 ---- */
+  function buildUserPersonaBlock(userIdentity, myName, charRecord) {
+    var charCallUser = charRecord && charRecord.callUser;
     if (!userIdentity) {
+      var fallbackAddress = charCallUser
+        ? '称呼对方时使用「' + charCallUser + '」这个称呼'
+        : '称呼对方时就用这个昵称';
       return '【用户人设】\n当前未绑定任何用户身份卡，仅知道用户昵称为「' + (myName || '我') +
-        '」，不要凭空假设用户的性别、职业、性格等具体信息。称呼对方时就用这个昵称，绝不能把任何占位词或英文变量名（比如 user）当成称呼说出来。';
+        '」，不要凭空假设用户的性别、职业、性格等具体信息。' + fallbackAddress + '，绝不能把任何占位词或英文变量名（比如 user）当成称呼说出来。';
     }
     var lines = ['【用户人设 —— 这是你正在对话的这个人，请据此理解 ta 的身份与说话立场】'];
     lines.push('昵称：' + (userIdentity.name || myName || '我'));
-    var callChar = userIdentity.callChar || userIdentity.addressChar;
-    if (callChar) {
-      lines.push('对方希望你（角色）这样称呼 ta：' + callChar + '——这是最高优先级的称呼依据，正文里如果要称呼对方，必须使用这个称呼，绝不能使用「昵称」字段、绝不能使用任何占位词或英文变量名（比如 user、ta、对方 之类）来称呼对方。');
+
+    /* ---- 你（角色）该怎么称呼对方：唯一依据是 charRecord.callUser，
+       取不到时退化到昵称，再退化到口语化称呼；不再读取 userIdentity 里
+       任何字段来决定这一项，避免把「用户对角色的称呼」错读成
+       「角色对用户的称呼」 ---- */
+    if (charCallUser) {
+      lines.push('你（角色）称呼对方时使用：' + charCallUser + '——正文里如果要称呼对方，必须使用这个称呼，绝不能使用「昵称」字段、绝不能使用任何占位词或英文变量名（比如 user、ta、对方 之类）来称呼对方。');
     } else {
-      lines.push('对方尚未设置希望被如何称呼，此时用「昵称」这个值来称呼即可，如果昵称本身也是空的，就用日常口语化的称呼方式（比如你、你呀），绝不能把任何占位词或英文变量名（比如 user）当成称呼说出来。');
+      lines.push('尚未设置你（角色）该如何称呼对方，此时用「昵称」这个值来称呼即可，如果昵称本身也是空的，就用日常口语化的称呼方式（比如你、你呀），绝不能把任何占位词或英文变量名（比如 user）当成称呼说出来。');
     }
+
+    /* ---- 对方（user）会怎么称呼你：这是另一个独立方向，
+       只用来帮模型「听懂」对话里出现这个词时是在叫角色自己，
+       绝不能反过来当成角色该怎么称呼用户 ---- */
+    var userCallChar = userIdentity.callChar || userIdentity.addressChar;
+    if (userCallChar) {
+      lines.push('对方（用户）称呼你（角色）时会使用：' + userCallChar + '——这只是帮助你理解对方说这个词时是在称呼你自己，不代表你也要用这个词去称呼对方。');
+    }
+
     if (userIdentity.gender) lines.push('性别：' + userIdentity.gender);
     if (userIdentity.birthday) lines.push('生日：' + userIdentity.birthday);
     if (userIdentity.location) lines.push('居住地：' + userIdentity.location);
@@ -5031,21 +5838,27 @@
      再补一段「短句多条 / 拟人节奏」的格式要求，最后交代当前在线状态、
      禁止自我暴露 AI 身份等既有开关。deletedNotes 非空时额外插入一段
      "被删线索"，让模型知道自己刚才有话被用户删掉了 ---- */
-  function buildSystemPrompt(charRecord, session, worldSection, userIdentity, myName, deletedNotes, quotableIndex, quoteAllowed, recallAllowed, rewindNote, imageAllowed, imageRequestedByUser, lastUserSentSticker) {
+  function buildSystemPrompt(charRecord, session, worldSection, userIdentity, myName, deletedNotes, quotableIndex, quoteAllowed, recallAllowed, rewindNote, imageAllowed, imageRequestedByUser, lastUserSentSticker, voiceAllowed, voiceRequestedByUser, voiceModelReady) {
     var parts = [];
     parts.push(buildCharPersonaBlock(charRecord, session));
     if (worldSection) parts.push(worldSection);
-    parts.push(buildUserPersonaBlock(userIdentity, myName));
+    parts.push(buildUserPersonaBlock(userIdentity, myName, charRecord));
     var deletedSection = buildDeletedNotesSection(deletedNotes);
     if (deletedSection) parts.push(deletedSection);
     var rewindSection = buildRewindNoteSection(rewindNote);
     if (rewindSection) parts.push(rewindSection);
+    parts.push(buildQuoteCapabilityNotice());
     var quoteSection = buildQuotableIndexPromptSection(quotableIndex, quoteAllowed);
     if (quoteSection) parts.push(quoteSection);
     var recallSection = buildRecallPromptSection(recallAllowed);
     if (recallSection) parts.push(recallSection);
+    parts.push(buildImageCapabilityNotice());
     var imageSection = buildImagePromptSection(imageAllowed, imageRequestedByUser);
     if (imageSection) parts.push(imageSection);
+    var voiceNotice = buildVoiceCapabilityNotice(voiceModelReady);
+    if (voiceNotice) parts.push(voiceNotice);
+    var voiceSection = buildVoicePromptSection(voiceAllowed, voiceRequestedByUser);
+    if (voiceSection) parts.push(voiceSection);
     var stickerSection = buildStickerPromptSection(lastUserSentSticker);
     if (stickerSection) parts.push(stickerSection);
 
@@ -5062,6 +5875,7 @@
     if (noDisclaimer) rules.push('- 不要添加免责声明、系统提示或"作为 AI"之类的话。');
     rules.push('- 直接给出角色要说的话本身，不要输出任何前缀说明、标签、引号、星号动作或 markdown 格式。');
     rules.push('- 【绝对禁止】这是聊天软件里的文字对话，不是小说或剧本，任何用中文圆括号（）、英文圆括号()、方括号[]或【】包起来的动作描写、神态描写、心理描写、旁白、场景描述都绝对不能出现在回复里的任何一条短句中——不管是整条都是括号内容，还是括号内容夹在一句话中间。角色如果想表达一个动作或心理活动，只能把它转化成角色本人会说出口的话本身（比如想表达"叹气"就直接说"唉"或者带叹气感的语气词，而不是写"（叹了口气）"），绝不能用旁白式的括号去描述"角色正在做什么/在想什么"。这条规则没有任何例外情况，不因为角色人设、场景氛围或用户要求而放松。');
+    rules.push('- 【绝对禁止，即使不带括号也一样】上面这条"不能写旁白"的规则，不是"只要不用括号就可以"——即使不加任何括号，用第三人称客观陈述的口吻去描写画面、特效、音效、UI 弹窗、动画效果这类"聊天软件本身不可能真实发生的视觉/听觉呈现"（比如"弹出一连串流光溢彩的字""响起鼓点般的声效""屏幕上飘落桃心""对话框震动了一下"），同样是绝对禁止的，因为这本质上还是旁白/场景描述，只是省略了括号这层外壳。聊天框里只会出现"这个人本人打出来的话"，不会出现任何描述客户端界面效果、周围环境音效、抽象意象的句子。如果想表达强烈的情绪或想营造氛围，只能通过角色本人的说话内容和语气本身去传达（比如真的很想对方，就直接说"想你想到不行"之类角色会脱口而出的话），而不是描述"发生了什么视觉/听觉效果"。');
     rules.push('- 只能依据上面提供的真实历史消息判断对方做过什么、说过什么，绝不能凭空编造对方的动作或行为去指责或调侃（比如编造"你撤回消息了""你刚才把照片放大又缩小"这类没有出现在真实历史里的事情）；如果历史里确实没有相关内容，就不要提这件事，正常接着当下的话题说下去。');
     rules.push('');
     rules.push('【分条格式 —— 必须遵守，这是硬性输出格式而不是排版建议】');
@@ -5116,6 +5930,7 @@
     lines.push(text);
     lines.push('这是这一轮唯一需要吸收的反馈：请针对性地避开用户指出的这个问题，重新组织这一轮要说的话，仍然要完全代入角色本人、符合人设与说话习惯。');
     lines.push('绝对不要在回复里提到"重新生成""重回""上一次""刚才说错了"之类的元层面表述，也不要道歉或解释自己为什么变了，就当作角色这次自然地重新组织语言、正常往下说即可。');
+    lines.push('注意：这条反馈只针对上面指出的具体问题本身，不代表"这次要说得更少、更保守、更简短"——分几条说、每条说多少，仍然完全按下方【分条格式】规则由这次实际想说的内容量自然决定，不要因为这是一次"修正"就下意识地收着说、条数缩水，那本身就是另一种需要避免的不自然。');
     return lines.join('\n');
   }
 
@@ -5198,6 +6013,19 @@
         }
         return;
       }
+      var voice = getMsgVoice(m);
+      if (voice) {
+        /* ---- 语音消息：没有真实音频，转写文字本身就是完整内容——
+           直接把转写文字当作这条消息的文本传给模型，附一句提示，
+           让模型知道这是"说出来的"而非"打字的"，语气上可以更口语化
+           地接住，而不必当作普通文字消息一样正式回应 ---- */
+        var vText = (voice.text || '').trim();
+        msgs.push({
+          role: role,
+          content: vText ? ('（这是我发的一条语音，说的内容是：' + vText + '）') : '[发了一条语音，但没有转写内容]'
+        });
+        return;
+      }
       var images = getMsgImages(m);
       if (images) {
         var realImgs = images.filter(function (im) { return im && im.url && !im.generated; });
@@ -5227,6 +6055,30 @@
             content: '[发了' + (images.length > 1 ? images.length + ' 张图片' : '一张图片') + '，' + parts.join('；') + ']'
           });
         }
+        return;
+      }
+      /* ---- 引用消息：msg.quote = { ts, from, text } 只写进了消息
+         数据本身，供气泡渲染引用卡片用（见 buildQuoteRefChip 等
+         调用处），但这里组装喂给模型的上下文时此前完全没读取这个
+         字段——导致无论是用户长按选「引用」发出的消息，还是 AI 自己
+         用 [[quote:N]] 生成的引用消息，模型在下一轮看到的历史里都
+         只是一句孤零零的纯文字，完全不知道这句话是在回应/呼应哪条
+         更早的消息，答非所问也就不奇怪了。这里在纯文字兜底分支里
+         补上引用上下文：如果这条消息带 quote，就在正文前面加一句
+         简短说明是回复谁的哪句话，让模型下一轮能读到完整的"引用—
+         回复"关系，而不是仅凭猜测 ---- */
+      if (m.quote) {
+        // 引用对象是"我自己"还是"对方"，要相对于这条消息本身的说话
+        // 人判断，而不是死板地把 from:'me' 当成"我"——当这是 AI 自己
+        // 发的引用消息时（role==='assistant'），quote.from 如果也是
+        // 'peer'，意味着 AI 在引用自己更早说过的话，此时应该说"我
+        // 自己之前"，而不是"对方之前"；反之同理
+        var qWho = (m.quote.from === m.from) ? '我自己之前' : '对方之前';
+        var qText = (m.quote.text || '').trim();
+        var quotedNote = qText
+          ? ('（回复' + qWho + '说的"' + qText + '"）')
+          : ('（回复' + qWho + '的一条消息，原文已不可见）');
+        msgs.push({ role: role, content: quotedNote + (m.text || '') });
         return;
       }
       msgs.push({ role: role, content: m.text || '' });
@@ -5260,16 +6112,19 @@
       body: JSON.stringify({
         model: cfg.model,
         messages: messages,
-        max_tokens: 1600,
+        max_tokens: 2400,
         temperature: 0.9
       })
     }).then(function (resp) {
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       return resp.json();
     }).then(function (data) {
-      var reply = data && data.choices && data.choices[0] && data.choices[0].message
-        ? data.choices[0].message.content : '';
-      return (reply || '').trim();
+      var choice = data && data.choices && data.choices[0];
+      var reply = choice && choice.message ? choice.message.content : '';
+      return {
+        text: (reply || '').trim(),
+        truncated: !!choice && choice.finish_reason === 'length'
+      };
     });
   }
 
@@ -5340,6 +6195,19 @@
       return { n: i + 1, from: m.from, ts: m.ts, text: text };
     });
   }
+  /* ---- 能力常驻声明：与「本轮可引用列表」是两回事——后者只在
+     quoteAllowed 为真时才拼进 prompt，模型在其余大多数轮次里根本
+     看不到任何跟引用有关的文字，于是被用户当面问"你有没有引用/
+     回复功能"时，会如实但错误地回答"没有"（它只是这一轮不知道
+     而已，不代表功能不存在）。这里补一条极简的、不随 quoteAllowed
+     变化的常驻声明，让模型任何时候被问起都知道"这是我具备的能力，
+     只是由系统决定这次能不能用"，而不会矢口否认整个功能——具体
+     什么时候真的允许触发，仍然完全由下面的按轮次列表 + 概率闸门
+     控制，这条声明不解锁 [[quote:N]] 语法本身 ---- */
+  function buildQuoteCapabilityNotice() {
+    return '【关于"引用"功能】你的聊天界面支持引用某条历史消息后再回复（类似聊天软件的"回复"功能）。这是你确实拥有的能力，如果对方问起，不要说自己没有这个功能。但具体这次生成是否可以实际使用一次引用，由系统另行决定，不是每轮都可以用；只有在下面出现"本轮可引用的最近消息"列表时，才说明系统已经放行，可以按其中的说明使用。';
+  }
+
   function buildQuotableIndexPromptSection(quotableIndex, quoteAllowed) {
     if (!quoteAllowed || !quotableIndex || !quotableIndex.length) return '';
     var lines = [];
@@ -5356,16 +6224,42 @@
   /* ---- 从一条模型输出的短句里解析 [[quote:N]] 标记：
      命中且编号在索引范围内时返回 { text, quote }（text 已去除标记，
      quote 是还原出的 { ts, from, text }）；未命中/编号非法则返回 null。
-     标记理论上应该出现在短句最前面，但模型偶尔会在标记前多打一两个
-     字符（语气词、标点），所以匹配时放宽到"标记出现在短句靠前的
-     位置"而不是死板要求下标一定是 0，避免因为这种小偏差导致标记
-     解析彻底失败、原始 [[quote:N]] 文本直接暴露给用户 ---- */
-  var QUOTE_TAG_RE = /\[\[quote:(\d+)\]\]\s*/i;
-  var QUOTE_TAG_RE_G = /\[\[quote:(\d+)\]\]\s*/gi;
-  var QUOTE_TAG_LEADING_SLACK = 6; // 标记前最多容忍这么多个字符的"手滑"前缀
+     标记理论上应该出现在短句最前面，但 splitIntoOddSegments 的
+     fallback 切分（模型没按 ||| 输出时，退化为按句末标点/逗号顿号
+     切分）会把标记原本所在的整段话切碎，标记完全可能因此被甩到
+     切出来的某一小段中间甚至末尾——这不是模型手滑打错位置，而是
+     切分粒度比标记原本所在的句子更细。如果这里仍然死板要求标记
+     必须落在短句靠前的位置，会导致"模型明明打对了标记，引用却
+     莫名其妙没生效"这种真正的渲染错误。因此不再按字符位置限制，
+     只要这一小段里恰好命中一次合法编号的标记，就认为这一段是
+     模型想要接住的那一句，直接摘掉标记生效——同一整轮只有第一次
+     命中会消耗引用名额（由调用方的 quoteUsedThisTurn 控制），
+     不会因为放宽位置限制而导致引用被滥用 ---- */
+  /* ---- 标记宽容匹配：模型是在"照着 prompt 里的示例语法自己打字"，
+     不是被语法强制约束，[[quote:N]] 这种双层方括号的写法，模型有
+     不小概率手滑漏打一侧的方括号（比如只打 [quote:1] 或
+     [[quote:1]，单侧变成单括号）——这类输出用严格要求双层 [[ ]] 的
+     正则完全捕获不到，于是既没能解析成真正的引用，stripQuoteTag
+     的兜底清除也同样因为格式不严格匹配而清不掉，标记原文或残缺的
+     单个方括号就直接漏给用户看到。这里改为方括号层数可以是 1 到 2
+     层、松紧不对称都认，尽量把模型实际可能写出的变体都框进来，
+     而不是要求它字字精确复刻示例 ---- */
+  var QUOTE_TAG_RE = /\[{1,2}quote\s*[:：]\s*(\d+)\]{1,2}\s*/i;
+  var QUOTE_TAG_RE_G = /\[{1,2}quote\s*[:：]\s*(\d+)\]{1,2}\s*/gi;
+  /* ---- 诊断专用：宽松侦测"清理之后仍然疑似残留了没解析成功的标记
+     碎片"——不追求精确定位是哪种写法（那需要拿到实际案例才能确定），
+     只要开头或结尾出现孤立的方括号/中英文方括号，或者贴着数字/
+     quote|voice|image 关键字出现的方括号组合，就判定为疑似残留，
+     记一条 console 日志方便后续用实际报出的原始文本定位问题，而不是
+     停留在照着截图里的文字去猜测新变体、改一次只能覆盆一种情况 ---- */
+  var UNPARSED_TAG_RESIDUE_RE = /^[\]】］]|[\[【［]$|\d[\]】］]|[\[【［]\d|quote|voice|image/i;
+  function looksLikeUnparsedTagResidue(text) {
+    if (!text) return false;
+    return UNPARSED_TAG_RESIDUE_RE.test(text);
+  }
   function extractQuoteTag(seg, quotableIndex) {
     var m = QUOTE_TAG_RE.exec(seg);
-    if (!m || m.index > QUOTE_TAG_LEADING_SLACK) return null;
+    if (!m) return null;
     var n = parseInt(m[1], 10);
     var hit = (quotableIndex || []).filter(function (it) { return it.n === n; })[0];
     var prefix = seg.slice(0, m.index).trim();
@@ -5452,14 +6346,15 @@
   }
 
   /* ---- 从一条模型输出的短句里解析 [[recall]] 标记：命中时返回
-     去除标记后的正文字符串；未命中返回 null。与引用标记同一套
-     "标记前允许少量手滑前缀"的宽松匹配策略 ---- */
+     去除标记后的正文字符串；未命中返回 null。与引用标记同理，不再
+     限制标记必须出现在短句靠前的位置——fallback 切分会把标记原本
+     所在的整句切碎，标记可能落在切出来的某一小段中间，死板的位置
+     限制只会让本该生效的撤回被误判成"标记解析失败"而悄悄失效 ---- */
   var RECALL_TAG_RE = /\[\[recall\]\]\s*/i;
   var RECALL_TAG_RE_G = /\[\[recall\]\]\s*/gi;
-  var RECALL_TAG_LEADING_SLACK = 6;
   function extractRecallTag(seg) {
     var m = RECALL_TAG_RE.exec(seg);
-    if (!m || m.index > RECALL_TAG_LEADING_SLACK) return null;
+    if (!m) return null;
     var prefix = seg.slice(0, m.index).trim();
     var rest = (prefix + ' ' + seg.slice(m.index + m[0].length)).trim();
     if (!rest) return null;
@@ -5524,6 +6419,191 @@
     });
   }
 
+  /* ==========================================================================
+     AI 发语音能力 —— 与"发图"同一套"节流器 + prompt 授权"机制，
+     独立计数、互不挤占彼此名额（同一轮里模型仍只能二选一，见下方
+     buildVoicePromptSection 里的互斥说明，但节流器本身各自独立走
+     各自的间隔轮次，不会因为这一轮刚发过图就连带影响语音的节流
+     进度，反之亦然）。
+     语音消息本身没有真实音频——真正的语音合成只有在"用户点开这条
+     语音气泡旁边的播放角标"时才会触发一次真实 TTS 调用并缓存结果
+     （见 chatroom 里 ensureVoiceAudio），这里只负责"这一轮该不该
+     让角色改用语音说话、以及说了什么" ---- */
+  var VOICE_MIN_GAP_TURNS = 3;    // 距离上一次成功发语音，至少要隔这么多次 AI 生成轮次
+  var VOICE_BASE_CHANCE = 0.14;   // 满足间隔条件后，这一轮仍只有这个概率真正允许自主发语音
+
+  function voiceStateKey(storeKey) { return 'chatroomVoiceState:' + storeKey; }
+
+  function loadVoiceTurnState(storeKey) {
+    if (window.LunaDB) {
+      return window.LunaDB.get(voiceStateKey(storeKey)).then(function (v) {
+        return v || { turnsSinceVoice: VOICE_MIN_GAP_TURNS };
+      });
+    }
+    return Promise.resolve({ turnsSinceVoice: VOICE_MIN_GAP_TURNS });
+  }
+  function saveVoiceTurnState(storeKey, state) {
+    if (window.LunaDB) return window.LunaDB.set(voiceStateKey(storeKey), state);
+    return Promise.resolve(false);
+  }
+  function isVoiceTurnAllowed(storeKey) {
+    return loadVoiceTurnState(storeKey).then(function (state) {
+      var turnsSince = (state && state.turnsSinceVoice) || 0;
+      if (turnsSince < VOICE_MIN_GAP_TURNS) return false;
+      return Math.random() < VOICE_BASE_CHANCE;
+    });
+  }
+  function markVoiceTurnUsed(storeKey) {
+    return saveVoiceTurnState(storeKey, { turnsSinceVoice: 0 });
+  }
+  function bumpVoiceTurnCounter(storeKey) {
+    return loadVoiceTurnState(storeKey).then(function (state) {
+      var turnsSince = (state && state.turnsSinceVoice) || 0;
+      return saveVoiceTurnState(storeKey, { turnsSinceVoice: turnsSince + 1 });
+    });
+  }
+
+  /* ---- 语音语法的 prompt 说明：voiceAllowed 为真时才出现。真人在
+     聊天软件里也不是一直发语音——大部分对话仍然是打字，只有在
+     "这段话更适合用说的"（情绪浓烈、想让对方听到语气、懒得打字、
+     临时有点事脱不开手）时才偶尔发一条语音，这里明确把这种"偶尔
+     为之"的分寸感讲给模型听，而不是给它一个"允许了就该用"的信号 ---- */
+  /* ---- 能力常驻声明：与引用/发图同理，但语音多一道硬性前置闸门
+     （必须先在「语音模型」页配置好账号+音色），闸门没过时角色是
+     真的完全不具备这个能力，此时如果也无条件声明"我有这个能力"
+     反而会制造新的错误（对没配置语音的用户撒谎说自己能发语音）。
+     所以这条声明要求调用方额外传入 voiceModelReady，只在硬闸门
+     本身已经打开、只是这一轮节流没轮到的情况下才声明"能力存在但
+     这轮不一定能用"；闸门本身没开时，保持沉默，不作任何声明，
+     让模型按人设自然应对（大概率因为没被问过而不会主动提及）---- */
+  function buildVoiceCapabilityNotice(voiceModelReady) {
+    if (!voiceModelReady) return '';
+    return '【关于"发语音"功能】你的聊天界面支持你发送语音消息给对方。这是你确实拥有的能力，如果对方问起，不要说自己没有这个功能。但具体这次生成是否可以实际发一条，由系统另行决定，不是每轮都可以用；只有下面出现"本轮可以发一条语音消息"的说明时，才代表系统已经放行。';
+  }
+
+  function buildVoicePromptSection(voiceAllowed, requestedByUser) {
+    if (!voiceAllowed) return '';
+    var lines = [];
+    lines.push('【本轮可以发一条语音消息 —— 仅这一轮生效，且完全由你自行判断是否使用】');
+    if (requestedByUser) {
+      lines.push('对方刚刚明确要求你发一条语音消息给 ta 听，这种情况下通常应当顺应请求、用 [[voice:]] 标记发一条语音，除非结合人设与情境，角色本人此刻确实没有理由这么做，若是这种情况就正常用文字说明原因即可，不必强行发语音。');
+    } else {
+      lines.push('系统已经判定这一轮偶尔改发一条语音是合适的（"不能每次都发语音"这条约束由系统在轮次层面控制，你不需要刻意克制），但这只是"允许"，不是"必须"——大多数情况下你依然应该正常打字说话，完全不使用这个功能，真人聊天也是打字为主、偶尔才会想起来发条语音。');
+    }
+    lines.push('只有当接下来要说的这段话，结合当下语境确实更适合"说出来"而不是"打出来"时才使用——比如情绪比较浓（开心、委屈、着急、撒娇）、想让对方听见语气本身而不只是文字、这段话有点长懒得打字、或者此刻情境上手不方便打字（在忙别的事、走在路上）。如果只是平常的陈述、答疑、简短应答，就不必发语音。');
+    lines.push('用法：在你想发语音的那一条短句最前面加上 [[voice: 这条语音实际要说的完整内容]] 标记，系统会把这段文字转换成一条语音消息发给对方（时长按文字长度自动估算），描述文字就是这条语音里说的话本身，要写得口语化、像是脱口而出的一句话，而不是书面表达。');
+    lines.push('【硬性限制，必须遵守】一整轮回复里最多只能出现一次 [[voice:]] 标记，且不能与同一条短句里的 [[image:]] 标记同时出现（发语音和发图是两件不同的事，不能揉进同一条里）；标记后面不需要再写其他文字，如果误写了额外文字会被当成这条语音之外的说明一并保留，因此这条短句最好只包含这一个标记本身。');
+    lines.push('【格式必须完整，不允许写半截】[[voice: 和结尾的 ]] 两边的方括号缺一不可，必须是英文半角的 [ 和 ]，不能用中文的【】或全角［］代替，也不能只写了开头 [[voice: 却忘记补上结尾的 ]]。这个标记要么完整地写出来，要么就完全不要写、直接正常打字说这句话——绝不能写一半、写歪、或者在正文里用文字描述"这是一条语音"之类的话来代替真正的标记，那样只会变成一句发不出去的破碎文字，比不发语音还糟。如果你不确定能不能把标记写完整、写对，就直接放弃这次发语音，改成正常打字。');
+    lines.push('【绝对禁止】绝不能用一句旁白式的话去描述"我发了一条语音"，比如"（这是我发的一条语音，说的内容是：xxx）"、"[语音：xxx]"、"发了条语音说xxx"这类写法——这些不是真正的语音标记，系统无法把它们渲染成语音消息，只会变成一条格式怪异、括号里嵌着一句话的文字消息发出去，非常跳戏。唯一正确的方式就是 [[voice: 语音里实际说的话]] 这个标记本身，标记之外不需要、也不应该再用任何文字去交代"这是语音"这件事——对方能直接看到这是一条语音消息（有声纹和时长），不需要你额外声明。');
+    lines.push('例如：宝，我现在真的好想你|||[[voice: 我现在真的好想你呀，你什么时候回来嘛]]');
+    lines.push('如果这次要说的话用打字表达就足够自然，就完全不要使用这个标记，正常打字说话即可，不要为了凑效果而生硬地制造一个"该发语音"的话题。');
+    return lines.join('\n');
+  }
+
+  /* ---- 从一条模型输出的短句里解析 [[voice: 内容]] 标记：命中时
+     返回 { text, dur }，text 为语音要说的内容（用于渲染声纹长度、
+     写入 msg.voice.text，也是后续真正触发 TTS 时送去合成的文本）；
+     未命中返回 null。与发图/撤回标记同理，不限制标记必须在短句
+     最前面，理由同上——fallback 切分可能把标记原本所在的整句切碎 ---- */
+  var VOICE_TAG_RE = /\[\[voice:\s*([^\]]{1,500}?)\s*\]\]/i;
+  var VOICE_TAG_RE_G = /\[\[voice:\s*([^\]]{1,500}?)\s*\]\]/gi;
+  /* ---- 宽松兜底正则：模型偶尔会把标记写"走样"——中英文方括号混用
+     （【【…】】/［［…］］/[[…】】 之类）、冒号用了全角"："、或者结尾
+     漏写了一半闭合括号。这些情况严格正则会直接判定"未命中"，导致
+     整段话连同标记原文一起被当成普通文字漏出去，观感就是一条格式
+     混乱的文字气泡（而不是应有的语音条）。这条兜底不追求穷尽所有
+     走样写法，只覆盖"看得出来模型是想用 voice 标记、只是符号没对齐"
+     这种明显情况，避免因为一个符号差异就整条降级成外露的原始标记 ---- */
+  var VOICE_TAG_RE_LOOSE = /[\[【［]{1,2}\s*voice\s*[:：]\s*([^\]】］]{1,500}?)\s*[\]】］]{0,2}\s*$/i;
+  function extractVoiceTag(seg) {
+    var m = VOICE_TAG_RE.exec(seg);
+    if (!m) m = VOICE_TAG_RE_LOOSE.exec(seg);
+    if (!m) return null;
+    var text = (m[1] || '').trim();
+    if (!text) return null;
+    return { text: text, dur: estimateVoiceDuration(text) };
+  }
+  /* 未获准发语音的这一轮，或标记解析失败时的兜底：把标记本身干净
+     剥除，绝不把 [[voice: ...]] 原始标记文本暴露给用户 ---- */
+  function stripVoiceTag(seg) {
+    return seg.replace(VOICE_TAG_RE_G, '').replace(VOICE_TAG_RE_LOOSE, '').trim();
+  }
+
+  /* ---- 兜底防线：模型有时不按 [[voice:]] 语法走，而是自己编一段
+     被方括号/圆括号整体包裹的伪造"发语音"旁白发出来，这种文本一旦
+     当成普通消息发出去，既没有真的语音条渲染，又格式突兀、跳戏
+     严重（典型例子："（这是我发的一条语音，说的内容是：又要我说
+     啊？）"）。识别思路与图片那套 isFakeImageNarration 完全对称，
+     只是关键词换成"发语音/语音："这一组：
+     ① 旁白式："（这是我发的一条语音，说的内容是：xxx）"——特征是
+        含有"发了一条语音/发条语音/语音消息"这类明确的发语音短语；
+     ② 伪标记式："[语音：想你了，你什么时候回来]"——特征是整条一
+        开始就是"语音：/语音消息："这种冒号前缀，明显是在模仿
+        [[voice: ...]] 的语法结构，只是符号用错了。
+     这两种任一命中都判定为"假语音旁白"，不去动人设里本来就允许
+     的其它方括号/圆括号动作神态描写（那些既不含发语音动词，也不是
+     冒号前缀结构，所以不受影响），也不会跟 isFakeImageNarration
+     产生冲突判定（两组关键词各自独立，一段文本不会同时含有发图和
+     发语音两类关键词） ---- */
+  var FAKE_VOICE_NARRATION_BRACKET_RE = /^[\[（(【][^\]）)】]{2,300}[\]）)】]$/;
+  var FAKE_VOICE_NARRATION_KEYWORDS = [
+    '发了一条语音', '发了条语音', '发一条语音', '发一条语音消息',
+    '发了一条语音消息', '发送了一条语音', '发送了语音',
+    '这是我发的一条语音', '这是一条语音', '这是语音',
+    '给你发条语音', '给你发一条语音', '录了一条语音', '录了段语音'
+  ];
+  // 伪标记式：内容开头（掐掉最外层括号后）就是"语音：""语音消息："
+  // 这类前缀，等价于模型试图写 [[voice: ...]] 但外层符号写错了
+  var FAKE_VOICE_TAG_PREFIX_RE = /^(语音消息|语音)\s*[:：]/;
+  function isFakeVoiceNarration(seg) {
+    if (!seg) return false;
+    var trimmed = seg.trim();
+    if (!FAKE_VOICE_NARRATION_BRACKET_RE.test(trimmed)) return false;
+    var inner = trimmed.slice(1, -1).trim();
+    if (FAKE_VOICE_TAG_PREFIX_RE.test(inner)) return true;
+    return FAKE_VOICE_NARRATION_KEYWORDS.some(function (kw) { return trimmed.indexOf(kw) !== -1; });
+  }
+  /* ---- 从命中 isFakeVoiceNarration 的方括号旁白里，剥掉外层括号、
+     引导前缀和"说的内容是/内容是/说xxx"这类衔接语，取剩余部分作为
+     这条语音真正要说的话：
+     ① 伪标记式（"语音：xxx"）——冒号前缀本身就是明确的切分点，
+        直接取冒号之后的全部内容；
+     ② 旁白式（"这是我发的一条语音，说的内容是：xxx" /
+        "发了一条语音说xxx"）——先按"发了一条语音/这是一条语音"这类
+        关键词切一刀取后半段，再顺手把"说的内容是：/内容是：/说"这
+        类衔接语也切掉，取真正的语音文本本身。
+     若切不出有意义的剩余内容，返回 null，交由上层按普通丢弃处理，
+     不发一条空洞无物的语音 ---- */
+  var VOICE_NARRATION_CONTENT_LEAD_RE = /^(说的内容是|内容是|说|内容为)\s*[:：]?\s*/;
+  function extractFakeVoiceNarrationText(seg) {
+    if (!isFakeVoiceNarration(seg)) return null;
+    var trimmed = seg.trim();
+    var inner = trimmed.slice(1, -1).trim(); // 剥掉最外层的括号
+    if (!inner) return null;
+
+    // 优先处理伪标记式："语音：xxx" / "语音消息：xxx"，冒号后就是语音正文
+    var prefixMatch = FAKE_VOICE_TAG_PREFIX_RE.exec(inner);
+    if (prefixMatch) {
+      var afterColon = inner.slice(prefixMatch[0].length).trim();
+      if (afterColon.length >= 2) return afterColon;
+    }
+
+    var kw = FAKE_VOICE_NARRATION_KEYWORDS.find(function (k) { return inner.indexOf(k) !== -1; });
+    if (kw) {
+      var idx = inner.indexOf(kw);
+      var afterKw = inner.slice(idx + kw.length);
+      // 引导语后面常跟着逗号/顿号，再接"说的内容是：/内容是："这类
+      // 衔接语，最后才是真正的语音文本，两层都要剥掉
+      afterKw = afterKw.replace(/^[，,、\s]+/, '').trim();
+      afterKw = afterKw.replace(VOICE_NARRATION_CONTENT_LEAD_RE, '').trim();
+      if (afterKw.length >= 2) return afterKw; // 剩余内容足够，才当语音文本用
+    }
+    // 没找到关键词紧跟切分点，或剩余内容太短：整段本身如果已经
+    // 足够长、有实际内容，就直接把整段（去掉纯引导词后）当语音文本
+    if (inner.length >= 4) return inner;
+    return null;
+  }
+
   /* ---- 判断历史里最后一条用户消息是否在明确索要图片：命中一组
      常见口语化表达即可，不追求覆盖穷尽——命中时这一轮的发图节流
      直接放行，交由 prompt 层去引导模型"这次应当发图"，未命中不
@@ -5536,8 +6616,11 @@
     '给我发', '想看看你', '想看看那', '你那边什么样', '现场什么样',
     '不能只发一张', '不许只发一张', '只发一张', '不能只发', '多发几张',
     '多发点', '多发一张', '再发一张', '再发张', '再拍一张', '再拍张',
-    '还没给我发', '还没发给我', '还没拍', '快点发', '快发', '还不发',
-    '怎么还没', '为什么还没给我', '你要是不多发', '不发我就', '不给我发'
+    '还没给我发', '还没拍', '快点发', '快发', '还不发',
+    '怎么还没', '为什么还没给我', '你要是不多发', '不发我就', '不给我发',
+    '发图片', '发个照片', '会发图', '会不会发图', '能不能发图', '能发图吗',
+    '有发图功能', '有没有发图', '发图功能', '发照片功能', '发图能不能用',
+    '发照片能不能用'
   ];
   function userLastMessageAsksForImage(history) {
     if (!history || !history.length) return false;
@@ -5548,6 +6631,30 @@
       var text = (m.text || '').trim();
       if (!text) return false; // 最后一条是图片消息等非文字内容，不算索要
       return IMAGE_REQUEST_KEYWORDS.some(function (kw) { return text.indexOf(kw) !== -1; });
+    }
+    return false;
+  }
+
+  /* ---- 判断历史里最后一条用户消息是否在明确索要语音：与
+     userLastMessageAsksForImage 同一套判定逻辑，命中时这一轮的
+     发语音节流直接放行（但仍然受 voiceModelReady 这道硬性前置
+     闸门约束——没配置语音模型时，即使用户明确要求，也不能假装
+     可以发语音，那样只会生成一条点了播放没有声音的语音消息）---- */
+  var VOICE_REQUEST_KEYWORDS = [
+    '发语音', '发个语音', '发条语音', '来段语音', '来条语音', '发一条语音',
+    '发一段语音', '语音回我', '用语音', '说句话我听听', '发个声音',
+    '让我听听', '想听你说话', '想听听你的声音', '录个语音', '录一条语音',
+    '语音发我', '给我发语音', '发语音消息', '不能打字', '别打字', '说话给我听'
+  ];
+  function userLastMessageAsksForVoice(history) {
+    if (!history || !history.length) return false;
+    for (var i = history.length - 1; i >= 0; i--) {
+      var m = history[i];
+      if (m.recalled) continue;
+      if (m.from !== 'me') return false;
+      var text = (m.text || '').trim();
+      if (!text) return false;
+      return VOICE_REQUEST_KEYWORDS.some(function (kw) { return text.indexOf(kw) !== -1; });
     }
     return false;
   }
@@ -5584,6 +6691,15 @@
   /* ---- 发图语法的 prompt 说明：imageAllowed 为真时才出现——区分
      两种放行原因，措辞略有不同，让模型清楚"这次为什么可以发图"，
      从而更准确判断"是不是真该发"而不是机械触发 ---- */
+  /* ---- 能力常驻声明：与引用功能同理——buildImagePromptSection 只在
+     imageAllowed 为真时才输出任何内容，模型在没被放行的轮次里完全
+     不知道自己"能发图"，被直接问起时会照实说"不能"。这里补一条不
+     受节流器影响的常驻声明，只声明能力存在，不解锁 [[image:]] 语法
+     本身——具体这次能不能真的发，仍然完全由 imageAllowed 控制 ---- */
+  function buildImageCapabilityNotice() {
+    return '【关于"发图片"功能】你的聊天界面支持你发送图片给对方（通过描述画面内容生成）。这是你确实拥有的能力，如果对方问起"能不能发图/你会不会发照片"，不要说自己没有这个功能。但具体这次生成是否可以实际发一张，由系统另行决定，不是每轮都可以用；只有下面出现"本轮可以发送图片"的说明时，才代表系统已经放行。';
+  }
+
   function buildImagePromptSection(imageAllowed, requestedByUser) {
     if (!imageAllowed) return '';
     var lines = [];
@@ -5594,6 +6710,8 @@
       lines.push('系统已经判定这一轮偶尔主动发一张图是合适的（"不能每次都发"这条约束由系统在轮次层面控制，你不需要刻意克制），但这只是"允许"，不是"必须"——大多数情况下你依然应该只用文字说话，完全不使用这个功能。只有当当前语境确实很适合"顺手拍一张/翻出一张图分享给对方看"时才使用，比如描述了某个具体场景、物件、自拍此刻的状态等自然会想配图的情境。');
     }
     lines.push('你并不具备真正的拍照/生图能力，所以"发图片"的方式是：在你想发图的那一条短句的最前面加上 [[image: 具体描述这张图里有什么]] 标记，系统会把这段描述转换成一张图发给对方——描述要尽量具体、有画面感（光线、构图、内容细节），因为这段文字本身就决定了对方会"看到"什么。');
+    lines.push('【硬性要求，必须遵守】[[image: ...]] 标记里的描述文字，是唯一决定"对方看到的这张图长什么样"的内容，绝不能写成一句简短的感叹、评价或聊天用语（比如"你看这色，润不润"、"这个还不错吧"、"随手拍的"）——这种写法只是在说话，完全没有交代画面本身，系统无法从中还原出任何具体的图像内容。正确的写法必须包含至少以下几类里的三类以上具体信息：画面主体是什么、所处的场景/背景、光线或色调、构图或角度、以及能让人一读就在脑内浮现画面的细节（材质、姿态、表情、纹理等），整段描述实际长度通常不应少于 20 个字。如果一时想不出这么多细节，宁可这一轮不发图、只用文字说话，也不要用一句空泛的话敷衍了事去凑一个标记。');
+    lines.push('反例（不合格，因为只是在说话，没有画面信息）：[[image: 你看这色，润不润]]；正例（合格，具体交代了主体/材质/光线/构图）：[[image: 桌上一杯刚泡好的普洱茶汤，琥珀红色透亮，逆光照着杯沿泛出一圈金边，背景虚化着窗边的绿植]]。');
     lines.push('写这段描述之前，先自己判断一下这次要发的是什么性质的图，再决定怎么描述，不要每次都套同一种写法：如果这张图里角色本人是被拍摄的对象（比如对方要求"自拍"、"给我看看你"、"拍下你现在的样子"），就要用第一人称、手持自拍视角去写——把镜头当成是自己举着/靠在手边拍自己，可以带一点自拍常见的构图特征（角度、镜头距离、露出的范围），并结合人设自身的外貌与此刻情境去描述"我"入镜的样子，而不是写成"一个人坐在xx"这种像监控探头或陌生人在旁边看着的客观描述；如果这张图拍的是角色周围的场景、物件、风景（角色本人不在画面里），就是"我拿手机看向xx拍下来"的视角，自然不需要出现角色自己的样子。具体是哪一种，由你结合对方这句话的意思和当下情境自己判断，不必套用固定模板。');
     lines.push('一次最多可以连续使用 ' + IMAGE_MAX_PER_TURN + ' 个 [[image:]] 标记发送一组图片（比如连拍的几张、同一场景的不同角度），也可以只用一个只发一张；标记只能出现在短句最前面，每个标记对应发送一张图。');
     lines.push('带有该标记的这条短句不需要再额外写别的文字内容（标记后面如果还有话，会被当成这张图的说明一并保留），如果这一条你只是想单纯发图，标记后面可以留空。');
@@ -5605,29 +6723,41 @@
     return lines.join('\n');
   }
 
-  /* ---- 从一条模型输出的短句里解析开头连续出现的 [[image: 描述]]
+  /* ---- 从一条模型输出的短句里解析连续出现的 [[image: 描述]]
      标记（可以有 1~IMAGE_MAX_PER_TURN 个连写在一起，对应一次发送
      一组堆叠图片）。命中时返回 { images: [{caption}], text }，
-     text 为标记之后剩余的正文（可能为空）；未命中返回 null。
-     与引用/撤回同一套"标记前允许少量手滑前缀"的宽松匹配策略 ---- */
-  var IMAGE_TAG_RE_SINGLE = /\[\[image:\s*([^\]]{1,300}?)\s*\]\]/i;
-  var IMAGE_TAG_RE_G = /\[\[image:\s*([^\]]{1,300}?)\s*\]\]/gi;
-  var IMAGE_TAG_LEADING_SLACK = 6;
+     text 为标记之外剩余的正文拼接（可能为空）；未命中返回 null。
+     不再要求第一个标记必须落在短句最前面几个字符内——理由与引用/
+     撤回标记同理：fallback 切分会把标记原本所在的整句切碎，第一个
+     标记完全可能因此被推到切出来的某一小段中间。但"多个标记必须
+     彼此紧挨着连写"这条约束予以保留，因为这是发一组堆叠图片语法
+     本身真正的规则（而不是位置检测的副作用），放宽后仍然只吃第一次
+     命中处起"连续排列"的那一组标记，标记前后如果还有文字，一并
+     保留拼进 text，不再要求标记必须在开头 ---- */
+  /* ---- 与 QUOTE_TAG_RE / VOICE_TAG_RE 同理，容忍方括号写走样
+     （单层方括号、中英文方括号混用），不要求模型精确复刻双层
+     [[ ]] 示例，否则一旦手滑漏打一侧括号，标记就会既解析不出图片
+     也清不掉标记原文，直接以残缺文本漏给用户 ---- */
+  var IMAGE_TAG_RE_SINGLE = /[\[【［]{1,2}image\s*[:：]\s*([^\]】］]{1,300}?)\s*[\]】］]{1,2}/i;
+  var IMAGE_TAG_RE_G = /[\[【［]{1,2}image\s*[:：]\s*([^\]】］]{1,300}?)\s*[\]】］]{1,2}/gi;
   function extractImageTags(seg) {
     var m = IMAGE_TAG_RE_SINGLE.exec(seg);
-    if (!m || m.index > IMAGE_TAG_LEADING_SLACK) return null;
+    if (!m) return null;
     var images = [];
+    var startIdx = m.index;
     var cursor = m.index;
     IMAGE_TAG_RE_G.lastIndex = cursor;
     var mm;
     while ((mm = IMAGE_TAG_RE_G.exec(seg)) && images.length < IMAGE_MAX_PER_TURN) {
-      if (mm.index !== cursor) break; // 只吃"从头连续排列"的标记，中间夹了别的字符就停止
+      if (mm.index !== cursor) break; // 只吃"从第一个命中处起连续排列"的标记，中间夹了别的字符就停止
       var caption = (mm[1] || '').trim();
       if (caption) images.push({ caption: caption, generated: true });
       cursor = mm.index + mm[0].length;
     }
     if (!images.length) return null;
-    var rest = seg.slice(cursor).trim();
+    var restBefore = seg.slice(0, startIdx).trim();
+    var restAfter = seg.slice(cursor).trim();
+    var rest = (restBefore + ' ' + restAfter).trim();
     return { images: images, text: rest };
   }
   /* 未获准发图的这一轮，或标记解析失败时的兜底：把标记本身干净
@@ -5749,6 +6879,117 @@
      之后，处理的是两者都未命中的剩余文本。 ---- */
   var ACTION_NARRATION_WHOLE_RE = /^[\[（(【][^\]）)】]{1,300}[\]）)】]$/;
   var ACTION_NARRATION_INLINE_RE = /[\[（(【][^\]）)】]{1,300}[\]）)】]/g;
+  /* ---- 清理"孤立括号残片"：切分（无论是按 ||| 还是 fallback 逐级
+     放宽切分）本质上是在猜"模型这一次大概想在哪里断句"，如果模型
+     自己把某个方括号标记（[[voice:...]]、[[image:...]] 等）写歪了
+     ——漏了开头的一半、或者标记内容跨越了 ||| 边界——切分器不可能
+     识别出"这其实是同一个标记的碎片"，只能按标点位置machinically
+     切开，结果就是某个片段的开头/结尾留下一个没有配对的 ]、】、［
+     这类符号（比如"]来，"）。这些孤立符号不是用户能理解的内容，
+     只是标记写歪后的残留噪声，留着发出去只会让这条消息显得莫名其妙。
+     这里只清理"贴在片段最前面或最后面、且在片段内部找不到与之配对
+     的另一半"的孤立括号符号，不触碰片段内部正常的、成对出现的括号
+     内容（那部分交给上面的 stripActionNarrationBrackets 处理），
+     避免误伤真正配对完整的文本。 ---- */
+  var ORPHAN_BRACKET_PAIRS = [['[', ']'], ['(', ')'], ['（', '）'], ['【', '】'], ['［', '］']];
+  function stripOrphanBracketFragments(seg) {
+    if (!seg) return seg;
+    var s = seg.trim();
+    if (!s) return s;
+    // 从开头反复剥离"没有配对开括号的孤立闭括号"：只有当这个闭括号
+    // 字符在整段里的出现次数严格多于对应开括号时，才判定它是孤立的，
+    // 避免误伤"（叹气）真的很烦"这种配对完整、只是闭括号恰好在句首
+    // 附近的正常内容
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (var i = 0; i < ORPHAN_BRACKET_PAIRS.length; i++) {
+        var open = ORPHAN_BRACKET_PAIRS[i][0], close = ORPHAN_BRACKET_PAIRS[i][1];
+        if (s.length && s[0] === close) {
+          var opens = s.split(open).length - 1;
+          var closes = s.split(close).length - 1;
+          if (closes > opens) { s = s.slice(1).trim(); changed = true; }
+        }
+      }
+    }
+    // 同理，从结尾反复剥离孤立的开括号（标记被截断、只留了个没写完
+    // 的开头）或孤立的闭括号（比如标记漏了开头、只剩尾巴的 ]]）
+    changed = true;
+    while (changed) {
+      changed = false;
+      for (var i = 0; i < ORPHAN_BRACKET_PAIRS.length; i++) {
+        var open2 = ORPHAN_BRACKET_PAIRS[i][0], close2 = ORPHAN_BRACKET_PAIRS[i][1];
+        var last = s.length ? s[s.length - 1] : '';
+        if (last === open2) {
+          var opensA = s.split(open2).length - 1;
+          var closesA = s.split(close2).length - 1;
+          if (opensA > closesA) { s = s.slice(0, -1).trim(); changed = true; }
+        } else if (last === close2) {
+          var opensB = s.split(open2).length - 1;
+          var closesB = s.split(close2).length - 1;
+          if (closesB > opensB) { s = s.slice(0, -1).trim(); changed = true; }
+        }
+      }
+    }
+    return s;
+  }
+
+  /* ---- 二次兜底：极少数情况下（比如标记被切分器切成三段以上、
+     超出了 mergeSeveredTagSegments 向后拼接的范围），孤立括号清完
+     之后仍可能留下"voice:" / "image:" / "quote:" 这个纯标签词本身
+     贴在句首——括号没了，但标签词露了馅。这里只在句首精确匹配这个
+     标签词（不管有没有残留的方括号/数字编号）时才剥除，不会误伤
+     正文里恰好出现这几个英文单词的正常内容。
+     三个标签词分开成各自独立的正则常量与判断分支（而不是共用一条
+     三选一的正则），是因为分开之后，将来只需要修 quote 那一种走样
+     写法时，改动范围天然锁定在 QUOTE 这一条正则和这一个分支上，
+     不会因为改共用正则而意外影响 voice/image 已经稳定工作的清理
+     逻辑，反之亦然——上一轮就是因为三者共用一条正则，改引用相关的
+     内容时始终要连带确认没有影响语音/图片，这里彻底拆开，从源头
+     消除这种耦合 ---- */
+  var LEFTOVER_QUOTE_LABEL_RE = /^quote\s*[:：]\s*\d*\]*\s*/i;
+  var LEFTOVER_VOICE_LABEL_RE = /^voice\s*[:：]\s*/i;
+  var LEFTOVER_IMAGE_LABEL_RE = /^image\s*[:：]\s*/i;
+  function stripLeftoverTagLabel(seg) {
+    if (!seg) return seg;
+    return seg
+      .replace(LEFTOVER_QUOTE_LABEL_RE, '')
+      .replace(LEFTOVER_VOICE_LABEL_RE, '')
+      .replace(LEFTOVER_IMAGE_LABEL_RE, '')
+      .trim();
+  }
+
+  /* ---- 兜底防线：不带任何括号的"特效/音效/界面动画"旁白——比如
+     "弹出一连串流光溢彩的'想你'字，同时响起鼓点般的碰杯声效"。
+     这类文本没有括号可以匹配，纯靠 prompt 层"不许写旁白"的规则
+     约束不住模型（截图证实过这一点），必须在代码层面识别并清掉。
+     判定逻辑：整条短句里同时出现"效果动词"（弹出/响起/浮现/飘落/
+     震动/闪过/播放/滚动/弹跳……这类描述客户端视觉/听觉呈现而非
+     人说话动作的词）和"效果名词"（声效/音效/特效/字样/动画/弹窗/
+     对话框/画面/光效……），才判定为特效旁白——两类词都要求同时命中，
+     避免误伤"我心里咯噔一下""吓了一跳"这类正常的口语表达（这些
+     词本身不会同时命中两个词库）。命中后整条按旁白处理直接丢弃，
+     不做"剥出描述当图片发"这类补救——特效描述本来就不该被补救成
+     另一种消息形态，丢弃比硬凑一条奇怪消息更自然 ---- */
+  var EFFECT_NARRATION_VERBS = [
+    '弹出', '响起', '浮现', '飘落', '震动', '闪过', '播放', '滚动',
+    '弹跳', '飘出', '跳出', '涌现', '闪现', '掠过', '回荡', '回响',
+    '亮起', '点亮', '绽放', '洒下', '飘散'
+  ];
+  var EFFECT_NARRATION_NOUNS = [
+    '声效', '音效', '特效', '字样', '动画', '弹窗', '对话框', '光效',
+    '气泡', '屏幕', '画面', '界面', '烟花', '爱心', '桃心', '心形',
+    '碰杯声', '鼓点', '光晕', '粒子', '飘带', '彩带', '弹幕'
+  ];
+  function isBareEffectNarration(seg) {
+    if (!seg) return false;
+    var trimmed = seg.trim();
+    if (!trimmed) return false;
+    var hasVerb = EFFECT_NARRATION_VERBS.some(function (v) { return trimmed.indexOf(v) !== -1; });
+    if (!hasVerb) return false;
+    return EFFECT_NARRATION_NOUNS.some(function (n) { return trimmed.indexOf(n) !== -1; });
+  }
+
   function stripActionNarrationBrackets(seg) {
     if (!seg) return seg;
     var trimmed = seg.trim();
@@ -5781,7 +7022,7 @@
     // 优先级 1：按约定分隔符切
     if (raw.indexOf('|||') !== -1) {
       var byDelim = raw.split(/\s*\|\|\|\s*/).map(function (s) { return s.trim(); }).filter(Boolean);
-      if (byDelim.length >= 2) return byDelim;
+      if (byDelim.length >= 2) return mergeSeveredTagSegments(byDelim);
     }
 
     // 优先级 2：逐级放宽的 fallback 切分——换行 → 句末标点 → 逗号顿号
@@ -5792,11 +7033,69 @@
     ];
     for (var i = 0; i < attempts.length; i++) {
       var pieces = attempts[i]().map(function (s) { return s.trim(); }).filter(Boolean);
-      if (pieces.length >= 2) return pieces;
+      if (pieces.length >= 2) return mergeSeveredTagSegments(pieces);
     }
 
     // 优先级 3：确实切不出多条，只能保留原文一整条
     return [raw];
+  }
+
+  /* ---- 切分后修补：不管走哪种切分策略（||| 还是逐级放宽的
+     fallback），切分器都只按标点/分隔符的字面位置machinically切开，
+     完全不知道 [[voice: ...]] / [[image: ...]] 这类跨越好几个字的
+     标记语法——如果模型恰好把标记写在了某个切分点跨越的位置
+     （比如标记内部写了个句号/逗号，或者 ||| 恰好夹在标记中间），
+     标记就会被腰斩成两段：前一段留下"孤零零的开头 [[voice:内容"，
+     后一段留下"内容……]]"，彼此都不再匹配任何 voice/image 正则，
+     结果整个标记连同其内容一起以残缺文本的形式漏给用户看到
+     （典型症状：一条气泡开头蹦出一个孤立的 ] 或 [[voice: 字样）。
+     这里在切分完成后、真正进入逐段解析之前，扫描一遍相邻片段：
+     只要当前片段里能找到"标记开了头但没找到匹配的闭合"（[[voice:
+     或 [[image: 出现次数比对应的 ]] 多），就持续把下一个片段拼接
+     回来，直到闭合数追上开头数为止——这样重新拼出的完整片段就能
+     被后面正常的 extractVoiceTag/extractImageTags 命中，而不会
+     露出腰斩后的碎片。找不到闭合、一路拼到最后一个片段仍未闭合的
+     极端情况，就保持已经拼接的状态交给下游的孤立括号清理兜底，
+     总比拆成两条更零散的碎片好。 ---- */
+  /* ---- 三个标签各自独立的"开标记"探测正则（而不是三选一共用一条），
+     原因同 stripLeftoverTagLabel——避免将来只调整某一种标签的开头
+     写法宽容度时，意外牵动另外两种标签的探测行为。收尾方括号计数
+     仍然共用一条正则，因为"这是不是一个收尾方括号"本身跟标签种类
+     无关，纯粹是符号形态判断，共用它不会引入跨标签的耦合风险 ---- */
+  var SEVERED_TAG_OPEN_RE_QUOTE = /[\[【［]{1,2}\s*quote\s*[:：]/gi;
+  var SEVERED_TAG_OPEN_RE_VOICE = /[\[【［]{1,2}\s*voice\s*[:：]/gi;
+  var SEVERED_TAG_OPEN_RE_IMAGE = /[\[【［]{1,2}\s*image\s*[:：]/gi;
+  var SEVERED_TAG_CLOSE_RE = /[\]】］]{1,2}/g;
+  function countRegexHits(re, s) {
+    var count = 0;
+    re.lastIndex = 0;
+    while (re.exec(s)) count++;
+    return count;
+  }
+  function countUnclosedTagOpens(s) {
+    var opens = countRegexHits(SEVERED_TAG_OPEN_RE_QUOTE, s)
+      + countRegexHits(SEVERED_TAG_OPEN_RE_VOICE, s)
+      + countRegexHits(SEVERED_TAG_OPEN_RE_IMAGE, s);
+    if (!opens) return 0;
+    var closes = countRegexHits(SEVERED_TAG_CLOSE_RE, s);
+    return opens - closes;
+  }
+  function mergeSeveredTagSegments(pieces) {
+    var out = [];
+    var i = 0;
+    while (i < pieces.length) {
+      var current = pieces[i];
+      var pending = countUnclosedTagOpens(current);
+      var j = i + 1;
+      while (pending > 0 && j < pieces.length) {
+        current = current + pieces[j];
+        pending = countUnclosedTagOpens(current);
+        j++;
+      }
+      out.push(current);
+      i = j;
+    }
+    return out;
   }
 
   function formatAmPm(d) {

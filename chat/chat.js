@@ -898,6 +898,9 @@
     }
     if (scrim) scrim.addEventListener('click', closeUploadModal);
     if (closeBtn) closeBtn.addEventListener('click', closeUploadModal);
+    // 同 addModal：用 .open 而非 .is-open，切 tab 时的强制清场认不出它，
+    // 补上 luna:page-change 订阅避免它盖住新页面拦截点击
+    if (modal) window.addEventListener('luna:page-change', closeUploadModal);
 
     function applySlotImage(slotIndex, dataUrl, slotBtn) {
       var targetSlotBtn = slotBtn || (grid && grid.querySelector('.upload-slot[data-slot="' + slotIndex + '"]'));
@@ -1033,6 +1036,8 @@
     }
     if (identityBtn) identityBtn.addEventListener('click', openIdentityModal);
     if (identityScrim) identityScrim.addEventListener('click', closeIdentityModal);
+    // 同 addModal：补上 luna:page-change 订阅，避免切 tab 时残留拦截点击
+    if (identityModal) window.addEventListener('luna:page-change', closeIdentityModal);
     var profileIdBtn = document.getElementById('profileIdCard');
     if (profileIdBtn) profileIdBtn.addEventListener('click', openIdentityModal);
 
@@ -1154,6 +1159,8 @@
     }
     if (profileBioBtn) profileBioBtn.addEventListener('click', openBioModal);
     if (bioModalScrim) bioModalScrim.addEventListener('click', closeBioModal);
+    // 同 addModal：补上 luna:page-change 订阅，避免切 tab 时残留拦截点击
+    if (bioModal) window.addEventListener('luna:page-change', closeBioModal);
     if (bioModalSave) {
       bioModalSave.addEventListener('click', function () {
         var text = (bioModalTextarea.value || '').trim();
@@ -1616,16 +1623,23 @@
      消息页 —— 会话列表数据渲染，与聊天室（chatroom.js）真实消息同步
      数据来源：LunaDB 中所有 'chatroom:*' 记录（每个好友一条会话，
      key 为 chatroom:char-{id} 或 chatroom:name-{name}，与 chatroom.js
-     里 storeKey 的生成规则完全一致）。每条记录取最后一条消息作为预览、
-     取 from!=='me' 的连续尾部条数作为未读数（简单起见：只要该会话最后
-     一条是我方消息，则未读清零；否则未读数＝从尾部往前数对方连续
-     消息条数），从而无需额外维护"已读/未读"独立状态。
+     里 storeKey 的生成规则完全一致）。每条记录取最后一条消息作为预览。
+
+     未读数：独立维护"已读到哪个时间戳"（chatread:<同后缀> 记录，
+     值为 lastReadTs），未读数＝消息列表中 ts > lastReadTs 且
+     from !== 'me' 的条数。用户只要真正打开过该会话（点击进入聊天室，
+     或此前在消息页直接点开），就会写入一次 lastReadTs=Date.now()，
+     角标随即清零——不再像旧逻辑那样把"未读"跟"是否已回复"绑定，
+     避免明明没有发送消息功能、却只能靠"回复"才能清角标的问题。
+     对尚未产生 chatread 记录的老会话，退化为旧的"看最后一条是否
+     是我方消息"判定，保证升级后不会突然把老会话全部标记未读。
 
      触发时机：
        - 首次进入消息页（luna:friends-changed 首次广播，即好友数据
          就绪后，因为渲染会话行需要好友的头像/昵称/在线状态）
        - 好友数据变更（luna:friends-changed）
        - 任意聊天室发送新消息后的广播（luna:messages-changed）
+       - 本页点击某会话进入聊天室时（写入 lastReadTs 后立即广播刷新）
   ========================================================================== */
   (function initMessageList() {
     if (!MsgListController) return; // 页面没有消息列表容器（非聊天页）时跳过
@@ -1635,6 +1649,25 @@
     function storeKeyFor(f) {
       return 'chatroom:' + (f.charId != null ? ('char-' + f.charId) : ('name-' + f.name));
     }
+
+    // 已读标记的 key 与 chatroom:<suffix> 一一对应，仅前缀不同，
+    // 方便从 storeKeyFor() 的结果直接换算，不必再维护第二套后缀规则
+    function readKeyFor(storeKey) {
+      return 'chatread:' + storeKey.slice('chatroom:'.length);
+    }
+
+    // 标记某会话为"已读到现在"：聊天室页与消息页两处都会调用，
+    // 写入后通过 LunaMessagesBus 广播，让消息列表重新计算角标
+    // （与发消息后的通知走同一条通道，逻辑与命名保持统一）
+    function markRead(f) {
+      if (!window.LunaDB) return;
+      var key = readKeyFor(storeKeyFor(f));
+      LunaDB.set(key, Date.now()).then(function () {
+        if (window.LunaMessagesBus) window.LunaMessagesBus.notify();
+      });
+    }
+    window.LunaMessages = window.LunaMessages || {};
+    window.LunaMessages.markRead = markRead;
 
     function fmtTime(ts) {
       if (!ts) return '';
@@ -1650,16 +1683,25 @@
       return (d.getMonth() + 1) + '/' + d.getDate();
     }
 
-    // 未读数：从消息列表尾部往前数，连续属于对方（from !== 'me'）的
-    // 条数；一旦遇到我方消息或列表见底就停止。最后一条若是我方发出，
-    // 未读自然为 0（已回复＝已读）
-    function countUnread(list) {
-      var n = 0;
-      for (var i = list.length - 1; i >= 0; i--) {
-        if (list[i].from === 'me') break;
-        n++;
+    // 未读数：优先按 lastReadTs（已读到的时间戳）计算——统计消息列表中
+    // ts > lastReadTs 且 from !== 'me' 的条数，与"是否回复过"完全解耦，
+    // 只要真正打开过该会话就会清零。lastReadTs 为 undefined（该会话
+    // 还从未写过已读记录，例如升级前就存在的老会话）时，退化为旧的
+    // "从尾部往前数连续对方消息"判定，避免老数据一次性全部变未读
+    function countUnread(list, lastReadTs) {
+      if (lastReadTs == null) {
+        var n = 0;
+        for (var i = list.length - 1; i >= 0; i--) {
+          if (list[i].from === 'me') break;
+          n++;
+        }
+        return n;
       }
-      return n;
+      var count = 0;
+      for (var j = 0; j < list.length; j++) {
+        if (list[j].from !== 'me' && list[j].ts > lastReadTs) count++;
+      }
+      return count;
     }
 
     function previewText(msg) {
@@ -1678,7 +1720,7 @@
 
       var list = data.list || [];
       var last = list.length ? list[list.length - 1] : null;
-      var unread = countUnread(list);
+      var unread = countUnread(list, data.lastReadTs);
       var tone = window.LunaFriends && window.LunaFriends.toneForKey ? window.LunaFriends.toneForKey(f.charId != null ? f.charId : f.name) : 'a';
       var initial = (f.name || '?').charAt(0);
 
@@ -1724,7 +1766,9 @@
 
       // 点击卡片本身（非滑开状态、非动作按钮）＝进入该好友的聊天室：
       // 写入与 friend-profile.js 相同结构/相同 key 的会话令牌后跳转，
-      // 保证 chatroom.js 的 readSession() 能正常读到
+      // 保证 chatroom.js 的 readSession() 能正常读到。同时标记该会话
+      // 为"已读到现在"，角标随即清零——真正做到"点进去看过就算已读"，
+      // 不再依赖是否发送过消息
       row.querySelector('.msg-surface').addEventListener('click', function (e) {
         if (row.classList.contains('swiped-full')) return; // 交给滑开收回逻辑处理
         if (e.target.closest && e.target.closest('.msg-action')) return;
@@ -1737,6 +1781,7 @@
             online: !!f.online
           }));
         } catch (err) {}
+        markRead(f);
         window.location.href = 'chatroom.html';
       });
 
@@ -1754,9 +1799,16 @@
         return;
       }
 
-      LunaDB.getAll('chatroom:').then(function (records) {
+      Promise.all([
+        LunaDB.getAll('chatroom:'),
+        LunaDB.getAll('chatread:')
+      ]).then(function (results) {
+        var records = results[0];
+        var readRecords = results[1];
         var byKey = {};
         records.forEach(function (r) { byKey[r.key] = r.value || []; });
+        var readByKey = {};
+        readRecords.forEach(function (r) { readByKey[r.key] = r.value; });
 
         // 只展示"确有会话记录"的好友——尚未聊过天的好友不出现在消息页，
         // 与列表页顶部"全部消息"计数应只反映真实会话数的预期一致
@@ -1776,7 +1828,8 @@
 
         withChat.forEach(function (f) {
           var list = byKey[storeKeyFor(f)] || [];
-          var row = buildRow(f, { list: list });
+          var lastReadTs = readByKey[readKeyFor(storeKeyFor(f))];
+          var row = buildRow(f, { list: list, lastReadTs: lastReadTs });
           MsgListController.wireRow(row);
           var target = f.pinnedInMsgList ? MsgListController.pinnedList : MsgListController.mainList;
           target.appendChild(row);
@@ -1872,6 +1925,21 @@
         tile.classList.add('is-pressed');
         setTimeout(function () { tile.classList.remove('is-pressed'); }, 260);
       });
+    });
+
+    // 这个弹层用的是 .open（而非其它覆盖层统一用的 .is-open），
+    // activatePage() 里的"强制清场"选择器认不出它，导致切 tab 时
+    // 它会带着 pointer-events:auto 原样盖在新页面上方，表现为
+    // "点哪个 tab 都没反应，像卡住了"——必须进入一个新页面（如
+    // chatroom.html）刷新整份 DOM 才能"意外"清掉它。这里补上
+    // luna:page-change 订阅，任何一次切 tab 都会强制关掉它，
+    // 与其它覆盖层模块的自清理方式保持一致。
+    window.addEventListener('luna:page-change', closeModal);
+    window.LunaOverlays = window.LunaOverlays || [];
+    window.LunaOverlays.push({
+      closeIfOpen: function () {
+        if (modal.classList.contains('open')) closeModal();
+      }
     });
   })();
 
@@ -2007,6 +2075,8 @@
     if (topComposeBtn) topComposeBtn.addEventListener('click', openComposeModal);
     if (quickComposeBtn) quickComposeBtn.addEventListener('click', openComposeModal);
     if (composeScrim) composeScrim.addEventListener('click', closeComposeModal);
+    // 同 addModal：补上 luna:page-change 订阅，避免切 tab 时残留拦截点击
+    if (composeModal) window.addEventListener('luna:page-change', closeComposeModal);
 
     // "我的动态"占位位：点击直接唤起发布弹窗，符合"+"角标的直觉语义
     var mineStoryItem = document.querySelector('.mo-story-item-mine');

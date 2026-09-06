@@ -1,0 +1,82 @@
+<!-- ==========================================================================
+     chatroomcall.html —— 视频通话 · 呼叫页
+     参考稿：由 chatroomcall.js 以字符串模板直接注入。
+
+     本轮彻底重做：
+     1. 按反馈要求，彻底删除"已接通"这套模拟状态——真实的视频通话
+        场景里，呼叫方在对方接听前只会看到"呼叫中 + 挂断"，不会有
+        假的计时器和三键操作条。本页只做这一件事：呼叫中 → 挂断关闭。
+     2. 底部不再是一整块浅灰白控制台——那种大面积近白色调在深色
+        肖像舞台下方视觉断层严重，观感像"没加载出来的空白区"。
+        改为整页统一的深色渐变舞台，挂断键悬浮在底部，不再有色块
+        分割。
+     3. 签名动效：中心肖像外的「蚀环」——一枚会缓慢旋转、由粗到细
+        呼吸的银白细环，环上缀着若干呼吸闪烁的星尘光点，像信号正
+        在穿透黑暗寻找对方；挂断时环骤然向内收拢、淡出。
+========================================================================== -->
+<div class="ccv2-veil" id="ccv2Veil" aria-hidden="true"></div>
+<div class="ccv2-page" id="ccv2Page" aria-hidden="true">
+
+  <div class="ccv2-stage" id="ccv2Stage">
+    <div class="ccv2-stage-bg" id="ccv2StageBg" aria-hidden="true"></div>
+    <div class="ccv2-stage-grain" aria-hidden="true"></div>
+    <div class="ccv2-stage-veil" aria-hidden="true"></div>
+
+    <!-- 状态栏：与主状态栏同源同款类名 -->
+    <div class="status-bar ccv2-status">
+      <div class="status-time" id="ccv2StatusTime">9:41</div>
+      <div class="status-island">
+        <div class="si-capsule si-minimal-capsule"></div>
+      </div>
+      <div class="status-right">
+        <div class="signal"><i></i><i></i><i></i><i></i></div>
+        <div class="battery">
+          <span class="bat-pct" id="ccv2BatPct">76</span>
+          <div class="bat-shell">
+            <div class="bat-inner" id="ccv2BatInner"></div>
+            <div class="bat-nub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 铭牌 -->
+    <div class="ccv2-kicker">
+      <span class="ccv2-kicker-dot" aria-hidden="true"></span>
+      <span class="ccv2-kicker-cn">正在呼叫</span>
+      <span class="ccv2-kicker-en">CALLING&nbsp;VIDEO</span>
+    </div>
+
+    <!-- 居中区：肖像 + 蚀环 + 姓名，在可用空间内真正垂直居中 -->
+    <div class="ccv2-center">
+      <div class="ccv2-rays" aria-hidden="true"></div>
+
+      <div class="ccv2-corona-wrap" id="ccv2CoronaWrap">
+        <svg class="ccv2-corona" viewBox="0 0 240 240" aria-hidden="true">
+          <circle class="ccv2-corona-track" cx="120" cy="120" r="104"/>
+          <circle class="ccv2-corona-arc" cx="120" cy="120" r="104"/>
+          <g class="ccv2-corona-dots" id="ccv2CoronaDots"></g>
+        </svg>
+        <div class="ccv2-portrait" id="ccv2Portrait">
+          <span class="ccv2-portrait-glyph" id="ccv2PortraitGlyph"></span>
+        </div>
+      </div>
+
+      <div class="ccv2-idcard">
+        <div class="ccv2-name" id="ccv2Name">好友昵称</div>
+        <div class="ccv2-sub">正在接通……</div>
+      </div>
+    </div>
+
+    <!-- 挂断：悬浮于舞台底部，唯一操作 -->
+    <div class="ccv2-solo-row">
+      <button class="ccv2-solo-hangup" id="ccv2SoloHangupBtn" type="button" aria-label="取消呼叫">
+        <span class="ccv2-solo-hangup-ring" aria-hidden="true"></span>
+        <span class="ccv2-solo-hangup-ring ccv2-ring-b" aria-hidden="true"></span>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M3.8 13.4C7 8.9 17 8.9 20.2 13.4C20.6 14 20.5 14.8 19.9 15.2L17.1 17.2C16.5 17.6 15.7 17.5 15.3 16.9L14.2 15.3C13.9 14.9 13.3 14.7 12.9 15L11.6 15.9C11.2 16.2 10.6 16.1 10.3 15.7L9 13.9C8.7 13.5 8.1 13.4 7.7 13.7L4.9 15.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" transform="rotate(135 12 13)"/></svg>
+      </button>
+      <span class="ccv2-solo-label">取消呼叫</span>
+    </div>
+  </div>
+
+</div>

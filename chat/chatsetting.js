@@ -215,6 +215,9 @@
     /* ---- 记录设置：聊天记录 / 通话记录 两枚跳转入口 ---- */
     initRecordLink(session);
 
+    /* ---- 清空聊天记录：危险操作，需二次确认后才真正清空 ---- */
+    initClearChat(session);
+
     if (els.backBtn) {
       els.backBtn.addEventListener('click', function () {
         if (window.history.length > 1) window.history.back();
@@ -1400,6 +1403,15 @@
        全局也未绑定时則回退「系统默认」（即语音模型页当前激活预设）。
      - 单选即落库、无需等待页面底部的「保存」，与世界书感知的
        即时持久化交互预期一致。
+     - 消费方：chatroom.js 里 resolveVoiceForSession() 读取的正是
+       这里落库的 voiceLink:global / voiceLink:char-<id> 两套 key
+       （字段为 {voiceId} 或 {voiceId, unbound:true}），用于决定
+       AI 主动发语音消息时该用哪一枚音色去合成；catalog 的存取
+       （luna_voice_catalog）与账号级凭证（暂定 key 名
+       luna_voice_api_config，字段 {baseUrl, apiKey, groupId, model}，
+       若「语音模型」页实际实现的 key 名不同，请与 chatroom.js 顶部
+       readVoiceApiConfig() 对齐）同样被 chatroom.js 直接读取，
+       本文件不需要因为这个新增消费方而改动任何存储逻辑。
   ========================================================================== */
   var VOICE_CHANNEL = 'luna_voice_link_channel';
   var VOICE_PING_KEY = 'luna_voice_link_ping';
@@ -2270,6 +2282,100 @@
     });
 
     if (callSub) callSub.textContent = '功能筹备中 · 敬请期待';
+  }
+
+  /* ==========================================================================
+     清空聊天记录 —— 危险操作，独立于「记录设置」的两枚跳转导航条：
+     - 点击整条按钮先弹出二次确认弹层（cst-clear-*），绝不一点即清空；
+     - 确认后清空 LunaDB 中 chatroom:<key> 消息数组（写为空数组而非删键，
+       与 chatroom.js loadMessages 的 `v || []` 兜底口径保持一致），
+       同时一并清空同一聊天室的撤回说明日志 chatroomDelLog:<key>，
+       避免残留的「上一轮撤回原因」在清空后又被错误地回放进下一次对话；
+     - 通过 BroadcastChannel + localStorage ping 双通道广播，与本文件
+       其余模块（背景/翻译/世界书等）同一套约定，让当前打开的聊天室
+       页面能够实时监听并重新渲染为空状态，无需手动刷新；
+     - 清空完成后就地刷新本页「聊天记录」徽标与副行为「暂无」，
+       如实反映清空后的状态，不遗留旧的条数展示。 ---- */
+  var CLEAR_CHAT_CHANNEL = 'luna_clear_chat_channel';
+  var CLEAR_CHAT_PING_KEY = 'luna_clear_chat_ping';
+
+  function initClearChat(session) {
+    var btn = document.getElementById('cstClearChatBtn');
+    var veil = document.getElementById('cstClearVeil');
+    var sheet = document.getElementById('cstClearSheet');
+    var descEl = document.getElementById('cstClearDesc');
+    var cancelBtn = document.getElementById('cstClearCancelBtn');
+    var confirmBtn = document.getElementById('cstClearConfirmBtn');
+    if (!btn || !veil || !sheet || !confirmBtn) return;
+
+    if (descEl) {
+      var peerName = (session && session.name) ? session.name : '好友';
+      descEl.textContent = '将删除与「' + peerName + '」的全部聊天消息，操作后无法撤销，且会同步清空聊天室页面当前显示的消息。确定要继续吗？';
+    }
+
+    function openSheet() {
+      veil.classList.add('is-open');
+      sheet.classList.add('is-open');
+      veil.setAttribute('aria-hidden', 'false');
+      sheet.setAttribute('aria-hidden', 'false');
+    }
+    function closeSheet() {
+      veil.classList.remove('is-open');
+      sheet.classList.remove('is-open');
+      veil.setAttribute('aria-hidden', 'true');
+      sheet.setAttribute('aria-hidden', 'true');
+    }
+
+    btn.addEventListener('click', openSheet);
+    veil.addEventListener('click', closeSheet);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeSheet);
+
+    confirmBtn.addEventListener('click', function () {
+      if (!session) { closeSheet(); return; }
+      var storeKey = 'chatroom:' + (session.charId != null ? ('char-' + session.charId) : ('name-' + session.name));
+      var delLogKey = 'chatroomDelLog:' + storeKey;
+
+      confirmBtn.disabled = true;
+      Promise.all([dbSet(storeKey, []), dbSet(delLogKey, [])]).then(function () {
+        closeSheet();
+        showClearToast('聊天记录已清空');
+
+        /* ---- 就地刷新本页记录条的徽标/副行，如实展示为「暂无」 ---- */
+        var chatSub = document.getElementById('cstRecordChatSub');
+        var chatBadge = document.getElementById('cstRecordChatBadge');
+        if (chatSub) chatSub.textContent = '暂无消息记录';
+        if (chatBadge) chatBadge.textContent = '暂无';
+
+        /* ---- 广播通知：与背景/翻译等模块同一套双通道约定 ---- */
+        try {
+          if ('BroadcastChannel' in window) {
+            var bc = new BroadcastChannel(CLEAR_CHAT_CHANNEL);
+            bc.postMessage({ key: storeKey });
+          }
+        } catch (e) {}
+        try { localStorage.setItem(CLEAR_CHAT_PING_KEY, JSON.stringify({ key: storeKey, ts: Date.now() })); } catch (e) {}
+      }).catch(function () {
+        confirmBtn.disabled = false;
+        showClearToast('清空失败，请重试');
+      }).then(function () {
+        confirmBtn.disabled = false;
+      });
+    });
+  }
+
+  var _clearToastTimer = null;
+  function showClearToast(text) {
+    var toastEl = document.getElementById('cstToastText');
+    var wrapEl = document.getElementById('cstToast');
+    if (!toastEl || !wrapEl) return;
+    toastEl.textContent = text;
+    wrapEl.classList.add('is-open');
+    wrapEl.setAttribute('aria-hidden', 'false');
+    clearTimeout(_clearToastTimer);
+    _clearToastTimer = setTimeout(function () {
+      wrapEl.classList.remove('is-open');
+      wrapEl.setAttribute('aria-hidden', 'true');
+    }, 1800);
   }
 
   /* ---- 会话令牌读取：与 chatroom.js 完全一致 ---- */

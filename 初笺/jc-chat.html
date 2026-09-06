@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>角初笺 · 交谈</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,500;1,300&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="jc-base.css" />
+<link rel="stylesheet" href="jc-chat.css" />
+</head>
+<body>
+<div class="phone-wrap"><div class="phone-frame" id="frame">
+  <!-- 全局背景：整页铺满，不加任何白色遮罩、不做模糊 -->
+  <div class="chat-bg" id="chatBg"></div>
+
+  <div class="status-bar">
+    <div class="status-time" id="statusTime">9:41</div>
+    <div class="status-island"><div class="si-capsule si-minimal-capsule"></div></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery"><span class="bat-pct" id="batPct">76</span>
+        <div class="bat-shell"><div class="bat-inner" id="batInner"></div><div class="bat-nub"></div></div></div>
+    </div>
+  </div>
+
+  <div class="chat-top">
+    <button class="jc-back" id="backBtn" aria-label="返回">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="ct-id" id="ctId">
+      <span class="ct-av" id="ctAv"><span id="ctAvGlyph">笺</span></span>
+      <span class="ct-col">
+        <span class="ct-name" id="ctName">—</span>
+        <span class="ct-sub"><span class="ct-rel" id="ctRel">尚未缔结</span><span class="ct-spark" id="ctSpark"></span></span>
+      </span>
+    </button>
+    <button class="jc-back" id="setBtn" aria-label="聊天设置">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 7.5h14M5 12h14M5 16.5h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="9" cy="7.5" r="2" fill="currentColor"/><circle cx="15.5" cy="16.5" r="2" fill="currentColor"/></svg>
+    </button>
+  </div>
+
+  <!-- 心声条：与回复一次性生成，绝不单独再调一次模型 -->
+  <div class="mind" id="mind">
+    <div class="mind-rail" id="mindRail">
+      <span class="mind-pulse" id="mindPulse"></span>
+      <span class="mind-col">
+        <span class="mind-line">
+          <span class="mind-lb">此刻</span>
+          <span class="mind-mood" id="mindMood">—</span>
+          <span class="mind-dot"></span>
+          <span class="mind-doing" id="mindDoing">尚未开口</span>
+        </span>
+        <span class="mind-said" id="mindSaid"></span>
+      </span>
+      <span class="mind-toggle" id="mindToggle">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 9.5l6 6 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </div>
+    <div class="mind-more" id="mindMore">
+      <div class="mm-row"><span class="mm-k">没说出口的那句</span><span class="mm-v" id="mmUnsaid">—</span></div>
+      <div class="mm-row"><span class="mm-k">对你此刻的态度</span><span class="mm-v" id="mmToward">—</span></div>
+      <div class="mm-warm">
+        <span class="mm-warm-lb">情绪温度</span>
+        <span class="mm-warm-track"><span class="mm-warm-fill" id="mmWarm"></span></span>
+        <em id="mmWarmV">—</em>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-scroll" id="chatScroll">
+    <div class="chat-open" id="chatOpen"></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="typing" id="typing"><span></span><span></span><span></span></div>
+  </div>
+
+  <!-- 功能面板 -->
+  <div class="fn-panel" id="fnPanel">
+    <div class="fn-grid">
+      <button class="fn-tile" data-fn="voice">
+        <span class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3.6" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M5.6 11.6a6.4 6.4 0 0012.8 0M12 18v2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span class="fn-cn">语音</span><span class="fn-en">VOICE</span>
+      </button>
+      <button class="fn-tile" data-fn="transfer">
+        <span class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3.6" y="6.4" width="16.8" height="11.2" rx="2.4" stroke="currentColor" stroke-width="1.4"/><path d="M3.6 10.4h16.8" stroke="currentColor" stroke-width="1.4"/><path d="M7 14.4h3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+        <span class="fn-cn">转账</span><span class="fn-en">TRANSFER</span>
+      </button>
+      <button class="fn-tile" data-fn="gift">
+        <span class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="9.6" width="16" height="9.8" rx="1.8" stroke="currentColor" stroke-width="1.4"/><path d="M3.2 6.6h17.6v3H3.2zM12 6.6v12.8" stroke="currentColor" stroke-width="1.4"/><path d="M12 6.6S10.4 3.4 8.5 4.1 8.9 6.6 12 6.6zM12 6.6s1.6-3.2 3.5-2.5-.4 2.5-3.5 2.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></span>
+        <span class="fn-cn">送礼物</span><span class="fn-en">GIFT</span>
+      </button>
+      <button class="fn-tile" data-fn="relation">
+        <span class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M9 12.6a3.6 3.6 0 010-5.1l2-2a3.6 3.6 0 015.1 5.1l-1 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M15 11.4a3.6 3.6 0 010 5.1l-2 2a3.6 3.6 0 01-5.1-5.1l1-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span class="fn-cn">缔结关系</span><span class="fn-en">BOND</span>
+      </button>
+      <button class="fn-tile" data-fn="provoke">
+        <span class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4.6 7.4h14.8v9.2H4.6z" stroke="currentColor" stroke-width="1.4"/><path d="M4.6 7.4L12 13l7.4-5.6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        <span class="fn-cn">请她开口</span><span class="fn-en">PROVOKE</span>
+      </button>
+      <button class="fn-tile" data-fn="profile">
+        <span class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M5.6 4.6h9.2l4 4v10.8H5.6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M14.4 4.6v4.2h4.2M8.6 13h6.8M8.6 16h4.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+        <span class="fn-cn">查看全卷</span><span class="fn-en">DOSSIER</span>
+      </button>
+      <button class="fn-tile" data-fn="memory">
+        <span class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M6 4.6h11.4a1.6 1.6 0 011.6 1.6v13.2l-4-2.6-4 2.6-4-2.6V6.2A1.6 1.6 0 016 4.6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        <span class="fn-cn">记忆</span><span class="fn-en">MEMORY</span>
+      </button>
+      <button class="fn-tile" data-fn="settings">
+        <span class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M12 3.6v2.2M12 18.2v2.2M20.4 12h-2.2M5.8 12H3.6M17.9 6.1l-1.6 1.6M7.7 16.3l-1.6 1.6M17.9 17.9l-1.6-1.6M7.7 7.7L6.1 6.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+        <span class="fn-cn">聊天设置</span><span class="fn-en">PREFS</span>
+      </button>
+      <button class="fn-tile" data-fn="clear">
+        <span class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M6 7.4h12M9.4 7.4V5.6h5.2v1.8M7.4 7.4l.9 11.2h7.4l.9-11.2" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        <span class="fn-cn">清空</span><span class="fn-en">CLEAR</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 引用条 -->
+  <div class="quote-bar" id="quoteBar">
+    <span class="qb-spine"></span>
+    <span class="qb-col"><span class="qb-who" id="qbWho">—</span><span class="qb-tx" id="qbTx">—</span></span>
+    <button class="qb-x" id="qbX">×</button>
+  </div>
+
+  <div class="composer">
+    <button class="cp-fn" id="cpFn" aria-label="功能">
+      <span class="fn-cross"><i></i><i></i></span>
+    </button>
+    <div class="cp-box">
+      <textarea id="cpInput" rows="1" placeholder="写下想说的话…"></textarea>
+    </div>
+    <button class="cp-ai" id="cpAi" aria-label="让对方回复">
+      <span class="ai-ring"></span>
+      <span class="ai-core">回</span>
+    </button>
+    <button class="cp-send" id="cpSend" aria-label="发送">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4.6 12L19.4 5l-5.6 7 5.6 7L4.6 12z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
+  <!-- 消息长按菜单（自绘） -->
+  <div class="mm-mask" id="mmMask"></div>
+  <div class="msg-menu" id="msgMenu">
+    <button data-m="quote"><span>引用回复</span><em>QUOTE</em></button>
+    <button data-m="copy"><span>复制文字</span><em>COPY</em></button>
+    <button data-m="remember"><span>记为长期记忆</span><em>REMEMBER</em></button>
+    <button data-m="del" class="danger"><span>删除这条</span><em>DELETE</em></button>
+  </div>
+
+  <div class="jc-sheet-mask" id="relMask"></div>
+  <div class="jc-sheet" id="relSheet"><div class="jc-grip"></div><div id="relBody"></div></div>
+
+  <div class="jc-toast" id="jcToast"></div>
+  <input type="file" id="bgPick" accept="image/*" class="jc-hide" />
+</div></div>
+<script src="jc-core.js"></script>
+<script src="jc-chat.js"></script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+/* ==========================================================================
+   chatroomcall.css —— 视频通话 · 呼叫页
+   命题：「蚀」。整页统一的墨黑渐变舞台，没有任何浅色控制台色块——
+   之前那种"上深下浅两截构图"在深色肖像背景下会显得下半截像没
+   渲染出来的空白区，这次彻底改为通篇一致的暗色语言，挂断键直接
+   悬浮在舞台内，靠自身的层次和光效立起来，而不是靠底色分区。
+
+   --status-h 对齐主状态栏（chat.css 中定义为 52px），此处只兜底。
+========================================================================== */
+
+.ccv2-veil{
+  position:absolute; inset:0; z-index:820;
+  background: #000;
+  opacity:0; pointer-events:none;
+  transition: opacity 0.4s ease;
+}
+.ccv2-veil.is-open{ opacity:0.86; pointer-events:auto; }
+
+.ccv2-page{
+  position:absolute; inset:0; z-index:821;
+  overflow:hidden;
+  opacity:0; pointer-events:none;
+  transform: scale(1.04);
+  transition: opacity 0.46s cubic-bezier(.22,.9,.32,1), transform 0.56s cubic-bezier(.19,1,.22,1);
+}
+.ccv2-page.is-open{ opacity:1; pointer-events:auto; transform: scale(1); }
+
+/* ---------------------------------------------------------------------
+   舞台：通篇统一的深色渐变，顶部略泛冷灰光，底部沉入纯黑，
+   撑住整页构图，不再切出浅色底色块
+--------------------------------------------------------------------- */
+.ccv2-stage{
+  position:relative;
+  width:100%; height:100%;
+  overflow:hidden;
+  display:grid;
+  grid-template-rows: auto auto 1fr auto;
+  justify-items:center;
+  background:
+    radial-gradient(120% 62% at 50% 6%, #2c2c31 0%, #18181c 42%, #0a0a0b 78%, #050506 100%);
+}
+.ccv2-stage-bg{
+  position:absolute; inset:-12%;
+  background-size:cover; background-position:center;
+  filter: blur(50px) saturate(1.05) brightness(0.4);
+  transform:scale(1.2);
+  opacity:0.8;
+}
+.ccv2-stage-grain{
+  position:absolute; inset:0;
+  opacity:0.045; mix-blend-mode:overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events:none;
+}
+.ccv2-stage-veil{
+  position:absolute; inset:0;
+  background:
+    radial-gradient(130% 46% at 50% 0%, rgba(255,255,255,0.09), transparent 55%),
+    linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.02) 24%, rgba(0,0,0,0.05) 62%, rgba(0,0,0,0.55) 100%);
+  pointer-events:none;
+}
+
+
+
+.ccv2-status{
+  position:relative; z-index:4; grid-row: 1; width:100%;
+  padding-top: 2px;
+}
+.ccv2-status .status-time,
+.ccv2-status .bat-pct{
+  color: rgba(255,255,255,0.97);
+  text-shadow: 0 0 5px rgba(255,255,255,0.3), 0 1px 3px rgba(0,0,0,0.6);
+}
+.ccv2-status .signal i{ background: rgba(255,255,255,0.97); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
+.ccv2-status .bat-shell{ border-color: rgba(255,255,255,0.72); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
+.ccv2-status .bat-inner{ background: rgba(255,255,255,0.97); }
+.ccv2-status .bat-nub{ background: rgba(255,255,255,0.72); }
+.ccv2-status .si-minimal-capsule{ background:#000; border:1px solid rgba(255,255,255,0.14); }
+
+/* 铭牌：玻璃拟态材质，与肖像蚀环、挂断键共享同一套"墨黑玻璃+
+   银白高光"语言——不再是一块扁平灰底配纯白圆点，而是有真实的
+   材质分层：外层柔光描边、内层微妙渐变、呼吸光点带辉光溢出 */
+.ccv2-kicker{
+  position:relative; z-index:4;
+  grid-row: 2;
+  margin-top: 22px;
+  display:flex; align-items:center; gap:9px;
+  padding: 8px 20px 8px 14px;
+  border-radius:999px;
+  background: linear-gradient(155deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.06) 100%);
+  border: 1px solid rgba(255,255,255,0.24);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.22) inset,
+    0 -6px 14px -8px rgba(255,255,255,0.1) inset,
+    0 10px 24px -12px rgba(0,0,0,0.55);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+}
+.ccv2-kicker-dot{
+  position:relative;
+  width:7px; height:7px; border-radius:50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #d7d9de 70%);
+  box-shadow: 0 0 7px 1.5px rgba(255,255,255,0.55);
+  animation: ccv2DotPulse 1.7s ease-in-out infinite;
+}
+@keyframes ccv2DotPulse{
+  0%, 100%{ opacity:0.45; box-shadow: 0 0 4px 0.5px rgba(255,255,255,0.3); transform:scale(0.85); }
+  50%{ opacity:1; box-shadow: 0 0 9px 2px rgba(255,255,255,0.6); transform:scale(1.15); }
+}
+.ccv2-kicker-cn{ font-size:12.5px; font-weight:700; color:#fff; letter-spacing:0.03em; }
+.ccv2-kicker-en{
+  position:relative;
+  padding-left:9px;
+  font-family:'Space Mono', monospace; font-size:8.5px; font-weight:400;
+  letter-spacing:0.14em;
+  color: rgba(255,255,255,0.46); text-transform:uppercase;
+}
+.ccv2-kicker-en::before{
+  content:'';
+  position:absolute; left:0; top:50%; transform:translateY(-50%);
+  width:1px; height:9px;
+  background: rgba(255,255,255,0.24);
+}
+
+/* ---------------------------------------------------------------------
+   蚀环——本页签名时刻。中心肖像被一枚缓慢旋转、粗细呼吸的银白细
+   环包围，环上散布着独立闪烁的星尘光点。占据舞台正中，用 flex
+   auto margin 把上下留白分开，视觉重心稳稳落在肖像上
+--------------------------------------------------------------------- */
+.ccv2-center{
+  position:relative; z-index:1;
+  grid-row: 3;
+  width:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:30px;
+  min-height:0;
+}
+
+/* 留白填充：以肖像为圆心向外辐射的极细光束，缓慢自转，把中心肖像
+   周围原本空荡的一圈区域收拢成"信号正从中心向四周发散"的完整
+   意象，锚定在肖像正后方，不随上下留白多少而偏移 */
+.ccv2-rays{
+  position:absolute; z-index:0;
+  top:50%; left:50%;
+  width:560px; height:560px;
+  margin:-280px 0 0 -280px;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255,255,255,0.055) 0deg 1.1deg,
+    transparent 1.1deg 9deg
+  );
+  -webkit-mask-image: radial-gradient(circle at center, rgba(0,0,0,0.9) 16%, transparent 58%);
+  mask-image: radial-gradient(circle at center, rgba(0,0,0,0.9) 16%, transparent 58%);
+  animation: ccv2RaysSpin 100s linear infinite;
+  pointer-events:none;
+}
+@keyframes ccv2RaysSpin{ to{ transform: rotate(360deg); } }
+
+.ccv2-corona-wrap{
+  position:relative;
+  width:224px; height:224px;
+  display:flex; align-items:center; justify-content:center;
+  flex:none;
+}
+.ccv2-corona{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  overflow:visible;
+  transform: rotate(-90deg);
+}
+.ccv2-corona-track{
+  fill:none;
+  stroke: rgba(255,255,255,0.09);
+  stroke-width: 1;
+}
+.ccv2-corona-arc{
+  fill:none;
+  stroke: rgba(255,255,255,0.85);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 118 653;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.5));
+  transform-origin: 120px 120px;
+  animation: ccv2CoronaSpin 3.6s linear infinite, ccv2CoronaBreathe 2.4s ease-in-out infinite;
+}
+@keyframes ccv2CoronaSpin{ to{ transform: rotate(360deg); } }
+@keyframes ccv2CoronaBreathe{
+  0%, 100%{ stroke-dasharray: 84 653; opacity:0.7; }
+  50%{ stroke-dasharray: 150 653; opacity:1; }
+}
+
+.ccv2-corona-dots circle{
+  fill: rgba(255,255,255,0.9);
+  animation: ccv2DustTwinkle 2.4s ease-in-out infinite;
+}
+@keyframes ccv2DustTwinkle{
+  0%, 100%{ opacity:0.12; }
+  50%{ opacity:0.9; }
+}
+
+/* 挂断中：环骤然向内收拢、淡出 */
+.ccv2-page.is-closing .ccv2-corona-arc{ animation:none; opacity:0; stroke-dasharray:0 653; transition: opacity 0.3s ease, stroke-dasharray 0.3s ease; }
+.ccv2-page.is-closing .ccv2-corona-dots{ opacity:0; transition: opacity 0.25s ease; }
+.ccv2-page.is-closing .ccv2-portrait{ transform: scale(0.94); transition: transform 0.3s ease; }
+
+.ccv2-portrait{
+  position:relative; z-index:1;
+  width:150px; height:150px;
+  border-radius:50%;
+  overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(155deg, #313136 0%, #1a1a1d 65%, #0b0b0d 100%);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.18) inset,
+    0 -14px 26px -16px rgba(255,255,255,0.14) inset,
+    0 26px 52px -18px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(255,255,255,0.1);
+  animation: ccv2PortraitBreathe 4.4s ease-in-out infinite;
+}
+@keyframes ccv2PortraitBreathe{
+  0%, 100%{ transform:scale(1); }
+  50%{ transform:scale(1.024); }
+}
+.ccv2-portrait img{ width:100%; height:100%; object-fit:cover; display:block; }
+.ccv2-portrait-glyph{
+  font-family:'Playfair Display', 'Noto Serif KR', serif;
+  font-size:50px; font-weight:900;
+  color: rgba(255,255,255,0.92);
+  line-height:1;
+}
+
+.ccv2-idcard{
+  position:relative; z-index:2;
+  display:flex; flex-direction:column; align-items:center;
+}
+.ccv2-name{
+  font-size:25px; font-weight:800; letter-spacing:0.02em;
+  color:#fff; text-shadow: 0 2px 16px rgba(0,0,0,0.5);
+}
+.ccv2-sub{
+  margin-top:8px; font-size:13.5px; font-weight:600;
+  color: rgba(255,255,255,0.6);
+}
+
+/* ---------------------------------------------------------------------
+   挂断：悬浮于舞台底部，唯一操作。用暗玉圆键 + 双层柔光脉冲圈，
+   而不是切一块浅色底色来承托它
+--------------------------------------------------------------------- */
+.ccv2-solo-row{
+  position:relative; z-index:3;
+  grid-row: 4;
+  display:flex; flex-direction:column; align-items:center; gap:13px;
+  margin-bottom: 54px;
+}
+.ccv2-solo-hangup{
+  position:relative;
+  width:72px; height:72px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(155deg, #4a4b50 0%, #232327 55%, #0d0d0e 100%);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.22) inset,
+    0 20px 38px -14px rgba(0,0,0,0.65);
+  color: #f4eeee;
+  cursor:pointer;
+}
+.ccv2-solo-hangup-ring{
+  position:absolute; inset:-13px;
+  border-radius:50%;
+  border: 1px solid rgba(255,255,255,0.22);
+  animation: ccv2SoloRingPulse 2.6s ease-in-out infinite;
+}
+.ccv2-ring-b{ inset:-25px; animation-delay:0.9s; opacity:0.55; }
+@keyframes ccv2SoloRingPulse{
+  0%, 100%{ opacity:0.55; transform:scale(0.94); }
+  50%{ opacity:0.05; transform:scale(1.16); }
+}
+.ccv2-solo-hangup:active{ transform: scale(0.94); }
+.ccv2-solo-label{ font-size:12px; font-weight:600; letter-spacing:0.02em; color: rgba(255,255,255,0.55); }
+
+@media (prefers-reduced-motion: reduce){
+  .ccv2-veil, .ccv2-page,
+  .ccv2-portrait, .ccv2-corona-arc, .ccv2-corona-dots circle,
+  .ccv2-kicker-dot, .ccv2-solo-hangup-ring{ animation:none; }
+  .ccv2-veil, .ccv2-page{ transition:none; }
+}
