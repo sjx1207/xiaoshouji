@@ -1,0 +1,73 @@
+/* =========================================================
+   液态轨道导航  forum-nav.css
+   · 活动项下方是一滴会被“拉长—融合—回弹”的石墨液滴（metaball）
+   · 中央发帖核心是悬浮的液态金属珠，点按后以圆形揭幕展开发帖页
+   · 向下滚动时整条轨道收束成更短的玻璃胶囊
+========================================================= */
+.dock{position:absolute;left:0;right:0;bottom:var(--safe-b);z-index:500;display:flex;justify-content:center;pointer-events:none;transition:transform .55s var(--ease-ios),opacity .4s ease}
+.dock.hide{transform:translateY(140%);opacity:0}
+.dock-glass{
+  pointer-events:auto;position:relative;display:flex;align-items:center;
+  width:min(calc(100vw - 28px),400px);height:var(--dock-h);padding:0 8px;border-radius:999px;
+  background:
+    radial-gradient(90% 120% at var(--mx,50%) -20%,rgba(255,255,255,.7),rgba(255,255,255,0) 55%),
+    linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,.12));
+  -webkit-backdrop-filter:saturate(190%) brightness(1.07) contrast(1.05);
+          backdrop-filter:saturate(190%) brightness(1.07) contrast(1.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -1px 0 rgba(255,255,255,.5),
+    inset 0 -14px 22px -16px rgba(30,30,40,.28),
+    inset 0 12px 18px -14px rgba(255,255,255,.9),
+    0 0 0 .5px rgba(30,30,40,.12),
+    0 18px 36px -16px rgba(30,30,40,.35);
+  transition:width .6s var(--ease-spring),transform .6s var(--ease-spring);
+}
+.dock-glass::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:conic-gradient(from 200deg,#fff,rgba(255,255,255,.1) 22%,rgba(150,150,162,.45) 42%,#fff 58%,rgba(255,255,255,.1) 78%,#fff);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+
+/* 石墨液滴层 */
+.dock-goo{position:absolute;inset:0;filter:url(#fxGoo);pointer-events:none;z-index:0}
+.dock-goo span{position:absolute;top:50%;left:0;width:58px;height:48px;margin:-24px 0 0 -29px;border-radius:24px;background:linear-gradient(160deg,#3a3a40,#17171a)}
+.goo-head{transition:transform .62s var(--ease-spring),width .3s ease}
+.goo-tail{transition:transform .95s cubic-bezier(.5,0,.1,1);width:40px!important;height:34px!important;margin:-17px 0 0 -20px!important;border-radius:20px!important}
+.dock-goo.moving .goo-head{animation:gooSquash .62s var(--ease-out)}
+@keyframes gooSquash{0%{scale:1 1}30%{scale:1.28 .82}65%{scale:.94 1.06}100%{scale:1 1}}
+/* 液滴上的镜面高光（单独一层，不参与融合滤镜） */
+.dock-shine{position:absolute;top:50%;left:0;width:58px;height:48px;margin:-24px 0 0 -29px;border-radius:24px;pointer-events:none;z-index:1;
+  background:radial-gradient(80% 60% at 35% 12%,rgba(255,255,255,.4),rgba(255,255,255,0) 60%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35);transition:transform .62s var(--ease-spring)}
+
+.dock-item{position:relative;z-index:2;flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.dock-item svg{width:23px;height:23px;fill:none;stroke:#5a5a62;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:stroke .35s ease,transform .5s var(--ease-spring)}
+.dock-item span{font-size:9.5px;font-weight:650;letter-spacing:.04em;color:#fff;max-height:0;opacity:0;transform:translateY(4px);transition:all .45s var(--ease-spring)}
+.dock-item.on svg{stroke:#fff;transform:translateY(-2px) scale(.94)}
+.dock-item.on span{max-height:14px;opacity:1;transform:none}
+.dock-item:active svg{transform:scale(.82)}
+.dock-core-slot{flex:0 0 70px}
+
+/* 中央液态金属核心 */
+.dock-core{
+  pointer-events:auto;position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;z-index:3;
+  display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(70% 55% at 35% 18%,rgba(255,255,255,.55),rgba(255,255,255,0) 60%),
+    radial-gradient(120% 120% at 70% 110%,#4a4a52 0%,#1c1c20 55%,#0d0d0f 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -6px 14px rgba(0,0,0,.45),0 0 0 .5px rgba(0,0,0,.4),0 14px 28px -10px rgba(20,20,26,.55);
+  transition:transform .55s var(--ease-spring);
+}
+.dock-core svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;transition:transform .6s var(--ease-spring)}
+.dock-core .core-ring{position:absolute;inset:-5px;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from var(--ra,0deg),rgba(255,255,255,0),rgba(255,255,255,.95) 12%,rgba(255,255,255,0) 26%,rgba(160,160,170,.5) 55%,rgba(255,255,255,0) 70%);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 1.5px),#000 calc(100% - 1.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 1.5px),#000 calc(100% - 1.5px));
+  animation:coreRing 6s linear infinite}
+@property --ra{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes coreRing{to{--ra:360deg}}
+.dock-core:active{transform:scale(.9)}
+.dock-core.fire svg{transform:rotate(135deg) scale(.8)}
+
+/* 收束态 */
+.dock.min .dock-glass{width:min(calc(100vw - 70px),336px);transform:translateY(6px)}
+.dock.min .dock-item span{max-height:0;opacity:0}
+.dock.min .dock-core{transform:translateY(2px) scale(.88)}

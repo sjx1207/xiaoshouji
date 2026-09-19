@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#f5f5f7">
+  <title>论坛</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="forum-base.css" />
+  <link rel="stylesheet" href="forum-nav.css" />
+  <link rel="stylesheet" href="forum-profile.css" />
+  <link rel="stylesheet" href="forum-compose.css" />
+  <link rel="stylesheet" href="forum-feed.css" />
+  <link rel="stylesheet" href="forum-gen.css" />
+</head>
+<body>
+
+<!-- 共享 SVG 滤镜：导航液滴融合 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="fxGoo" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b"/>
+      <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" result="g"/>
+      <feComposite in="SourceGraphic" in2="g" operator="atop"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="app" id="app">
+
+  <!-- 氛围底：让透明玻璃有东西可以折射 -->
+  <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <!-- 全局状态栏：所有页面共用，完全透明，与各页顶栏融为一体 -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-time">--:--</div>
+    <div class="status-island"></div>
+    <div class="status-right">
+      <div class="signal"><i></i><i></i><i></i><i></i></div>
+      <div class="battery">
+        <span class="bat-pct">76</span>
+        <div class="bat-shell"><div class="bat-inner"></div><div class="bat-nub"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 页面 -->
+  <main class="tab-stage" id="tabStage">
+    <section class="tab-view" data-tab="home" id="tabHome"></section>
+    <section class="tab-view" data-tab="video" id="tabVideo"></section>
+    <section class="tab-view" data-tab="hot" id="tabHot"></section>
+    <section class="tab-view" data-tab="me" id="tabMe"></section>
+  </main>
+
+  <!-- 液态导航：流体轨道 -->
+  <nav class="dock" id="dock" aria-label="主导航">
+    <div class="dock-glass">
+      <div class="dock-goo" aria-hidden="true">
+        <span class="goo-head"></span>
+        <span class="goo-tail"></span>
+      </div>
+      <button class="dock-item" data-tab="home" aria-label="首页">
+        <svg viewBox="0 0 24 24"><path d="M4 10.6 12 4l8 6.6V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.2h-6v5.2H5.5A1.5 1.5 0 0 1 4 19z"/></svg>
+        <span>首页</span>
+      </button>
+      <button class="dock-item" data-tab="video" aria-label="短视频">
+        <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="4"/><path d="m10.4 9.2 4.4 2.8-4.4 2.8z"/></svg>
+        <span>短视频</span>
+      </button>
+      <div class="dock-core-slot"></div>
+      <button class="dock-item" data-tab="hot" aria-label="热搜">
+        <svg viewBox="0 0 24 24"><path d="M12 3.5c.6 3.2 4.8 5.1 4.8 9.6A4.8 4.8 0 0 1 12 18a4.8 4.8 0 0 1-4.8-4.9c0-2.2 1.2-3.4 2.2-4.4.3 1.6 1 2.5 2 2.8-.6-2.6-.1-5.6.6-8z"/><path d="M7 20.5h10"/></svg>
+        <span>热搜</span>
+      </button>
+      <button class="dock-item" data-tab="me" aria-label="我的">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8.6" r="3.8"/><path d="M4.8 20c.8-3.6 3.6-5.6 7.2-5.6s6.4 2 7.2 5.6"/></svg>
+        <span>我的</span>
+      </button>
+    </div>
+    <button class="dock-core" id="dockCore" aria-label="发帖">
+      <span class="core-ring"></span>
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </nav>
+
+  <!-- 推入式页面栈（编辑资料 / 发帖 / 详情 / 他人主页 …） -->
+  <div class="page-stack" id="pageStack"></div>
+
+  <!-- 底部弹层 -->
+  <div class="sheet-layer" id="sheetLayer"></div>
+
+  <!-- 图片查看器 -->
+  <div class="viewer" id="viewer"></div>
+
+  <!-- 轻提示 -->
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <!-- 圆形揭幕转场 -->
+  <div class="reveal-mask" id="revealMask"></div>
+</div>
+
+<script src="forum-core.js"></script>
+<script src="forum-ui.js"></script>
+<script src="forum-ai.js"></script>
+<script src="forum-cards.js"></script>
+<script src="forum-profile.js"></script>
+<script src="forum-edit.js"></script>
+<script src="forum-compose.js"></script>
+<script src="forum-home.js"></script>
+<script src="forum-detail.js"></script>
+<script src="forum-people.js"></script>
+<script src="forum-main.js"></script>
+</body>
+</html>
