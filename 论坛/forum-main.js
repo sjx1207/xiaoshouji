@@ -12,6 +12,7 @@ F.goDesktop = () => {
 (async function boot() {
   F.statusbar.init();
   try { await F.load(); } catch (e) { console.error(e); F.toast('数据读取失败：' + e.message, 'close', 4000); }
+  try { await F.syncChars(); } catch (e) { console.warn(e); }
   F.tabs.init();
   F.tabs.current = null;
   F.tabs.go('home');

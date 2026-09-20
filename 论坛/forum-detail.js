@@ -7,8 +7,9 @@
 F.detail = {};
 
 F.detail.open = (postId, { focusComment } = {}) => {
-  const post = F.post(postId);
+  let post = F.post(postId);
   if (!post) return F.toast('这条内容已不存在', 'close');
+  if (post.type === 'repost' && post.ref) return post.ref.kind === 'video' ? F.video.open(post.ref.id) : F.detail.open(post.ref.id);
   post.stats.views = (post.stats.views || 0) + 1; F.save('posts');
 
   F.nav.push((page, api) => {
@@ -38,7 +39,7 @@ F.detail.open = (postId, { focusComment } = {}) => {
 
     /* ---------- 正文 ---------- */
     const body = () => {
-      const T = F.TYPES[post.type], w = F.world(post.worldId);
+      const T = F.TYPES[post.type] || { name: F.typeName(post.type), icon: 'doc' }, w = F.world(post.worldId);
       const typeRow = `<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="dt-type">${F.I(T.icon)}${T.name}</span>${w ? `<span class="dt-type">${F.esc(w.theme || w.name)}</span>` : ''}${post.visibility === 'self' ? `<span class="dt-type">${F.I('lock')}仅自己可见</span>` : ''}</div>`;
       const meta = `<div class="dt-meta"><span>${F.I('cal')}${F.fullDate(post.createdAt)} ${new Date(post.createdAt).toTimeString().slice(0, 5)}</span>${readType ? `<span>${F.I('doc')}${F.plain(post.content + (post.thread || []).join('')).length} 字 · ${F.cards.readMins(post)} 分钟</span>` : ''}${post.location ? `<span>${F.I('pin')}${F.esc(post.location)}</span>` : ''}</div>`;
       const imgs = post.images && post.images.length ? (post.type === 'photo'
@@ -76,7 +77,7 @@ F.detail.open = (postId, { focusComment } = {}) => {
       $('#dtActs').innerHTML = `<button class="act ${F.act.liked(post) ? 'on' : ''}" data-like>${F.I('heart')}<span>${F.num(F.likeCount(post))}</span></button><button class="act ${F.act.faved(post) ? 'on' : ''}" data-fav>${F.I('fav')}<span>${F.num(F.favCount(post))}</span></button><button class="act" data-repost>${F.I('repost')}<span>转发</span></button>`;
       $('[data-like]').onclick = e => { F.act.like(post); stats(); const b = $('[data-like]'); b.classList.add('pop'); };
       $('[data-fav]').onclick = () => { const on = F.act.fav(post); stats(); $('[data-fav]').classList.add('pop'); F.toast(on ? '已收藏' : '已取消收藏', 'fav', 1300); };
-      $('[data-repost]').onclick = F.act.repost;
+      $('[data-repost]').onclick = () => F.act.repost(post);
     };
 
     /* ---------- 评论区 ---------- */
@@ -166,7 +167,7 @@ F.detail.open = (postId, { focusComment } = {}) => {
       ta.value = ''; ta.oninput(); ta.blur(); setReply(null);
       await F.save('posts');
       busyThreads.add(parent.id); comments([mine.id]);
-      requestAnimationFrame(() => { const el = page.querySelector(`[data-c="${parent.id}"]`); el && el.scrollIntoView({ block: 'center', behavior: 'smooth' }); });
+      requestAnimationFrame(() => F.scrollInto(scroll, page.querySelector(`[data-c="${parent.id}"]`), 'center'));
       // 自动调用 AI 回复用户
       const whoTo = target && target.reply ? target.reply.author : target ? target.comment.author : post.author;
       const isSelfTalk = whoTo.kind === 'user' && post.author.kind === 'user';
@@ -203,7 +204,7 @@ F.detail.open = (postId, { focusComment } = {}) => {
     $('[data-more]').onclick = async () => {
       const v = await F.menu('更多', [{ label: '复制正文', value: 'copy', icon: 'doc' }, { label: '转发', value: 'repost', icon: 'repost' }, { label: '删除这条内容', value: 'del', icon: 'trash', danger: true }]);
       if (v === 'copy') { try { await navigator.clipboard.writeText(F.plain(post.content)); F.toast('已复制'); } catch (e) { F.toast('复制失败', 'close'); } }
-      if (v === 'repost') F.act.repost();
+      if (v === 'repost') F.act.repost(post);
       if (v === 'del' && await F.confirm('删除这条内容？', '删除后无法恢复。', '删除', true)) {
         F.state.posts = F.state.posts.filter(p => p.id !== post.id); await F.save('posts'); api.close(); F.toast('已删除');
       }
@@ -215,6 +216,7 @@ F.detail.open = (postId, { focusComment } = {}) => {
 
     body(); comments();
     page._refresh = () => { stats(); comments(); };
-    if (focusComment) setTimeout(() => { const el = page.querySelector(`[data-c="${focusComment}"]`); el && el.scrollIntoView({ block: 'center' }); }, 500);
+    page._onLeave = F.bus.on('reposted', () => stats());
+    if (focusComment) setTimeout(() => F.scrollInto(scroll, page.querySelector(`[data-c="${focusComment}"]`), 'center', false), 500);
   });
 };

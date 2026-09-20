@@ -27,7 +27,7 @@ F.profile.header = (p, { self = false } = {}) => {
     <h1 class="pf-name">${F.esc(p.nickname)}${v ? F.vbadge(p.kind !== 'char') : ''}</h1>
     <div class="pf-handle">@${F.esc(p.handle)}${p.gender ? `<span class="pf-g">${F.esc(p.gender)}</span>` : ''}</div>
     ${v && vt ? `<div class="pf-vline">${F.I('shield')}<span>${F.esc((p.verify && p.verify.type) ? p.verify.type + ' · ' : '')}${F.esc(vt)}</span></div>` : ''}
-    ${p.bio ? `<p class="pf-bio">${F.inline(p.bio).replace(/\n/g, '<br>')}</p>` : (self ? `<p class="pf-bio muted">还没有简介，去编辑资料写一句介绍自己吧</p>` : '')}
+    ${p.bio ? `<p class="pf-bio clamp3">${F.inline(p.bio).replace(/\n/g, '<br>')}</p>` : (self ? `<p class="pf-bio muted">还没有简介，去编辑资料写一句介绍自己吧</p>` : '')}
     <div class="pf-meta">${meta}</div>
     ${(p.tags || []).length ? `<div class="pf-tags">${p.tags.map(t => `<span>${F.esc(t)}</span>`).join('')}</div>` : ''}
     <div class="pf-counts">
@@ -65,8 +65,12 @@ F.tabs.renderers.me = (view) => {
   const ref = { kind: 'user', id: me.id };
   view._darkTop = !!me.coverDark;
   const mine = F.postsBy(ref);
-  const liked = F.state.posts.filter(p => (p.likedBy || []).includes(me.id)).sort((a, b) => b.createdAt - a.createdAt);
-  const faved = F.state.posts.filter(p => (p.favBy || []).includes(me.id)).sort((a, b) => b.createdAt - a.createdAt);
+  const all = [...F.state.posts, ...F.state.videos];
+  const liked = all.filter(p => (p.likedBy || []).includes(me.id)).sort((a, b) => b.createdAt - a.createdAt);
+  const faved = all.filter(p => (p.favBy || []).includes(me.id)).sort((a, b) => b.createdAt - a.createdAt);
+  const reposts = F.repostsBy(ref);
+  const about = F.aboutRef(ref);
+  if (F.profile.tab === 'about' && !about.length) F.profile.tab = 'posts';
   const views7 = mine.filter(p => Date.now() - p.createdAt < 7 * 86400e3).reduce((s, p) => s + (p.stats.views || 0), 0);
   const totalViews = mine.reduce((s, p) => s + (p.stats.views || 0), 0);
   const spark = F.profile.sparkline(F.profile.daily(mine, 7, p => (p.stats.views || 0) + F.likeCount(p) * 8), 64, 20);
@@ -89,7 +93,8 @@ F.tabs.renderers.me = (view) => {
         <button data-v="posts" class="${F.profile.tab === 'posts' ? 'on' : ''}">帖子<i>${mine.length}</i></button>
         <button data-v="likes" class="${F.profile.tab === 'likes' ? 'on' : ''}">点赞<i>${liked.length}</i></button>
         <button data-v="favs" class="${F.profile.tab === 'favs' ? 'on' : ''}">收藏<i>${faved.length}</i></button>
-        <button data-v="reposts" class="${F.profile.tab === 'reposts' ? 'on' : ''}">转发<i>0</i></button>
+        <button data-v="reposts" class="${F.profile.tab === 'reposts' ? 'on' : ''}">转发<i>${reposts.length}</i></button>
+        ${about.length ? `<button data-v="about" class="${F.profile.tab === 'about' ? 'on' : ''}">讨论<i>${about.length}</i></button>` : ''}
       </div>
     </div>
     <div class="feed" id="pfFeed"></div>`;
@@ -100,19 +105,20 @@ F.tabs.renderers.me = (view) => {
     <button class="gorb lg" data-act="data">${F.I('chart')}</button>`;
 
   const feed = view.querySelector('#pfFeed');
-  const lists = { posts: mine, likes: liked, favs: faved, reposts: [] };
+  const lists = { posts: mine, likes: liked, favs: faved, reposts, about };
   const empties = {
     posts: ['还没有发过帖子', '点下方中间的按钮，发布你的第一条内容', 'plus', '去发帖'],
     likes: ['还没有点赞过内容', '在首页看到喜欢的帖子，点一下心形就会出现在这里', 'heart'],
     favs: ['收藏夹是空的', '收藏的帖子会整齐地排在这里，方便以后再读', 'fav'],
-    reposts: ['转发功能即将开放', '转发入口已经预留好，开放后你转发的内容会显示在这里', 'repost']
+    reposts: ['还没有转发过', '在任意帖子或视频上点转发，可以附上转发语发到主页', 'repost'],
+    about: ['还没有关于你的讨论', '', 'crown']
   };
   const draw = () => {
     const L = lists[F.profile.tab];
     if (!L.length) {
       const e = empties[F.profile.tab];
       feed.innerHTML = `<div class="empty"><div class="e-art lg" style="--lg-r:30px">${F.I(e[2])}</div><h4>${e[0]}</h4><p>${e[1]}</p>${e[3] ? `<button class="gbtn lg" data-act="compose">${F.I('plus')}${e[3]}</button>` : ''}</div>`;
-    } else feed.innerHTML = L.map(F.cards.render).join('');
+    } else feed.innerHTML = L.map(F.cards.renderAny).join('');
   };
   draw();
   F.bindFeed(feed);
@@ -307,7 +313,7 @@ F.profile.dashboard = () => {
           <div class="group-title">内容类型分布</div>
           <div class="dash-bars">${F.TYPE_ORDER.filter(t => byType[t]).map(t => `<div class="db-row"><span>${F.I(F.TYPES[t].icon)}${F.TYPES[t].name}</span><div class="db-trk"><i style="width:${byType[t] / maxT * 100}%"></i></div><b class="num-font">${byType[t]}</b></div>`).join('') || '<p class="muted" style="padding:12px 4px;font-size:13px">这段时间还没有发布内容</p>'}</div>
           <div class="group-title">表现最好的内容</div>
-          <div class="group">${top.map(p => `<div class="row dash-post" data-open="${p.id}"><div class="r-main"><div class="r-title clamp2" style="font-size:14px">${F.esc(p.title || F.plain(p.content).slice(0, 60) || '（图片）')}</div><div class="r-sub">${F.TYPES[p.type].name} · ${F.ago(p.createdAt)} · 浏览 ${F.num(p.stats.views)} · 赞 ${F.num(F.likeCount(p))} · 评论 ${F.commentCount(p)}</div></div><svg class="chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></div>`).join('') || '<div class="row"><div class="r-sub">暂无数据</div></div>'}</div>`;
+          <div class="group">${top.map(p => `<div class="row dash-post" data-open="${p.id}"><div class="r-main"><div class="r-title clamp2" style="font-size:14px">${F.esc(p.title || F.plain(p.content).slice(0, 60) || '（图片）')}</div><div class="r-sub">${F.typeName(p.type)} · ${F.ago(p.createdAt)} · 浏览 ${F.num(p.stats.views)} · 赞 ${F.num(F.likeCount(p))} · 评论 ${F.commentCount(p)}</div></div><svg class="chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></div>`).join('') || '<div class="row"><div class="r-sub">暂无数据</div></div>'}</div>`;
       }
       if (tab === 'fans') {
         const who = {};

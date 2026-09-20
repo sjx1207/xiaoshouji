@@ -6,15 +6,15 @@ F.cards = {};
 
 /* ---------- 互动：点赞 / 收藏 / 投票（按当前身份记录，所有页面同步） ---------- */
 F.act = {
-  like(p) { const me = F.me().id; p.likedBy = p.likedBy || []; const i = p.likedBy.indexOf(me); i < 0 ? p.likedBy.push(me) : p.likedBy.splice(i, 1); F.save('posts'); return i < 0; },
-  fav(p) { const me = F.me().id; p.favBy = p.favBy || []; const i = p.favBy.indexOf(me); i < 0 ? p.favBy.push(me) : p.favBy.splice(i, 1); F.save('posts'); return i < 0; },
+  like(p) { const me = F.me().id; p.likedBy = p.likedBy || []; const i = p.likedBy.indexOf(me); i < 0 ? p.likedBy.push(me) : p.likedBy.splice(i, 1); F.save('posts', 'videos'); return i < 0; },
+  fav(p) { const me = F.me().id; p.favBy = p.favBy || []; const i = p.favBy.indexOf(me); i < 0 ? p.favBy.push(me) : p.favBy.splice(i, 1); F.save('posts', 'videos'); return i < 0; },
   liked: p => (p.likedBy || []).includes(F.me().id),
   faved: p => (p.favBy || []).includes(F.me().id),
-  vote(p, idx) { p.poll.votes = p.poll.votes || {}; if (p.poll.votes[F.me().id] != null) return false; p.poll.votes[F.me().id] = idx; F.save('posts'); return true; },
+  vote(p, idx) { p.poll.votes = p.poll.votes || {}; if (p.poll.votes[F.me().id] != null) return false; p.poll.votes[F.me().id] = idx; F.save('posts', 'videos'); return true; },
   myVote: p => p.poll && p.poll.votes ? p.poll.votes[F.me().id] : undefined,
   pollCounts(p) { const c = p.poll.options.map(o => o.votes || 0); Object.values(p.poll.votes || {}).forEach(i => { if (c[i] != null) c[i]++; }); return c; },
-  repost() { F.toast('转发功能即将开放', 'repost'); },
-  likeComment(c) { const me = F.me().id; c.likedBy = c.likedBy || []; const i = c.likedBy.indexOf(me); i < 0 ? c.likedBy.push(me) : c.likedBy.splice(i, 1); F.save('posts'); return i < 0; }
+  repost(p) { F.share.open(p); },
+  likeComment(c) { const me = F.me().id; c.likedBy = c.likedBy || []; const i = c.likedBy.indexOf(me); i < 0 ? c.likedBy.push(me) : c.likedBy.splice(i, 1); F.save('posts', 'videos'); return i < 0; }
 };
 
 /* ---------- 共享片段 ---------- */
@@ -41,7 +41,8 @@ F.cards.render = p => {
   const a = F.person(p.author);
   let fn = F.cards['t_' + p.type] || F.cards.t_moment;
   if ((p.type === 'poll' && !p.poll) || (p.type === 'review' && !p.review)) fn = F.cards.t_moment;
-  return `<article class="card c-${p.type}" data-post="${p.id}">${fn(p, a)}</article>`;
+  const ab = p.about ? F.person(p.about) : null;
+  return `<article class="card c-${p.type}" data-post="${p.id}">${ab ? `<span class="about-rib" data-person="${p.about.kind}:${p.about.id}">${F.I('crown')}${F.esc(ab.nickname)}</span>` : ''}${fn(p, a)}</article>`;
 };
 
 /* 动态：推特式，左头像右正文 */
@@ -185,6 +186,8 @@ F.bindFeed = (root, { onChange } = {}) => {
       const [kind, id] = personEl.dataset.person.split(':');
       F.people.open({ kind, id }); return;
     }
+    const vcard = e.target.closest('[data-video]');
+    if (vcard && root.contains(vcard)) { F.video.open(vcard.dataset.video); return; }
     if (!card) return;
     const p = F.post(card.dataset.post); if (!p) return;
     const t = e.target;
@@ -202,7 +205,7 @@ F.bindFeed = (root, { onChange } = {}) => {
       const n = b.querySelector('b'); if (n) n.textContent = F.num(F.favCount(p));
       F.toast(on ? '已收藏' : '已取消收藏', 'fav', 1400); return;
     }
-    if (t.closest('[data-repost]')) { F.act.repost(); return; }
+    if (t.closest('[data-repost]')) { F.act.repost(p); return; }
     if (t.closest('[data-vote]')) {
       if (F.act.vote(p, +t.closest('[data-vote]').dataset.vote)) {
         const blk = t.closest('.po-block');
@@ -215,6 +218,7 @@ F.bindFeed = (root, { onChange } = {}) => {
       return;
     }
     if (t.closest('[data-img]') && !card.classList.contains('c-photo')) { F.viewer(p.images, +t.closest('[data-img]').dataset.img); return; }
+    if (p.type === 'repost') { if (p.ref) (p.ref.kind === 'video' ? F.video.open(p.ref.id) : F.detail.open(p.ref.id)); return; }
     F.detail.open(p.id);
   });
   // 图文轮播计数

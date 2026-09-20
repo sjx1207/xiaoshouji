@@ -166,33 +166,29 @@ function updateTime() {
   // 状态栏
   if (el) el.textContent = statusTimeStr;
 
-  // 组件时间：同步字体样式
+  // 组件时间：数值与 AM/PM 后缀分离，样式交由 CSS（.wtw-time / .wtw-time-suffix）统一控制
   if (wt) {
-    wt.textContent = timeStr.toUpperCase();
-    wt.style.fontSize = '32px';
-    wt.style.fontWeight = '800';
-    wt.style.letterSpacing = '-0.04em';
-    wt.style.color = 'rgba(30,30,60,0.88)';
-    wt.style.lineHeight = '1';
+    const timeParts = timeStr.toUpperCase().split(' '); // e.g. ["06:14", "PM"]
+    wt.textContent = timeParts[0];
+    const suffixEl = document.querySelector('.wtw-time-suffix');
+    if (suffixEl && timeParts[1]) suffixEl.textContent = timeParts[1];
   }
 
-  // 组件日期：同步字体样式
+  // 组件日期：资料板账号名风格（WED · MAY 13），样式交由 CSS（.wtw-handle）统一控制
   if (wd) {
-    wd.textContent = dateStr;
-    wd.style.fontSize = '10px';
-    wd.style.fontWeight = '600';
-    wd.style.letterSpacing = '0.08em';
-    wd.style.color = 'rgba(55,55,90,0.6)';
-    wd.style.fontFamily = "'Space Mono', monospace";
-    wd.style.textTransform = 'uppercase';
+    wd.textContent = dateStr.replace(', ', ' · ');
   }
 
   const totalMins = 24 * 60;
   const passedMins = tzNow.getHours() * 60 + tzNow.getMinutes();
   const pct = Math.round(passedMins / totalMins * 100);
-  
+
   if (dayFill) dayFill.style.width = pct + '%';
-  if (dayPct) dayPct.textContent = `PASS ${pct}%`; // 进度也改为英文更高级
+  if (dayPct) dayPct.textContent = `${pct}%`;
+
+  // 时间轴当前时刻光点：跟随进度百分比左右移动
+  const dayMarker = document.getElementById('dayMarker');
+  if (dayMarker) dayMarker.style.left = pct + '%';
 }
 
 /* ================================
@@ -247,18 +243,18 @@ function updateTime() {
     const el = document.querySelector('.wtw-avatar');
     if (!el) return;
     el.innerHTML = src
-      ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>`
-      : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(55,55,90,0.6)" stroke-width="1.6"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(55,55,90,0.6)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+      ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" alt=""/>`
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(255,255,255,0.85)" stroke-width="1.7"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(255,255,255,0.85)" stroke-width="1.7" stroke-linecap="round"/></svg>`;
   }
 
-  // 应用右侧照片
+  // 应用右侧照片（三格 1:1 正方形相册）
   function applyWtwPhoto(index, src) {
     const photos = document.querySelectorAll('.wtw-photo');
     const el = photos[index];
     if (!el) return;
     el.innerHTML = src
-      ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" alt=""/>`
-      : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="rgba(55,55,90,0.45)" stroke-width="1.5"/><circle cx="9" cy="11" r="2.5" stroke="rgba(55,55,90,0.45)" stroke-width="1.3"/><path d="M13 14l2.5-3 3 4" stroke="rgba(55,55,90,0.45)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" alt=""/>`
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="rgba(255,255,255,0.55)" stroke-width="1.4"/><circle cx="9" cy="11" r="2.3" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/><path d="M13 14l2.5-3 3 4" stroke="rgba(255,255,255,0.55)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   }
 
   // 应用背景模式
@@ -277,13 +273,25 @@ function updateTime() {
       widget.style.backdropFilter = 'none';
       widget.style.webkitBackdropFilter = 'none';
     } else {
-      // blur（默认）
-      widget.style.background = 'rgba(255,255,255,0.28)';
-      widget.style.border = '1px solid rgba(255,255,255,0.75)';
-      widget.style.backdropFilter = 'blur(28px) saturate(180%)';
-      widget.style.webkitBackdropFilter = 'blur(28px) saturate(180%)';
-      widget.style.boxShadow = 'inset 0 1.5px 0 rgba(255,255,255,0.9), 0 8px 32px rgba(140,150,200,0.18)';
+      // blur —— 黑白灰质感的浅色玻璃，与胶囊风格保持一致
+      widget.style.background = 'linear-gradient(158deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 100%)';
+      widget.style.border = '1px solid rgba(255,255,255,0.22)';
+      widget.style.backdropFilter = 'blur(20px) saturate(150%)';
+      widget.style.webkitBackdropFilter = 'blur(20px) saturate(150%)';
+      widget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.3), 0 22px 48px rgba(8,8,12,0.32)';
     }
+  }
+
+  // 应用昵称
+  function applyWtwNickname(name) {
+    const el = document.getElementById('wtwNickname');
+    if (el && name) el.textContent = name;
+  }
+
+  // 应用引言文案
+  function applyWtwQuote(text) {
+    const el = document.getElementById('wtwQuoteText');
+    if (el && text) el.textContent = text;
   }
 
   // 页面加载时恢复已保存的设置
@@ -291,16 +299,23 @@ function updateTime() {
     const avatar = await wtwLoad('avatar');
     const photo1 = await wtwLoad('photo1');
     const photo2 = await wtwLoad('photo2');
-    const bgMode = await wtwLoad('bgMode') || 'blur';
+    const photo3 = await wtwLoad('photo3');
+    const nickname = await wtwLoad('nickname');
+    const quote = await wtwLoad('quote');
+    const bgMode = await wtwLoad('bgMode') || 'transparent';
     const bgCustom = await wtwLoad('bgCustom');
     if (avatar) applyWtwAvatar(avatar);
     if (photo1) applyWtwPhoto(0, photo1);
     if (photo2) applyWtwPhoto(1, photo2);
+    if (photo3) applyWtwPhoto(2, photo3);
+    if (nickname) applyWtwNickname(nickname);
+    if (quote) applyWtwQuote(quote);
     applyWtwBg(bgMode, bgCustom);
   }
 
   // 弹窗逻辑
-  let tempAvatar = null, tempPhoto1 = null, tempPhoto2 = null;
+  let tempAvatar = null, tempPhoto1 = null, tempPhoto2 = null, tempPhoto3 = null;
+  let tempNickname = '', tempQuote = '';
   let tempBgMode = 'blur', tempBgCustom = null;
 
   document.addEventListener('DOMContentLoaded', async () => {
@@ -316,18 +331,36 @@ function updateTime() {
         tempAvatar = await wtwLoad('avatar');
         tempPhoto1 = await wtwLoad('photo1');
         tempPhoto2 = await wtwLoad('photo2');
-        tempBgMode = await wtwLoad('bgMode') || 'blur';
+        tempPhoto3 = await wtwLoad('photo3');
+        tempNickname = await wtwLoad('nickname') || '';
+        tempQuote = await wtwLoad('quote') || '';
+        tempBgMode = await wtwLoad('bgMode') || 'transparent';
         tempBgCustom = await wtwLoad('bgCustom');
 
         // 恢复预览
         const prevAv = document.getElementById('wtwPreviewAvatar');
-        if (tempAvatar) prevAv.innerHTML = `<img src="${tempAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+        prevAv.innerHTML = tempAvatar
+          ? `<img src="${tempAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
+          : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(20,20,26,0.32)" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(20,20,26,0.32)" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 
         const prev1 = document.getElementById('wtwPreviewPhoto1');
-        if (tempPhoto1) prev1.innerHTML = `<img src="${tempPhoto1}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;"/>`;
+        prev1.innerHTML = tempPhoto1
+          ? `<img src="${tempPhoto1}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;"/>`
+          : `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="rgba(20,20,26,0.28)" stroke-width="1.4"/><circle cx="9" cy="11" r="2" stroke="rgba(20,20,26,0.28)" stroke-width="1.2"/><path d="M13 14l2.5-3 3 4" stroke="rgba(20,20,26,0.28)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
         const prev2 = document.getElementById('wtwPreviewPhoto2');
-        if (tempPhoto2) prev2.innerHTML = `<img src="${tempPhoto2}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;"/>`;
+        prev2.innerHTML = tempPhoto2
+          ? `<img src="${tempPhoto2}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;"/>`
+          : `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="rgba(20,20,26,0.28)" stroke-width="1.4"/><circle cx="9" cy="11" r="2" stroke="rgba(20,20,26,0.28)" stroke-width="1.2"/><path d="M13 14l2.5-3 3 4" stroke="rgba(20,20,26,0.28)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+        const prev3 = document.getElementById('wtwPreviewPhoto3');
+        prev3.innerHTML = tempPhoto3
+          ? `<img src="${tempPhoto3}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;"/>`
+          : `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="rgba(20,20,26,0.28)" stroke-width="1.4"/><circle cx="9" cy="11" r="2" stroke="rgba(20,20,26,0.28)" stroke-width="1.2"/><path d="M13 14l2.5-3 3 4" stroke="rgba(20,20,26,0.28)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+        // 文案回填
+        document.getElementById('wtwInputNickname').value = tempNickname || document.getElementById('wtwNickname').textContent.trim();
+        document.getElementById('wtwInputQuote').value = tempQuote || document.getElementById('wtwQuoteText').textContent.trim();
 
         // 背景模式按钮状态
         document.querySelectorAll('.wtw-bg-option').forEach(btn => {
@@ -374,6 +407,23 @@ function updateTime() {
       prev.innerHTML = `<img src="${tempPhoto2}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;"/>`;
     });
 
+    // 照片3上传
+    document.getElementById('wtwPhoto3Input').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      tempPhoto3 = await fileToBase64(file);
+      const prev = document.getElementById('wtwPreviewPhoto3');
+      prev.innerHTML = `<img src="${tempPhoto3}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;"/>`;
+    });
+
+    // 昵称 / 引言输入实时同步到临时变量
+    document.getElementById('wtwInputNickname').addEventListener('input', e => {
+      tempNickname = e.target.value;
+    });
+    document.getElementById('wtwInputQuote').addEventListener('input', e => {
+      tempQuote = e.target.value;
+    });
+
     // 背景模式切换
     document.querySelectorAll('.wtw-bg-option').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -396,12 +446,20 @@ function updateTime() {
       if (tempAvatar) await wtwSave('avatar', tempAvatar);
       if (tempPhoto1) await wtwSave('photo1', tempPhoto1);
       if (tempPhoto2) await wtwSave('photo2', tempPhoto2);
+      if (tempPhoto3) await wtwSave('photo3', tempPhoto3);
+      const finalNickname = (tempNickname || '').trim();
+      const finalQuote = (tempQuote || '').trim();
+      if (finalNickname) await wtwSave('nickname', finalNickname);
+      if (finalQuote) await wtwSave('quote', finalQuote);
       await wtwSave('bgMode', tempBgMode);
       if (tempBgCustom) await wtwSave('bgCustom', tempBgCustom);
 
       applyWtwAvatar(tempAvatar);
       applyWtwPhoto(0, tempPhoto1);
       applyWtwPhoto(1, tempPhoto2);
+      applyWtwPhoto(2, tempPhoto3);
+      if (finalNickname) applyWtwNickname(finalNickname);
+      if (finalQuote) applyWtwQuote(finalQuote);
       applyWtwBg(tempBgMode, tempBgCustom);
 
       overlay.style.display = 'none';
@@ -453,39 +511,33 @@ function updateTime() {
     });
   }
 
-  // 应用头像
+  const FW_ICON_USER = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(255,255,255,0.92)" stroke-width="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(255,255,255,0.92)" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+
+  // 应用头像（圆形头像，位于心电图两端）
   function applyFwAvatar(index, src) {
-    const wraps = document.querySelectorAll('.fw-avatar-wrap');
+    const wraps = document.querySelectorAll('.widget-friends .fw-avatar-wrap');
     const el = wraps[index];
     if (!el) return;
     el.innerHTML = src
-      ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" alt=""/>`
-      : `<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(100,100,180,0.4)" stroke-width="1.6"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(100,100,180,0.4)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+      ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;" alt=""/>`
+      : FW_ICON_USER;
   }
 
-  // 应用文字
-  function applyFwText(name1, name2, bio1, bio2) {
-    const names = document.querySelectorAll('.fw-name');
+  // 应用文字（两个名字，居中显示在底部胶囊里）
+  function applyFwText(name1, name2) {
+    const names = document.querySelectorAll('.widget-friends .fw-name');
     if (names[0] && name1) names[0].textContent = name1;
     if (names[1] && name2) names[1].textContent = name2;
-    const bio = document.querySelector('.fw-bio');
-    if (bio) {
-      const b1 = bio1 || 'two souls,';
-      const b2 = bio2 || 'one frequency.';
-      bio.innerHTML = `${b1}<br>${b2}`;
-    }
   }
 
-  // 应用背景
+  // 应用背景 —— 默认完全透明；毛玻璃/自定义图片为可选项
   function applyFwBg(mode, customSrc) {
     const widget = document.querySelector('.widget-friends');
     if (!widget) return;
-    if (mode === 'transparent') {
-      widget.style.background = 'transparent';
-      widget.style.border = 'none';
-      widget.style.backdropFilter = 'none';
-      widget.style.webkitBackdropFilter = 'none';
-      widget.style.boxShadow = 'none';
+    widget.classList.remove('fw-glass-bg');
+    if (mode === 'default' || mode === 'glass') {
+      widget.classList.add('fw-glass-bg');
+      widget.style.background = '';
     } else if (mode === 'custom' && customSrc) {
       widget.style.background = `url(${customSrc}) center/cover no-repeat`;
       widget.style.border = '1px solid rgba(255,255,255,0.4)';
@@ -493,11 +545,28 @@ function updateTime() {
       widget.style.webkitBackdropFilter = 'none';
       widget.style.boxShadow = 'none';
     } else {
-      widget.style.background = '';
-      widget.style.border = '';
-      widget.style.backdropFilter = '';
-      widget.style.webkitBackdropFilter = '';
-      widget.style.boxShadow = '';
+      // transparent（默认）
+      widget.style.background = 'transparent';
+      widget.style.border = 'none';
+      widget.style.backdropFilter = 'none';
+      widget.style.webkitBackdropFilter = 'none';
+      widget.style.boxShadow = 'none';
+    }
+  }
+
+  // 应用相册照片（扇形堆叠卡片）
+  function applyFwPhoto(index, src) {
+    const cards = document.querySelectorAll('.widget-friends .fw-card');
+    const card = cards[index];
+    if (!card) return;
+    let img = card.querySelector('img');
+    if (src) {
+      if (!img) { img = document.createElement('img'); img.alt = ''; card.appendChild(img); }
+      img.src = src;
+      card.classList.add('has-img');
+    } else if (img) {
+      img.remove();
+      card.classList.remove('has-img');
     }
   }
 
@@ -507,48 +576,63 @@ function updateTime() {
     const av2 = await fwLoad('avatar2');
     const name1 = await fwLoad('name1');
     const name2 = await fwLoad('name2');
-    const bio1 = await fwLoad('bio1');
-    const bio2 = await fwLoad('bio2');
-    const bgMode = await fwLoad('bgMode') || 'default';
+    const photo1 = await fwLoad('photo1');
+    const photo2 = await fwLoad('photo2');
+    const photo3 = await fwLoad('photo3');
+    // 默认背景：完全透明
+    const bgMode = await fwLoad('bgMode') || 'transparent';
     const bgCustom = await fwLoad('bgCustom');
     if (av1) applyFwAvatar(0, av1);
     if (av2) applyFwAvatar(1, av2);
-    applyFwText(name1, name2, bio1, bio2);
+    applyFwText(name1, name2);
+    applyFwPhoto(0, photo1);
+    applyFwPhoto(1, photo2);
+    applyFwPhoto(2, photo3);
     applyFwBg(bgMode, bgCustom);
   }
 
   let tempAv1 = null, tempAv2 = null;
-  let tempFwBgMode = 'default', tempFwBgCustom = null;
+  let tempPhoto1 = null, tempPhoto2 = null, tempPhoto3 = null;
+  let tempFwBgMode = 'transparent', tempFwBgCustom = null;
 
   document.addEventListener('DOMContentLoaded', async () => {
     await initFwWidget();
+    initFwFanStack();
 
     const overlay = document.getElementById('fwEditOverlay');
     const widget = document.querySelector('.widget-friends');
 
-    // 点击组件打开弹窗
+    // 点击组件打开弹窗（点在扇形卡片上时交给拖拽/双击上传逻辑处理，不弹窗）
     if (widget) {
-      widget.addEventListener('click', async () => {
+      widget.addEventListener('click', async (e) => {
+        if (e.target.closest('.fw-card')) return;
         tempAv1 = await fwLoad('avatar1');
         tempAv2 = await fwLoad('avatar2');
-        tempFwBgMode = await fwLoad('bgMode') || 'default';
+        tempPhoto1 = await fwLoad('photo1');
+        tempPhoto2 = await fwLoad('photo2');
+        tempPhoto3 = await fwLoad('photo3');
+        tempFwBgMode = await fwLoad('bgMode') || 'transparent';
         tempFwBgCustom = await fwLoad('bgCustom');
 
         // 填入已保存的文字
         const name1 = await fwLoad('name1');
         const name2 = await fwLoad('name2');
-        const bio1 = await fwLoad('bio1');
-        const bio2 = await fwLoad('bio2');
         if (name1) document.getElementById('fwInputName1').value = name1;
         if (name2) document.getElementById('fwInputName2').value = name2;
-        if (bio1) document.getElementById('fwInputBio1').value = bio1;
-        if (bio2) document.getElementById('fwInputBio2').value = bio2;
 
         // 恢复头像预览
         const prev1 = document.getElementById('fwPreviewAvatar1');
         if (tempAv1) prev1.innerHTML = `<img src="${tempAv1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
         const prev2 = document.getElementById('fwPreviewAvatar2');
         if (tempAv2) prev2.innerHTML = `<img src="${tempAv2}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
+
+        // 恢复相册照片预览
+        const pprev1 = document.getElementById('fwPreviewPhoto1');
+        if (tempPhoto1 && pprev1) pprev1.innerHTML = `<img src="${tempPhoto1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
+        const pprev2 = document.getElementById('fwPreviewPhoto2');
+        if (tempPhoto2 && pprev2) pprev2.innerHTML = `<img src="${tempPhoto2}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
+        const pprev3 = document.getElementById('fwPreviewPhoto3');
+        if (tempPhoto3 && pprev3) pprev3.innerHTML = `<img src="${tempPhoto3}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
 
         // 背景按钮状态
         document.querySelectorAll('[data-fw-mode]').forEach(btn => {
@@ -582,6 +666,26 @@ function updateTime() {
       document.getElementById('fwPreviewAvatar2').innerHTML = `<img src="${tempAv2}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
     });
 
+    // 相册照片上传
+    document.getElementById('fwPhoto1Input').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      tempPhoto1 = await fileToBase64(file);
+      document.getElementById('fwPreviewPhoto1').innerHTML = `<img src="${tempPhoto1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
+    });
+    document.getElementById('fwPhoto2Input').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      tempPhoto2 = await fileToBase64(file);
+      document.getElementById('fwPreviewPhoto2').innerHTML = `<img src="${tempPhoto2}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
+    });
+    document.getElementById('fwPhoto3Input').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      tempPhoto3 = await fileToBase64(file);
+      document.getElementById('fwPreviewPhoto3').innerHTML = `<img src="${tempPhoto3}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>`;
+    });
+
     // 背景模式切换
     document.querySelectorAll('[data-fw-mode]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -603,26 +707,152 @@ function updateTime() {
     document.getElementById('fwModalSave').addEventListener('click', async () => {
       const name1 = document.getElementById('fwInputName1').value.trim();
       const name2 = document.getElementById('fwInputName2').value.trim();
-      const bio1 = document.getElementById('fwInputBio1').value.trim();
-      const bio2 = document.getElementById('fwInputBio2').value.trim();
 
       if (tempAv1) await fwSave('avatar1', tempAv1);
       if (tempAv2) await fwSave('avatar2', tempAv2);
+      if (tempPhoto1) await fwSave('photo1', tempPhoto1);
+      if (tempPhoto2) await fwSave('photo2', tempPhoto2);
+      if (tempPhoto3) await fwSave('photo3', tempPhoto3);
       if (name1) await fwSave('name1', name1);
       if (name2) await fwSave('name2', name2);
-      if (bio1) await fwSave('bio1', bio1);
-      if (bio2) await fwSave('bio2', bio2);
       await fwSave('bgMode', tempFwBgMode);
       if (tempFwBgCustom) await fwSave('bgCustom', tempFwBgCustom);
 
       if (tempAv1) applyFwAvatar(0, tempAv1);
       if (tempAv2) applyFwAvatar(1, tempAv2);
-      applyFwText(name1, name2, bio1, bio2);
+      if (tempPhoto1) applyFwPhoto(0, tempPhoto1);
+      if (tempPhoto2) applyFwPhoto(1, tempPhoto2);
+      if (tempPhoto3) applyFwPhoto(2, tempPhoto3);
+      applyFwText(name1, name2);
       applyFwBg(tempFwBgMode, tempFwBgCustom);
 
       overlay.style.display = 'none';
     });
   });
+
+  /* ---------- 扇形照片堆叠：图标注入 + 拖拽循环 + 双击上传 ---------- */
+  const FW_ICON_PHOTO = `<svg class="fw-ph-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="rgba(255,255,255,0.65)" stroke-width="1.3"/><circle cx="9" cy="11" r="2.2" stroke="rgba(255,255,255,0.65)" stroke-width="1.2"/><path d="M13 14l2.5-3 3 4" stroke="rgba(255,255,255,0.65)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+  function initFwFanStack() {
+    const widget = document.getElementById('fanWidget');
+    if (!widget) return;
+    const cards = Array.from(widget.querySelectorAll('.fw-card'));
+    if (!cards.length) return;
+
+    cards.forEach(c => {
+      if (!c.querySelector('.fw-ph-icon') && !c.classList.contains('has-img')) {
+        c.insertAdjacentHTML('afterbegin', FW_ICON_PHOTO);
+      }
+      if (!c.querySelector('input[type=file]')) {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = 'image/*';
+        c.appendChild(input);
+      }
+    });
+
+    cards.forEach((card, i) => {
+      const input = card.querySelector('input[type=file]');
+      card.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+        input.click();
+      });
+      input.addEventListener('click', e => e.stopPropagation());
+      input.addEventListener('change', async () => {
+        const f = input.files && input.files[0]; if (!f) return;
+        const src = await fileToBase64(f);
+        applyFwPhoto(i, src);
+        await fwSave('photo' + (i + 1), src);
+      });
+    });
+
+    let order = cards.map((_, i) => i);
+    const POSE = [
+      { rot: 0, y: 0, s: 1.00, z: 30 },
+      { rot: 22, y: 0, s: 0.96, z: 20 },
+      { rot: -22, y: 0, s: 0.96, z: 10 },
+    ];
+    const tf = (p, x = 0, r = 0, s = 0) =>
+      `translate(${x}px,${p.y}px) rotate(${p.rot + r}deg) scale(${p.s + s})`;
+
+    function applyPoses(skip) {
+      order.forEach((ci, d) => {
+        if (ci === skip) return;
+        const el = cards[ci], p = POSE[d];
+        el.style.zIndex = p.z;
+        el.style.opacity = 1;
+        el.style.filter = `brightness(${1 - d * 0.07})`;
+        el.style.transform = tf(p);
+      });
+    }
+
+    function cycle(dir) {
+      dir = dir || 1;
+      const topIdx = order[0], el = cards[topIdx];
+      el.classList.remove('dragging');
+      el.style.transition = 'transform .46s cubic-bezier(.5,0,.75,0), opacity .4s ease';
+      el.style.transform = `translate(${dir * 200}px,-20px) rotate(${dir * 34}deg) scale(1.02)`;
+      el.style.opacity = 0;
+
+      order.push(order.shift());
+      applyPoses(topIdx);
+
+      setTimeout(() => {
+        el.style.transition = 'none';
+        el.style.transform = tf(POSE[2], 0, -dir * 8, -0.06);
+        el.style.zIndex = 5;
+        void el.offsetWidth;
+        el.style.transition = '';
+        applyPoses();
+      }, 470);
+    }
+
+    let drag = null;
+    let clickTimer = null;
+    widget.addEventListener('pointerdown', e => {
+      const topEl = cards[order[0]];
+      if (!topEl.contains(e.target)) return;
+      drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, moved: false, t0: performance.now() };
+      topEl.classList.add('dragging');
+      topEl.style.transition = 'none';
+      widget.setPointerCapture(e.pointerId);
+    });
+    widget.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const topEl = cards[order[0]];
+      const dx = e.clientX - drag.x0, dy = (e.clientY - drag.y0) * 0.25;
+      drag.dx = dx; if (Math.abs(dx) > 4) drag.moved = true;
+      topEl.style.transform = `translate(${dx}px,${dy}px) rotate(${dx * 0.1}deg) scale(1.03)`;
+
+      const k = Math.min(Math.abs(dx) / 120, 1);
+      const s = cards[order[1]], t = cards[order[2]];
+      s.style.transition = 'none'; t.style.transition = 'none';
+      s.style.transform = tf(POSE[1], 0, -8 * k, 0.03 * k);
+      t.style.transform = tf(POSE[2], 0, 8 * k, 0.03 * k);
+    });
+    function endDrag(e) {
+      if (!drag || (e && e.pointerId !== drag.id)) return;
+      const topEl = cards[order[0]];
+      const dx = drag.dx, v = Math.abs(dx) / Math.max(performance.now() - drag.t0, 1), moved = drag.moved;
+      topEl.classList.remove('dragging');
+      cards[order[1]].style.transition = ''; cards[order[2]].style.transition = ''; topEl.style.transition = '';
+      drag = null;
+      if (Math.abs(dx) > 56 || v > 0.5) {
+        cycle(dx > 0 ? 1 : -1);
+      } else if (moved) {
+        applyPoses();
+      } else {
+        // 单击（未拖动）：短暂延迟后切到下一张；
+        // 如果这次点击是双击的第一击，dblclick 处理器会取消这个延迟，转而打开图片上传。
+        if (clickTimer) clearTimeout(clickTimer);
+        clickTimer = setTimeout(() => { cycle(1); clickTimer = null; }, 260);
+      }
+    }
+    widget.addEventListener('pointerup', endDrag);
+    widget.addEventListener('pointercancel', endDrag);
+
+    applyPoses();
+  }
 })();
 
 
@@ -676,7 +906,7 @@ function updateTime() {
     if (!el) return;
     el.innerHTML = src
       ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>`
-      : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(100,100,180,0.5)" stroke-width="1.6"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(100,100,180,0.5)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+      : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
   }
 
   // 应用文字
@@ -694,7 +924,7 @@ function updateTime() {
     if (!el) return;
     el.innerHTML = src
       ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" alt=""/>`
-      : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="rgba(100,100,180,0.35)" stroke-width="1.4"/><circle cx="8.5" cy="10.5" r="2" stroke="rgba(100,100,180,0.35)" stroke-width="1.3"/><path d="M3 16l4.5-4.5 3.5 3.5 2.5-2.5 4 4" stroke="rgba(100,100,180,0.35)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="rgba(255,255,255,0.55)" stroke-width="1.4"/><circle cx="8.5" cy="10.5" r="2" stroke="rgba(255,255,255,0.55)" stroke-width="1.3"/><path d="M3 16l4.5-4.5 3.5 3.5 2.5-2.5 4 4" stroke="rgba(255,255,255,0.55)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   }
 
   // 应用背景
@@ -869,7 +1099,7 @@ function updateTime() {
   function applyWdAv(side, src) {
     const el = document.querySelector(side === 0 ? '.wd-avatar-l' : '.wd-avatar-r');
     if (!el) return;
-    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`;
+    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"><span class="wd-av-ring"></span>`;
   }
 
   function applyWdText(n1, n2, b1, b2) {
@@ -1040,7 +1270,7 @@ function updateTime() {
   function applyWnImg(side, src) {
     const el = document.querySelector(side === 'l' ? '.wn-thumb-l' : '.wn-thumb-r');
     if (!el) return;
-    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:13px;">`;
+    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
   }
 
   function applyWnText(title, sub) {
@@ -1117,9 +1347,9 @@ function updateTime() {
         if (sub)   document.getElementById('wnInputSub').value   = sub;
 
         if (tempWnImgL) document.getElementById('wnPreviewL').innerHTML =
-          `<img src="${tempWnImgL}" style="width:100%;height:100%;object-fit:cover;border-radius:13px;">`;
+          `<img src="${tempWnImgL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
         if (tempWnImgR) document.getElementById('wnPreviewR').innerHTML =
-          `<img src="${tempWnImgR}" style="width:100%;height:100%;object-fit:cover;border-radius:13px;">`;
+          `<img src="${tempWnImgR}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
 
         document.querySelectorAll('[data-wn-mode]').forEach(btn => {
           btn.classList.toggle('active', btn.dataset.wnMode === tempWnBgMode);
@@ -1142,13 +1372,13 @@ function updateTime() {
       const file = e.target.files[0]; if (!file) return;
       tempWnImgL = await fileToBase64Wn(file);
       document.getElementById('wnPreviewL').innerHTML =
-        `<img src="${tempWnImgL}" style="width:100%;height:100%;object-fit:cover;border-radius:13px;">`;
+        `<img src="${tempWnImgL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
     });
     document.getElementById('wnImgRInput').addEventListener('change', async e => {
       const file = e.target.files[0]; if (!file) return;
       tempWnImgR = await fileToBase64Wn(file);
       document.getElementById('wnPreviewR').innerHTML =
-        `<img src="${tempWnImgR}" style="width:100%;height:100%;object-fit:cover;border-radius:13px;">`;
+        `<img src="${tempWnImgR}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
     });
 
     document.querySelectorAll('[data-wn-mode]').forEach(btn => {
@@ -1185,306 +1415,232 @@ function updateTime() {
   });
 })();
 
-// ========== widget-chat 编辑弹窗 ==========
+// ========== 双人心率聊天组件（widget-chat）：播放模拟 + 编辑弹窗 ==========
 (function () {
-  const PREFIX = 'wc_';
-  function wcSave(k, v) { try { localStorage.setItem(PREFIX + k, v); } catch(e){} }
-  function wcLoad(k) { try { return localStorage.getItem(PREFIX + k); } catch(e){ return null; } }
-
-  function fileToBase64Wc(file) {
+  const PREFIX = 'duo_';
+  function sv(k, v) { try { localStorage.setItem(PREFIX + k, v); } catch (e) {} }
+  function ld(k)    { try { return localStorage.getItem(PREFIX + k); } catch (e) { return null; } }
+  function ldOld(k) { try { return localStorage.getItem('wc_' + k); } catch (e) { return null; } }
+  function toB64(file) {
     return new Promise(res => {
       const r = new FileReader();
       r.onload = e => res(e.target.result);
       r.readAsDataURL(file);
     });
   }
+  const $ = id => document.getElementById(id);
 
-  // 好友头像（保留在线小圆点）
-  function applyWcFriendAv(idx, src) {
-    const rings = document.querySelectorAll('.wc-av-ring');
-    const ring = rings[idx];
-    if (!ring) return;
-    const dot = ring.querySelector('.wc-online-dot');
-    const dotHTML = dot ? dot.outerHTML : '';
-    ring.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">${dotHTML}`;
+  /* ---------- 内容应用 ---------- */
+  function applyFace(id, src) {
+    const el = $(id);
+    if (!el || !src) return;
+    el.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = src; img.alt = '';
+    el.appendChild(img);
   }
+  function applyText(id, txt) { const el = $(id); if (el && txt) el.textContent = txt; }
 
-  // 好友名字
-  function applyWcFriendNames(names) {
-    const els = document.querySelectorAll('.wc-friend-name');
-    names.forEach((n, i) => { if (els[i] && n) els[i].textContent = n; });
-  }
-
-  // 主用户头像
-  function applyWcUserAv(src) {
-    const el = document.querySelector('.wc-uav');
-    if (!el) return;
-    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
-  }
-
-  // 主用户文字
-  function applyWcUserText(name, bio) {
-    const nameEl = document.querySelector('.wc-uname');
-    const bioEl  = document.querySelector('.wc-ubio');
-    if (nameEl && name) nameEl.textContent = name;
-    if (bioEl  && bio)  bioEl.textContent  = bio;
-  }
-
-  // 三张照片
-  function applyWcPhoto(idx, src) {
-    const items = document.querySelectorAll('.wc-photo-item');
-    const el = items[idx];
-    if (!el) return;
-    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
-  }
-
-  // 气泡左侧头像
-  function applyWcMsgAv(src) {
-    const el = document.querySelector('.wc-msg-av-inner');
-    if (!el) return;
-    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
-  }
-
-  // 输入框右侧头像
-  function applyWcInputAv(src) {
-    const el = document.querySelector('.wc-input-av-inner');
-    if (!el) return;
-    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
-  }
-
-  // 气泡文字
-  function applyWcBubble(text) {
-    const el = document.querySelector('.wc-bubble-right');
-    if (el && text) el.textContent = text;
-  }
-
-  // 聊天图
-  function applyWcChatImg(src) {
-    const el = document.querySelector('.wc-img-reply');
-    if (!el) return;
-    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
-  }
-
-  // 背景
-  function applyWcBg(mode, custom) {
-    const widget = document.querySelector('.widget-chat');
-    if (!widget) return;
-    if (mode === 'transparent') {
-      widget.style.background = 'transparent';
-      widget.style.border = 'none';
-      widget.style.backdropFilter = 'none';
-      widget.style.webkitBackdropFilter = 'none';
-      widget.style.boxShadow = 'none';
+  function applyBg(mode, custom) {
+    const w = document.querySelector('.widget-chat');
+    if (!w) return;
+    ['background','border','backdropFilter','webkitBackdropFilter','boxShadow'].forEach(p => w.style[p] = '');
+    if (mode === 'blur') {
+      w.style.background = 'linear-gradient(158deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.13) 100%)';
+      w.style.border = '1px solid rgba(255,255,255,0.36)';
+      w.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 0 rgba(255,255,255,0.1), 0 14px 22px -12px rgba(0,0,0,0.55)';
+      w.style.backdropFilter = 'blur(12px) saturate(160%)';
+      w.style.webkitBackdropFilter = 'blur(12px) saturate(160%)';
+      w.style.padding = '12px 10px 10px';
     } else if (mode === 'custom' && custom) {
-      widget.style.background = `url(${custom}) center/cover no-repeat`;
-      widget.style.border = '1px solid rgba(255,255,255,0.4)';
-      widget.style.backdropFilter = 'none';
-      widget.style.webkitBackdropFilter = 'none';
-      widget.style.boxShadow = 'none';
+      w.style.background = 'url(' + custom + ') center/cover no-repeat';
+      w.style.border = '1px solid rgba(255,255,255,0.4)';
+      w.style.padding = '12px 10px 10px';
     } else {
-      widget.style.background = '';
-      widget.style.border = '';
-      widget.style.backdropFilter = '';
-      widget.style.webkitBackdropFilter = '';
-      widget.style.boxShadow = '';
+      w.style.padding = '';
     }
   }
 
-  function initWcWidget() {
-    for (let i = 1; i <= 4; i++) {
-      const av = wcLoad(`f${i}av`);
-      if (av) applyWcFriendAv(i - 1, av);
-    }
-    applyWcFriendNames([
-      wcLoad('f1name'), wcLoad('f2name'),
-      wcLoad('f3name'), wcLoad('f4name')
-    ]);
-    const uav = wcLoad('userav');
-    if (uav) applyWcUserAv(uav);
-    applyWcUserText(wcLoad('uname'), wcLoad('ubio'));
-    for (let i = 1; i <= 3; i++) {
-      const p = wcLoad(`photo${i}`);
-      if (p) applyWcPhoto(i - 1, p);
-    }
-    const bubble = wcLoad('bubble');
-    if (bubble) applyWcBubble(bubble);
-    const chatImg = wcLoad('chatimg');
-    if (chatImg) applyWcChatImg(chatImg);
-    const msgav = wcLoad('msgav');
-    if (msgav) applyWcMsgAv(msgav);
-    const inputav = wcLoad('inputav');
-    if (inputav) applyWcInputAv(inputav);
-    applyWcBg(wcLoad('bgMode') || 'blur', wcLoad('bgCustom'));
+  function initContent() {
+    // 兼容旧版本：如果之前在旧组件里上传过头像/改过名字，自动沿用
+    const avL = ld('avL') || ldOld('f1av');
+    const avR = ld('avR') || ldOld('f2av');
+    if (avL) applyFace('lgFaceL', avL);
+    if (avR) applyFace('lgFaceR', avR);
+    applyText('lgNameL', ld('nameL') || ldOld('f1name'));
+    applyText('lgNameR', ld('nameR') || ldOld('f2name'));
+    applyText('lgLy1',   ld('ly1'));
+    applyText('lgLy2',   ld('ly2'));
+    applyText('lgSong',  ld('song'));
+    applyBg(ld('bgMode') || 'transparent', ld('bgCustom'));
   }
 
-  let tempWcBgMode = 'blur', tempWcBgCustom = null;
+  /* ---------- 播放模拟：进度条 / 刻度尺 / 歌词扫光 ---------- */
+  const TOTAL = 216;                 // 03:36
+  let cur = 84, playing = true;
+  let lastTicks = -1;
 
-  // 预览辅助
-  function setPreview(id, src, radius) {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:${radius || '8px'};">`;
+  function fmt(s) {
+    s = Math.max(0, Math.floor(s));
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  }
+  function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+
+  function render() {
+    const root = $('lgDuo');
+    if (!root) return;
+    const p = cur / TOTAL;
+    root.style.setProperty('--pp', (p * 100).toFixed(2) + '%');
+
+    const c = $('lgCur'); if (c) c.textContent = fmt(cur);
+
+    // 刻度尺：走过的刻度点亮
+    const ticks = root.querySelectorAll('.lg-tk');
+    const n = Math.round(p * (ticks.length - 1)) + 1;
+    if (n !== lastTicks) {
+      ticks.forEach((t, i) => t.classList.toggle('on', i < n));
+      lastTicks = n;
+    }
+
+    // 歌词：12 秒一个循环，第一句先扫亮，再扫第二句
+    const phase = cur % 12;
+    const p1 = clamp01(phase / 5.5);
+    const p2 = clamp01((phase - 6) / 5.5);
+    const l1 = $('lgLy1'), l2 = $('lgLy2');
+    if (l1) l1.style.setProperty('--p', (p1 * 100).toFixed(1) + '%');
+    if (l2) l2.style.setProperty('--p', (p2 * 100).toFixed(1) + '%');
+  }
+
+  function setPlaying(v) {
+    playing = v;
+    const root = $('lgDuo');
+    if (root) root.classList.toggle('paused', !playing);
+  }
+
+  function seekFromEvent(e) {
+    const prog = $('lgProg');
+    const r = prog.getBoundingClientRect();
+    cur = clamp01((e.clientX - r.left) / r.width) * TOTAL;
+    render();
+  }
+
+  function initPlayer() {
+    const root = $('lgDuo');
+    if (!root) return;
+    const dur = $('lgDur'); if (dur) dur.textContent = fmt(TOTAL);
+
+    setInterval(() => {
+      if (!playing) return;
+      cur += 0.1;
+      if (cur >= TOTAL) cur = 0;
+      render();
+    }, 100);
+
+    const stop = e => e.stopPropagation();
+
+    const prog = $('lgProg');
+    let dragging = false;
+    prog.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      dragging = true;
+      try { prog.setPointerCapture(e.pointerId); } catch (_) {}
+      seekFromEvent(e);
+    });
+    prog.addEventListener('pointermove', e => { if (dragging) seekFromEvent(e); });
+    const end = e => { dragging = false; try { prog.releasePointerCapture(e.pointerId); } catch (_) {} };
+    prog.addEventListener('pointerup', end);
+    prog.addEventListener('pointercancel', end);
+    prog.addEventListener('click', stop);
+
+    $('lgPlay').addEventListener('click', e => { e.stopPropagation(); setPlaying(!playing); });
+    $('lgPrev').addEventListener('click', e => { e.stopPropagation(); cur = 0; render(); });
+    $('lgNext').addEventListener('click', e => { e.stopPropagation(); cur = Math.min(TOTAL - 1, cur + 30); render(); });
+
+    // BPM 轻微起伏，像真的在监测
+    const bpmEl = $('lgBpm');
+    if (bpmEl) setInterval(() => { bpmEl.textContent = String(70 + Math.floor(Math.random() * 5)); }, 2600);
+
+    render();
+  }
+
+  /* ---------- 编辑弹窗 ---------- */
+  let tmpMode = 'transparent', tmpCustom = null;
+
+  function setPreview(id, src) {
+    const el = $(id);
+    if (el) el.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    initWcWidget();
+    initContent();
+    initPlayer();
 
-    const overlay = document.getElementById('wcEditOverlay');
+    const overlay = $('wcEditOverlay');
     const widget  = document.querySelector('.widget-chat');
+    if (!overlay || !widget) return;
 
-    if (widget) {
-      widget.addEventListener('click', () => {
-        // 回填文字
-        const fields = [
-          ['wcInputF1','f1name'],['wcInputF2','f2name'],
-          ['wcInputF3','f3name'],['wcInputF4','f4name'],
-          ['wcInputUname','uname'],['wcInputUbio','ubio'],
-          ['wcInputBubble','bubble']
-        ];
-        fields.forEach(([id, key]) => {
-          const v = wcLoad(key);
-          if (v) document.getElementById(id).value = v;
+    widget.addEventListener('click', () => {
+      const fields = [
+        ['wcInputNameL', 'nameL', 'f1name'], ['wcInputNameR', 'nameR', 'f2name'],
+        ['wcInputLy1', 'ly1'], ['wcInputLy2', 'ly2'], ['wcInputSong', 'song']
+      ];
+      fields.forEach(([id, key, old]) => {
+        const v = ld(key) || (old ? ldOld(old) : null);
+        const el = $(id); if (el) el.value = v || '';
+      });
+      const l = ld('avL') || ldOld('f1av'); if (l) setPreview('wcPreviewAvL', l);
+      const r = ld('avR') || ldOld('f2av'); if (r) setPreview('wcPreviewAvR', r);
+
+      tmpMode = ld('bgMode') || 'transparent';
+      tmpCustom = ld('bgCustom');
+      document.querySelectorAll('[data-wc-mode]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.wcMode === tmpMode);
+      });
+      $('wcBgUploadRow').style.display = tmpMode === 'custom' ? 'block' : 'none';
+      overlay.style.display = 'flex';
+    });
+
+    $('wcModalClose').addEventListener('click', () => { overlay.style.display = 'none'; });
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
+
+    [['wcAvLInput', 'avL', 'wcPreviewAvL', 'lgFaceL'], ['wcAvRInput', 'avR', 'wcPreviewAvR', 'lgFaceR']]
+      .forEach(([inputId, key, prevId, faceId]) => {
+        $(inputId).addEventListener('change', async e => {
+          const file = e.target.files[0]; if (!file) return;
+          const src = await toB64(file);
+          sv(key, src);
+          setPreview(prevId, src);
+          applyFace(faceId, src);
         });
-
-        // 回填头像预览
-        for (let i = 1; i <= 4; i++) {
-          const v = wcLoad(`f${i}av`);
-          if (v) setPreview(`wcPreviewF${i}`, v, '50%');
-        }
-        const uav = wcLoad('userav');
-        if (uav) setPreview('wcPreviewUser', uav, '10px');
-        for (let i = 1; i <= 3; i++) {
-          const v = wcLoad(`photo${i}`);
-          if (v) setPreview(`wcPreviewP${i}`, v, '8px');
-        }
-        const ci = wcLoad('chatimg');
-        if (ci) setPreview('wcPreviewChatImg', ci, '10px');
-        const msgav = wcLoad('msgav');
-        if (msgav) setPreview('wcPreviewMsgAv', msgav, '8px');
-        const inputav = wcLoad('inputav');
-        if (inputav) setPreview('wcPreviewInputAv', inputav, '8px');
-
-        // 背景按钮
-        tempWcBgMode = wcLoad('bgMode') || 'blur';
-        tempWcBgCustom = wcLoad('bgCustom');
-        document.querySelectorAll('[data-wc-mode]').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.wcMode === tempWcBgMode);
-        });
-        document.getElementById('wcBgUploadRow').style.display =
-          tempWcBgMode === 'custom' ? 'block' : 'none';
-
-        overlay.style.display = 'flex';
       });
-    }
 
-    // 关闭
-    document.getElementById('wcModalClose').addEventListener('click', () => {
-      overlay.style.display = 'none';
-    });
-    overlay.addEventListener('click', e => {
-      if (e.target === overlay) overlay.style.display = 'none';
-    });
-
-    // 图片上传 - 好友头像1~4
-    [1,2,3,4].forEach(i => {
-      document.getElementById(`wcF${i}Input`).addEventListener('change', async e => {
-        const file = e.target.files[0]; if (!file) return;
-        const src = await fileToBase64Wc(file);
-        wcSave(`f${i}av`, src);
-        setPreview(`wcPreviewF${i}`, src, '50%');
-        applyWcFriendAv(i - 1, src);
-      });
-    });
-
-    // 主头像
-    document.getElementById('wcUserInput').addEventListener('change', async e => {
-      const file = e.target.files[0]; if (!file) return;
-      const src = await fileToBase64Wc(file);
-      wcSave('userav', src);
-      setPreview('wcPreviewUser', src, '10px');
-      applyWcUserAv(src);
-    });
-
-    // 三张照片
-    [1,2,3].forEach(i => {
-      document.getElementById(`wcP${i}Input`).addEventListener('change', async e => {
-        const file = e.target.files[0]; if (!file) return;
-        const src = await fileToBase64Wc(file);
-        wcSave(`photo${i}`, src);
-        setPreview(`wcPreviewP${i}`, src, '8px');
-        applyWcPhoto(i - 1, src);
-      });
-    });
-
-    // 聊天图
-    document.getElementById('wcChatImgInput').addEventListener('change', async e => {
-      const file = e.target.files[0]; if (!file) return;
-      const src = await fileToBase64Wc(file);
-      wcSave('chatimg', src);
-      setPreview('wcPreviewChatImg', src, '10px');
-      applyWcChatImg(src);
-    });
-
-    // 背景切换
     document.querySelectorAll('[data-wc-mode]').forEach(btn => {
       btn.addEventListener('click', () => {
-        tempWcBgMode = btn.dataset.wcMode;
+        tmpMode = btn.dataset.wcMode;
         document.querySelectorAll('[data-wc-mode]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        document.getElementById('wcBgUploadRow').style.display =
-          tempWcBgMode === 'custom' ? 'block' : 'none';
+        $('wcBgUploadRow').style.display = tmpMode === 'custom' ? 'block' : 'none';
       });
     });
-
-    // 背景图上传
-    document.getElementById('wcBgInput').addEventListener('change', async e => {
+    $('wcBgInput').addEventListener('change', async e => {
       const file = e.target.files[0]; if (!file) return;
-      tempWcBgCustom = await fileToBase64Wc(file);
-      wcSave('bgCustom', tempWcBgCustom);
+      tmpCustom = await toB64(file);
+      sv('bgCustom', tmpCustom);
     });
 
-    // 气泡左侧头像
-    document.getElementById('wcMsgAvInput').addEventListener('change', async e => {
-      const file = e.target.files[0]; if (!file) return;
-      const src = await fileToBase64Wc(file);
-      wcSave('msgav', src);
-      setPreview('wcPreviewMsgAv', src, '8px');
-      applyWcMsgAv(src);
-    });
-
-    // 输入框右侧头像
-    document.getElementById('wcInputAvInput').addEventListener('change', async e => {
-      const file = e.target.files[0]; if (!file) return;
-      const src = await fileToBase64Wc(file);
-      wcSave('inputav', src);
-      setPreview('wcPreviewInputAv', src, '8px');
-      applyWcInputAv(src);
-    });
-
-    // 保存
-    document.getElementById('wcModalSave').addEventListener('click', () => {
-      const f1 = document.getElementById('wcInputF1').value.trim();
-      const f2 = document.getElementById('wcInputF2').value.trim();
-      const f3 = document.getElementById('wcInputF3').value.trim();
-      const f4 = document.getElementById('wcInputF4').value.trim();
-      const uname  = document.getElementById('wcInputUname').value.trim();
-      const ubio   = document.getElementById('wcInputUbio').value.trim();
-      const bubble = document.getElementById('wcInputBubble').value.trim();
-
-      if (f1) wcSave('f1name', f1);
-      if (f2) wcSave('f2name', f2);
-      if (f3) wcSave('f3name', f3);
-      if (f4) wcSave('f4name', f4);
-      if (uname)  wcSave('uname',  uname);
-      if (ubio)   wcSave('ubio',   ubio);
-      if (bubble) wcSave('bubble', bubble);
-      wcSave('bgMode', tempWcBgMode);
-      if (tempWcBgCustom) wcSave('bgCustom', tempWcBgCustom);
-
-      applyWcFriendNames([f1, f2, f3, f4]);
-      applyWcUserText(uname, ubio);
-      applyWcBubble(bubble);
-      applyWcBg(tempWcBgMode, tempWcBgCustom);
-
+    $('wcModalSave').addEventListener('click', () => {
+      const map = [
+        ['wcInputNameL', 'nameL', 'lgNameL'], ['wcInputNameR', 'nameR', 'lgNameR'],
+        ['wcInputLy1', 'ly1', 'lgLy1'], ['wcInputLy2', 'ly2', 'lgLy2'],
+        ['wcInputSong', 'song', 'lgSong']
+      ];
+      map.forEach(([inId, key, outId]) => {
+        const v = $(inId).value.trim();
+        if (v) { sv(key, v); applyText(outId, v); }
+      });
+      sv('bgMode', tmpMode);
+      if (tmpCustom) sv('bgCustom', tmpCustom);
+      applyBg(tmpMode, tmpCustom);
       overlay.style.display = 'none';
     });
   });
@@ -2066,4 +2222,3 @@ document.addEventListener('DOMContentLoaded', () => applyCustomIcons());
 window.addEventListener('storage', e => {
   if (e.key === 'luna_icon_update') applyCustomIcons();
 });
-

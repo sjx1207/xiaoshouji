@@ -17,6 +17,19 @@ F.TYPES = {
   news:    { name: '快讯', icon: 'news', blurb: '热点速报、官方通报、辟谣', spec: '一条资讯快讯：title 为新闻标题；news.source 为发布来源（媒体/机构/官方账号），news.level 为 快讯/独家/通报/辟谣/深度 之一；content 150~500 字，新闻体，先说结论再补细节。' }
 };
 F.TYPE_ORDER = ['moment', 'photo', 'article', 'essay', 'poll', 'qa', 'thread', 'review', 'news'];
+F.VTYPES = {
+  vlog:      { name: 'Vlog', icon: 'camera', blurb: '跟拍一天的生活片段', spec: '第一人称跟拍的生活 vlog，有起床/出门/做事/收尾的节奏，镜头随意自然，碎碎念旁白多。' },
+  reaction:  { name: 'Reaction', icon: 'eye', blurb: '看内容时的实时反应', spec: '博主观看某段内容（新闻、MV、剧集、游戏）的实时反应视频，画面分为“屏幕内容”与“博主表情”交替，情绪起伏明显。' },
+  remix:     { name: '二创', icon: 'grid', blurb: '混剪、剪辑、鬼畜与再创作', spec: '对已有素材或热点的二次创作（混剪/踩点/鬼畜/配音），节奏快，花字与音效密集，最后有高光收尾。' },
+  tutorial:  { name: '教程', icon: 'book', blurb: '手把手的干货教学', spec: '步骤清晰的教学视频，先展示成品，再分步骤讲解，花字标注要点，结尾总结。' },
+  unbox:     { name: '开箱测评', icon: 'review', blurb: '拆箱、上手与打分', spec: '开箱测评：拆包装、细节特写、上手体验、优缺点、最终打分。' },
+  challenge: { name: '挑战', icon: 'bolt', blurb: '跟风挑战与整活', spec: '参与某个挑战/整活，有规则说明、尝试、失败或反转、结果揭晓。' },
+  explore:   { name: '探店', icon: 'pin', blurb: '探店与城市打卡', spec: '探店/打卡：门头、环境、点单、试吃或体验、价格与评价。' },
+  drama:     { name: '剧情短剧', icon: 'play', blurb: '有反转的小剧场', spec: '一分钟左右的剧情短剧：人物关系清楚，冲突推进，结尾有反转或钩子，多人对白。' },
+  clip:      { name: '直播切片', icon: 'flame', blurb: '直播里的名场面', spec: '直播间名场面切片：弹幕、礼物、主播的即兴反应与金句。' },
+  scene:     { name: '现场直击', icon: 'news', blurb: '事件现场的第一视角', spec: '新闻/事件现场的第一视角拍摄：晃动镜头、现场声、路人对话、字幕说明时间地点。' }
+};
+F.VTYPE_ORDER = ['vlog', 'reaction', 'remix', 'tutorial', 'unbox', 'challenge', 'explore', 'drama', 'clip', 'scene'];
 
 F.ai = {
   cfg() {
@@ -211,7 +224,10 @@ F.ai = {
     for (const cp of chars) charBlock += `\n【角色 @${cp.handle}】参与方式：${roleOf(cp) === 'author' ? '作为作者' : roleOf(cp) === 'comment' ? '只在评论区出现' : '可作者可评论'}\n${await this.charContext(cp)}\n`;
     const npcs = w ? this.worldNpcs(w.id).slice(0, 14) : [];
     const recent = F.state.posts.filter(p => w ? p.worldId === w.id : !p.worldId).sort((a, b) => b.createdAt - a.createdAt).slice(0, 10);
-    const authorLine = job.authorChar
+    const npcA = job.authorNpc ? F.npc(job.authorNpc) : null;
+    const authorLine = npcA
+      ? `本篇作者固定为博主 @${npcA.handle}（${npcA.nickname}），author.type 填 "npc"，author.handle 必须填 "${npcA.handle}"。TA 的设定：${npcA.persona || ''}｜简介：${npcA.bio || ''}${npcA.verifiedTitle ? '｜认证：' + npcA.verifiedTitle : ''}。内容要延续 TA 一贯的风格与领域。`
+      : job.authorChar
       ? `本篇作者固定为角色 @${F.charProfile(job.authorChar).handle}（${F.charProfile(job.authorChar).nickname}），author.type 填 "char"，author.handle 填 "${F.charProfile(job.authorChar).handle}"。请完全以该角色的人设、说话风格与发帖规范来写。`
       : `本篇作者是这个世界里的一位网友/博主（author.type 填 "npc"）。可以复用下方已有博主（handle 必须完全一致），也可以创造新的博主，但要符合常驻博主设定与网友群像。`;
     const commentChars = chars.filter(c => roleOf(c) !== 'author');
@@ -227,7 +243,9 @@ ${charBlock ? '\n【参与本次生成的角色】' + charBlock : ''}
 ${npcs.length ? `\n【已存在的博主（可复用）】\n${npcs.map(n => `@${n.handle}｜${n.nickname}｜${n.persona || n.bio || ''}`).join('\n')}` : ''}
 ${recent.length ? `\n【近期已发布内容（避免重复题材与表达）】\n${recent.map(p => '- ' + (p.title || F.plain(p.content).slice(0, 40))).join('\n')}` : ''}
 ${job.extra ? `\n【本次生成的额外要求】${job.extra}` : ''}
-
+${await this.protagonistBlock(job)}
+【当前时间】${F.timeCtx()}（发帖内容要符合这个时间点，例如深夜发的帖子带着夜晚的状态）
+${job.topic ? `【指定话题】本篇必须属于话题 #${job.topic}#，post.topic 填 "${job.topic}"。\n` : ''}
 【本篇任务】第 ${job.index + 1} 篇，类型：${T.name}
 ${T.spec}
 ${authorLine}
@@ -295,6 +313,7 @@ ${authorLine}
     const wid = w ? w.id : null;
     let author;
     if (job.authorChar) author = { kind: 'char', id: job.authorChar };
+    else if (job.authorNpc && F.npc(job.authorNpc)) author = { kind: 'npc', id: job.authorNpc };
     else author = this.ensureNpc(wid, Object.assign({}, data.author, { handle: (data.author && data.author.type === 'char') ? ('npc_' + (data.author.handle || '')) : data.author && data.author.handle }));
     const P = data.post || {};
     const createdAt = Date.now() - Math.floor(Math.random() * 3600 * 1000 * 5);
@@ -309,8 +328,10 @@ ${authorLine}
       thread: job.type === 'thread' && Array.isArray(P.thread) ? P.thread.map(String) : null,
       news: job.type === 'news' ? { source: (P.news && P.news.source) || '', level: (P.news && P.news.level) || '快讯' } : null,
       stats: { likes: +(data.stats && data.stats.likes) || 0, reposts: +(data.stats && data.stats.reposts) || 0, favorites: +(data.stats && data.stats.favorites) || 0, views: +(data.stats && data.stats.views) || 0 },
-      likedBy: [], favBy: [], comments: [], createdAt, visibility: 'public'
+      likedBy: [], favBy: [], comments: [], createdAt, visibility: 'public',
+      about: job.protagonist ? { kind: job.protagonist.kind, id: job.protagonist.id } : null
     };
+    if (job.topic) post.topic = job.topic;
     // 类型兜底：模型漏写专属字段时自动补全或降级，保证卡片与详情可正常渲染
     if (post.type === 'poll' && (!post.poll || post.poll.options.length < 2)) post.type = 'moment';
     if (post.type === 'review' && !post.review) post.review = { subject: post.title || '测评对象', category: '测评', rating: 4 };
@@ -337,7 +358,7 @@ ${authorLine}
     const thread = comment ? [`${F.person(comment.author).nickname}：${comment.text}`, ...(comment.replies || []).slice(-8).map(r => `${F.person(r.author).nickname} 回复 ${r.replyToName || ''}：${r.text}`)] : [];
     const imgs = this.imageParts(post);
     const content = `【存档设定】\n${await this.worldContext(w)}\n\n【用户（我）资料】\n${this.userContext(me)}\n
-【帖子】作者 @${postAuthor.handle}（${postAuthor.nickname}）｜类型：${F.TYPES[post.type].name}
+【帖子】作者 @${postAuthor.handle}（${postAuthor.nickname}）｜类型：${F.typeName(post.type)}
 ${post.title ? '标题：' + post.title + '\n' : ''}正文：${this.postBody(post).slice(0, 3000)}
 ${imgs.text}
 ${thread.length ? '\n【所在评论楼】\n' + thread.join('\n') : ''}
@@ -367,7 +388,7 @@ ${thread.length ? '\n【所在评论楼】\n' + thread.join('\n') : ''}
     for (const cp of chars.slice(0, 3)) charBlock += `\n【角色 @${cp.handle}】\n${await this.charContext(cp)}\n`;
     const imgs = this.imageParts(post);
     const content = `【存档设定】\n${await this.worldContext(w)}\n\n【用户（我）资料】\n${this.userContext(F.me())}\n${charBlock ? '\n【可以出现在评论区的角色】' + charBlock : ''}
-【帖子】作者 @${pa.handle}（${pa.nickname}）${pa.kind === 'user' ? '——这是用户本人发的帖子' : ''}｜类型：${F.TYPES[post.type].name}｜发布于 ${F.ago(post.createdAt)}
+【帖子】作者 @${pa.handle}（${pa.nickname}）${pa.kind === 'user' ? '——这是用户本人发的帖子' : ''}｜类型：${F.typeName(post.type)}｜发布于 ${F.ago(post.createdAt)}
 ${post.title ? '标题：' + post.title + '\n' : ''}正文：${this.postBody(post).slice(0, 3000)}
 ${imgs.text}
 当前数据：赞 ${F.likeCount(post)}，转发 ${post.stats.reposts}，收藏 ${F.favCount(post)}，浏览 ${post.stats.views}
@@ -398,22 +419,196 @@ ${existing.map((c, i) => `[${i}] ${F.person(c.author).nickname}：${c.text}${(c.
   },
 
   /* ---------------- 私信回复（用户点按“请 TA 回复”才触发） ---------------- */
+  async personaOf(ref) {
+    const p = F.person(ref);
+    if (p.kind === 'char') return await this.charContext(F.charProfile(p.id));
+    if (p.kind === 'npc') return `@${p.handle}｜${p.nickname}｜人设：${p.persona || '（依据简介与发帖推断）'}｜简介：${p.bio || ''}${p.verifiedTitle ? '｜认证：' + p.verifiedTitle : ''}${p.location ? '｜常驻：' + p.location : ''}\n所在世界：\n${await this.worldContext(F.world(p.worldId))}`;
+    return this.userContext(p);
+  },
+  msgText(m) {
+    if (m.share) { const o = F.item(m.share.kind, m.share.id); return `[分享了${m.share.kind === 'video' ? '视频' : '帖子'}：${o ? (o.title || F.plain(o.content || '').slice(0, 40)) : '已删除'}]${m.text ? ' ' + m.text : ''}`; }
+    return m.text;
+  },
   async dmReply(thread) {
     const peer = F.person(thread.peer);
     const me = F.identity(thread.identityId) || F.me();
-    let persona;
-    if (peer.kind === 'char') persona = await this.charContext(F.charProfile(peer.id));
-    else if (peer.kind === 'npc') persona = `@${peer.handle}｜${peer.nickname}｜${peer.persona || ''}｜简介：${peer.bio || ''}${peer.verifiedTitle ? '｜认证：' + peer.verifiedTitle : ''}\n所在世界：\n${await this.worldContext(F.world(peer.worldId))}`;
-    else persona = this.userContext(peer);
-    const recent = F.postsBy(thread.peer).slice(0, 3).map(p => '- ' + (p.title || F.plain(p.content).slice(0, 50))).join('\n');
-    const hist = thread.messages.slice(-30).map(m => `${m.from === 'me' ? '我' : peer.nickname}：${m.text}`).join('\n');
-    const content = `你现在扮演论坛用户 @${peer.handle}（${peer.nickname}），在私信里和我聊天。\n【你的资料与人设】\n${persona}\n${recent ? '【你最近发的帖子】\n' + recent + '\n' : ''}\n【我的资料】\n${this.userContext(me)}\n\n【私信记录】\n${hist}\n\n以你的口吻回复 1~3 条私信消息（像真人打字那样分条，自然、有温度、符合人设，不要复述我的话，不要 emoji）。输出 JSON：{"messages":["",""]}`;
-    const d = await this.callJSON([{ role: 'system', content: this.baseRules() }, { role: 'user', content }], { maxTokens: 1600 });
-    return (Array.isArray(d.messages) ? d.messages : []).map(String).filter(Boolean).slice(0, 4);
+    const persona = await this.personaOf(thread.peer);
+    const recent = [...F.postsBy(thread.peer), ...F.videosBy(thread.peer)].slice(0, 4).map(p => '- ' + (p.title || F.plain(p.content || '').slice(0, 50))).join('\n');
+    const hist = thread.messages.slice(-40).map(m => `[${new Date(m.time).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}] ${m.from === 'me' ? '我' : peer.nickname}：${this.msgText(m)}`).join('\n');
+    const n = 2 + Math.floor(Math.random() * 4);
+    const peerLoc = peer.location || (peer.kind === 'char' && F.charProfile(peer.id).location) || '';
+    const content = `你现在扮演论坛用户 @${peer.handle}（${peer.nickname}），在私信里和我聊天。
+【你的资料与人设——必须严格遵守，不能 OOC】
+${persona}
+${recent ? '【你最近发的内容】\n' + recent + '\n' : ''}
+【我的资料】
+${this.userContext(me)}
+
+【时间与地点】
+现在是 ${F.timeCtx()}。
+我所在的位置：${me.location || '未知（不要乱编具体地点，可以自然地问）'}；你所在的位置：${peerLoc || '按你的设定'}。
+要对时间有感知：深夜/清晨/饭点/工作日/周末的状态不同；距离上一条消息隔了很久要有相应反应。
+
+【私信记录】
+${hist}
+
+回复规则：
+1. 完全用你的口吻、用词、口头禅、对我的称呼与关系说话，性格前后一致，不要变成客服或温柔模板。
+2. 像真人打字那样分条发送：这次发 ${n} 条左右（可以多一条或少一条，但至少 2 条），每条长短不一。
+3. 针对我最后说的话回应，可以追问、吐槽、分享自己此刻在做的事；不要复述我的话，不要替我说话，不要 emoji。
+输出 JSON：{"messages":["第一条","第二条"]}`;
+    const d = await this.callJSON([{ role: 'system', content: this.baseRules() }, { role: 'user', content }], { maxTokens: 2400 });
+    let out = (Array.isArray(d.messages) ? d.messages : []).map(String).map(x => x.trim()).filter(Boolean);
+    if (out.length === 1) {
+      const parts = out[0].split(/(?<=[。！？!?…~])/).map(x => x.trim()).filter(Boolean);
+      if (parts.length >= 2) { const mid = Math.ceil(parts.length / 2); out = [parts.slice(0, mid).join(''), parts.slice(mid).join('')]; }
+    }
+    return out.slice(0, 7);
+  },
+
+  /* ---------------- 来信：根据存档推荐私信（用户点按触发） ---------------- */
+  async inbox(world, count = 4) {
+    const me = F.me();
+    const verified = me.verify && me.verify.status === 'verified';
+    const chars = F.state.charProfiles.filter(c => !world || !world.defaultChars.length || world.defaultChars.includes(c.id)).slice(0, 4);
+    let charBlock = '';
+    for (const cp of chars) charBlock += `\n【角色 @${cp.handle}】\n${await this.charContext(cp)}\n`;
+    const npcs = world ? this.worldNpcs(world.id).slice(0, 12) : [];
+    const myPosts = F.postsBy({ kind: 'user', id: me.id }).slice(0, 5).map(p => '- ' + (p.title || F.plain(p.content).slice(0, 40))).join('\n');
+    const content = `【存档设定】\n${await this.worldContext(world)}\n\n【收信人（我）】\n${this.userContext(me)}\n${myPosts ? '【我最近发的帖子】\n' + myPosts + '\n' : ''}
+【当前时间】${F.timeCtx()}；我的位置：${me.location || '未知'}
+${charBlock ? '【可能来信的角色】' + charBlock : ''}${npcs.length ? '\n【这个世界里已有的博主（可复用，handle 必须一致）】\n' + npcs.map(n => `@${n.handle}｜${n.nickname}｜${n.persona || n.bio || ''}`).join('\n') : ''}
+
+请生成 ${count} 段别人主动发给我的私信。${verified ? '我是认证博主：来信可以有粉丝表白与催更、商务合作邀约、同行交流、黑粉挑衅、后援会对接等。' : '我是普通用户：来信可以是朋友闲聊、同好搭话、看到我帖子来求助或讨论、网友搭讪、二手交易、小区邻居等，不要出现商务合作。'}
+要求：来信人各不相同，符合世界观和各自人设，和我的资料/帖子有关联；每段 2~5 条消息（条数各不相同），语气自然像真人；角色来信必须符合其人设与和我的关系；不要 emoji。
+输出 JSON：{"threads":[{"handle":"","nickname":"","bio":"一句话简介","persona":"一句话人设","messages":["",""]}]}`;
+    const d = await this.callJSON([{ role: 'system', content: this.baseRules() }, { role: 'user', content }], { maxTokens: Math.max(4000, F.state.settings.maxTokens) });
+    return Array.isArray(d.threads) ? d.threads.filter(t => t && Array.isArray(t.messages) && t.messages.length) : [];
+  },
+
+  /* ---------------- 正主体系 ---------------- */
+  async protagonistBlock(job) {
+    const pr = job.protagonist; if (!pr) return '';
+    const p = F.person(pr);
+    const ctx = pr.kind === 'char' ? await this.charContext(F.charProfile(pr.id)) : this.userContext(F.identity(pr.id));
+    const scale = { '小有名气': '粉丝数万，讨论集中在圈内', '当红': '粉丝百万级，常上热搜', '顶流': '粉丝千万级，一举一动都是热搜，本人帖子点赞十万以上起步' }[pr.fame] || '';
+    return `
+【正主设定——本批内容的主人公】
+正主：@${p.handle}（${p.nickname}）｜名气：${pr.fame}（${scale}）｜舆论倾向：${pr.tone}
+${ctx}
+正主规则：
+1. 内容要围绕正主展开，但视角要多样：粉丝安利与应援、路人吃瓜、营销号搬运、站姐/后援会、CP 向、黑粉与反黑、业内人士爆料、官方账号等。
+2. 网友对正主的称呼、了解的信息都要基于上面的资料，不能编造与设定冲突的经历；可以有合理的传闻与误会。
+3. 正主本人发的内容，数据要远超普通网友，评论区会有大量粉丝控评、“前排”、应援口号${pr.fame === '顶流' ? '，数据是千万级博主的量级' : ''}。
+4. 舆论倾向为“${pr.tone}”：${pr.tone === '好评为主' ? '以正面评价为主，偶有理性质疑' : pr.tone === '争议风波' ? '围绕一件争议事件，支持与反对激烈对立，但不要恶意造谣' : '支持与批评并存，立场分明'}。
+${pr.kind === 'user' ? '5. 正主就是用户本人：只能由别人讨论、@我、转述我，绝对不能替我发帖、评论或编造我的原话。' : '5. 正主是角色：若本篇作者就是正主，要用其本人的人设与口吻，并体现名人的发帖习惯（官宣、营业、回应）。'}
+`;
+  },
+
+  /* ---------------- 伪视频生成 ---------------- */
+  async genVideo(job, { onDelta, signal, onRetry } = {}) {
+    const w = F.world(job.worldId);
+    const T = F.VTYPES[job.type];
+    const me = F.me();
+    const chars = (job.chars || []).map(F.charProfile).filter(Boolean);
+    let charBlock = '';
+    for (const cp of chars) charBlock += `\n【角色 @${cp.handle}】\n${await this.charContext(cp)}\n`;
+    const npcs = w ? this.worldNpcs(w.id).slice(0, 14) : [];
+    const recent = F.state.videos.filter(v => w ? v.worldId === w.id : !v.worldId).slice(-8).map(v => '- ' + v.title);
+    let authorLine = '作者是这个世界里的一位视频博主（author.type 填 "npc"），可以复用已有博主（handle 必须一致）也可以新建。';
+    if (job.authorChar) { const c = F.charProfile(job.authorChar); authorLine = `作者固定为角色 @${c.handle}（${c.nickname}），author.type 填 "char"，完全按其人设出镜、说话。`; }
+    if (job.authorNpc) { const n = F.npc(job.authorNpc); authorLine = `作者固定为博主 @${n.handle}（${n.nickname}），author.type 填 "npc"，handle 必须填 "${n.handle}"。TA 的设定：${n.persona || n.bio || ''}`; }
+    const content = `【存档设定——全部都要读取并遵循】
+${await this.worldContext(w)}
+
+【用户（我）的资料——可被提及，但不能替我出镜说话】
+${this.userContext(me)}
+${charBlock ? '\n【参与本次生成的角色】' + charBlock : ''}${npcs.length ? `\n【已存在的博主（可复用）】\n${npcs.map(n => `@${n.handle}｜${n.nickname}｜${n.persona || n.bio || ''}`).join('\n')}` : ''}
+${recent.length ? `\n【近期已有视频（避免重复）】\n${recent.join('\n')}` : ''}
+${await this.protagonistBlock(job)}
+【当前时间】${F.timeCtx()}
+${job.extra ? `【本次侧重】${job.extra}\n` : ''}
+【任务】生成一条竖屏短视频的“逐帧脚本”，类型：${T.name}——${T.spec}
+${authorLine}
+这是用文字模拟的视频：每一帧写清楚画面、谁在说话、说了什么、屏幕上的花字与音效，读起来要像真的在看这条视频。
+帧要求：8~16 帧，按时间顺序；每帧的 bg 从这些场景里选一个最贴切的：room(室内) street(街道) night(夜景) rain(雨天) neon(霓虹) nature(自然/山林) sea(海边) snow(雪景) cafe(咖啡店/餐馆) stage(舞台/演出) studio(录影棚/纯色背景) food(美食特写) crowd(人群/现场) car(车内) window(窗边) screen(屏幕录制/游戏画面)；tone 为 light 或 dark；motion 为镜头运动 still/zoomIn/zoomOut/panL/panR/shake/drift 之一。
+line 是这一帧的台词或旁白（可空），text 是屏幕花字（可空，简短有梗），sfx 是音效（可空）。
+评论区：6~10 条一级评论，约一半带 1~3 条回复，像短视频平台的评论（玩梗、时间戳“2:13 那里”、@朋友来看）。
+
+输出 JSON：
+{"author":{"type":"npc 或 char","handle":"","nickname":"","bio":"","verified":false,"verifiedTitle":"","followers":0,"following":0,"likes":0,"location":"","persona":""},
+ "video":{"title":"视频配文（带情绪，可含#话题#）","topic":"话题（不带#）","tags":[""],"music":"背景音乐：歌名 - 歌手（可虚构）","location":"",
+   "frames":[{"scene":"画面描述 20~60 字","bg":"room","tone":"light","motion":"zoomIn","speaker":"说话人，旁白写 旁白","line":"","text":"","sfx":""}]},
+ "stats":{"likes":0,"reposts":0,"favorites":0,"views":0},
+ "comments":[{"handle":"","nickname":"","verified":false,"text":"","likes":0,"replies":[{"handle":"","nickname":"","replyTo":"","text":"","likes":0}]}]}`;
+    return this.callJSON([{ role: 'system', content: this.baseRules() }, { role: 'user', content }], { onDelta, signal, onRetry, maxTokens: Math.max(12000, F.state.settings.maxTokens) });
+  },
+  ingestVideo(job, data) {
+    const w = F.world(job.worldId); const wid = w ? w.id : null;
+    let author;
+    if (job.authorChar) author = { kind: 'char', id: job.authorChar };
+    else if (job.authorNpc && F.npc(job.authorNpc)) author = { kind: 'npc', id: job.authorNpc };
+    else author = this.ensureNpc(wid, Object.assign({}, data.author, { handle: data.author && data.author.type === 'char' ? 'npc_' + (data.author.handle || '') : data.author && data.author.handle }));
+    const V = data.video || {};
+    const BG = ['room', 'street', 'night', 'rain', 'neon', 'nature', 'sea', 'snow', 'cafe', 'stage', 'studio', 'food', 'crowd', 'car', 'window', 'screen'];
+    const MV = ['still', 'zoomIn', 'zoomOut', 'panL', 'panR', 'shake', 'drift'];
+    const frames = (Array.isArray(V.frames) ? V.frames : []).filter(f => f && (f.scene || f.line || f.text)).slice(0, 20).map(f => {
+      const line = String(f.line || ''), text = String(f.text || '');
+      return {
+        scene: String(f.scene || ''), bg: BG.includes(f.bg) ? f.bg : 'studio', tone: f.tone === 'dark' ? 'dark' : 'light', motion: MV.includes(f.motion) ? f.motion : 'drift',
+        speaker: String(f.speaker || ''), line, text, sfx: String(f.sfx || ''),
+        dur: F.clamp(1.8 + line.length * 0.2 + text.length * 0.08, 2.2, 9)
+      };
+    });
+    if (!frames.length) throw new Error('视频脚本为空');
+    const createdAt = Date.now() - Math.floor(Math.random() * 3600e3 * 5);
+    const v = {
+      id: F.uid('v'), worldId: wid, type: job.type, author, title: V.title || '', topic: String(V.topic || '').replace(/^#|#$/g, ''),
+      tags: (Array.isArray(V.tags) ? V.tags : []).map(t => String(t).replace(/^#|#$/g, '')).slice(0, 6), music: V.music || '', location: V.location || '',
+      frames, duration: frames.reduce((a, f) => a + f.dur, 0),
+      stats: { likes: +(data.stats && data.stats.likes) || 0, reposts: +(data.stats && data.stats.reposts) || 0, favorites: +(data.stats && data.stats.favorites) || 0, views: +(data.stats && data.stats.views) || 0 },
+      likedBy: [], favBy: [], comments: [], createdAt, about: job.protagonist ? { kind: job.protagonist.kind, id: job.protagonist.id } : null
+    };
+    if (job.topic) v.topic = job.topic;
+    v.comments = this.buildComments(wid, data.comments, createdAt);
+    F.state.videos.push(v);
+    return v;
+  },
+
+  /* ---------------- 热搜榜生成 ---------------- */
+  async hotlist(world) {
+    const posts = [...F.state.posts.filter(p => p.worldId === world.id && p.type !== 'repost'), ...F.state.videos.filter(v => v.worldId === world.id)]
+      .sort((a, b) => (F.likeCount(b) + F.commentCount(b) * 3) - (F.likeCount(a) + F.commentCount(a) * 3)).slice(0, 30);
+    const pr = world.protagonist && world.protagonist.id ? F.person(world.protagonist) : null;
+    const content = `【存档设定】\n${await this.worldContext(world)}\n\n【用户（我）】\n${this.userContext(F.me())}\n${pr ? `【这个世界的正主】@${pr.handle}（${pr.nickname}），名气：${world.protagonist.fame}\n` : ''}
+【当前时间】${F.timeCtx()}
+【已有的热门内容（编号）】
+${posts.map((p, i) => `[${i}] #${p.topic || (p.tags || [])[0] || '无话题'}# ${F.person(p.author).nickname}：${(p.title || F.plain(p.content || '')).slice(0, 40)}｜赞 ${F.likeCount(p)}｜评论 ${F.commentCount(p)}`).join('\n') || '（暂无）'}
+
+请生成这个世界此刻的热搜榜，共 50 条，按热度从高到低：
+- 已有内容的话题要优先上榜，并用 trigger.postIndex 指向引爆它的那条内容编号；新话题 postIndex 填 -1，并写出引爆者与引爆内容概述。
+- 话题要贴合世界观、正在发生的事与网友群像，覆盖不同领域，有真实热搜的语感（有的像新闻标题，有的像网友口头禅）。
+- 前 20 条给出完整字段；第 21~50 条只需要 title、heat、tag、category、trend。
+- tag 取值：爆 沸 热 新 荐 独家 或 空字符串；trend 取值：up down new same；since 为上榜时间（如“今天 14:32”“昨天 22:10”）；peak 为最高排名；hours 为在榜时长（小时，可带小数）；reads 阅读量；discuss 讨论量；lead 为 30~60 字导语。
+输出 JSON：{"items":[{"title":"","heat":0,"tag":"","category":"","trend":"up","since":"","peak":1,"hours":1.5,"reads":0,"discuss":0,"lead":"","trigger":{"postIndex":-1,"handle":"","nickname":"","summary":""}}]}`;
+    const d = await this.callJSON([{ role: 'system', content: this.baseRules() }, { role: 'user', content }], { maxTokens: Math.max(16000, F.state.settings.maxTokens) });
+    const items = (Array.isArray(d.items) ? d.items : []).filter(x => x && x.title).slice(0, 50).map((x, i) => {
+      const t = x.trigger || {};
+      const src = posts[+t.postIndex];
+      return {
+        rank: i + 1, title: String(x.title).replace(/^#|#$/g, ''), heat: +x.heat || Math.round(5e6 / (i + 1)), tag: x.tag || '', category: x.category || '',
+        trend: x.trend || 'same', since: x.since || '', peak: +x.peak || i + 1, hours: +x.hours || 0, reads: +x.reads || 0, discuss: +x.discuss || 0, lead: x.lead || '',
+        trigger: src ? { ref: { kind: src.frames ? 'video' : 'post', id: src.id } } : (t.summary ? { handle: t.handle || '', nickname: t.nickname || '', summary: t.summary } : null)
+      };
+    });
+    F.state.hotlists[world.id] = { at: Date.now(), items };
+    return items;
   },
 
   /* ---------------- 帖子正文与图片（识图 / 文字描述） ---------------- */
   postBody(p) {
+    if (p.frames) return `视频《${p.title || ''}》\n` + p.frames.map((f, i) => `[${i + 1}] 画面：${f.scene}${f.line ? `｜${f.speaker || '旁白'}：${f.line}` : ''}${f.text ? `｜字幕：${f.text}` : ''}`).join('\n');
+    if (p.type === 'repost') { const o = p.ref && F.item(p.ref.kind, p.ref.id); return `转发语：${p.content || '转发'}\n被转发内容：${o ? (o.title || F.plain(o.content || '').slice(0, 200)) : '（已删除）'}`; }
     let s = p.content || '';
     if (p.thread) s = p.thread.map((t, i) => `(${i + 1}/${p.thread.length}) ${t}`).join('\n');
     if (p.poll) s += `\n投票：${p.poll.question}｜${p.poll.options.map(o => o.text).join(' / ')}`;
@@ -445,15 +640,16 @@ F.gen = {
       const job = jobs[i];
       job.status = 'writing'; job.chars_out = 0; onUpdate({ i, job, phase: 'start' });
       try {
-        const data = await F.ai.generatePost(job, {
+        const isV = job.kind === 'video';
+        const data = await (isV ? F.ai.genVideo : F.ai.generatePost).call(F.ai, job, {
           signal: this.ctrl.signal,
           onDelta: txt => { job.chars_out = txt.length; onUpdate({ i, job, phase: 'delta', txt }); },
           onRetry: () => onUpdate({ i, job, phase: 'retry' })
         });
         job.status = 'parsing'; onUpdate({ i, job, phase: 'parse' });
-        const post = F.ai.ingestPost(job, data);
+        const post = isV ? F.ai.ingestVideo(job, data) : F.ai.ingestPost(job, data);
         const w = F.world(job.worldId); if (w) w.lastGenAt = Date.now();
-        await F.save('posts', 'npcs', 'worlds', 'charProfiles');
+        await F.save('posts', 'videos', 'npcs', 'worlds', 'charProfiles');
         job.status = 'done'; job.postId = post.id; results.push(post);
         onUpdate({ i, job, phase: 'done', post });
       } catch (e) {

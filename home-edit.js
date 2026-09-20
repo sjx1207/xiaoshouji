@@ -424,6 +424,8 @@
     document.body.classList.remove('home-editing');
     document.body.classList.remove('home-editing-dock');
     document.querySelectorAll('.ib-remove-badge').forEach(b => b.remove());
+    removeAllBadges();
+    removeDropGhost();
     saveLayout();
     hideToolbar();
     hideAddPageAffordance();
@@ -432,11 +434,30 @@
   }
 
   /* ---------- 删除角标（App / 写死组件 / 自建组件 / Dock App 通用） ---------- */
-  // 同样不捕获 container：元素绑定角标之后完全可能被拖去了别的容器
-  // （主屏页面之间、或主屏 ↔ dock），点击删除时必须按它"此刻"真正所在的
-  // 容器来记录移除信息，否则会把删除记录写进错误的页面/dock 存档里。
+  // 关键修复：很多组件卡片（widget-duo / widget-profile / widget-notif / widget-chat /
+  // fan-widget 等）为了做圆角+毛玻璃发光效果，自身都设置了 overflow:hidden。
+  // 如果删除角标像以前一样直接挂在这些组件内部（el.appendChild），角标位于卡片
+  // 左上角外侧（top:-6px; left:-6px），会被父级的 overflow:hidden 直接裁掉，
+  // 表现为"看不见删除按钮"——这不是层级(z-index)问题，是被裁剪了。
+  // 修复方式：角标不再作为组件的子元素，而是挂在 document.body 下的独立浮层，
+  // 用 position:fixed + getBoundingClientRect 实时贴合到目标元素的左上角，
+  // 这样永远不会被任何组件自己的 overflow:hidden 裁剪掉。
+  const badgeRegistry = new Map(); // el -> badge 节点，用于同步位置/清理
+  let badgeSyncRAF = null;
+
+  function badgeLayer() {
+    let layer = document.getElementById('ibBadgeLayer');
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.id = 'ibBadgeLayer';
+      layer.className = 'ib-badge-layer';
+      document.body.appendChild(layer);
+    }
+    return layer;
+  }
+
   function addRemoveBadge(el) {
-    if (el.querySelector(':scope > .ib-remove-badge')) return;
+    if (badgeRegistry.has(el)) return;
     const badge = document.createElement('div');
     badge.className = 'ib-remove-badge';
     badge.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -447,7 +468,42 @@
       if (!liveContainer) return;
       confirmRemoveItem(el, liveContainer);
     });
-    el.appendChild(badge);
+    badgeLayer().appendChild(badge);
+    badgeRegistry.set(el, badge);
+    startBadgeSync();
+  }
+
+  function removeBadgeFor(el) {
+    const badge = badgeRegistry.get(el);
+    if (badge) { badge.remove(); badgeRegistry.delete(el); }
+  }
+
+  function removeAllBadges() {
+    badgeRegistry.forEach(badge => badge.remove());
+    badgeRegistry.clear();
+    stopBadgeSync();
+  }
+
+  // 角标是 fixed 浮层，不随组件的 DOM 位置自动移动，需要每帧读取目标元素的
+  // 实时屏幕坐标（含抖动动画、拖拽 transform、翻页滚动）来同步贴合。
+  // 只在编辑模式且存在角标时才跑这个循环，退出编辑模式会自动停止，不会常驻耗性能。
+  function syncBadgePositions() {
+    badgeRegistry.forEach((badge, el) => {
+      if (!el.isConnected) { badge.remove(); badgeRegistry.delete(el); return; }
+      const r = el.getBoundingClientRect();
+      badge.style.transform = `translate(${r.left - 6}px, ${r.top - 6}px)`;
+    });
+    if (badgeRegistry.size > 0) {
+      badgeSyncRAF = requestAnimationFrame(syncBadgePositions);
+    } else {
+      badgeSyncRAF = null;
+    }
+  }
+  function startBadgeSync() {
+    if (badgeSyncRAF == null) badgeSyncRAF = requestAnimationFrame(syncBadgePositions);
+  }
+  function stopBadgeSync() {
+    if (badgeSyncRAF != null) { cancelAnimationFrame(badgeSyncRAF); badgeSyncRAF = null; }
   }
 
   function itemDisplayName(el) {
@@ -493,6 +549,7 @@
 
     if (key) archiveNode(key, el);
 
+    removeBadgeFor(el);
     el.remove();
     saveLayout();
     if (!isDockApp(el)) maybeAutoRemoveEmptyPage(container);
@@ -679,8 +736,7 @@
     node.removeAttribute('data-ib-long-press-bound');
     node.classList.remove('ib-dragging');
     node.style.transform = '';
-    const badge = node.querySelector(':scope > .ib-remove-badge');
-    if (badge) badge.remove();
+    removeBadgeFor(node);
     node.__ibArchivedRect = entry.rect;
     return node;
   }
@@ -710,12 +766,37 @@
 
   function isDockContainer(c) { return c && c.id === 'lunaDock'; }
 
+  // 创建/复用虚线占位框：拖拽期间挂在当前 grid 容器里，跟随目标格子移动，
+  // 模拟手机系统"图标被拿起后原位留下一个虚线空位"的效果。
+  function ensureDropGhost(container) {
+    let ghost = container.querySelector(':scope > .ib-drop-ghost');
+    if (!ghost) {
+      ghost = document.createElement('div');
+      ghost.className = 'ib-drop-ghost';
+      container.appendChild(ghost);
+    } else if (ghost.parentElement !== container) {
+      container.appendChild(ghost);
+    }
+    return ghost;
+  }
+  function positionDropGhost(container, col, row, colSpan, rowSpan) {
+    const ghost = ensureDropGhost(container);
+    ghost.style.gridColumn = colSpan > 1 ? `${col} / ${col + colSpan}` : `${col}`;
+    ghost.style.gridRow = rowSpan > 1 ? `${row} / ${row + rowSpan}` : `${row}`;
+    // 用下一帧加 show 类，保证从"刚创建/刚换格"到"淡入定位"有一次过渡而不是瞬移
+    requestAnimationFrame(() => ghost.classList.add('show'));
+  }
+  function removeDropGhost() {
+    document.querySelectorAll('.ib-drop-ghost').forEach(g => g.remove());
+  }
+
   function startDrag(el, container, e) {
     const isDock = isDockContainer(container);
     const rect = isDock ? { col: 1, row: 1, colSpan: 1, rowSpan: 1 } : getItemRect(el);
     const box = container.getBoundingClientRect();
     const cellW = box.width / (isDock ? DOCK_SLOTS : GRID_COLS);
     const cellH = box.height / (isDock ? 1 : GRID_ROWS);
+    if (!isDock) positionDropGhost(container, rect.col, rect.row, rect.colSpan, rect.rowSpan);
 
     dragCtx = {
       el,
@@ -916,8 +997,12 @@
       dragCtx.refX = dragCtx.lastPointerX != null ? dragCtx.lastPointerX : dragCtx.startX;
       dragCtx.refY = dragCtx.lastPointerY != null ? dragCtx.lastPointerY : dragCtx.startY;
       el.style.transform = prevTransform;
+      positionDropGhost(targetContainer, dragCtx.rect.col, dragCtx.rect.row, dragCtx.rect.colSpan, dragCtx.rect.rowSpan);
       return;
     }
+
+    // 拖入 dock：dock 不是网格，没有落点占位这个概念，先把虚线框收起来
+    removeDropGhost();
 
     // 拖入 dock：只有普通 App 支持进出 dock（写死组件/自建组件不允许拖进 dock，
     // 调用方 handleDockHoverTransition 已经做了这个限制），dock 图标固定 1×1，
@@ -990,6 +1075,7 @@
     if (fits(occ, targetCol, targetRow, rect.colSpan, rect.rowSpan)) {
       dragCtx.lastCol = targetCol;
       dragCtx.lastRow = targetRow;
+      positionDropGhost(grid, targetCol, targetRow, rect.colSpan, rect.rowSpan);
       return;
     }
 
@@ -1008,6 +1094,7 @@
           setItemRect(blocker, { col: dragCtx.lastCol, row: dragCtx.lastRow, colSpan: bRect.colSpan, rowSpan: bRect.rowSpan });
           dragCtx.lastCol = targetCol;
           dragCtx.lastRow = targetRow;
+          positionDropGhost(grid, targetCol, targetRow, rect.colSpan, rect.rowSpan);
         }
       }
     }
@@ -1042,6 +1129,7 @@
     }
     el.style.transform = '';
     el.classList.remove('ib-dragging');
+    removeDropGhost();
 
     if (curIsDock) {
       // Dock 槽位数量硬限制：如果拖入时已经超过 DOCK_SLOTS，弹回最后一个多余的图标到当前主屏页

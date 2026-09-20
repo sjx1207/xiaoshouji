@@ -58,6 +58,127 @@ window.addEventListener('pageshow', (e) => {
 });
 
 /* ================================
+   自定义设置页背景 + 亮度自适应
+   换成自定义壁纸后，取图片顶部区域（状态栏/列表玻璃实际盖住的
+   那一段）的平均亮度，自动决定 .luna-frame 是否加 .is-dark，
+   从而让文字颜色和玻璃高光整体切换为深色壁纸友好的配色。
+   不依赖系统深色模式开关，纯粹跟着壁纸本身的明暗走。
+================================ */
+const BG_STORAGE_KEY = 'luna_settings_bg';
+const BG_DARK_THRESHOLD = 130; // 0-255，采样均值低于此值判定为"暗背景"
+
+function detectImageBrightness(dataUrl, callback) {
+  const img = new Image();
+  img.onload = function () {
+    try {
+      const w = 40, h = 60; // 小尺寸采样即可，只关心整体明暗
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      // 只采样图片顶部约 60% 区域——玻璃列表主要盖在这部分
+      const srcH = img.naturalHeight * 0.6 || img.height * 0.6;
+      ctx.drawImage(img, 0, 0, img.naturalWidth || img.width, srcH, 0, 0, w, h);
+      const { data } = ctx.getImageData(0, 0, w, h);
+      let sum = 0, count = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        // 感知亮度加权（人眼对绿色更敏感）
+        sum += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        count++;
+      }
+      callback(count ? sum / count : 255);
+    } catch (err) {
+      // 采样失败（如跨域画布污染）时，保守按浅色处理，不影响可用性
+      callback(255);
+    }
+  };
+  img.onerror = function () { callback(255); };
+  img.src = dataUrl;
+}
+
+function applyFrameBrightness(dataUrl) {
+  const frame = document.querySelector('.luna-frame');
+  if (!frame) return;
+  // 背景更换弹层挂在 .luna-frame 外面，继承不到 is-dark，这里手动同步，
+  // 保证弹层里的玻璃/文字也跟着壁纸明暗切换
+  const sheetMask = document.getElementById('bgSheetMask');
+  if (!dataUrl) {
+    frame.classList.remove('is-dark', 'has-custom-bg');
+    if (sheetMask) sheetMask.classList.remove('is-dark');
+    return;
+  }
+  frame.classList.add('has-custom-bg');
+  detectImageBrightness(dataUrl, (avg) => {
+    const dark = avg < BG_DARK_THRESHOLD;
+    frame.classList.toggle('is-dark', dark);
+    if (sheetMask) sheetMask.classList.toggle('is-dark', dark);
+  });
+}
+
+function applyStoredSettingsBg() {
+  const data = localStorage.getItem(BG_STORAGE_KEY);
+  const frame = document.querySelector('.luna-frame');
+  const preview = document.getElementById('bgPreview');
+  const resetBtn = document.getElementById('bgResetBtn');
+  if (data) {
+    if (frame) {
+      frame.style.backgroundImage = `url(${data})`;
+      frame.style.backgroundSize = 'cover';
+      frame.style.backgroundPosition = 'center';
+    }
+    if (preview) {
+      preview.style.backgroundImage = `url(${data})`;
+      preview.classList.add('has-img');
+    }
+    if (resetBtn) resetBtn.style.display = 'block';
+    applyFrameBrightness(data);
+  } else {
+    applyFrameBrightness(null);
+  }
+}
+
+function openBgSheet() {
+  const mask = document.getElementById('bgSheetMask');
+  if (mask) mask.classList.add('open');
+}
+
+function closeBgSheet(e) {
+  if (e && e.target !== e.currentTarget) return;
+  const mask = document.getElementById('bgSheetMask');
+  if (mask) mask.classList.remove('open');
+}
+
+function onBgFileChosen(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = e.target.result;
+    localStorage.setItem(BG_STORAGE_KEY, data);
+    applyStoredSettingsBg();
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetBgWallpaper() {
+  localStorage.removeItem(BG_STORAGE_KEY);
+  const frame = document.querySelector('.luna-frame');
+  if (frame) {
+    frame.style.backgroundImage = '';
+  }
+  const preview = document.getElementById('bgPreview');
+  if (preview) {
+    preview.style.backgroundImage = '';
+    preview.classList.remove('has-img');
+  }
+  const resetBtn = document.getElementById('bgResetBtn');
+  if (resetBtn) resetBtn.style.display = 'none';
+  applyFrameBrightness(null);
+}
+
+document.addEventListener('DOMContentLoaded', applyStoredSettingsBg);
+
+/* ================================
    搜索过滤（基础版）
 ================================ */
 function filterSettings(val) {
@@ -403,18 +524,17 @@ function openFontPage() {
   if (saved.color) {
     fontPickedColor = saved.color;
     updateFontColorUI(saved.color);
-    // 恢复色块选中状态
-    document.querySelectorAll('.font-swatch').forEach(s => {
-      s.classList.toggle('selected', s.dataset.color === saved.color);
-    });
+    syncColorWheelToHex(saved.color);
   }
   if (saved.size) {
     fontPickedSize = saved.size;
     document.getElementById('fontSizeSlider').value = saved.size;
     document.getElementById('fontSizeVal').textContent = saved.size + 'px';
+    updateFontSizeSliderTrack(saved.size);
   }
   activeFontId = localStorage.getItem('luna_font_active_id') || null;
   applyFontPreview();
+  initColorWheel();
 }
 
 function closeFontPage() {
@@ -450,30 +570,171 @@ function applyFontPreview() {
 function onFontSizeChange(val) {
   fontPickedSize = parseInt(val);
   document.getElementById('fontSizeVal').textContent = val + 'px';
-  // 更新滑块渐变进度
-  const slider = document.getElementById('fontSizeSlider');
-  const pct = ((val - 10) / (24 - 10) * 100).toFixed(1);
-  slider.style.background =
-    `linear-gradient(90deg, #007aff ${pct}%, rgba(100,100,200,0.15) ${pct}%)`;
+  updateFontSizeSliderTrack(val);
   applyFontPreview();
 }
 
-/* ---- 颜色色块选择 ---- */
-function pickSwatch(el) {
-  const hex = el.dataset.color;
-  fontPickedColor = hex;
-  // 更新选中状态
-  document.querySelectorAll('.font-swatch').forEach(s => s.classList.remove('selected'));
-  el.classList.add('selected');
-  updateFontColorUI(hex);
-  applyFontPreview();
+function updateFontSizeSliderTrack(val) {
+  const slider = document.getElementById('fontSizeSlider');
+  if (!slider) return;
+  const pct = ((val - 10) / (24 - 10) * 100).toFixed(1);
+  const frame = document.querySelector('.luna-frame');
+  const trackInk = frame && frame.classList.contains('is-dark') ? '#f5f5f7' : '#26262e';
+  slider.style.background =
+    `linear-gradient(90deg, ${trackInk} ${pct}%, rgba(120,120,140,0.18) ${pct}%)`;
 }
 
 function updateFontColorUI(hex) {
   const dot = document.getElementById('fontColorDot');
   const hexEl = document.getElementById('fontColorHex');
-  if (dot)   dot.style.background = hex;
-  if (hexEl) hexEl.textContent     = hex;
+  const coreDot = document.getElementById('colorWheelCoreDot');
+  if (dot)     dot.style.background = hex;
+  if (hexEl)   hexEl.textContent    = hex;
+  if (coreDot) coreDot.style.color  = hex;
+}
+
+/* ================================
+   颜色环取色器
+   —— 纯 CSS conic-gradient 绘制色相环，
+      JS 只负责把拖动位置换算成 HSL 再转 hex，
+      不调用浏览器原生 <input type="color">。
+================================ */
+let colorWheelBound = false;
+
+function initColorWheel() {
+  const wheel = document.getElementById('colorWheel');
+  if (!wheel || colorWheelBound) return;
+  colorWheelBound = true;
+
+  const knob = document.getElementById('colorWheelKnob');
+  let dragging = false;
+
+  function setFromEvent(clientX, clientY) {
+    const rect = wheel.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const r  = rect.width / 2;
+
+    let dx = clientX - cx;
+    let dy = clientY - cy;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+
+    // 限制取色点在环带内（避免落到中间镂空区之外时数值跳变）
+    const clamped = Math.min(dist, r - 1);
+    if (dist > 0) {
+      dx = dx * (clamped / dist);
+      dy = dy * (clamped / dist);
+    }
+
+    // 角度 -> 色相（0deg 对应 conic-gradient 的 from 90deg 起点，即正上方为红色起点）
+    let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI); // -180..180, 0=右侧
+    angleDeg = (angleDeg + 90 + 360) % 360; // 转成以正上方为0°，顺时针
+    const hue = angleDeg;
+
+    // 半径 -> 饱和度（圆心=白，边缘=纯色，与 .color-wheel-sat 的径向白色衰减一致）
+    const sat = Math.min(1, clamped / r);
+
+    const hex = hslKnobToHex(hue, sat, 0.5);
+
+    fontPickedColor = hex;
+    updateFontColorUI(hex);
+    applyFontPreview();
+    positionKnob(hue, sat, r);
+  }
+
+  function positionKnob(hue, sat, r) {
+    const rad = (hue - 90) * (Math.PI / 180); // 还原成以右侧为0°的角度用于三角函数
+    const radius = sat * (r - 9); // 9 = 取色点半径，避免溢出环外
+    const kx = Math.cos(rad) * radius;
+    const ky = Math.sin(rad) * radius;
+    knob.style.transform = `translate(${kx}px, ${ky}px)`;
+  }
+
+  // 把 H/S 换算为 hex，固定中等亮度(L=0.5)以保证色环上每个位置都有清晰可辨的颜色
+  function hslKnobToHex(h, s, l) {
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const hh = h / 60;
+    const x = c * (1 - Math.abs((hh % 2) - 1));
+    let r1 = 0, g1 = 0, b1 = 0;
+    if (hh >= 0 && hh < 1)      { r1 = c; g1 = x; b1 = 0; }
+    else if (hh >= 1 && hh < 2) { r1 = x; g1 = c; b1 = 0; }
+    else if (hh >= 2 && hh < 3) { r1 = 0; g1 = c; b1 = x; }
+    else if (hh >= 3 && hh < 4) { r1 = 0; g1 = x; b1 = c; }
+    else if (hh >= 4 && hh < 5) { r1 = x; g1 = 0; b1 = c; }
+    else                        { r1 = c; g1 = 0; b1 = x; }
+    const m = l - c / 2;
+    const toHex = v => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+    return `#${toHex(r1)}${toHex(g1)}${toHex(b1)}`;
+  }
+
+  function pointerDown(e) {
+    dragging = true;
+    wheel.setPointerCapture && wheel.setPointerCapture(e.pointerId);
+    const p = pointFromEvent(e);
+    setFromEvent(p.x, p.y);
+  }
+  function pointerMove(e) {
+    if (!dragging) return;
+    const p = pointFromEvent(e);
+    setFromEvent(p.x, p.y);
+  }
+  function pointerUp() { dragging = false; }
+  function pointFromEvent(e) {
+    if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  if (window.PointerEvent) {
+    wheel.addEventListener('pointerdown', pointerDown);
+    wheel.addEventListener('pointermove', pointerMove);
+    wheel.addEventListener('pointerup', pointerUp);
+    wheel.addEventListener('pointercancel', pointerUp);
+  } else {
+    wheel.addEventListener('mousedown', pointerDown);
+    window.addEventListener('mousemove', pointerMove);
+    window.addEventListener('mouseup', pointerUp);
+    wheel.addEventListener('touchstart', pointerDown, { passive: true });
+    wheel.addEventListener('touchmove', pointerMove, { passive: true });
+    wheel.addEventListener('touchend', pointerUp);
+  }
+
+  // 暴露给 syncColorWheelToHex 使用
+  wheel._positionKnobFromHex = function (hex) {
+    const { h, s } = hexToHs(hex);
+    positionKnob(h, s, wheel.getBoundingClientRect().width / 2 || (wheel.offsetWidth / 2));
+  };
+
+  // 初始把取色点放在当前颜色对应的位置
+  wheel._positionKnobFromHex(fontPickedColor);
+}
+
+/* hex -> {h, s}，用于恢复已保存颜色时把取色点放回正确位置 */
+function hexToHs(hex) {
+  hex = (hex || '#1a1a2e').replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const r = parseInt(hex.substr(0, 2), 16) / 255;
+  const g = parseInt(hex.substr(2, 2), 16) / 255;
+  const b = parseInt(hex.substr(4, 2), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === r)      h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else                h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  const l = (max + min) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  return { h, s };
+}
+
+function syncColorWheelToHex(hex) {
+  const wheel = document.getElementById('colorWheel');
+  if (wheel && wheel._positionKnobFromHex) {
+    wheel._positionKnobFromHex(hex);
+  }
 }
 
 /* ---- 页面内输入弹窗（替代 prompt）---- */
@@ -1343,6 +1604,7 @@ function openVoicePage() {
 
   onVoiceConfigInput();
   onVoiceVoiceIdInput();
+  onVoiceCloneInput();
 }
 
 function closeVoicePage() {
@@ -1392,6 +1654,25 @@ function voiceHost() {
   return VOICE_HOSTS[voiceRegion] || VOICE_HOSTS.cn;
 }
 
+// 落库：把当前 voiceListCache（系统/克隆/捏音色三类）写入 localStorage，
+// 供聊天设置页等其它页面直接读取展示，并广播一次变化
+function persistVoiceCatalog() {
+  if (!voiceListCache) return;
+  try {
+    localStorage.setItem('luna_voice_catalog', JSON.stringify({
+      system: (voiceListCache.system || []).map(v => ({ voice_id: v.voice_id, voice_name: v.voice_name || v.voice_id })),
+      voice_cloning: (voiceListCache.voice_cloning || []).map(v => ({ voice_id: v.voice_id, voice_name: v.voice_name || v.voice_id })),
+      voice_generation: (voiceListCache.voice_generation || []).map(v => ({ voice_id: v.voice_id, voice_name: v.voice_name || v.voice_id })),
+      time: Date.now()
+    }));
+    if ('BroadcastChannel' in window) {
+      const bc = new BroadcastChannel('luna_voice_link_channel');
+      bc.postMessage({ key: 'catalog_changed', ts: Date.now() });
+      bc.close();
+    }
+  } catch (e) {}
+}
+
 // 获取账号内音色列表 (POST /v1/get_voice)
 async function fetchVoiceList() {
   const groupId = document.getElementById('voiceGroupId').value.trim();
@@ -1435,6 +1716,10 @@ async function fetchVoiceList() {
     localStorage.setItem('luna_voice_current', JSON.stringify({
       groupId, apiKey, voiceId: document.getElementById('voiceVoiceId').value.trim()
     }));
+
+    // 落库：系统音色 / 克隆音色 / 捏音色三类列表，供聊天设置页等其它
+    // 页面直接读取展示，不必各自重新持有 GroupId/apiKey 再查一次接口
+    persistVoiceCatalog();
 
     loading.style.display = 'none';
     renderVoiceList(voiceListActiveType);
@@ -1532,6 +1817,12 @@ async function runVoiceDesign() {
     voiceDesignLastId = data.voice_id;
     document.getElementById('voiceDesignVoiceId').textContent = data.voice_id;
 
+    // 并入捏音色缓存并落库，让聊天设置页也能立刻看到这枚新音色
+    if (!voiceListCache) voiceListCache = { system: [], voice_cloning: [], voice_generation: [] };
+    voiceListCache.voice_generation = voiceListCache.voice_generation || [];
+    voiceListCache.voice_generation.unshift({ voice_id: data.voice_id, voice_name: data.voice_id });
+    persistVoiceCatalog();
+
     const audioEl = document.getElementById('voiceDesignAudio');
     if (data.trial_audio) {
       audioEl.src = hexToAudioUrl(data.trial_audio, 'audio/mp3');
@@ -1551,6 +1842,139 @@ function useDesignedVoice() {
   if (!voiceDesignLastId) return;
   document.getElementById('voiceVoiceId').value = voiceDesignLastId;
   markSelectedVoiceItem();
+}
+
+/* ================================
+   上传音频克隆音色（Voice Cloning）
+   —— 与「音色设计」（文字生成音色）并列的另一条音色获取路径：
+      这里是「上传一段真实音频 → 复刻出对应音色」。
+   接口分两步：
+     1) POST /v1/files/upload（purpose=voice_clone）上传源音频，拿 file_id
+     2) POST /v1/voice_clone  带 file_id + 自定义 voice_id 完成克隆
+   计费口径（以 MiniMax 官方文档为准，具体以账号后台实际扣费为准）：
+     - 克隆这一步本身不收费；
+     - 若克隆请求里带了 text（试听参数），试听会按 T2A 语音合成
+       单价额外计费——所以这里默认不传 text，避免产生意外费用；
+     - 真正的「音色解锁」费用在你首次拿这个 voice_id 去调用 T2A
+       语音合成接口时才会扣，即本页「合成试听」区域首次点击时。
+   克隆得到的音色若 168 小时（7 天）内未被实际调用过一次 T2A，会被系统
+   自动删除；只要成功合成过一次，就会永久保留。
+================================ */
+let voiceCloneFile = null;       // 待上传的源音频 File 对象
+let voiceCloneLastId = '';       // 最近一次克隆成功得到的 voice_id
+
+function onVoiceCloneFileChange(input) {
+  const file = input.files && input.files[0];
+  const nameEl = document.getElementById('voiceCloneFileName');
+  voiceCloneFile = file || null;
+  if (nameEl) nameEl.textContent = file ? file.name : '未选择音频文件';
+  onVoiceCloneInput();
+}
+
+function onVoiceCloneInput() {
+  const gid = document.getElementById('voiceGroupId').value.trim();
+  const key = document.getElementById('voiceApiKey').value.trim();
+  const customId = document.getElementById('voiceCloneIdInput').value.trim();
+  const btn = document.getElementById('voiceCloneBtn');
+  if (btn) btn.disabled = !(gid && key && voiceCloneFile && customId);
+}
+
+// 自定义 voice_id 规则校验：8-256 位，英文字母开头，仅含字母/数字/连字符/下划线，不以连字符或下划线结尾
+function isValidCloneVoiceId(id) {
+  return /^[A-Za-z][A-Za-z0-9_-]{6,254}[A-Za-z0-9]$/.test(id);
+}
+
+async function runVoiceClone() {
+  const groupId = document.getElementById('voiceGroupId').value.trim();
+  const apiKey  = document.getElementById('voiceApiKey').value.trim();
+  const customId = document.getElementById('voiceCloneIdInput').value.trim();
+  const resultBox = document.getElementById('voiceCloneResult');
+  const resultText = document.getElementById('voiceCloneResultText');
+
+  if (!groupId || !apiKey || !voiceCloneFile || !customId) return;
+
+  if (!isValidCloneVoiceId(customId)) {
+    resultBox.style.display = '';
+    resultBox.classList.add('is-error');
+    resultText.textContent = 'voice_id 需 8-256 位，以英文字母开头，仅可包含字母/数字/连字符/下划线，且不能以连字符或下划线结尾';
+    return;
+  }
+
+  const btn = document.getElementById('voiceCloneBtn');
+  btn.disabled = true;
+  btn.textContent = '克隆中...';
+  resultBox.style.display = '';
+  resultBox.classList.remove('is-error');
+  resultText.textContent = '正在上传音频并复刻音色，请稍候...';
+
+  try {
+    // 第一步：上传源音频，purpose=voice_clone
+    const uploadForm = new FormData();
+    uploadForm.append('purpose', 'voice_clone');
+    uploadForm.append('file', voiceCloneFile);
+
+    const uploadResp = await fetch(`${voiceHost()}/v1/files/upload?GroupId=${encodeURIComponent(groupId)}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+      body: uploadForm
+    });
+    if (!uploadResp.ok) throw new Error(`上传失败 HTTP ${uploadResp.status}`);
+    const uploadData = await uploadResp.json();
+    if (uploadData.base_resp && uploadData.base_resp.status_code !== 0) {
+      throw new Error(uploadData.base_resp.status_msg || '音频上传失败');
+    }
+    const fileId = uploadData.file && uploadData.file.file_id;
+    if (!fileId) throw new Error('未获取到 file_id，请重试');
+
+    // 第二步：调用克隆接口，不传 text，避免触发试听计费
+    const cloneResp = await fetch(`${voiceHost()}/v1/voice_clone?GroupId=${encodeURIComponent(groupId)}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        file_id: fileId,
+        voice_id: customId,
+        need_noise_reduction: document.getElementById('voiceCloneDenoise').checked,
+        need_volumn_normalization: document.getElementById('voiceCloneNormalize').checked
+      })
+    });
+    if (!cloneResp.ok) throw new Error(`克隆失败 HTTP ${cloneResp.status}`);
+    const cloneData = await cloneResp.json();
+    if (cloneData.base_resp && cloneData.base_resp.status_code !== 0) {
+      throw new Error(cloneData.base_resp.status_msg || '克隆失败');
+    }
+
+    voiceCloneLastId = customId;
+    resultText.textContent = `克隆成功，音色 ID：${customId}（尚未产生费用；首次拿它去合成语音时才会扣「音色解锁」费用，请在 168 小时内至少合成一次，否则该音色会被系统自动清理）`;
+
+    // 直接把新音色并入当前已获取的音色列表缓存，无需重新拉取整份列表
+    if (!voiceListCache) voiceListCache = { system: [], voice_cloning: [], voice_generation: [] };
+    voiceListCache.voice_cloning = voiceListCache.voice_cloning || [];
+    voiceListCache.voice_cloning.unshift({ voice_id: customId, voice_name: customId, description: ['刚刚克隆'] });
+    if (voiceListActiveType === 'voice_cloning') renderVoiceList('voice_cloning');
+    persistVoiceCatalog();
+
+    // 顺手把这枚新克隆的音色填入当前 Voice ID，方便直接试听/保存
+    document.getElementById('voiceVoiceId').value = customId;
+    markSelectedVoiceItem();
+    onVoiceVoiceIdInput();
+
+    // 清空表单，避免误重复提交同一份文件
+    voiceCloneFile = null;
+    document.getElementById('voiceCloneFileInput').value = '';
+    document.getElementById('voiceCloneFileName').textContent = '未选择音频文件';
+    document.getElementById('voiceCloneIdInput').value = '';
+
+  } catch (e) {
+    resultBox.classList.add('is-error');
+    resultText.textContent = '请求失败：' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '上传并克隆音色';
+    onVoiceCloneInput();
+  }
 }
 
 // hex 编码音频 → 可播放的 blob URL
@@ -1640,6 +2064,15 @@ async function confirmSaveVoice() {
   });
   closeSaveVoiceModal();
   loadVoicePresetList();
+  // 新增预设后广播一次，确保聊天设置页等其它读取方（LunaVoiceDB.presets 的
+  // 只读消费者）能立刻感知到列表变化，不必等下次刷新/切标签页
+  try {
+    if ('BroadcastChannel' in window) {
+      const bc = new BroadcastChannel('luna_voice_link_channel');
+      bc.postMessage({ key: 'presets_changed', ts: Date.now() });
+      bc.close();
+    }
+  } catch (e) {}
 }
 
 // 删除预设弹窗
@@ -1657,6 +2090,13 @@ async function confirmDeleteVoice() {
   await voiceDbDelete(voiceDeleteTargetId);
   closeDeleteVoiceModal();
   loadVoicePresetList();
+  try {
+    if ('BroadcastChannel' in window) {
+      const bc = new BroadcastChannel('luna_voice_link_channel');
+      bc.postMessage({ key: 'presets_changed', ts: Date.now() });
+      bc.close();
+    }
+  } catch (e) {}
 }
 
 // 加载预设列表
@@ -2297,12 +2737,14 @@ let lockSetInput = '';
 
 function openLockPage() {
   const p = document.getElementById('lockPage');
-  if (p) { p.style.transform = 'translateX(0)'; p.style.opacity = '1'; }
+  // 加 .show：让 .luna-frame:has(.font-page.show) 生效，隐藏底层首页列表，
+  // 否则锁屏页玻璃会把首页文字原样糊进去（穿帮）
+  if (p) { p.classList.add('show'); p.style.transform = 'translateX(0)'; p.style.opacity = '1'; }
   initLockPage();
 }
 function closeLockPage() {
   const p = document.getElementById('lockPage');
-  if (p) { p.style.transform = 'translateX(100%)'; p.style.opacity = '0'; }
+  if (p) { p.classList.remove('show'); p.style.transform = 'translateX(100%)'; p.style.opacity = '0'; }
 }
 
 function initLockPage() {
@@ -2397,8 +2839,9 @@ function updateSetDots() {
   for (let i = 0; i < 6; i++) {
     const d = document.getElementById('setPd' + i);
     if (!d) continue;
-    d.style.background = i < lockSetInput.length ? 'rgba(60,50,120,0.7)' : 'transparent';
-    d.style.borderColor = i < lockSetInput.length ? 'rgba(60,50,120,0.7)' : 'rgba(60,50,120,0.35)';
+    // 颜色交给 CSS（#lockPassInputArea [id^="setPd"] / .filled，读 --gl-* 主题变量），
+    // 这样填充态/空心态都会跟随壁纸明暗，不再写死紫色
+    d.classList.toggle('filled', i < lockSetInput.length);
   }
 }
 

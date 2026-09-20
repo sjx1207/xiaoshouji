@@ -89,10 +89,11 @@ F.edit.visual = (host, obj, { onChange } = {}) => {
       const key = el.dataset.pick;
       const choice = obj[key] ? await F.menu(key === 'cover' ? '背景图' : '头像', [{ label: '从相册选择', value: 'pick', icon: 'image' }, { label: key === 'cover' ? '恢复默认背景' : '恢复默认头像', value: 'clear', icon: 'refresh', danger: true }]) : 'pick';
       if (!choice) return;
-      if (choice === 'clear') { obj[key] = null; if (key === 'cover') obj.coverDark = false; draw(); onChange && onChange(); return; }
+      if (choice === 'clear') { obj[key] = null; if (key === 'cover') { obj.coverDark = false; obj.coverCustom = false; } draw(); onChange && onChange(); return; }
       const [f] = await F.pickImages(false); if (!f) return;
       obj[key] = await F.readImage(f, key === 'cover' ? 1600 : 640);
-      if (key === 'cover') obj.coverDark = (await F.lum(obj.cover)) < .55;
+      if (key === 'cover') { obj.coverDark = (await F.lum(obj.cover)) < .55; obj.coverCustom = true; }
+      if (key === 'avatar' && obj.kind === 'char') obj.avatarCustom = true;
       draw(); onChange && onChange();
     });
   };
@@ -256,7 +257,7 @@ F.edit.open = (startTab = 'user') => {
         bindCharList();
         body.querySelector('[data-create]').onclick = async () => {
           const cp = F.newCharProfile(raw);
-          if (raw.avatar) cp.avatar = raw.avatar;
+          if (cp.cover) cp.coverDark = (await F.lum(cp.cover)) < .55;
           F.state.charProfiles.push(cp); await F.save('charProfiles');
           F.toast(`已为 ${raw.name} 建立档案`); drawChar();
         };
@@ -267,8 +268,9 @@ F.edit.open = (startTab = 'user') => {
       if (cp.gender == null) cp.gender = raw.gender || '';
       saveBtns.forEach(b => b.textContent = '存档 ' + (raw.name || '角色'));
       const syncRows = [
-        ['persona', '核心人设', '角色档案中的人设，是生成一切内容的依据', true],
+        ['persona', '核心人设', '只交给 AI 使用，永远不会展示在主页', true],
         ['name', '角色本名', raw.name || '—'], ['avatar', '头像', '跟随角色档案的头像'],
+        ['cover', '主页背景', F.isImg(raw.cardBg) ? '跟随角色书的卡片背景图' : '角色书里还没有背景图'],
         ['desc', '一句话描述与年龄', raw.desc || '—'], ['appearance', '外貌', raw.appearance ? '已填写' : '角色档案未填写'],
         ['traits', '性格', raw.traits ? String(raw.traits).slice(0, 30) : '角色档案未填写'], ['speechStyle', '说话风格与口头禅', raw.speechStyle ? '已填写' : '角色档案未填写'],
         ['likes', '喜好与雷点', (raw.likes || raw.dislikes) ? '已填写' : '角色档案未填写'], ['backstory', '背景经历', raw.backstory ? '已填写（较长，默认不同步）' : '角色档案未填写'],
@@ -280,7 +282,7 @@ F.edit.open = (startTab = 'user') => {
         <div class="group-title">论坛资料</div>
         ${fld('论坛昵称', txt('nickname', raw.name, 20))}
         ${fld('用户名', txt('handle', '字母、数字或下划线', 20))}
-        ${fld('简介', area('bio', 'TA 的论坛简介', 160, 2))}
+        ${fld('简介', area('bio', '一句对外的自我介绍，如：修文物的，也修人心', 60, 2), '简介会公开展示，只写一句话；人设等私密设定不会出现在主页')}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${fld('所在地', txt('location', '选填', 16))}${fld('性别', chipRow('gender', [['女', '女'], ['男', '男'], ['', '不展示']]))}</div>
         ${fld('标签', '<div id="edTags"></div>')}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${fld('初始粉丝数', `<input class="input" type="number" data-bind="base.followers">`)}${fld('关注数', `<input class="input" type="number" data-bind="base.following">`)}</div>
@@ -330,10 +332,10 @@ F.edit.open = (startTab = 'user') => {
       const drawV = () => { vHost.innerHTML = F.edit.verifyHTML(cp.verify); F.edit.bind(vHost, cp, touched); F.edit.bindVerify(vHost, cp, drawV); };
       drawV();
       body.querySelector('[data-resync]').onclick = () => {
-        if (cp.sync.name) cp.nickname = raw.name || cp.nickname;
-        if (cp.sync.avatar && raw.avatar) cp.avatar = raw.avatar;
-        if (cp.sync.desc && raw.desc && !cp.bio) cp.bio = raw.desc;
-        touched(); F.toast('已从角色档案同步'); F.edit.visual(body.querySelector('#edVisual'), cp, { onChange: touched });
+        if (cp.sync.name) { cp.nickname = raw.name || cp.nickname; cp.nameCustom = false; }
+        if (cp.sync.avatar && F.isImg(raw.avatar)) cp.avatar = raw.avatar;
+        if (cp.sync.cover !== false && F.isImg(raw.cardBg)) { cp.cover = raw.cardBg; cp.coverCustom = false; }
+        touched(); F.toast(F.isImg(raw.cardBg) ? '已同步名字、头像与背景' : '已同步（角色书里没有背景图）'); F.edit.visual(body.querySelector('#edVisual'), cp, { onChange: touched });
         body.querySelector('[data-bind="nickname"]').value = cp.nickname; body.querySelector('[data-bind="bio"]').value = cp.bio;
       };
       body.querySelector('[data-del-cp]').onclick = async () => {
@@ -344,6 +346,8 @@ F.edit.open = (startTab = 'user') => {
       saver = async () => {
         cp.sync.persona = true;
         cp.nickname = (cp.nickname || '').trim() || raw.name;
+        cp.nameCustom = cp.nickname !== raw.name;
+        if (cp.sync.cover && !cp.coverCustom && F.isImg(raw.cardBg)) cp.cover = raw.cardBg;
         cp.handle = (cp.handle || '').replace(/[^\w]/g, '').slice(0, 20) || cp.handle;
         const clash = F.state.charProfiles.find(x => x.id !== cp.id && x.handle === cp.handle) || F.state.identities.find(u => u.handle === cp.handle);
         if (clash) return F.toast('这个用户名已被占用', 'minus');

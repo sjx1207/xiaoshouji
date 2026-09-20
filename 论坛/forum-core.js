@@ -104,9 +104,9 @@ F.idb = {
 };
 
 /* ---------------- 全局状态 ---------------- */
-F.KEYS = ['identities', 'activeIdentityId', 'charProfiles', 'worlds', 'posts', 'npcs', 'dms', 'settings', 'draft'];
+F.KEYS = ['identities', 'activeIdentityId', 'charProfiles', 'worlds', 'posts', 'npcs', 'dms', 'settings', 'draft', 'videos', 'hotlists'];
 F.state = {
-  identities: [], activeIdentityId: null, charProfiles: [], worlds: [], posts: [], npcs: [], dms: [],
+  identities: [], activeIdentityId: null, charProfiles: [], worlds: [], posts: [], npcs: [], dms: [], videos: [], hotlists: {},
   settings: { vision: false, maxTokens: 8192, temperature: 0.9, stream: true, lastAutoCheck: 0 },
   draft: null
 };
@@ -157,8 +157,9 @@ F.newIdentity = (o = {}) => Object.assign({
 F.newCharProfile = (char) => ({
   id: F.uid('c'), kind: 'char', charId: char.id,
   nickname: char.name || '角色', handle: 'c' + (F.hash(char.name || char.id) % 900000 + 100000),
-  avatar: null, cover: null, bio: char.desc || '', location: '', tags: [],
-  sync: { name: true, avatar: true, persona: true, desc: true, appearance: true, traits: true, speechStyle: true, likes: true, backstory: false, relation: true, worldbook: true, memory: false },
+  // 简介只放一句对外介绍，绝不把人设/描述原文搬上主页（人设私密且过长）
+  avatar: F.isImg(char.avatar) ? char.avatar : null, cover: F.isImg(char.cardBg) ? char.cardBg : null, coverCustom: false, bio: '', location: '', tags: [],
+  sync: { name: true, avatar: true, cover: true, persona: true, desc: true, appearance: true, traits: true, speechStyle: true, likes: true, backstory: false, relation: true, worldbook: true, memory: false },
   post: { style: '', tone: '', topics: '', taboo: '', length: '适中', hashtag: '偶尔', emoji: '不用', perspective: '第一人称', mentionUser: '偶尔', sample: '' },
   auto: { enabled: false, freq: 'daily', worldId: null, types: ['moment'], lastAt: 0 },
   gen: { joinDefault: true, role: 'both', commentActive: '适中', replyUser: true },
@@ -181,6 +182,9 @@ F.charProfile = id => F.state.charProfiles.find(c => c.id === id);
 F.charProfileByChar = cid => F.state.charProfiles.find(c => c.charId === cid);
 F.world = id => F.state.worlds.find(w => w.id === id);
 F.post = id => F.state.posts.find(p => p.id === id);
+F.vid = id => F.state.videos.find(v => v.id === id);
+F.item = (kind, id) => kind === 'video' ? F.vid(id) : F.post(id);
+F.isImg = s => typeof s === 'string' && /^(data:image|https?:|blob:)/.test(s);
 F.npc = id => F.state.npcs.find(n => n.id === id);
 
 /* 统一解析作者引用 {kind,id} → 可展示的档案 */
@@ -208,11 +212,42 @@ F.followingCount = person => {
   if (person.kind === 'npc') return person.following || 0;
   return (person.base && person.base.following) || 0;
 };
-F.postsBy = ref => F.state.posts.filter(p => F.refEq(p.author, ref)).sort((a, b) => b.createdAt - a.createdAt);
-F.likesReceived = ref => F.postsBy(ref).reduce((s, p) => s + F.likeCount(p), 0) + (ref.kind === 'npc' ? ((F.npc(ref.id) || {}).likes || 0) : 0);
+F.postsBy = ref => F.state.posts.filter(p => F.refEq(p.author, ref) && p.type !== 'repost').sort((a, b) => b.createdAt - a.createdAt);
+F.repostsBy = ref => F.state.posts.filter(p => F.refEq(p.author, ref) && p.type === 'repost').sort((a, b) => b.createdAt - a.createdAt);
+F.videosBy = ref => F.state.videos.filter(v => F.refEq(v.author, ref)).sort((a, b) => b.createdAt - a.createdAt);
+F.aboutRef = ref => [...F.state.posts, ...F.state.videos].filter(p => p.about && F.refEq(p.about, ref)).sort((a, b) => b.createdAt - a.createdAt);
+F.likesReceived = ref => [...F.postsBy(ref), ...F.videosBy(ref)].reduce((s, p) => s + F.likeCount(p), 0) + (ref.kind === 'npc' ? ((F.npc(ref.id) || {}).likes || 0) : 0);
 F.likeCount = p => (p.stats.likes || 0) + (p.likedBy || []).length;
 F.favCount = p => (p.stats.favorites || 0) + (p.favBy || []).length;
 F.commentCount = p => (p.comments || []).reduce((s, c) => s + 1 + (c.replies || []).length, 0);
+
+/* ---------------- 时间感知：与桌面时区一致 ---------------- */
+F.timeCtx = () => {
+  const tz = localStorage.getItem('luna_tz') || 'Asia/Shanghai';
+  let d; try { d = new Date(new Date().toLocaleString('en-US', { timeZone: tz })); } catch (e) { d = new Date(); }
+  const h = d.getHours();
+  const seg = h < 5 ? '凌晨' : h < 8 ? '清晨' : h < 11 ? '上午' : h < 13 ? '中午' : h < 17 ? '下午' : h < 19 ? '傍晚' : h < 23 ? '晚上' : '深夜';
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${'日一二三四五六'[d.getDay()]} ${String(h).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}（${seg}，时区 ${tz}）`;
+};
+
+/* ---------------- 角色档案同步：头像 / 背景 / 名字跟随角色书，清理误写入简介的人设 ---------------- */
+F.syncChars = async () => {
+  if (!F.state.charProfiles.length) return;
+  const raws = await F.ext.chars();
+  let changed = false;
+  for (const cp of F.state.charProfiles) {
+    const raw = raws.find(r => r.id === cp.charId); if (!raw) continue;
+    const s = cp.sync || (cp.sync = {});
+    if (s.cover === undefined) { s.cover = true; changed = true; }
+    if (s.avatar !== false && F.isImg(raw.avatar) && cp.avatar !== raw.avatar) { cp.avatar = raw.avatar; changed = true; }
+    if (s.cover !== false && !cp.coverCustom && F.isImg(raw.cardBg) && cp.cover !== raw.cardBg) {
+      cp.cover = raw.cardBg; cp.coverDark = F.lum ? (await F.lum(raw.cardBg)) < .55 : false; changed = true;
+    }
+    if (s.name !== false && raw.name && !cp.nameCustom && cp.nickname !== raw.name) { cp.nickname = raw.name; changed = true; }
+    if (cp.bio && (cp.bio === raw.desc || cp.bio === raw.prompt || cp.bio.length > 100)) { cp.bio = ''; changed = true; }
+  }
+  if (changed) await F.save('charProfiles');
+};
 
 /* ---------------- 外部数据库：角色档案 / 世界书（只读，不改动版本） ---------------- */
 F.ext = {

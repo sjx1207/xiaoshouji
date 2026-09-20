@@ -155,6 +155,7 @@ F.menu = (title, items) => new Promise(res => {
 F.nav = {
   stack: [],
   push(render, opts = {}) {
+    F.video && F.video.pauseAll && F.video.pauseAll();
     const host = document.getElementById('pageStack');
     const page = document.createElement('div');
     page.className = 'page' + (opts.fromCore ? ' from-core' : '') + (opts.cls ? ' ' + opts.cls : '');
@@ -240,8 +241,10 @@ F.tabs = {
   },
   go(name) {
     const same = name === this.current;
+    if (!same && F.video && F.video.pauseAll) F.video.pauseAll();
     this.current = name;
     document.querySelectorAll('.tab-view').forEach(v => v.classList.toggle('active', v.dataset.tab === name));
+    document.getElementById('app').classList.toggle('video-mode', name === 'video');
     document.querySelectorAll('.dock-item').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
     document.getElementById('dock').classList.remove('min');
     this.moveGoo(true);
@@ -336,4 +339,14 @@ F.rich = (text, { toc = false } = {}) => {
   }
   return html;
 };
+/* 只滚动指定容器，绝不连带滚动外层页面（避免顶栏被推到状态栏下） */
+F.scrollInto = (box, el, pos = 'center', smooth = true) => {
+  if (!box || !el) return;
+  const br = box.getBoundingClientRect(), er = el.getBoundingClientRect();
+  let top = box.scrollTop + (er.top - br.top);
+  if (pos === 'center') top -= (box.clientHeight - er.height) / 2;
+  else if (pos === 'nearest') { if (er.top >= br.top && er.bottom <= br.bottom) return; if (er.bottom > br.bottom) top -= box.clientHeight - er.height - 12; else top -= 12; }
+  box.scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'auto' });
+};
+F.typeName = t => ((F.TYPES && F.TYPES[t]) || (F.VTYPES && F.VTYPES[t]) || { name: t === 'repost' ? '转发' : '内容' }).name;
 F.plain = text => String(text || '').replace(/^(-{3,}|\*{3,}|—{2,})\s*$/gm, '').replace(/^#{1,3}\s+/gm, '').replace(/\*\*|==|~~/g, '').replace(/^[>＞]\s?/gm, '').replace(/^[-·•]\s+/gm, '· ').replace(/\n{2,}/g, '\n').trim();
